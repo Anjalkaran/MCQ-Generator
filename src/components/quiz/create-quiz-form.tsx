@@ -272,7 +272,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
             <div className="flex flex-col sm:flex-row gap-2">
               <Button type="submit" disabled={isGenerating || !form.formState.isValid} className="flex-1">
                 {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Generate & Start Quiz
+                Start Exam
               </Button>
             </div>
           </form>
