@@ -28,7 +28,6 @@ export default function Home() {
     }
   };
 
-  const selectedTopicData = topics.find(t => t.id === selectedTopic);
   const maxQuestions = 50;
 
   return (
@@ -40,7 +39,7 @@ export default function Home() {
             <Card className="w-full max-w-lg shadow-lg">
               <CardHeader className="text-center">
                 <CardTitle className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl font-headline">
-                  AI-Powered MCQ Generation
+                  Anjalkaran MCQ Generator
                 </CardTitle>
                 <CardDescription className="mx-auto max-w-[700px] text-muted-foreground md:text-xl pt-2">
                   Choose a topic to start a quiz and test your understanding.
