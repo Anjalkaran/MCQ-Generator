@@ -1,117 +1,138 @@
-import { History, Leaf, BrainCircuit, Landmark } from 'lucide-react';
+import {
+  Calculator,
+  Divide,
+  Percent,
+  TrendingUp,
+  Landmark,
+  Clock,
+  Briefcase,
+  Tally1,
+} from 'lucide-react';
 import type { Topic } from './types';
 
 export const topics: Topic[] = [
   {
-    id: 'history-of-internet',
-    title: 'History of the Internet',
-    description: 'Explore the origins and evolution of the worldwide web.',
-    icon: History,
+    id: 'bodmas',
+    title: 'BODMAS',
+    description: 'Master the order of mathematical operations.',
+    icon: Divide,
     mcqs: [
       {
-        question: 'What was the name of the precursor to the Internet?',
-        options: ['ARPANET', 'TELENET', 'NSFNET', 'WEB-NET'],
-        correctAnswer: 'ARPANET',
+        question: 'What is the value of 10 + 2 * 5?',
+        options: ['60', '20', '25', '30'],
+        correctAnswer: '20',
       },
       {
-        question: 'Who is credited with inventing the World Wide Web?',
-        options: ['Bill Gates', 'Steve Jobs', 'Tim Berners-Lee', 'Vint Cerf'],
-        correctAnswer: 'Tim Berners-Lee',
-      },
-      {
-        question: 'Which protocol is used to send email?',
-        options: ['HTTP', 'FTP', 'SMTP', 'TCP/IP'],
-        correctAnswer: 'SMTP',
-      },
-      {
-        question: 'What does "HTTP" stand for?',
-        options: ['HyperText Transfer Protocol', 'High-Tech Transfer Protocol', 'HyperText Transmission Protocol', 'Hyperlink Text Transfer Protocol'],
-        correctAnswer: 'HyperText Transfer Protocol',
-      },
-      {
-        question: 'In which decade was the first email sent?',
-        options: ['1960s', '1970s', '1980s', '1990s'],
-        correctAnswer: '1970s',
+        question: 'Solve: (5 + 3) * 2 - 1',
+        options: ['15', '10', '16', '9'],
+        correctAnswer: '15',
       },
     ],
   },
   {
-    id: 'basics-of-photosynthesis',
-    title: 'Basics of Photosynthesis',
-    description: 'Learn how plants convert light energy into chemical energy.',
-    icon: Leaf,
+    id: 'average',
+    title: 'Average',
+    description: 'Learn to calculate the central value of a set of numbers.',
+    icon: Calculator,
     mcqs: [
       {
-        question: 'What is the primary pigment used in photosynthesis?',
-        options: ['Chlorophyll', 'Carotenoid', 'Anthocyanin', 'Phycobilin'],
-        correctAnswer: 'Chlorophyll',
+        question: 'What is the average of 2, 4, and 6?',
+        options: ['2', '3', '4', '5'],
+        correctAnswer: '4',
       },
       {
-        question: 'Which gas is absorbed by plants during photosynthesis?',
-        options: ['Oxygen', 'Nitrogen', 'Carbon Dioxide', 'Hydrogen'],
-        correctAnswer: 'Carbon Dioxide',
-      },
-      {
-        question: 'What is a byproduct of photosynthesis?',
-        options: ['Carbon Dioxide', 'Water', 'Oxygen', 'Glucose'],
-        correctAnswer: 'Oxygen',
-      },
-      {
-        question: 'Where does photosynthesis primarily occur in a plant cell?',
-        options: ['Mitochondria', 'Nucleus', 'Ribosome', 'Chloroplast'],
-        correctAnswer: 'Chloroplast',
+        question: 'The average of 5 numbers is 10. What is their sum?',
+        options: ['15', '50', '5', '2'],
+        correctAnswer: '50',
       },
     ],
   },
   {
-    id: 'intro-to-ai',
-    title: 'Introduction to AI',
-    description: 'Discover the fundamental concepts of Artificial Intelligence.',
-    icon: BrainCircuit,
+    id: 'percentage',
+    title: 'Percentage',
+    description: 'Understand and calculate percentages.',
+    icon: Percent,
     mcqs: [
       {
-        question: 'What does "AI" stand for?',
-        options: ['Automated Intelligence', 'Artificial Intelligence', 'Augmented Intellect', 'Algorithmic-learning Interface'],
-        correctAnswer: 'Artificial Intelligence',
+        question: 'What is 20% of 150?',
+        options: ['20', '30', '40', '50'],
+        correctAnswer: '30',
       },
       {
-        question: 'Which of these is a subfield of AI?',
-        options: ['Machine Learning', 'Data Mining', 'Cybersecurity', 'Web Development'],
-        correctAnswer: 'Machine Learning',
-      },
-      {
-        question: 'The Turing Test is used to measure a machine\'s ability to...',
-        options: ['Solve complex math problems', 'Exhibit intelligent behavior equivalent to, or indistinguishable from, that of a human', 'Process large datasets', 'Recognize images'],
-        correctAnswer: 'Exhibit intelligent behavior equivalent to, or indistinguishable from, that of a human',
+        question: 'If a shirt costs $40 and is on a 25% discount, what is the final price?',
+        options: ['$10', '$25', '$30', '$35'],
+        correctAnswer: '$30',
       },
     ],
   },
   {
-    id: 'world-capitals',
-    title: 'World Capitals',
-    description: 'Test your knowledge of capital cities from around the globe.',
+    id: 'profit-and-loss',
+    title: 'Profit and Loss',
+    description: 'Calculate profits and losses in business transactions.',
+    icon: TrendingUp,
+    mcqs: [
+      {
+        question: 'If Cost Price is $50 and Selling Price is $70, what is the profit?',
+        options: ['$10', '$20', '$30', '$120'],
+        correctAnswer: '$20',
+      },
+      {
+        question: 'An item bought for $100 is sold for $80. What is the loss percentage?',
+        options: ['10%', '20%', '25%', '15%'],
+        correctAnswer: '20%',
+      },
+    ],
+  },
+  {
+    id: 'simple-interest',
+    title: 'Simple Interest',
+    description: 'Learn the basics of calculating simple interest.',
     icon: Landmark,
     mcqs: [
-        {
-            question: 'What is the capital of Canada?',
-            options: ['Toronto', 'Vancouver', 'Ottawa', 'Montreal'],
-            correctAnswer: 'Ottawa',
-        },
-        {
-            question: 'What is the capital of Australia?',
-            options: ['Sydney', 'Melbourne', 'Canberra', 'Perth'],
-            correctAnswer: 'Canberra',
-        },
-        {
-            question: 'What is the capital of Japan?',
-            options: ['Kyoto', 'Osaka', 'Tokyo', 'Hiroshima'],
-            correctAnswer: 'Tokyo',
-        },
-        {
-            question: 'What is the capital of Brazil?',
-            options: ['Rio de Janeiro', 'São Paulo', 'Salvador', 'Brasília'],
-            correctAnswer: 'Brasília',
-        },
-    ]
-  }
+      {
+        question: 'Calculate the simple interest on $1000 for 2 years at 5% per annum.',
+        options: ['$50', '$100', '$200', '$10'],
+        correctAnswer: '$100',
+      },
+    ],
+  },
+  {
+    id: 'time-and-distance',
+    title: 'Time and Distance',
+    description: 'Solve problems related to speed, time, and distance.',
+    icon: Clock,
+    mcqs: [
+      {
+        question: 'A car travels at 60 km/h. How far will it travel in 3 hours?',
+        options: ['120 km', '150 km', '180 km', '20 km'],
+        correctAnswer: '180 km',
+      },
+    ],
+  },
+  {
+    id: 'time-and-work',
+    title: 'Time and Work',
+    description: 'Understand the relationship between time taken and work done.',
+    icon: Briefcase,
+    mcqs: [
+      {
+        question: 'If A can do a piece of work in 10 days, what portion of the work can he do in 1 day?',
+        options: ['1/10', '10', '1', '1/5'],
+        correctAnswer: '1/10',
+      },
+    ],
+  },
+  {
+    id: 'unitary-method',
+    title: 'Unitary Method',
+    description: 'Find the value of a single unit to find the value of multiple units.',
+    icon: Tally1,
+    mcqs: [
+      {
+        question: 'If 5 pens cost $10, what is the cost of 1 pen?',
+        options: ['$1', '$2', '$5', '$0.5'],
+        correctAnswer: '$2',
+      },
+    ],
+  },
 ];
