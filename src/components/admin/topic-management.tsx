@@ -213,7 +213,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
             <Card>
                 <CardHeader>
                     <CardTitle>Add New Category</CardTitle>
-                    <CardDescription>Create a new category to group your quiz topics.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...categoryForm}>
@@ -260,7 +259,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
             <Card>
                 <CardHeader>
                     <CardTitle>Add New Topic</CardTitle>
-                    <CardDescription>Add a new topic to an existing category.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...topicForm}>
@@ -474,5 +472,3 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     </div>
   );
 }
-
-    

@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import type { Topic, MCQ } from "@/lib/types";
+import type { QuizData } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface QuizClientProps {
@@ -26,7 +26,7 @@ interface QuizClientProps {
 
 export function QuizClient({ topicId }: QuizClientProps) {
   const router = useRouter();
-  const [quizData, setQuizData] = useState<{topic: Omit<Topic, 'icon'>, mcqs: MCQ[]} | null>(null);
+  const [quizData, setQuizData] = useState<QuizData | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<{ [key: number]: string }>({});
   const [isClient, setIsClient] = useState(false);

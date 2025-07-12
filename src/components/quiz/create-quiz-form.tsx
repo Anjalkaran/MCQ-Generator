@@ -37,7 +37,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [topics, setTopics] = useState<Topic[]>(initialTopics);
+  const [topics, setTopics] = useState<Topic[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -81,6 +81,10 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
         const userCategoryIds = userCategories.map(c => c.id);
         const userTopics = initialTopics.filter(t => userCategoryIds.includes(t.categoryId));
         setTopics(userTopics);
+    } else {
+        // If no user data, maybe show all topics or none
+        setCategories(initialCategories);
+        setTopics(initialTopics);
     }
   }, [userData, initialCategories, initialTopics]);
   
@@ -121,7 +125,9 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
         topic: {
           id: topicId,
           title: selectedTopic.title,
-          description: 'A custom generated quiz.'
+          description: 'A custom generated quiz.',
+          icon: selectedTopic.icon,
+          categoryId: selectedTopic.categoryId,
         },
         mcqs: mcqs,
       };
@@ -155,7 +161,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                 </div>
             </CardContent>
         </Card>
-    )
+    );
   }
 
   return (
@@ -176,7 +182,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                    <Select onValueChange={(value) => {
                      field.onChange(value);
                      form.setValue('topicId', '');
-                   }} defaultValue={field.value} disabled={!userData}>
+                   }} value={field.value} disabled={!userData}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder={!userData ? "Login to see categories" : "Select a category"} />
@@ -204,7 +210,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a topic" />
-                      </SelectTrigger>
+                      </Trigger>
                     </FormControl>
                     <SelectContent>
                       {filteredTopics.map(topic => (

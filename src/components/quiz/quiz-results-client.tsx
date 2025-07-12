@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, XCircle, Award, Repeat, Home } from "lucide-react";
-import type { Topic, MCQ } from "@/lib/types";
+import type { MCQ, QuizData } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -20,7 +20,7 @@ export function QuizResultsClient({ topicId }: QuizResultsClientProps) {
   const [userAnswers, setUserAnswers] = useState<{ [key: number]: string }>({});
   const [quizLength, setQuizLength] = useState(0);
   const [isClient, setIsClient] = useState(false);
-  const [quizData, setQuizData] = useState<{topic: Omit<Topic, 'icon'>, mcqs: MCQ[]} | null>(null);
+  const [quizData, setQuizData] = useState<QuizData | null>(null);
 
 
   useEffect(() => {
