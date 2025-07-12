@@ -61,7 +61,7 @@ export function LoginForm() {
           title: "Login Successful",
           description: "Redirecting to dashboard...",
         });
-        router.push("/dashboard");
+        window.location.assign("/dashboard");
       }
     });
   }
