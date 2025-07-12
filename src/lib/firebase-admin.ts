@@ -1,22 +1,34 @@
 
 import * as admin from 'firebase-admin';
 
-const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
-  ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
-  : undefined;
+let adminAuth: admin.auth.Auth;
+let adminDb: admin.firestore.Firestore;
 
 if (!admin.apps.length) {
   try {
-    if (!serviceAccount) {
-        throw new Error("FIREBASE_SERVICE_ACCOUNT environment variable is not set.");
+    const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT;
+    if (!serviceAccountString) {
+      throw new Error("FIREBASE_SERVICE_ACCOUNT environment variable is not set or empty.");
     }
+    const serviceAccount = JSON.parse(serviceAccountString);
+
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
-  } catch (error) {
-    console.error('Firebase admin initialization error', error);
+    
+    adminAuth = admin.auth();
+    adminDb = admin.firestore();
+
+  } catch (error: any) {
+    console.error('Firebase admin initialization error:', error.message);
+    // To prevent the app from using uninitialized services, we'll throw
+    // This will cause API routes to fail gracefully if setup is incorrect.
+    throw new Error("Firebase Admin SDK failed to initialize. Check server logs and FIREBASE_SERVICE_ACCOUNT environment variable.");
   }
+} else {
+    // If already initialized, get the existing instances
+    adminAuth = admin.auth();
+    adminDb = admin.firestore();
 }
 
-export const adminAuth = admin.auth();
-export const adminDb = admin.firestore();
+export { adminAuth, adminDb };
