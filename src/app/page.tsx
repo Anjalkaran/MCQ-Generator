@@ -14,9 +14,6 @@ export default function Home() {
           <div className="container px-4 md:px-6 flex justify-center">
             <Card className="w-full max-w-lg shadow-lg text-center">
               <CardHeader>
-                  <div className="flex justify-center mb-4">
-                    <Logo className="h-20 w-20 text-primary" />
-                  </div>
                 <CardTitle className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl font-headline">
                   Welcome to Anjalkaran MCQ Generator
                 </CardTitle>
