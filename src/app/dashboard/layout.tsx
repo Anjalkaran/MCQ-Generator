@@ -101,9 +101,6 @@ export default function DashboardLayout({
             <SidebarTrigger />
              <Link href="/" className="flex items-center gap-2">
                 <Logo className="h-12 w-auto text-primary" />
-                <h2 className="font-bold text-lg group-data-[collapsible=icon]:hidden transition-opacity duration-200">
-                  Anjalkaran
-                </h2>
              </Link>
           </div>
         </SidebarHeader>
