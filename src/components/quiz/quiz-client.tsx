@@ -21,14 +21,15 @@ import type { Topic } from "@/lib/types";
 
 interface QuizClientProps {
   topic: Omit<Topic, 'icon'>;
+  numberOfQuestions: number;
 }
 
-export function QuizClient({ topic }: QuizClientProps) {
+export function QuizClient({ topic, numberOfQuestions }: QuizClientProps) {
   const router = useRouter();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<{ [key: number]: string }>({});
   
-  const quizMcqs = topic.mcqs.slice(0, 50);
+  const quizMcqs = topic.mcqs.slice(0, numberOfQuestions);
   const currentQuestion = quizMcqs[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / quizMcqs.length) * 100;
 
@@ -40,7 +41,11 @@ export function QuizClient({ topic }: QuizClientProps) {
   
   const handleFinish = () => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem(`quizAnswers-${topic.id}`, JSON.stringify(selectedAnswers));
+      const answersToStore = {
+        answers: selectedAnswers,
+        numberOfQuestions: quizMcqs.length
+      };
+      localStorage.setItem(`quizState-${topic.id}`, JSON.stringify(answersToStore));
     }
     router.push(`/quiz/${topic.id}/results`);
   }

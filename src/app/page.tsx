@@ -12,18 +12,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 export default function Home() {
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+  const [numberOfQuestions, setNumberOfQuestions] = useState<number>(10);
   const router = useRouter();
 
   const handleStartQuiz = () => {
-    if (selectedTopic) {
-      router.push(`/quiz/${selectedTopic}`);
+    if (selectedTopic && numberOfQuestions > 0) {
+      router.push(`/quiz/${selectedTopic}?questions=${numberOfQuestions}`);
     }
   };
+
+  const selectedTopicData = topics.find(t => t.id === selectedTopic);
+  const maxQuestions = selectedTopicData ? selectedTopicData.mcqs.length : 0;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -42,21 +48,38 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col items-center space-y-6">
-                  <Select onValueChange={setSelectedTopic}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select a topic..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {topics.map((topic) => (
-                        <SelectItem key={topic.id} value={topic.id}>
-                          {topic.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="w-full space-y-2">
+                    <Label htmlFor="topic-select">Topic</Label>
+                    <Select onValueChange={setSelectedTopic} value={selectedTopic || ''}>
+                      <SelectTrigger id="topic-select" className="w-full">
+                        <SelectValue placeholder="Select a topic..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {topics.map((topic) => (
+                          <SelectItem key={topic.id} value={topic.id}>
+                            {topic.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="w-full space-y-2">
+                    <Label htmlFor="num-questions">Number of Questions</Label>
+                    <Input
+                      id="num-questions"
+                      type="number"
+                      value={numberOfQuestions}
+                      onChange={(e) => setNumberOfQuestions(parseInt(e.target.value, 10))}
+                      min="1"
+                      max={maxQuestions > 0 ? maxQuestions : undefined}
+                      disabled={!selectedTopic}
+                      className="w-full"
+                    />
+                    {selectedTopic && <p className="text-sm text-muted-foreground">Max questions available: {maxQuestions}</p>}
+                  </div>
                   <Button
                     onClick={handleStartQuiz}
-                    disabled={!selectedTopic}
+                    disabled={!selectedTopic || numberOfQuestions <= 0 || (maxQuestions > 0 && numberOfQuestions > maxQuestions)}
                     className="w-full"
                     size="lg"
                   >

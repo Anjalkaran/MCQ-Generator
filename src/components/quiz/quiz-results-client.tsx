@@ -18,18 +18,20 @@ export function QuizResultsClient({ topic }: QuizResultsClientProps) {
   const router = useRouter();
   const [score, setScore] = useState(0);
   const [userAnswers, setUserAnswers] = useState<{ [key: number]: string }>({});
+  const [quizLength, setQuizLength] = useState(10);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-    const savedAnswers = localStorage.getItem(`quizAnswers-${topic.id}`);
-    if (savedAnswers) {
-      const parsedAnswers = JSON.parse(savedAnswers);
-      setUserAnswers(parsedAnswers);
+    const savedState = localStorage.getItem(`quizState-${topic.id}`);
+    if (savedState) {
+      const { answers, numberOfQuestions } = JSON.parse(savedState);
+      setUserAnswers(answers);
+      setQuizLength(numberOfQuestions);
 
       let correctCount = 0;
-      topic.mcqs.slice(0, 50).forEach((mcq, index) => {
-        if (parsedAnswers[index] === mcq.correctAnswer) {
+      topic.mcqs.slice(0, numberOfQuestions).forEach((mcq, index) => {
+        if (answers[index] === mcq.correctAnswer) {
           correctCount++;
         }
       });
@@ -41,8 +43,8 @@ export function QuizResultsClient({ topic }: QuizResultsClientProps) {
     return null; // or a loading spinner
   }
 
-  const quizMcqs = topic.mcqs.slice(0, 50);
-  const percentage = Math.round((score / quizMcqs.length) * 100);
+  const quizMcqs = topic.mcqs.slice(0, quizLength);
+  const percentage = quizLength > 0 ? Math.round((score / quizLength) * 100) : 0;
 
   return (
     <div className="space-y-8">
@@ -57,11 +59,11 @@ export function QuizResultsClient({ topic }: QuizResultsClientProps) {
         <CardContent>
           <p className="text-5xl font-bold text-primary">{percentage}%</p>
           <p className="text-xl text-muted-foreground mt-2">
-            You scored {score} out of {quizMcqs.length}
+            You scored {score} out of {quizLength}
           </p>
           <div className="flex justify-center gap-4 mt-8">
-            <Button asChild>
-              <Link href={`/quiz/${topic.id}`}>
+            <Button asChild onClick={() => router.back()}>
+              <Link href="#">
                 <Repeat className="mr-2 h-4 w-4" />
                 Retake Quiz
               </Link>

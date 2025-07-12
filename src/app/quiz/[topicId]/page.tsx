@@ -8,8 +8,10 @@ import type { Topic } from "@/lib/types";
 
 export default function QuizPage({
   params,
+  searchParams,
 }: {
   params: { topicId: string };
+  searchParams: { [key: string]: string | string[] | undefined };
 }) {
   const topic = topics.find((t) => t.id === params.topicId);
 
@@ -17,6 +19,7 @@ export default function QuizPage({
     notFound();
   }
   
+  const numberOfQuestions = parseInt(searchParams.questions as string, 10) || 10;
   const { icon, ...serializableTopic } = topic;
 
   return (
@@ -28,7 +31,7 @@ export default function QuizPage({
             Back to Topics
           </Link>
          </Button>
-        <QuizClient topic={serializableTopic as Omit<Topic, 'icon'>} />
+        <QuizClient topic={serializableTopic as Omit<Topic, 'icon'>} numberOfQuestions={numberOfQuestions} />
       </div>
     </main>
   );
