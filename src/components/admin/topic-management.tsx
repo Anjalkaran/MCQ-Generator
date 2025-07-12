@@ -257,6 +257,7 @@ export function TopicManagement() {
                           <SelectItem value="MTS">MTS</SelectItem>
                           <SelectItem value="POSTMAN">POSTMAN</SelectItem>
                           <SelectItem value="PA">PA</SelectItem>
+                          <SelectItem value="ALL">ALL (Common)</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />

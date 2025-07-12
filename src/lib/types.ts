@@ -18,7 +18,7 @@ export interface Topic {
 export interface Category {
     id: string;
     name: string;
-    examCategory: 'MTS' | 'POSTMAN' | 'PA';
+    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'ALL';
 }
 
 export interface UserData {
@@ -26,5 +26,5 @@ export interface UserData {
     uid: string;
     name: string;
     email: string;
-    examCategory: 'MTS' | 'POSTMAN' | 'PA';
+    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'ALL';
 }

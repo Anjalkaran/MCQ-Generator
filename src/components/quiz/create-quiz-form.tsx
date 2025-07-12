@@ -69,7 +69,7 @@ export function CreateQuizForm() {
         try {
             const [catData, topicData] = await Promise.all([getCategories(), getTopics()]);
             
-            const userCategories = catData.filter(c => c.examCategory === userData.examCategory);
+            const userCategories = catData.filter(c => c.examCategory === userData.examCategory || c.examCategory === 'ALL');
             setCategories(userCategories);
 
             const userCategoryIds = userCategories.map(c => c.id);
