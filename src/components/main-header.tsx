@@ -13,28 +13,31 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getFirebaseAuth } from "@/lib/firebase";
-import { onAuthStateChanged, signOut, type User } from "firebase/auth";
+import { onAuthStateChanged, signOut, type User, type Auth } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 
 export function MainHeader() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [auth, setAuth] = useState<Auth | null>(null);
   const router = useRouter();
   const { toast } = useToast();
-  const auth = getFirebaseAuth();
 
   useEffect(() => {
-    if (!auth) {
+    const authInstance = getFirebaseAuth();
+    setAuth(authInstance);
+
+    if (authInstance) {
+      const unsubscribe = onAuthStateChanged(authInstance, (currentUser) => {
+        setUser(currentUser);
         setLoading(false);
-        return;
-    }
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+      });
+      return () => unsubscribe();
+    } else {
       setLoading(false);
-    });
-    return () => unsubscribe();
-  }, [auth]);
+    }
+  }, []);
 
   const handleLogout = async () => {
     if (!auth) return;
