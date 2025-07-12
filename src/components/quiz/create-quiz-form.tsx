@@ -18,6 +18,7 @@ import { getUserData } from '@/lib/firestore';
 import type { Category, Topic, UserData } from '@/lib/types';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { onAuthStateChanged, type User } from 'firebase/auth';
+import { summarizeTopicMaterial } from '@/ai/flows/summarize-topic-material';
 
 const formSchema = z.object({
   categoryId: z.string().min(1, 'Please select a category.'),
@@ -77,7 +78,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     if (userData) {
         const userExamCategory = userData.examCategory;
         const userCategories = initialCategories.filter(c => 
-            c.examCategories && (userExamCategory === 'ALL' || c.examCategories.includes(userExamCategory))
+            c.examCategories?.includes(userExamCategory)
         );
         setCategories(userCategories);
 
@@ -195,7 +196,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                    }} value={field.value} disabled={!userData || categories.length === 0}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder={!userData ? "Login to see categories" : (categories.length === 0 ? "No categories available" : "Select a category")} />
+                        <SelectValue placeholder={!userData ? "Login to see categories" : (categories.length === 0 ? "No categories available for your exam type" : "Select a category")} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -219,7 +220,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                    <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCategoryId || filteredTopics.length === 0}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder={filteredTopics.length === 0 ? "No topics in this category" : "Select a topic"} />
+                        <SelectValue placeholder={!selectedCategoryId ? "Select a category first" : (filteredTopics.length === 0 ? "No topics in this category" : "Select a topic")} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
