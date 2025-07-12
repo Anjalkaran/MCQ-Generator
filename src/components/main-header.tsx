@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -8,7 +9,7 @@ export function MainHeader() {
   return (
     <header className="px-4 lg:px-6 h-16 flex items-center bg-card shadow-sm">
       <Link href="/" className="flex items-center justify-center">
-        <Logo className="h-10 w-10 text-primary" />
+        <Logo className="h-12 w-auto text-primary" />
       </Link>
       <nav className="ml-auto flex gap-2 sm:gap-4 items-center">
         <Button variant="ghost" asChild>
