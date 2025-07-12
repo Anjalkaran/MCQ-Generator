@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { BrainCircuit, UserCircle } from "lucide-react";
+import { BrainCircuit, UserCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -25,15 +25,15 @@ export function MainHeader() {
 
   useEffect(() => {
     const auth = getFirebaseAuth();
-    if (auth) {
-      const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-        setUser(currentUser);
-        setLoading(false);
-      });
-      return () => unsubscribe();
-    } else {
+    if (!auth) {
       setLoading(false);
+      return;
     }
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
   const handleLogout = async () => {
@@ -63,7 +63,9 @@ export function MainHeader() {
         <span className="ml-2 text-xl font-bold font-headline">Anjalkaran MCQ Generator</span>
       </Link>
       <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
-        {loading ? null : user ? (
+        {loading ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+        ) : user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="secondary" size="icon" className="rounded-full">
@@ -74,6 +76,7 @@ export function MainHeader() {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>{user.email || 'My Account'}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push('/dashboard')}>Dashboard</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push('/dashboard/profile')}>Profile</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push('/dashboard/history')}>History</DropdownMenuItem>
                 <DropdownMenuSeparator />

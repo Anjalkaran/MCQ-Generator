@@ -27,12 +27,12 @@ export default function Home() {
               <CardContent>
                 <div className="flex flex-col items-center space-y-4">
                   <Button asChild size="lg">
-                    <Link href="/login">
-                      Login to Your Account
+                    <Link href="/dashboard">
+                      Go to Dashboard
                     </Link>
                   </Button>
                    <p className="text-sm text-muted-foreground">
-                    New user? <Link href="/register" className="underline hover:text-primary">Create an account</Link>
+                    Or <Link href="/login" className="underline hover:text-primary">log in</Link> to your account.
                   </p>
                 </div>
               </CardContent>
