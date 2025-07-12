@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { topics } from '@/lib/data';
 
 const formSchema = z.object({
-  topic: z.string().min(1, 'Please select a topic.'),
+  topic: z.string().min(1, 'Please enter a topic or select one.'),
   material: z.string().min(50, 'Material must be at least 50 characters long.'),
   numberOfQuestions: z.coerce.number().min(3).max(10),
 });
@@ -42,7 +42,7 @@ export function CreateQuizForm() {
   const handleTopicChange = (topicId: string) => {
     const selectedTopic = topics.find(t => t.id === topicId);
     if (selectedTopic) {
-      form.setValue('topic', selectedTopic.title);
+      form.setValue('topic', selectedTopic.title, { shouldValidate: true });
       form.setValue('material', selectedTopic.material, { shouldValidate: true });
     }
   };
@@ -105,10 +105,10 @@ export function CreateQuizForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Topic</FormLabel>
-                   <Select onValueChange={handleTopicChange} defaultValue={field.value}>
+                   <Select onValueChange={handleTopicChange} defaultValue="">
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a topic" />
+                        <SelectValue placeholder="Select a pre-defined topic" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -119,6 +119,9 @@ export function CreateQuizForm() {
                       ))}
                     </SelectContent>
                   </Select>
+                   <FormControl>
+                     <Input {...field} placeholder="Or enter your own topic title" className="mt-2"/>
+                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

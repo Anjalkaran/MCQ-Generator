@@ -12,5 +12,4 @@ export interface Topic {
   description: string;
   icon: LucideIcon;
   material: string;
-  mcqs: MCQ[];
 }
