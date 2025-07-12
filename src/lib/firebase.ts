@@ -13,7 +13,8 @@ const firebaseConfig = {
 
 function getFirebaseApp(): FirebaseApp | null {
     if (!firebaseConfig.apiKey) {
-        console.error("Firebase API key is missing. Please check your environment variables.");
+        // This check is primarily for server-side operations where env vars are critical.
+        // The error will be caught and handled in the action files.
         return null;
     }
     return !getApps().length ? initializeApp(firebaseConfig) : getApp();

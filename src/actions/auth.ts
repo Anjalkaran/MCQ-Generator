@@ -16,7 +16,7 @@ export async function registerUser(values: z.infer<typeof registerSchema>) {
   const db = getFirebaseDb();
 
   if (!auth || !db) {
-    return { error: 'Firebase is not configured correctly.' };
+    return { error: 'Firebase is not configured correctly. Please check your environment variables.' };
   }
 
   const validatedFields = registerSchema.safeParse(values);
@@ -48,7 +48,7 @@ export async function registerUser(values: z.infer<typeof registerSchema>) {
       return { error: 'Email is already in use.' };
     }
      if (error.code === 'auth/invalid-api-key') {
-        return { error: 'Invalid Firebase API Key.' };
+        return { error: 'Invalid Firebase API Key. Please check your environment variables.' };
     }
     return { error: 'An unknown error occurred.' };
   }
@@ -63,7 +63,7 @@ const loginSchema = z.object({
 export async function loginUser(values: z.infer<typeof loginSchema>) {
     const auth = getFirebaseAuth();
      if (!auth) {
-      return { error: 'Firebase is not configured correctly.' };
+      return { error: 'Firebase is not configured correctly. Please check your environment variables.' };
     }
     const validatedFields = loginSchema.safeParse(values);
 
@@ -83,7 +83,7 @@ export async function loginUser(values: z.infer<typeof loginSchema>) {
             case 'auth/invalid-credential':
                 return { error: 'Invalid email or password.' };
             case 'auth/invalid-api-key':
-                return { error: 'Invalid Firebase API Key.' };
+                return { error: 'Invalid Firebase API Key. Please check your environment variables.' };
             default:
                 return { error: 'An unknown error occurred.' };
         }
