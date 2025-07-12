@@ -1,34 +1,16 @@
 
 import type { ComponentProps } from 'react';
+import Image from 'next/image';
 
-export function Logo(props: Omit<ComponentProps<'svg'>, 'children'>) {
+export function Logo(props: Omit<ComponentProps<typeof Image>, 'src' | 'alt'>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 280 100"
+    <Image
+      src="/logo.png"
+      alt="Anjalkaran Logo"
+      width={280}
+      height={100}
+      priority
       {...props}
-    >
-      <text
-        x="10"
-        y="65"
-        fontFamily="cursive, sans-serif"
-        fontSize="55"
-        fontWeight="bold"
-        fontStyle="italic"
-        fill="#FFD700" 
-      >
-        Anjal
-      </text>
-      <text
-        x="155"
-        y="75"
-        fontFamily="sans-serif"
-        fontSize="65"
-        fontWeight="bold"
-        fill="#D92E1B"
-      >
-        Karan
-      </text>
-    </svg>
+    />
   );
 }
