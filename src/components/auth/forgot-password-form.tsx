@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { sendPasswordResetEmail } from 'firebase/auth';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -18,19 +18,18 @@ import Link from 'next/link';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
-  password: z.string().min(1, { message: 'Password is required.' }),
 });
 
-export function LoginForm() {
+export function ForgotPasswordForm() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: '',
-      password: '',
     },
   });
 
@@ -48,15 +47,11 @@ export function LoginForm() {
     }
 
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
-      toast({
-        title: "Success",
-        description: "Logged in successfully.",
-      });
-      router.push('/dashboard');
+      await sendPasswordResetEmail(auth, values.email);
+      setIsSubmitted(true);
     } catch (error: any) {
       toast({
-        title: 'Login Failed',
+        title: 'Error',
         description: error.message || 'An unexpected error occurred.',
         variant: 'destructive',
       });
@@ -65,11 +60,31 @@ export function LoginForm() {
     }
   };
 
+  if (isSubmitted) {
+    return (
+        <Card className="w-full max-w-sm">
+            <CardHeader className="text-center">
+                <CardTitle>Check Your Email</CardTitle>
+                <CardDescription>
+                    A password reset link has been sent to your email address. Please check your inbox and spam folder.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Button asChild className="w-full">
+                    <Link href="/auth/login">
+                        Back to Login
+                    </Link>
+                </Button>
+            </CardContent>
+        </Card>
+    )
+  }
+
   return (
     <Card className="w-full max-w-sm">
       <CardHeader className="text-center">
-        <CardTitle>Welcome Back</CardTitle>
-        <CardDescription>Enter your credentials to log in.</CardDescription>
+        <CardTitle>Forgot Password</CardTitle>
+        <CardDescription>Enter your email to receive a password reset link.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -87,37 +102,16 @@ export function LoginForm() {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center">
-                    <FormLabel>Password</FormLabel>
-                    <Link
-                      href="/auth/forgot-password"
-                      className="ml-auto inline-block text-sm underline"
-                    >
-                      Forgot password?
-                    </Link>
-                  </div>
-                  <FormControl>
-                    <Input type="password" placeholder="********" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Log In
+              Send Reset Link
             </Button>
           </form>
         </Form>
-        <div className="mt-4 text-center text-sm">
-            New user?{' '}
-            <Link href="/auth/register" className="underline">
-              Register here
+         <div className="mt-4 text-center text-sm">
+            Remember your password?{' '}
+            <Link href="/auth/login" className="underline">
+              Log In
             </Link>
         </div>
       </CardContent>
