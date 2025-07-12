@@ -25,7 +25,7 @@ export default function Home() {
               <CardContent>
                 <div className="flex flex-col items-center space-y-4">
                   <Button asChild size="lg">
-                    <Link href="/auth/register">
+                    <Link href="/auth/login">
                       Get Started
                     </Link>
                   </Button>
