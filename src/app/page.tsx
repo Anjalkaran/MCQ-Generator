@@ -18,7 +18,7 @@ export default function Home() {
                 <CardTitle className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl font-headline">
                   Welcome to MCQ Practice center
                 </CardTitle>
-                <CardDescription className="mx-auto max-w-[700px] text-muted-foreground md:text-xl pt-2">
+                <CardDescription className="mx-auto max-w-[700px] text-muted-foreground text-xl pt-2">
                   Generate targeted practice test to succeed
                 </CardDescription>
               </CardHeader>
