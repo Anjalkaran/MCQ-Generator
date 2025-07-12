@@ -174,7 +174,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                                 checked={field.value?.includes(item)}
                                                 onCheckedChange={(checked) => {
                                                 return checked
-                                                    ? field.onChange([...field.value, item])
+                                                    ? field.onChange([...(field.value || []), item])
                                                     : field.onChange(
                                                         field.value?.filter(
                                                         (value) => value !== item
@@ -288,7 +288,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                     <TableCell className="font-medium">{cat.name}</TableCell>
                                     <TableCell>
                                         <div className="flex gap-1">
-                                            {cat.examCategories.map(ec => <Badge key={ec} variant="secondary">{ec}</Badge>)}
+                                            {cat.examCategories && cat.examCategories.map(ec => <Badge key={ec} variant="secondary">{ec}</Badge>)}
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right">
@@ -359,3 +359,5 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     </div>
   );
 }
+
+    
