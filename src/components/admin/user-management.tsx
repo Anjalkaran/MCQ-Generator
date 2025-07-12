@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Trash2, Edit, PlusCircle } from 'lucide-react';
+import { Loader2, Trash2, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { deleteUserDocument, updateUserDocument } from '@/lib/firestore';
 import type { UserData } from '@/lib/types';
@@ -33,14 +33,6 @@ const userUpdateSchema = z.object({
   examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA' | 'ALL'>,
 });
 
-const newUserSchema = z.object({
-  name: z.string().min(1, { message: 'Username is required.' }),
-  email: z.string().email({ message: 'Invalid email address.' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
-  examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA' | 'ALL'>,
-});
-
-
 interface UserManagementProps {
     initialUsers: UserData[];
 }
@@ -54,16 +46,6 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
 
   const updateUserForm = useForm<z.infer<typeof userUpdateSchema>>({
     resolver: zodResolver(userUpdateSchema),
-  });
-
-  const newUserForm = useForm<z.infer<typeof newUserSchema>>({
-    resolver: zodResolver(newUserSchema),
-    defaultValues: {
-        name: '',
-        email: '',
-        password: '',
-        examCategory: 'MTS'
-    }
   });
 
   const handleOpenUpdateDialog = (user: UserData) => {
@@ -92,42 +74,6 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     }
   };
 
-  const onCreateUserSubmit = async (values: z.infer<typeof newUserSchema>) => {
-    setIsLoading(true);
-    try {
-        const response = await fetch('/api/create-user', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(values),
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(result.error || 'An unknown error occurred');
-        }
-        
-        // Add new user to the local state to update the UI
-        const newUser: UserData = {
-            id: result.uid,
-            uid: result.uid,
-            name: values.name,
-            email: values.email,
-            examCategory: values.examCategory,
-        };
-        setUsers(prev => [...prev, newUser]);
-
-        toast({ title: 'Success', description: 'User created successfully.' });
-        newUserForm.reset();
-    } catch (error: any) {
-        console.error("Error creating user:", error);
-        toast({ title: 'Error', description: `Failed to create user: ${error.message}`, variant: 'destructive' });
-    } finally {
-        setIsLoading(false);
-    }
-  };
-
-
   const handleDeleteUser = async (userId: string) => {
     setIsLoading(true);
     try {
@@ -152,166 +98,122 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Create New User</CardTitle>
-                    <CardDescription>Add a new user to the system.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Form {...newUserForm}>
-                        <form onSubmit={newUserForm.handleSubmit(onCreateUserSubmit)} className="space-y-4">
-                            <FormField control={newUserForm.control} name="name" render={({ field }) => (
-                                <FormItem><FormLabel>Username</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                             <FormField control={newUserForm.control} name="email" render={({ field }) => (
-                                <FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="name@example.com" {...field} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                             <FormField control={newUserForm.control} name="password" render={({ field }) => (
-                                <FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" placeholder="********" {...field} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                             <FormField control={newUserForm.control} name="examCategory" render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Exam Category</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                    <SelectItem value="MTS">MTS</SelectItem>
-                                    <SelectItem value="POSTMAN">POSTMAN</SelectItem>
-                                    <SelectItem value="PA">PA</SelectItem>
-                                    <SelectItem value="ALL">ALL (Common)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                                </FormItem>
-                            )} />
-                            <Button type="submit" disabled={isLoading}>
-                                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                                Create User
+    <Card>
+    <CardHeader>
+        <CardTitle>Users</CardTitle>
+        <CardDescription>A list of all registered users in the system.</CardDescription>
+    </CardHeader>
+    <CardContent>
+        <div className="border rounded-md">
+            <Table>
+            <TableHeader>
+                <TableRow>
+                <TableHead>Username</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Exam Category</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {users.length > 0 ? (
+                users.map((user) => (
+                    <TableRow key={user.uid}>
+                    <TableCell className="font-medium">{user.name}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.examCategory}</TableCell>
+                    <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenUpdateDialog(user)} disabled={user.email === 'admin@anjalkaran.com' || isLoading}>
+                            <Edit className="h-4 w-4" />
+                            <span className="sr-only">Edit</span>
+                        </Button>
+
+                        <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" disabled={user.email === 'admin@anjalkaran.com' || isLoading}>
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete</span>
                             </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete the user's data from Firestore.
+                                To fully remove the user, you may need to delete them from the Firebase Authentication panel as well.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteUser(user.uid)}>
+                                Continue
+                            </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                        </AlertDialog>
+                    </TableCell>
+                    </TableRow>
+                ))
+                ) : (
+                <TableRow>
+                    <TableCell colSpan={4} className="h-24 text-center">
+                    No users found.
+                    </TableCell>
+                </TableRow>
+                )}
+            </TableBody>
+            </Table>
+        </div>
+            <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                    <DialogTitle>Edit User: {selectedUser?.name}</DialogTitle>
+                    <DialogDescription>
+                        Update the user's details below. Email address cannot be changed.
+                    </DialogDescription>
+                    </DialogHeader>
+                    <Form {...updateUserForm}>
+                        <form onSubmit={updateUserForm.handleSubmit(onUpdateSubmit)} className="space-y-4">
+                            <FormField
+                                control={updateUserForm.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Username</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={updateUserForm.control}
+                                name="examCategory"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Exam Category</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                        <SelectItem value="MTS">MTS</SelectItem>
+                                        <SelectItem value="POSTMAN">POSTMAN</SelectItem>
+                                        <SelectItem value="PA">PA</SelectItem>
+                                        <SelectItem value="ALL">ALL (Common)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setIsUpdateDialogOpen(false)}>Cancel</Button>
+                                <Button type="submit" disabled={isLoading}>
+                                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Save Changes"}
+                                </Button>
+                            </DialogFooter>
                         </form>
                     </Form>
-                </CardContent>
-            </Card>
-        </div>
-        <Card>
-        <CardHeader>
-            <CardTitle>Users</CardTitle>
-            <CardDescription>A list of all registered users in the system.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <div className="border rounded-md">
-                <Table>
-                <TableHeader>
-                    <TableRow>
-                    <TableHead>Username</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Exam Category</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {users.length > 0 ? (
-                    users.map((user) => (
-                        <TableRow key={user.uid}>
-                        <TableCell className="font-medium">{user.name}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.examCategory}</TableCell>
-                        <TableCell className="text-right">
-                            <Button variant="ghost" size="icon" onClick={() => handleOpenUpdateDialog(user)} disabled={user.email === 'admin@anjalkaran.com' || isLoading}>
-                                <Edit className="h-4 w-4" />
-                                <span className="sr-only">Edit</span>
-                            </Button>
-
-                            <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" disabled={user.email === 'admin@anjalkaran.com' || isLoading}>
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Delete</span>
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete the user's data from Firestore.
-                                    To fully remove the user, you may need to delete them from the Firebase Authentication panel as well.
-                                </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteUser(user.uid)}>
-                                    Continue
-                                </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                            </AlertDialog>
-                        </TableCell>
-                        </TableRow>
-                    ))
-                    ) : (
-                    <TableRow>
-                        <TableCell colSpan={4} className="h-24 text-center">
-                        No users found.
-                        </TableCell>
-                    </TableRow>
-                    )}
-                </TableBody>
-                </Table>
-            </div>
-                <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                        <DialogTitle>Edit User: {selectedUser?.name}</DialogTitle>
-                        <DialogDescription>
-                            Update the user's details below. Email address cannot be changed.
-                        </DialogDescription>
-                        </DialogHeader>
-                        <Form {...updateUserForm}>
-                            <form onSubmit={updateUserForm.handleSubmit(onUpdateSubmit)} className="space-y-4">
-                                <FormField
-                                    control={updateUserForm.control}
-                                    name="name"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Username</FormLabel>
-                                        <FormControl><Input {...field} /></FormControl>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={updateUserForm.control}
-                                    name="examCategory"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Exam Category</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                            <SelectItem value="MTS">MTS</SelectItem>
-                                            <SelectItem value="POSTMAN">POSTMAN</SelectItem>
-                                            <SelectItem value="PA">PA</SelectItem>
-                                            <SelectItem value="ALL">ALL (Common)</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <DialogFooter>
-                                    <Button type="button" variant="outline" onClick={() => setIsUpdateDialogOpen(false)}>Cancel</Button>
-                                    <Button type="submit" disabled={isLoading}>
-                                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Save Changes"}
-                                    </Button>
-                                </DialogFooter>
-                            </form>
-                        </Form>
-                    </DialogContent>
-                </Dialog>
-        </CardContent>
-        </Card>
-    </div>
+                </DialogContent>
+            </Dialog>
+    </CardContent>
+    </Card>
   );
 }
