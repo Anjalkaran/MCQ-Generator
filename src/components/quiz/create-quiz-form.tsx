@@ -118,7 +118,7 @@ export function CreateQuizForm() {
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a pre-defined topic" />
-                      </Trigger>
+                      </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {topics.map(topic => (
