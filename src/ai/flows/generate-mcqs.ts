@@ -2,7 +2,7 @@
 'use server';
 
 /**
- * @fileOverview Generates multiple-choice questions (MCQs) from provided text or PDF material.
+ * @fileOverview Generates multiple-choice questions (MCQs) from a provided topic.
  *
  * - generateMCQs - A function that handles the MCQ generation process.
  * - GenerateMCQsInput - The input type for the generateMCQs function.
@@ -13,7 +13,6 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GenerateMCQsInputSchema = z.object({
-  material: z.string().describe('Text content to generate MCQs from.'),
   topic: z.string().describe('The topic for which MCQs are generated.'),
   numberOfQuestions: z.number().describe('The number of MCQs to generate.'),
 });
@@ -38,11 +37,9 @@ const prompt = ai.definePrompt({
   name: 'generateMCQsPrompt',
   input: {schema: GenerateMCQsInputSchema},
   output: {schema: GenerateMCQsOutputSchema},
-  prompt: `You are an expert in generating multiple-choice questions (MCQs) from a given text material.
+  prompt: `You are an expert in generating multiple-choice questions (MCQs).
 
-  From the material on the topic of "{{topic}}", please generate exactly {{numberOfQuestions}} multiple-choice questions. Each question must have four options and one correct answer.
-
-  Material: {{{material}}}
+  Please generate exactly {{numberOfQuestions}} multiple-choice questions on the topic of "{{topic}}". Each question must have four options and one correct answer.
   `,
 });
 

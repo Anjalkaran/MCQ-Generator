@@ -40,7 +40,6 @@ const categorySchema = z.object({
 const topicSchema = z.object({
   title: z.string().min(3, { message: 'Topic title is required.' }),
   description: z.string().min(10, { message: 'Description is required.' }),
-  material: z.string().min(20, { message: 'Study material is required.' }),
   categoryId: z.string({ required_error: 'Please select a category.' }),
 });
 
@@ -61,7 +60,7 @@ export function TopicManagement() {
 
   const topicForm = useForm<z.infer<typeof topicSchema>>({
     resolver: zodResolver(topicSchema),
-    defaultValues: { title: '', description: '', material: '', categoryId: '' },
+    defaultValues: { title: '', description: '', categoryId: '' },
   });
 
   const fetchData = async () => {
@@ -292,17 +291,6 @@ export function TopicManagement() {
                     <FormItem>
                       <FormLabel>Description</FormLabel>
                       <FormControl><Textarea placeholder="A short description of the topic." {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={topicForm.control}
-                  name="material"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Study Material</FormLabel>
-                      <FormControl><Textarea placeholder="The text material the AI will use to generate questions." rows={8} {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

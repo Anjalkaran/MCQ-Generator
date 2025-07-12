@@ -80,27 +80,16 @@ export function CreateQuizForm() {
         return;
     }
 
-    if (!selectedTopic.material) {
-      toast({
-        title: 'Material Not Found',
-        description: 'Study material for the selected topic is missing.',
-        variant: 'destructive',
-      });
-      setIsGenerating(false);
-      return;
-    }
-
     try {
       const { mcqs } = await generateMCQs({
         topic: selectedTopic.title,
-        material: selectedTopic.material,
         numberOfQuestions: values.numberOfQuestions,
       });
 
       if (!mcqs || mcqs.length === 0) {
         toast({
           title: 'Quiz Generation Failed',
-          description: 'The AI could not generate a quiz from the provided material. Please try again.',
+          description: 'The AI could not generate a quiz for the selected topic. Please try again.',
           variant: 'destructive',
         });
         setIsGenerating(false);

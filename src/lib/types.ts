@@ -12,7 +12,6 @@ export interface Topic {
   title: string;
   description: string;
   icon: string; // Storing icon name as string, mapping to component elsewhere
-  material: string;
   categoryId: string;
 }
 
