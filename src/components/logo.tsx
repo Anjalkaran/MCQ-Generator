@@ -5,7 +5,7 @@ export function Logo(props: Omit<ComponentProps<'svg'>, 'children'>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 250 100"
+      viewBox="0 0 260 100"
       {...props}
     >
       <text
@@ -20,7 +20,7 @@ export function Logo(props: Omit<ComponentProps<'svg'>, 'children'>) {
         Anjal
       </text>
       <text
-        x="135"
+        x="145"
         y="65"
         fontFamily="sans-serif"
         fontSize="65"
