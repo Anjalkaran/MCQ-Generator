@@ -31,4 +31,4 @@ function getFirebaseDb() {
 }
 
 
-export { getFirebaseApp, getFirebaseAuth, getFirebaseDb };
+export { getFirebaseAuth, getFirebaseDb };

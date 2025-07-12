@@ -44,13 +44,14 @@ export async function registerUser(values: z.infer<typeof registerSchema>) {
 
     return { success: 'Registration successful!' };
   } catch (error: any) {
+    console.error("Firebase Registration Error:", error);
     if (error.code === 'auth/email-already-in-use') {
       return { error: 'Email is already in use.' };
     }
      if (error.code === 'auth/invalid-api-key') {
         return { error: 'Invalid Firebase API Key. Please check your environment variables.' };
     }
-    return { error: 'An unknown error occurred.' };
+    return { error: `An unknown error occurred: ${error.code}` };
   }
 }
 
@@ -77,6 +78,7 @@ export async function loginUser(values: z.infer<typeof loginSchema>) {
         await signInWithEmailAndPassword(auth, email, password);
         return { success: "Login successful!" };
     } catch (error: any) {
+        console.error("Firebase Login Error:", error);
         switch (error.code) {
             case 'auth/user-not-found':
             case 'auth/wrong-password':
@@ -85,7 +87,7 @@ export async function loginUser(values: z.infer<typeof loginSchema>) {
             case 'auth/invalid-api-key':
                 return { error: 'Invalid Firebase API Key. Please check your environment variables.' };
             default:
-                return { error: 'An unknown error occurred.' };
+                return { error: `An unknown error occurred: ${error.code}` };
         }
     }
 }
