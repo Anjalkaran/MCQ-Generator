@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getUserData } from '@/lib/firestore';
+import { getUserData, getQuizHistoryForTopic } from '@/lib/firestore';
 import type { Category, Topic, UserData } from '@/lib/types';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { onAuthStateChanged, type User } from 'firebase/auth';
@@ -101,6 +101,12 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
 
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
+
+    if (!user) {
+        toast({ title: 'Not Authenticated', description: 'You must be logged in to create a quiz.', variant: 'destructive' });
+        setIsGenerating(false);
+        return;
+    }
     
     // Use the filtered state for users, and initial props for admin
     const allTopics = topics;
@@ -121,14 +127,17 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     
     const excludedCategories = ["Basic Arithmetics", "General Awareness"];
 
-    const generationInput = {
-        topic: selectedTopic.title,
-        numberOfQuestions: values.numberOfQuestions,
-        material: (selectedTopic.material && !excludedCategories.includes(selectedCategory.name)) ? selectedTopic.material : undefined,
-    };
-
-
     try {
+      // Fetch previous questions to avoid repetition
+      const previousQuestions = await getQuizHistoryForTopic(user.uid, values.topicId);
+
+      const generationInput = {
+          topic: selectedTopic.title,
+          numberOfQuestions: values.numberOfQuestions,
+          material: (selectedTopic.material && !excludedCategories.includes(selectedCategory.name)) ? selectedTopic.material : undefined,
+          previousQuestions: previousQuestions,
+      };
+
       const { mcqs } = await generateMCQs(generationInput);
 
       if (!mcqs || mcqs.length === 0) {

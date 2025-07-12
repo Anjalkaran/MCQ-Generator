@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -9,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { getFirebaseAuth } from "@/lib/firebase";
+import { saveQuizHistory } from "@/lib/firestore";
 
 interface QuizResultsClientProps {
   topicId: string;
@@ -26,7 +29,10 @@ export function QuizResultsClient({ topicId }: QuizResultsClientProps) {
   useEffect(() => {
     setIsClient(true);
     const savedState = localStorage.getItem(`quizState-${topicId}`);
-    if (savedState) {
+    const auth = getFirebaseAuth();
+    const currentUser = auth?.currentUser;
+
+    if (savedState && currentUser) {
       const { answers, numberOfQuestions, mcqs, topic } = JSON.parse(savedState);
       setUserAnswers(answers);
       setQuizLength(numberOfQuestions);
@@ -39,6 +45,20 @@ export function QuizResultsClient({ topicId }: QuizResultsClientProps) {
         }
       });
       setScore(correctCount);
+
+      // Save history to Firestore
+      saveQuizHistory({
+          userId: currentUser.uid,
+          topicId: topic.id,
+          score: correctCount,
+          totalQuestions: numberOfQuestions,
+          questions: mcqs.map(mcq => mcq.question), // Save the question strings
+          takenAt: new Date(),
+      }).catch(err => {
+          console.error("Failed to save quiz history:", err);
+          // Optional: Show a toast message to the user
+      });
+
     }
   }, [topicId]);
 
@@ -48,6 +68,13 @@ export function QuizResultsClient({ topicId }: QuizResultsClientProps) {
   
   const { topic, mcqs: quizMcqs } = quizData;
   const percentage = quizLength > 0 ? Math.round((score / quizLength) * 100) : 0;
+
+  const handleRetake = () => {
+    // Clear the specific quiz state from local storage before retaking
+    localStorage.removeItem(`quiz-${topicId}`);
+    localStorage.removeItem(`quizState-${topicId}`);
+    router.push('/dashboard');
+  };
 
   return (
     <div className="space-y-8">
@@ -65,11 +92,9 @@ export function QuizResultsClient({ topicId }: QuizResultsClientProps) {
             You scored {score} out of {quizLength}
           </p>
           <div className="flex justify-center gap-4 mt-8">
-            <Button asChild onClick={() => router.back()}>
-              <Link href="#">
+            <Button onClick={handleRetake}>
                 <Repeat className="mr-2 h-4 w-4" />
-                Retake Quiz
-              </Link>
+                New Quiz on Topic
             </Button>
             <Button variant="outline" asChild>
               <Link href="/dashboard">

@@ -1,7 +1,7 @@
 
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc } from 'firebase/firestore';
-import type { Category, Topic, UserData } from './types';
+import type { Category, Topic, UserData, QuizHistory } from './types';
 
 // USER MANAGEMENT
 export const getUserData = async (userId: string): Promise<UserData | null> => {
@@ -118,4 +118,26 @@ export const deleteTopic = async (topicId: string): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     await deleteDoc(doc(db, 'topics', topicId));
+};
+
+// QUIZ HISTORY MANAGEMENT
+export const saveQuizHistory = async (historyData: Omit<QuizHistory, 'id'>): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    await addDoc(collection(db, 'quizHistory'), historyData);
+};
+
+export const getQuizHistoryForTopic = async (userId: string, topicId: string): Promise<string[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const historyCollection = collection(db, 'quizHistory');
+    const q = query(historyCollection, where('userId', '==', userId), where('topicId', '==', topicId));
+    
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) {
+        return [];
+    }
+
+    const allQuestions = querySnapshot.docs.flatMap(doc => doc.data().questions || []);
+    return allQuestions;
 };

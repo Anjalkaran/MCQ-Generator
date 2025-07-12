@@ -34,3 +34,13 @@ export interface QuizData {
   topic: Topic;
   mcqs: MCQ[];
 }
+
+export interface QuizHistory {
+    id: string;
+    userId: string;
+    topicId: string;
+    score: number;
+    totalQuestions: number;
+    questions: string[];
+    takenAt: Date;
+}
