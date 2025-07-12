@@ -29,7 +29,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import pdf from 'pdf-parse/lib/pdf-parse.js';
+import pdf from 'pdf-parse';
 
 
 const categorySchema = z.object({
@@ -473,3 +473,5 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     </div>
   );
 }
+
+    
