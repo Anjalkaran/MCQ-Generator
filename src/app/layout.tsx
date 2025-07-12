@@ -8,6 +8,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 export const metadata: Metadata = {
   title: 'Anjalkaran Quiz Generator - AI-Powered Quizzes',
   description: 'Generate and take quizzes on any topic with the Anjalkaran Quiz Generator.',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
