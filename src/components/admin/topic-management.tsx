@@ -102,16 +102,20 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
   };
 
   const handleDeleteTopic = async (topicId: string) => {
+    setIsLoading(true);
     try {
         await deleteTopic(topicId);
         setTopics(prev => prev.filter(t => t.id !== topicId));
         toast({ title: 'Success', description: 'Topic deleted.' });
     } catch (error) {
         toast({ title: 'Error', description: 'Failed to delete topic.', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
     }
   };
   
   const handleDeleteCategory = async (categoryId: string) => {
+    setIsLoading(true);
     try {
         const topicsToDelete = topics.filter(topic => topic.categoryId === categoryId);
         await deleteCategory(categoryId, topicsToDelete);
@@ -120,6 +124,8 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
         toast({ title: 'Success', description: 'Category and its topics have been deleted.' });
     } catch (error) {
         toast({ title: 'Error', description: 'Failed to delete category.', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
     }
   }
 
