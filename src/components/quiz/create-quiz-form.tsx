@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { topics } from '@/lib/data';
 
 const formSchema = z.object({
-  topic: z.string().min(1, 'Please enter a topic or select one.'),
+  topic: z.string().min(1, 'Please select a topic.'),
   numberOfQuestions: z.coerce.number().min(3).max(10),
 });
 
@@ -35,23 +35,16 @@ export function CreateQuizForm() {
       numberOfQuestions: 5,
     },
   });
-
-  const handleTopicChange = (topicId: string) => {
-    const selectedTopic = topics.find(t => t.id === topicId);
-    if (selectedTopic) {
-      form.setValue('topic', selectedTopic.title, { shouldValidate: true });
-    }
-  };
-
+  
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
     
-    const selectedTopic = topics.find(t => t.title.toLowerCase() === values.topic.toLowerCase());
+    const selectedTopic = topics.find(t => t.id === values.topic);
 
     if (!selectedTopic || !selectedTopic.material) {
         toast({
-          title: 'Material Not Found',
-          description: 'Cannot generate a quiz for a custom topic. Please select one from the list.',
+          title: 'Topic Not Found',
+          description: 'The selected topic could not be found. Please try again.',
           variant: 'destructive',
         });
         setIsGenerating(false);
@@ -60,7 +53,7 @@ export function CreateQuizForm() {
 
     try {
       const { mcqs } = await generateMCQs({
-        topic: values.topic,
+        topic: selectedTopic.title,
         material: selectedTopic.material,
         numberOfQuestions: values.numberOfQuestions,
       });
@@ -75,11 +68,11 @@ export function CreateQuizForm() {
         return;
       }
 
-      const topicId = values.topic.toLowerCase().replace(/\s+/g, '-');
+      const topicId = values.topic;
       const quizData = {
         topic: {
           id: topicId,
-          title: values.topic,
+          title: selectedTopic.title,
           description: 'A custom generated quiz.'
         },
         mcqs: mcqs,
@@ -114,7 +107,7 @@ export function CreateQuizForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Topic</FormLabel>
-                   <Select onValueChange={handleTopicChange} defaultValue="">
+                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a pre-defined topic" />
@@ -128,9 +121,6 @@ export function CreateQuizForm() {
                       ))}
                     </SelectContent>
                   </Select>
-                   <FormControl>
-                     <Input {...field} placeholder="Or enter your own topic title" className="mt-2"/>
-                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
