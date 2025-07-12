@@ -70,7 +70,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
 
   const categoryForm = useForm<z.infer<typeof categorySchema>>({
     resolver: zodResolver(categorySchema),
-    defaultValues: { name: '', examCategory: 'MTS' },
+    defaultValues: { name: '', examCategory: 'ALL' },
   });
 
   const topicForm = useForm<z.infer<typeof topicSchema>>({
@@ -140,20 +140,16 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                 setIsLoadingMaterial(false);
                 return;
             }
-            const fileAsDataUri = event.target.result as string;
+            const arrayBuffer = event.target.result as ArrayBuffer;
+            const buffer = Buffer.from(arrayBuffer);
 
             try {
-                const [header, base64Data] = fileAsDataUri.split(',');
-                if (!header || !base64Data) {
-                  throw new Error('Invalid data URI format.');
-                }
-                const buffer = Buffer.from(base64Data, 'base64');
                 let materialContent = '';
         
-                if (header.includes('application/pdf')) {
+                if (file.type === 'application/pdf') {
                   const data = await pdf(buffer);
                   materialContent = data.text;
-                } else if (header.includes('text/plain')) {
+                } else if (file.type === 'text/plain') {
                   materialContent = buffer.toString('utf-8');
                 } else {
                   throw new Error('Unsupported file type.');
@@ -177,7 +173,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
             }
         };
 
-        reader.readAsDataURL(file);
+        reader.readAsArrayBuffer(file);
 
     } catch (error) {
         console.error('Error setting up file reader:', error);
