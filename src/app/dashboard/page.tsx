@@ -22,7 +22,7 @@ export default async function DashboardPage() {
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Create Your Own Exam</h1>
         <p className="text-muted-foreground">
-          Select a topic to generate an exam. Our AI will handle the rest.
+          Select a topic to generate an exam.
         </p>
       </div>
       <CreateQuizForm initialCategories={categories} initialTopics={topics} />
