@@ -1,6 +1,12 @@
 'use server';
 
 import * as z from 'zod';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { firebaseApp } from '@/lib/firebase';
+
+const auth = getAuth(firebaseApp);
+const db = getFirestore(firebaseApp);
 
 const registerSchema = z.object({
   username: z.string().min(2, { message: 'Username must be at least 2 characters.' }),
@@ -17,21 +23,50 @@ export async function registerUser(values: z.infer<typeof registerSchema>) {
 
   const { username, email, password } = validatedFields.data;
 
-  // In a real application, you would hash the password and save the user to a database.
-  // For example:
-  // const hashedPassword = await bcrypt.hash(password, 10);
-  // await db.user.create({ data: { name: username, email, password: hashedPassword } });
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
 
-  console.log('Simulating user registration:');
-  console.log('Username:', username);
-  console.log('Email:', email);
+    await setDoc(doc(db, 'users', user.uid), {
+      username: username,
+      email: email,
+    });
 
-  // For demonstration, we'll just simulate a success response.
-  // We can also simulate an error, for example if the email is already taken.
-  if (email === 'taken@example.com') {
-    return { error: 'Email is already taken.' };
+    return { success: 'Registration successful!' };
+  } catch (error: any) {
+    if (error.code === 'auth/email-already-in-use') {
+      return { error: 'Email is already in use.' };
+    }
+    return { error: 'An unknown error occurred.' };
   }
+}
 
 
-  return { success: 'Registration successful!' };
+const loginSchema = z.object({
+    email: z.string().email({ message: "Invalid email address." }),
+    password: z.string().min(1, { message: "Password is required." }),
+});
+
+export async function loginUser(values: z.infer<typeof loginSchema>) {
+    const validatedFields = loginSchema.safeParse(values);
+
+    if (!validatedFields.success) {
+        return { error: "Invalid fields!" };
+    }
+
+    const { email, password } = validatedFields.data;
+
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+        return { success: "Login successful!" };
+    } catch (error: any) {
+        switch (error.code) {
+            case 'auth/user-not-found':
+            case 'auth/wrong-password':
+            case 'auth/invalid-credential':
+                return { error: 'Invalid email or password.' };
+            default:
+                return { error: 'An unknown error occurred.' };
+        }
+    }
 }

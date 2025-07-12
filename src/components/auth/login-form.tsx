@@ -1,9 +1,13 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import Link from "next/link";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,8 +27,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { loginUser } from "@/actions/auth";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -34,6 +38,8 @@ const formSchema = z.object({
 export function LoginForm() {
   const { toast } = useToast();
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -44,13 +50,20 @@ export function LoginForm() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
-    toast({
-      title: "Login Successful",
-      description: "Redirecting to dashboard...",
+    setError(null);
+
+    startTransition(async () => {
+      const result = await loginUser(values);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        toast({
+          title: "Login Successful",
+          description: "Redirecting to dashboard...",
+        });
+        router.push("/");
+      }
     });
-    // Mock successful login and redirect
-    setTimeout(() => router.push("/"), 1000);
   }
 
   return (
@@ -64,6 +77,12 @@ export function LoginForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="grid gap-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
             <FormField
               control={form.control}
               name="email"
@@ -71,7 +90,7 @@ export function LoginForm() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="m@example.com" {...field} />
+                    <Input placeholder="m@example.com" {...field} disabled={isPending} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -84,7 +103,7 @@ export function LoginForm() {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" {...field} />
+                    <Input type="password" {...field} disabled={isPending} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -92,7 +111,8 @@ export function LoginForm() {
             />
           </CardContent>
           <CardFooter className="flex flex-col">
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full" disabled={isPending}>
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign In
             </Button>
             <div className="mt-4 text-center text-sm">
