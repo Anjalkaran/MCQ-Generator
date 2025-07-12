@@ -11,39 +11,42 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 interface QuizResultsClientProps {
-  topic: Omit<Topic, 'icon'>;
+  topicId: string;
 }
 
-export function QuizResultsClient({ topic }: QuizResultsClientProps) {
+export function QuizResultsClient({ topicId }: QuizResultsClientProps) {
   const router = useRouter();
   const [score, setScore] = useState(0);
   const [userAnswers, setUserAnswers] = useState<{ [key: number]: string }>({});
-  const [quizLength, setQuizLength] = useState(10);
+  const [quizLength, setQuizLength] = useState(0);
   const [isClient, setIsClient] = useState(false);
+  const [quizData, setQuizData] = useState<{topic: Omit<Topic, 'icon'>, mcqs: MCQ[]} | null>(null);
+
 
   useEffect(() => {
     setIsClient(true);
-    const savedState = localStorage.getItem(`quizState-${topic.id}`);
+    const savedState = localStorage.getItem(`quizState-${topicId}`);
     if (savedState) {
-      const { answers, numberOfQuestions } = JSON.parse(savedState);
+      const { answers, numberOfQuestions, mcqs, topic } = JSON.parse(savedState);
       setUserAnswers(answers);
       setQuizLength(numberOfQuestions);
+      setQuizData({ mcqs, topic });
 
       let correctCount = 0;
-      topic.mcqs.slice(0, numberOfQuestions).forEach((mcq, index) => {
+      mcqs.forEach((mcq: MCQ, index: number) => {
         if (answers[index] === mcq.correctAnswer) {
           correctCount++;
         }
       });
       setScore(correctCount);
     }
-  }, [topic.id, topic.mcqs]);
+  }, [topicId]);
 
-  if (!isClient) {
+  if (!isClient || !quizData) {
     return null; // or a loading spinner
   }
-
-  const quizMcqs = topic.mcqs.slice(0, quizLength);
+  
+  const { topic, mcqs: quizMcqs } = quizData;
   const percentage = quizLength > 0 ? Math.round((score / quizLength) * 100) : 0;
 
   return (

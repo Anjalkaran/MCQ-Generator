@@ -1,26 +1,17 @@
 import { notFound } from "next/navigation";
-import { topics } from "@/lib/data";
 import { QuizClient } from "@/components/quiz/quiz-client";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
-import type { Topic } from "@/lib/types";
 
 export default function QuizPage({
   params,
-  searchParams,
 }: {
   params: { topicId: string };
-  searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const topic = topics.find((t) => t.id === params.topicId);
 
-  if (!topic) {
-    notFound();
-  }
-  
-  const numberOfQuestions = parseInt(searchParams.questions as string, 10) || 10;
-  const { icon, ...serializableTopic } = topic;
+  // This page now relies on quiz data being passed via localStorage
+  // after being generated on the dashboard.
 
   return (
     <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-6 bg-muted/40">
@@ -31,7 +22,7 @@ export default function QuizPage({
             Back to Dashboard
           </Link>
          </Button>
-        <QuizClient topic={serializableTopic as Omit<Topic, 'icon'>} numberOfQuestions={numberOfQuestions} />
+        <QuizClient topicId={params.topicId} />
       </div>
     </main>
   );
