@@ -69,9 +69,9 @@ export function QuizResultsClient({ topic }: QuizResultsClientProps) {
               </Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link href="/">
+              <Link href="/dashboard">
                 <Home className="mr-2 h-4 w-4" />
-                Back to Topics
+                Back to Dashboard
               </Link>
             </Button>
           </div>

@@ -23,12 +23,12 @@ export default function QuizPage({
   const { icon, ...serializableTopic } = topic;
 
   return (
-    <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-6">
+    <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-6 bg-muted/40">
        <div className="w-full max-w-2xl">
          <Button variant="ghost" asChild className="mb-4">
-          <Link href="/">
+          <Link href="/dashboard">
             <ChevronLeft className="mr-2 h-4 w-4" />
-            Back to Topics
+            Back to Dashboard
           </Link>
          </Button>
         <QuizClient topic={serializableTopic as Omit<Topic, 'icon'>} numberOfQuestions={numberOfQuestions} />

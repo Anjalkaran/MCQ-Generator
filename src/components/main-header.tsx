@@ -13,23 +13,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getFirebaseAuth } from "@/lib/firebase";
-import { onAuthStateChanged, signOut, type User, type Auth } from "firebase/auth";
+import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 
 export function MainHeader() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [auth, setAuth] = useState<Auth | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    const authInstance = getFirebaseAuth();
-    setAuth(authInstance);
-
-    if (authInstance) {
-      const unsubscribe = onAuthStateChanged(authInstance, (currentUser) => {
+    const auth = getFirebaseAuth();
+    if (auth) {
+      const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
         setUser(currentUser);
         setLoading(false);
       });
@@ -40,6 +37,7 @@ export function MainHeader() {
   }, []);
 
   const handleLogout = async () => {
+    const auth = getFirebaseAuth();
     if (!auth) return;
     try {
       await signOut(auth);
@@ -76,9 +74,8 @@ export function MainHeader() {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>{user.email || 'My Account'}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>Profile</DropdownMenuItem>
-                <DropdownMenuItem>History</DropdownMenuItem>
-                <DropdownMenuItem>Settings</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push('/dashboard/profile')}>Profile</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push('/dashboard/history')}>History</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
               </DropdownMenuContent>

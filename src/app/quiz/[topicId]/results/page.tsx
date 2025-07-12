@@ -17,7 +17,7 @@ export default function ResultsPage({
   const { icon, ...serializableTopic } = topic;
 
   return (
-    <main className="flex-1 flex flex-col items-center p-4 md:p-6 bg-background">
+    <main className="flex-1 flex flex-col items-center p-4 md:p-6 bg-muted/40">
       <div className="w-full max-w-4xl">
         <QuizResultsClient topic={serializableTopic as Omit<Topic, 'icon'>} />
       </div>
