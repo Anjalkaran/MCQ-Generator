@@ -18,7 +18,6 @@ import { getUserData } from '@/lib/firestore';
 import type { Category, Topic, UserData } from '@/lib/types';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { summarizeTopicMaterial } from '@/ai/flows/summarize-topic-material';
 
 const formSchema = z.object({
   categoryId: z.string().min(1, 'Please select a category.'),
@@ -83,7 +82,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     } else if (userData) {
       const userExamCategory = userData.examCategory;
       const userCategories = initialCategories.filter(c =>
-        c.examCategories && (c.examCategories.includes('ALL') || c.examCategories.includes(userExamCategory))
+        c.examCategories && c.examCategories.includes(userExamCategory)
       );
       setCategories(userCategories);
 

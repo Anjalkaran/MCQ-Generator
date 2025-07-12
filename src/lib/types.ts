@@ -27,7 +27,7 @@ export interface UserData {
     uid: string;
     name: string;
     email: string;
-    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'ALL';
+    examCategory: 'MTS' | 'POSTMAN' | 'PA';
 }
 
 export interface QuizData {

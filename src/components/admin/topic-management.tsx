@@ -140,7 +140,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
 
       const result = await response.json();
       
-      // Update local state to reflect the change
       setTopics(prevTopics => prevTopics.map(t => t.id === values.topicId ? {...t, material: result.material} : t));
 
       toast({ title: 'Success', description: 'Material uploaded and saved.' });

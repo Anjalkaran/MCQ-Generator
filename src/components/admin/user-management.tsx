@@ -30,7 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 
 const userUpdateSchema = z.object({
   name: z.string().min(1, { message: 'Username is required.' }),
-  examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA' | 'ALL'>,
+  examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA'>,
 });
 
 interface UserManagementProps {
@@ -78,8 +78,6 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     setIsLoading(true);
     try {
       await deleteUserDocument(userId);
-      // For a full implementation, you would also call a serverless function here
-      // to delete the user from Firebase Authentication.
       toast({
         title: 'User Deleted',
         description: 'User data has been removed from Firestore.',
@@ -196,7 +194,6 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                                         <SelectItem value="MTS">MTS</SelectItem>
                                         <SelectItem value="POSTMAN">POSTMAN</SelectItem>
                                         <SelectItem value="PA">PA</SelectItem>
-                                        <SelectItem value="ALL">ALL (Common)</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
