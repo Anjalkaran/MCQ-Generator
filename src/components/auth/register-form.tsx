@@ -28,12 +28,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { registerUser } from "@/actions/auth";
 
 const formSchema = z.object({
   username: z.string().min(2, { message: "Username must be at least 2 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  examCategory: z.enum(['MTS', 'POSTMAN', 'PA'], { required_error: 'Please select an exam category.'}),
 });
 
 export function RegisterForm() {
@@ -129,6 +131,28 @@ export function RegisterForm() {
                   <FormControl>
                     <Input type="password" {...field} disabled={isPending}/>
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="examCategory"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Exam Category</FormLabel>
+                   <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isPending}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select an exam category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="MTS">MTS</SelectItem>
+                      <SelectItem value="POSTMAN">POSTMAN</SelectItem>
+                      <SelectItem value="PA">PA</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

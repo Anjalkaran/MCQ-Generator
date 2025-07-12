@@ -1,7 +1,7 @@
 'use server';
 
 import * as z from 'zod';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebase';
 
@@ -9,6 +9,7 @@ const registerSchema = z.object({
   username: z.string().min(2, { message: 'Username must be at least 2 characters.' }),
   email: z.string().email({ message: 'Invalid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  examCategory: z.enum(['MTS', 'POSTMAN', 'PA'], { required_error: 'Please select an exam category.'}),
 });
 
 export async function registerUser(values: z.infer<typeof registerSchema>) {
@@ -25,15 +26,16 @@ export async function registerUser(values: z.infer<typeof registerSchema>) {
     return { error: 'Invalid fields!' };
   }
 
-  const { username, email, password } = validatedFields.data;
+  const { username, email, password, examCategory } = validatedFields.data;
 
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    const userDoc: { username: string; email: string; isAdmin?: boolean } = {
+    const userDoc: { username: string; email: string; examCategory: string; isAdmin?: boolean } = {
       username: username,
       email: email,
+      examCategory: examCategory,
     };
     
     if (email === 'admin@anjalkaran.com') {
@@ -51,7 +53,7 @@ export async function registerUser(values: z.infer<typeof registerSchema>) {
      if (error.code === 'auth/invalid-api-key') {
         return { error: 'Invalid Firebase API Key. Please check your environment variables.' };
     }
-    return { error: `An unknown error occurred: ${error.code}` };
+    return { error: `An unknown error occurred: ${error.code || 'Please try again.'}` };
   }
 }
 
@@ -84,6 +86,41 @@ export async function loginUser(values: z.infer<typeof loginSchema>) {
             case 'auth/wrong-password':
             case 'auth/invalid-credential':
                 return { error: 'Invalid email or password.' };
+            case 'auth/invalid-api-key':
+                return { error: 'Invalid Firebase API Key. Please check your environment variables.' };
+            default:
+                return { error: `An unknown error occurred: ${error.code}` };
+        }
+    }
+}
+
+const forgotPasswordSchema = z.object({
+    email: z.string().email({ message: "Invalid email address." }),
+});
+
+export async function forgotPassword(values: z.infer<typeof forgotPasswordSchema>) {
+    const auth = getFirebaseAuth();
+    if (!auth) {
+        return { error: 'Firebase is not configured correctly. Please check your environment variables.' };
+    }
+
+    const validatedFields = forgotPasswordSchema.safeParse(values);
+
+    if (!validatedFields.success) {
+        return { error: "Invalid email!" };
+    }
+
+    const { email } = validatedFields.data;
+
+    try {
+        await sendPasswordResetEmail(auth, email);
+        return { success: "Password reset email sent!" };
+    } catch (error: any) {
+        console.error("Forgot Password Error:", error);
+         switch (error.code) {
+            case 'auth/user-not-found':
+                // To prevent email enumeration, we can return a success message even if the user doesn't exist.
+                return { success: "If an account with this email exists, a password reset link has been sent." };
             case 'auth/invalid-api-key':
                 return { error: 'Invalid Firebase API Key. Please check your environment variables.' };
             default:
