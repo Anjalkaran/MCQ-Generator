@@ -6,8 +6,8 @@ import { Toaster } from "@/components/ui/toaster";
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: 'Anjalkaran MCQ Generator - AI-Powered Quizzes',
-  description: 'Generate and take quizzes on any topic with the Anjalkaran MCQ Generator.',
+  title: 'Anjalkaran Quiz Generator - AI-Powered Quizzes',
+  description: 'Generate and take quizzes on any topic with the Anjalkaran Quiz Generator.',
 };
 
 export default function RootLayout({

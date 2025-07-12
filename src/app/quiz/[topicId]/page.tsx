@@ -10,7 +10,7 @@ export default function MCQPage({
   params: { topicId: string };
 }) {
 
-  // This page now relies on MCQ data being passed via localStorage
+  // This page now relies on quiz data being passed via localStorage
   // after being generated on the dashboard.
 
   return (
