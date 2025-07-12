@@ -12,9 +12,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { addCategory, addTopic, deleteTopic, deleteCategory } from '@/lib/firestore';
+import { addCategory, addTopic, deleteTopic, deleteCategory, updateTopic } from '@/lib/firestore';
 import type { Topic, Category } from '@/lib/types';
-import { Loader2, PlusCircle, Trash2 } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Upload } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,7 +30,8 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
-
+import pdf from 'pdf-parse';
+import mammoth from 'mammoth';
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 
@@ -47,6 +48,11 @@ const topicSchema = z.object({
   categoryId: z.string({ required_error: 'Please select a category.' }),
 });
 
+const materialSchema = z.object({
+    topicId: z.string().min(1, 'Please select a topic.'),
+    file: z.any().refine(file => file && file.length > 0, 'File is required.'),
+});
+
 interface TopicManagementProps {
     initialCategories: Category[];
     initialTopics: Topic[];
@@ -57,6 +63,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
   const [topics, setTopics] = useState<Topic[]>(initialTopics);
   const [isLoadingCategory, setIsLoadingCategory] = useState(false);
   const [isLoadingTopic, setIsLoadingTopic] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const { toast } = useToast();
 
@@ -69,7 +76,10 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     resolver: zodResolver(topicSchema),
     defaultValues: { title: '', description: '', categoryId: '' },
   });
-  
+
+  const materialForm = useForm<z.infer<typeof materialSchema>>({
+    resolver: zodResolver(materialSchema),
+  });
 
   const onCategorySubmit = async (values: z.infer<typeof categorySchema>) => {
     setIsLoadingCategory(true);
@@ -101,6 +111,50 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
         setIsLoadingTopic(false);
     }
   };
+
+  const onMaterialSubmit = async (values: z.infer<typeof materialSchema>) => {
+    setIsUploading(true);
+    const file = values.file[0];
+    if (!file) {
+        toast({ title: 'Error', description: 'No file selected.', variant: 'destructive' });
+        setIsUploading(false);
+        return;
+    }
+
+    try {
+        let textContent = '';
+        if (file.type === 'application/pdf') {
+            const arrayBuffer = await file.arrayBuffer();
+            const data = await pdf(arrayBuffer);
+            textContent = data.text;
+        } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await mammoth.extractRawText({ arrayBuffer });
+            textContent = result.value;
+        } else {
+            throw new Error('Unsupported file type. Please upload a PDF or DOCX file.');
+        }
+
+        if (!textContent.trim()) {
+            throw new Error("Could not extract any text from the file.");
+        }
+
+        await updateTopic(values.topicId, { material: textContent });
+        
+        // Update local state to reflect the change
+        setTopics(prevTopics => prevTopics.map(t => t.id === values.topicId ? {...t, material: textContent} : t));
+
+        toast({ title: 'Success', description: 'Material uploaded and saved.' });
+        materialForm.reset();
+
+    } catch (error: any) {
+        console.error("Material upload error:", error);
+        toast({ title: 'Upload Failed', description: error.message || 'Could not process the file.', variant: 'destructive' });
+    } finally {
+        setIsUploading(false);
+    }
+  };
+
 
   const handleDeleteTopic = async (topicId: string) => {
     try {
@@ -258,6 +312,55 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                     </Form>
                 </CardContent>
             </Card>
+             <Card>
+                <CardHeader>
+                    <CardTitle>Upload Material</CardTitle>
+                    <CardDescription>Upload PDF or DOCX material for a topic.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Form {...materialForm}>
+                        <form onSubmit={materialForm.handleSubmit(onMaterialSubmit)} className="space-y-4">
+                            <FormField
+                                control={materialForm.control}
+                                name="topicId"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Topic</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={topics.length === 0}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder={topics.length > 0 ? "Select a topic to upload material" : "Please add a topic first"} /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        {topics.map(topic => (<SelectItem key={topic.id} value={topic.id}>{topic.title}</SelectItem>))}
+                                    </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={materialForm.control}
+                                name="file"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Material File</FormLabel>
+                                        <FormControl>
+                                            <Input 
+                                                type="file" 
+                                                accept=".pdf,.docx"
+                                                onChange={e => field.onChange(e.target.files)}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <Button type="submit" disabled={isUploading || topics.length === 0}>
+                                {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                                Upload Material
+                            </Button>
+                        </form>
+                    </Form>
+                </CardContent>
+            </Card>
         </div>
 
         <Card>
@@ -322,6 +425,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                 <TableRow>
                                 <TableHead>Topic Title</TableHead>
                                 <TableHead>Category</TableHead>
+                                <TableHead>Material</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -330,6 +434,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                 <TableRow key={topic.id}>
                                     <TableCell className="font-medium">{topic.title}</TableCell>
                                     <TableCell>{getCategoryName(topic.categoryId)}</TableCell>
+                                    <TableCell>{topic.material ? 'Yes' : 'No'}</TableCell>
                                     <TableCell className="text-right">
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
@@ -359,5 +464,3 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     </div>
   );
 }
-
-    

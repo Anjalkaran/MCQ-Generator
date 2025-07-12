@@ -99,6 +99,14 @@ export const addTopic = async (topic: Omit<Topic, 'id'>): Promise<DocumentRefere
     return await addDoc(collection(db, 'topics'), topic);
 };
 
+export const updateTopic = async (topicId: string, data: Partial<Topic>): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const topicRef = doc(db, "topics", topicId);
+    await updateDoc(topicRef, data);
+};
+
+
 export const deleteTopic = async (topicId: string): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");

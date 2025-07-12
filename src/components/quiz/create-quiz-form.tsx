@@ -95,22 +95,30 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     setIsGenerating(true);
     
     const selectedTopic = topics.find(t => t.id === values.topicId);
+    const selectedCategory = categories.find(c => c.id === values.categoryId);
 
-    if (!selectedTopic) {
+    if (!selectedTopic || !selectedCategory) {
         toast({
           title: 'Topic Not Found',
-          description: 'The selected topic could not be found. Please try again.',
+          description: 'The selected topic or category could not be found. Please try again.',
           variant: 'destructive',
         });
         setIsGenerating(false);
         return;
     }
+    
+    // Define categories that should not use uploaded material
+    const excludedCategories = ["Basic Arithmetics", "General Awareness"];
 
-    try {
-      const { mcqs } = await generateMCQs({
+    const generationInput = {
         topic: selectedTopic.title,
         numberOfQuestions: values.numberOfQuestions,
-      });
+        material: (selectedTopic.material && !excludedCategories.includes(selectedCategory.name)) ? selectedTopic.material : undefined,
+    };
+
+
+    try {
+      const { mcqs } = await generateMCQs(generationInput);
 
       if (!mcqs || mcqs.length === 0) {
         toast({

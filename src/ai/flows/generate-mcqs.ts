@@ -15,6 +15,7 @@ import {z} from 'genkit';
 const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
   numberOfQuestions: z.number().describe('The number of MCQs to generate.'),
+  material: z.string().optional().describe('The study material for the topic, if available.'),
 });
 export type GenerateMCQsInput = z.infer<typeof GenerateMCQsInputSchema>;
 
@@ -39,7 +40,14 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateMCQsOutputSchema},
   prompt: `You are an expert in generating multiple-choice questions (MCQs).
 
+  {{#if material}}
+  Please generate exactly {{numberOfQuestions}} multiple-choice questions based on the following material about "{{topic}}". Each question must have four options and one correct answer.
+
+  Material:
+  {{{material}}}
+  {{else}}
   Please generate exactly {{numberOfQuestions}} multiple-choice questions on the topic of "{{topic}}". Each question must have four options and one correct answer.
+  {{/if}}
   `,
 });
 
