@@ -14,19 +14,19 @@ export function Logo(props: Omit<ComponentProps<'svg'>, 'children'>) {
         y="65"
         fontFamily="Verdana, sans-serif"
         fontSize="50"
-        fill="hsl(var(--primary))"
+        fill="#FFC700"
         fontStyle="italic"
       >
         Anjal
       </text>
       <text
-        x="150"
+        x="125"
         y="65"
         fontFamily="Verdana, sans-serif"
         fontSize="50"
         fill="hsl(var(--primary))"
       >
-        Karan
+        karan
       </text>
     </svg>
   );
