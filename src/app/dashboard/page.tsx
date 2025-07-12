@@ -20,9 +20,9 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Create Your Own Quiz</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Create Your Own Exam</h1>
         <p className="text-muted-foreground">
-          Select a topic to generate a quiz. Our AI will handle the rest.
+          Select a topic to generate an exam. Our AI will handle the rest.
         </p>
       </div>
       <CreateQuizForm initialCategories={categories} initialTopics={topics} />
