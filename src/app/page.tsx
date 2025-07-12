@@ -1,29 +1,70 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { MainHeader } from "@/components/main-header";
-import { TopicCard } from "@/components/quiz/topic-card";
 import { topics } from "@/lib/data";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ArrowRight } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 export default function Home() {
+  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+  const router = useRouter();
+
+  const handleStartQuiz = () => {
+    if (selectedTopic) {
+      router.push(`/quiz/${selectedTopic}`);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       <MainHeader />
       <main className="flex-1">
         <section className="w-full py-12 md:py-24 lg:py-32">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center space-y-4 text-center">
-              <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl font-headline">
+          <div className="container px-4 md:px-6 flex justify-center">
+            <Card className="w-full max-w-lg shadow-lg">
+              <CardHeader className="text-center">
+                <CardTitle className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl font-headline">
                   Expand Your Knowledge
-                </h1>
-                <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl">
+                </CardTitle>
+                <CardDescription className="mx-auto max-w-[700px] text-muted-foreground md:text-xl pt-2">
                   Choose a topic to start a quiz and test your understanding.
-                </p>
-              </div>
-            </div>
-            <div className="mx-auto grid grid-cols-1 gap-6 py-12 sm:grid-cols-2 md:grid-cols-3 lg:gap-12">
-              {topics.map((topic) => (
-                <TopicCard key={topic.id} topic={topic} />
-              ))}
-            </div>
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col items-center space-y-6">
+                  <Select onValueChange={setSelectedTopic}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a topic..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {topics.map((topic) => (
+                        <SelectItem key={topic.id} value={topic.id}>
+                          {topic.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={handleStartQuiz}
+                    disabled={!selectedTopic}
+                    className="w-full"
+                    size="lg"
+                  >
+                    Start Quiz <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </section>
       </main>
