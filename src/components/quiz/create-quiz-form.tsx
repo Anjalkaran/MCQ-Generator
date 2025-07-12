@@ -7,7 +7,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { generateMCQs } from '@/ai/flows/generate-mcqs';
-import { summarizeTopicMaterial } from '@/ai/flows/summarize-topic-material';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -15,10 +14,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { ScrollArea } from '../ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { topics } from '@/lib/data';
 
 const formSchema = z.object({
-  topic: z.string().min(3, 'Topic must be at least 3 characters long.'),
+  topic: z.string().min(1, 'Please select a topic.'),
   material: z.string().min(50, 'Material must be at least 50 characters long.'),
   numberOfQuestions: z.coerce.number().min(3).max(10),
 });
@@ -28,8 +28,6 @@ type FormValues = z.infer<typeof formSchema>;
 export function CreateQuizForm() {
   const router = useRouter();
   const { toast } = useToast();
-  const [summary, setSummary] = useState('');
-  const [isSummarizing, setIsSummarizing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
   const form = useForm<FormValues>({
@@ -41,29 +39,11 @@ export function CreateQuizForm() {
     },
   });
 
-  const handleSummarize = async () => {
-    const material = form.getValues('material');
-    if (material.length < 50) {
-      form.setError('material', {
-        type: 'manual',
-        message: 'Please provide at least 50 characters of material to summarize.',
-      });
-      return;
-    }
-    setIsSummarizing(true);
-    setSummary('');
-    try {
-      const result = await summarizeTopicMaterial({ topicMaterial: material });
-      setSummary(result.summary);
-    } catch (error) {
-      console.error('Error summarizing material:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to generate summary. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSummarizing(false);
+  const handleTopicChange = (topicId: string) => {
+    const selectedTopic = topics.find(t => t.id === topicId);
+    if (selectedTopic) {
+      form.setValue('topic', selectedTopic.title);
+      form.setValue('material', selectedTopic.material, { shouldValidate: true });
     }
   };
 
@@ -110,101 +90,78 @@ export function CreateQuizForm() {
     }
   };
 
-  const isLoading = isSummarizing || isGenerating;
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-      <Card>
-        <CardHeader>
-          <CardTitle>Quiz Details</CardTitle>
-          <CardDescription>Fill in the details below to generate your quiz.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="topic"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Topic</FormLabel>
+    <Card>
+      <CardHeader>
+        <CardTitle>Quiz Details</CardTitle>
+        <CardDescription>Select a topic or provide your own material to generate a quiz.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="topic"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Topic</FormLabel>
+                   <Select onValueChange={handleTopicChange} defaultValue={field.value}>
                     <FormControl>
-                      <Input placeholder="e.g., The Solar System" {...field} />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a topic" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="material"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Study Material</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Paste your study material here. The more detailed, the better the quiz."
-                        className="min-h-[200px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="numberOfQuestions"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Number of Questions (3-10)</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="3" max="10" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button type="button" variant="outline" onClick={handleSummarize} disabled={isLoading}>
-                  {isSummarizing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Summarize Material
-                </Button>
-                <Button type="submit" disabled={isLoading} className="flex-1">
-                  {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Generate & Start Quiz
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-
-      <Card className="sticky top-6">
-        <CardHeader>
-          <CardTitle>Material Summary</CardTitle>
-          <CardDescription>
-            {isSummarizing ? 'Generating summary...' : 'Click "Summarize Material" to see a quick overview here.'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isSummarizing ? (
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
+                    <SelectContent>
+                      {topics.map(topic => (
+                        <SelectItem key={topic.id} value={topic.id}>
+                          {topic.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="material"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Study Material</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Select a topic to auto-fill material, or paste your own here."
+                      className="min-h-[200px]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="numberOfQuestions"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Number of Questions (3-10)</FormLabel>
+                  <FormControl>
+                    <Input type="number" min="3" max="10" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button type="submit" disabled={isGenerating} className="flex-1">
+                {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Generate & Start Quiz
+              </Button>
             </div>
-          ) : summary ? (
-            <ScrollArea className="h-[300px] w-full">
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{summary}</p>
-            </ScrollArea>
-          ) : (
-            <div className="text-sm text-muted-foreground flex items-center justify-center h-[300px] bg-muted/50 rounded-md">
-              <p>Your summary will appear here.</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   );
 }

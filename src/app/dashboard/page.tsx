@@ -6,7 +6,7 @@ export default function DashboardPage() {
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Create Your Own Quiz</h1>
         <p className="text-muted-foreground">
-          Enter a topic and provide the study material below. Our AI will generate a quiz for you.
+          Select a topic to auto-fill the material, or paste your own. Our AI will generate a quiz for you.
         </p>
       </div>
       <CreateQuizForm />

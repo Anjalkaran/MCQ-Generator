@@ -11,5 +11,6 @@ export interface Topic {
   title: string;
   description: string;
   icon: LucideIcon;
+  material: string;
   mcqs: MCQ[];
 }
