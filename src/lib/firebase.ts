@@ -11,57 +11,38 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
 
-// Check if all necessary environment variables are set.
-const firebaseConfigIsValid =
-  firebaseConfig.apiKey &&
-  firebaseConfig.authDomain &&
-  firebaseConfig.projectId &&
-  firebaseConfig.storageBucket &&
-  firebaseConfig.messagingSenderId &&
-  firebaseConfig.appId;
-
-if (typeof window !== 'undefined' && firebaseConfigIsValid) {
-  if (!getApps().length) {
-    app = initializeApp(firebaseConfig);
-  } else {
-    app = getApp();
+function initializeFirebase() {
+  if (typeof window === 'undefined' || app) {
+    return;
   }
-  auth = getAuth(app);
-  db = getFirestore(app);
+
+  const firebaseConfigIsValid =
+    firebaseConfig.apiKey &&
+    firebaseConfig.authDomain &&
+    firebaseConfig.projectId &&
+    firebaseConfig.storageBucket &&
+    firebaseConfig.messagingSenderId &&
+    firebaseConfig.appId;
+
+  if (firebaseConfigIsValid) {
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    auth = getAuth(app);
+    db = getFirestore(app);
+  }
 }
 
 function getFirebaseAuth(): Auth | null {
-    if (firebaseConfigIsValid) {
-        if (!auth) {
-             if (!getApps().length) {
-                app = initializeApp(firebaseConfig);
-            } else {
-                app = getApp();
-            }
-            auth = getAuth(app);
-        }
-        return auth;
-    }
-    return null;
+  initializeFirebase();
+  return auth;
 }
 
 function getFirebaseDb(): Firestore | null {
-    if (firebaseConfigIsValid) {
-        if (!db) {
-            if (!getApps().length) {
-                app = initializeApp(firebaseConfig);
-            } else {
-                app = getApp();
-            }
-            db = getFirestore(app);
-        }
-        return db;
-    }
-    return null;
+  initializeFirebase();
+  return db;
 }
 
 export { getFirebaseAuth, getFirebaseDb };
