@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -12,7 +13,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GenerateMCQsInputSchema = z.object({
-  material: z.string().describe('Text or PDF content to generate MCQs from.'),
+  material: z.string().describe('Text content to generate MCQs from.'),
   topic: z.string().describe('The topic for which MCQs are generated.'),
   numberOfQuestions: z.number().describe('The number of MCQs to generate.'),
 });
@@ -37,20 +38,11 @@ const prompt = ai.definePrompt({
   name: 'generateMCQsPrompt',
   input: {schema: GenerateMCQsInputSchema},
   output: {schema: GenerateMCQsOutputSchema},
-  prompt: `You are an expert in generating multiple-choice questions (MCQs) from a given text or PDF material.
+  prompt: `You are an expert in generating multiple-choice questions (MCQs) from a given text material.
 
-  Given the following material and topic, generate {{numberOfQuestions}} MCQs with four options and a correct answer.
-  The topic is: {{topic}}
+  From the material on the topic of "{{topic}}", please generate exactly {{numberOfQuestions}} multiple-choice questions. Each question must have four options and one correct answer.
 
   Material: {{{material}}}
-
-  Ensure that the generated MCQs are relevant to the material and topic.
-  The output must be a JSON array of MCQs, where each MCQ has the structure:
-  {
-    "question": "The question text",
-    "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-    "correctAnswer": "The correct answer"
-  }
   `,
 });
 

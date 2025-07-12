@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,7 +18,6 @@ import { topics } from '@/lib/data';
 
 const formSchema = z.object({
   topic: z.string().min(1, 'Please enter a topic or select one.'),
-  material: z.string().min(50, 'Material must be at least 50 characters long.'),
   numberOfQuestions: z.coerce.number().min(3).max(10),
 });
 
@@ -34,7 +32,6 @@ export function CreateQuizForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       topic: '',
-      material: '',
       numberOfQuestions: 5,
     },
   });
@@ -43,23 +40,35 @@ export function CreateQuizForm() {
     const selectedTopic = topics.find(t => t.id === topicId);
     if (selectedTopic) {
       form.setValue('topic', selectedTopic.title, { shouldValidate: true });
-      form.setValue('material', selectedTopic.material, { shouldValidate: true });
     }
   };
 
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
+    
+    const selectedTopic = topics.find(t => t.title.toLowerCase() === values.topic.toLowerCase());
+
+    if (!selectedTopic || !selectedTopic.material) {
+        toast({
+          title: 'Material Not Found',
+          description: 'Cannot generate a quiz for a custom topic. Please select one from the list.',
+          variant: 'destructive',
+        });
+        setIsGenerating(false);
+        return;
+    }
+
     try {
       const { mcqs } = await generateMCQs({
         topic: values.topic,
-        material: values.material,
+        material: selectedTopic.material,
         numberOfQuestions: values.numberOfQuestions,
       });
 
       if (!mcqs || mcqs.length === 0) {
         toast({
           title: 'Quiz Generation Failed',
-          description: 'The AI could not generate a quiz from the provided material. Please try refining your input.',
+          description: 'The AI could not generate a quiz from the provided material. Please try again.',
           variant: 'destructive',
         });
         setIsGenerating(false);
@@ -94,7 +103,7 @@ export function CreateQuizForm() {
     <Card>
       <CardHeader>
         <CardTitle>Quiz Details</CardTitle>
-        <CardDescription>Select a topic or provide your own material to generate a quiz.</CardDescription>
+        <CardDescription>Select a topic to generate a quiz.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -109,7 +118,7 @@ export function CreateQuizForm() {
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a pre-defined topic" />
-                      </SelectTrigger>
+                      </Trigger>
                     </FormControl>
                     <SelectContent>
                       {topics.map(topic => (
@@ -122,23 +131,6 @@ export function CreateQuizForm() {
                    <FormControl>
                      <Input {...field} placeholder="Or enter your own topic title" className="mt-2"/>
                    </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="material"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Study Material</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Select a topic to auto-fill material, or paste your own here."
-                      className="min-h-[200px]"
-                      {...field}
-                    />
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
