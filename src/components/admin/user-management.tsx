@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Trash2, Edit } from 'lucide-react';
+import { Loader2, Trash2, Edit, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { deleteUserDocument, updateUserDocument } from '@/lib/firestore';
 import type { UserData } from '@/lib/types';
@@ -27,6 +27,7 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import Link from 'next/link';
 
 const userUpdateSchema = z.object({
   name: z.string().min(1, { message: 'Username is required.' }),
@@ -120,6 +121,12 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.examCategory}</TableCell>
                     <TableCell className="text-right">
+                        <Button asChild variant="ghost" size="icon" disabled={user.email === 'admin@anjalkaran.com'}>
+                          <Link href={`/dashboard/admin/history/${user.uid}`}>
+                            <Eye className="h-4 w-4" />
+                            <span className="sr-only">View History</span>
+                          </Link>
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => handleOpenUpdateDialog(user)} disabled={user.email === 'admin@anjalkaran.com' || isLoading}>
                             <Edit className="h-4 w-4" />
                             <span className="sr-only">Edit</span>
