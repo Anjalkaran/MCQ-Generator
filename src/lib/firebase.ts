@@ -16,10 +16,13 @@ let auth: Auth | null = null;
 let db: Firestore | null = null;
 
 function initializeFirebase() {
-  if (typeof window === 'undefined' || app) {
+  if (getApps().length > 0) {
+    app = getApp();
+    auth = getAuth(app);
+    db = getFirestore(app);
     return;
   }
-
+  
   const firebaseConfigIsValid =
     firebaseConfig.apiKey &&
     firebaseConfig.authDomain &&
@@ -29,19 +32,23 @@ function initializeFirebase() {
     firebaseConfig.appId;
 
   if (firebaseConfigIsValid) {
-    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
   }
 }
 
 function getFirebaseAuth(): Auth | null {
-  initializeFirebase();
+  if (!auth) {
+    initializeFirebase();
+  }
   return auth;
 }
 
 function getFirebaseDb(): Firestore | null {
-  initializeFirebase();
+  if (!db) {
+    initializeFirebase();
+  }
   return db;
 }
 
