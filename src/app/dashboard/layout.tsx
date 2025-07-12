@@ -22,7 +22,6 @@ export default function DashboardLayout({
   useEffect(() => {
     const auth = getFirebaseAuth();
     if (!auth) {
-        // This might happen if Firebase isn't configured, so we stop loading and redirect.
         setLoading(false);
         router.push('/login');
         return;
@@ -51,6 +50,10 @@ export default function DashboardLayout({
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
+  }
+  
+  if (!user) {
+    return null; // The redirect is handled in the effect, this prevents rendering children without a user
   }
 
   return (
