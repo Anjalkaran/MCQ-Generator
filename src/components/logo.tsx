@@ -50,7 +50,7 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
 
       {/* Text: Karan */}
       <text
-        x="185"
+        x="195"
         y="45"
         fontFamily="sans-serif"
         fontSize="22"
