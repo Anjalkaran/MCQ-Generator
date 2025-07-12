@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -67,12 +68,19 @@ export function QuizClient({ topicId }: QuizClientProps) {
   const { topic, mcqs: quizMcqs } = quizData;
   const currentQuestion = quizMcqs[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / quizMcqs.length) * 100;
+  const isLastQuestion = currentQuestionIndex === quizMcqs.length - 1;
 
   const handleNext = () => {
-    if (currentQuestionIndex < quizMcqs.length - 1) {
+    if (!isLastQuestion) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   };
+
+  const handleSkip = () => {
+    if (!isLastQuestion) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    }
+  }
   
   const handleFinish = () => {
     if (typeof window !== 'undefined') {
@@ -120,15 +128,20 @@ export function QuizClient({ topicId }: QuizClientProps) {
           ))}
         </RadioGroup>
       </CardContent>
-      <CardFooter>
-        {currentQuestionIndex < quizMcqs.length - 1 ? (
-          <Button onClick={handleNext} className="ml-auto" disabled={!selectedAnswers[currentQuestionIndex]}>
-            Next
-          </Button>
-        ) : (
-          <Button onClick={handleFinish} className="ml-auto" disabled={!selectedAnswers[currentQuestionIndex]}>
+      <CardFooter className="justify-end gap-2">
+        {isLastQuestion ? (
+          <Button onClick={handleFinish} disabled={!selectedAnswers[currentQuestionIndex]}>
             Finish Quiz
           </Button>
+        ) : (
+          <>
+            <Button onClick={handleSkip} variant="outline">
+              Skip
+            </Button>
+            <Button onClick={handleNext} disabled={!selectedAnswers[currentQuestionIndex]}>
+              Next
+            </Button>
+          </>
         )}
       </CardFooter>
     </Card>
