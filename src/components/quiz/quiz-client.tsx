@@ -18,33 +18,33 @@ import {
 } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import type { QuizData } from "@/lib/types";
+import type { MCQData } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface QuizClientProps {
+interface MCQClientProps {
   topicId: string;
 }
 
-export function QuizClient({ topicId }: QuizClientProps) {
+export function MCQClient({ topicId }: MCQClientProps) {
   const router = useRouter();
-  const [quizData, setQuizData] = useState<QuizData | null>(null);
+  const [mcqData, setMCQData] = useState<MCQData | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<{ [key: number]: string }>({});
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-    const savedQuiz = localStorage.getItem(`quiz-${topicId}`);
-    if (savedQuiz) {
-      const parsedData = JSON.parse(savedQuiz);
-      setQuizData(parsedData);
+    const savedMCQ = localStorage.getItem(`mcq-${topicId}`);
+    if (savedMCQ) {
+      const parsedData = JSON.parse(savedMCQ);
+      setMCQData(parsedData);
     } else {
-      // Handle case where quiz data is not found, maybe redirect or show error
+      // Handle case where mcq data is not found, maybe redirect or show error
       router.push('/dashboard');
     }
   }, [topicId, router]);
 
-  if (!isClient || !quizData) {
+  if (!isClient || !mcqData) {
     return (
       <Card className="w-full shadow-lg">
         <CardHeader>
@@ -65,7 +65,7 @@ export function QuizClient({ topicId }: QuizClientProps) {
     );
   }
 
-  const { topic, mcqs: quizMcqs } = quizData;
+  const { topic, mcqs: quizMcqs } = mcqData;
   const currentQuestion = quizMcqs[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / quizMcqs.length) * 100;
   const isLastQuestion = currentQuestionIndex === quizMcqs.length - 1;
@@ -90,7 +90,7 @@ export function QuizClient({ topicId }: QuizClientProps) {
         mcqs: quizMcqs,
         topic: topic,
       };
-      localStorage.setItem(`quizState-${topic.id}`, JSON.stringify(answersToStore));
+      localStorage.setItem(`mcqState-${topic.id}`, JSON.stringify(answersToStore));
     }
     router.push(`/quiz/${topic.id}/results`);
   }
@@ -131,7 +131,7 @@ export function QuizClient({ topicId }: QuizClientProps) {
       <CardFooter className="justify-end gap-2">
         {isLastQuestion ? (
           <Button onClick={handleFinish} disabled={!selectedAnswers[currentQuestionIndex]}>
-            Finish Quiz
+            Finish MCQ
           </Button>
         ) : (
           <>

@@ -5,38 +5,38 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, XCircle, Award, Repeat, Home } from "lucide-react";
-import type { MCQ, QuizData } from "@/lib/types";
+import type { MCQ, MCQData } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { getFirebaseAuth } from "@/lib/firebase";
-import { saveQuizHistory } from "@/lib/firestore";
+import { saveMCQHistory } from "@/lib/firestore";
 
-interface QuizResultsClientProps {
+interface MCQResultsClientProps {
   topicId: string;
 }
 
-export function QuizResultsClient({ topicId }: QuizResultsClientProps) {
+export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
   const router = useRouter();
   const [score, setScore] = useState(0);
   const [userAnswers, setUserAnswers] = useState<{ [key: number]: string }>({});
-  const [quizLength, setQuizLength] = useState(0);
+  const [mcqLength, setMqcLength] = useState(0);
   const [isClient, setIsClient] = useState(false);
-  const [quizData, setQuizData] = useState<QuizData | null>(null);
+  const [mcqData, setMCQData] = useState<MCQData | null>(null);
 
 
   useEffect(() => {
     setIsClient(true);
-    const savedState = localStorage.getItem(`quizState-${topicId}`);
+    const savedState = localStorage.getItem(`mcqState-${topicId}`);
     const auth = getFirebaseAuth();
     const currentUser = auth?.currentUser;
 
     if (savedState && currentUser) {
       const { answers, numberOfQuestions, mcqs, topic } = JSON.parse(savedState);
       setUserAnswers(answers);
-      setQuizLength(numberOfQuestions);
-      setQuizData({ mcqs, topic });
+      setMqcLength(numberOfQuestions);
+      setMCQData({ mcqs, topic });
 
       let correctCount = 0;
       mcqs.forEach((mcq: MCQ, index: number) => {
@@ -47,32 +47,32 @@ export function QuizResultsClient({ topicId }: QuizResultsClientProps) {
       setScore(correctCount);
 
       // Save history to Firestore
-      saveQuizHistory({
+      saveMCQHistory({
           userId: currentUser.uid,
           topicId: topic.id,
           score: correctCount,
           totalQuestions: numberOfQuestions,
-          questions: mcqs.map(mcq => mcq.question), // Save the question strings
+          questions: mcqs.map((mcq: MCQ) => mcq.question), // Save the question strings
           takenAt: new Date(),
       }).catch(err => {
-          console.error("Failed to save quiz history:", err);
+          console.error("Failed to save mcq history:", err);
           // Optional: Show a toast message to the user
       });
 
     }
   }, [topicId]);
 
-  if (!isClient || !quizData) {
+  if (!isClient || !mcqData) {
     return null; // or a loading spinner
   }
   
-  const { topic, mcqs: quizMcqs } = quizData;
-  const percentage = quizLength > 0 ? Math.round((score / quizLength) * 100) : 0;
+  const { topic, mcqs: quizMcqs } = mcqData;
+  const percentage = mcqLength > 0 ? Math.round((score / mcqLength) * 100) : 0;
 
   const handleRetake = () => {
-    // Clear the specific quiz state from local storage before retaking
-    localStorage.removeItem(`quiz-${topicId}`);
-    localStorage.removeItem(`quizState-${topicId}`);
+    // Clear the specific mcq state from local storage before retaking
+    localStorage.removeItem(`mcq-${topicId}`);
+    localStorage.removeItem(`mcqState-${topicId}`);
     router.push('/dashboard');
   };
 
@@ -83,18 +83,18 @@ export function QuizResultsClient({ topicId }: QuizResultsClientProps) {
           <div className="flex justify-center items-center mb-4">
             <Award className="w-16 h-16 text-primary" />
           </div>
-          <CardTitle className="text-3xl font-bold font-headline">Quiz Completed!</CardTitle>
-          <p className="text-muted-foreground">You have completed the {topic.title} quiz.</p>
+          <CardTitle className="text-3xl font-bold font-headline">MCQ Completed!</CardTitle>
+          <p className="text-muted-foreground">You have completed the {topic.title} MCQ.</p>
         </CardHeader>
         <CardContent>
           <p className="text-5xl font-bold text-primary">{percentage}%</p>
           <p className="text-xl text-muted-foreground mt-2">
-            You scored {score} out of {quizLength}
+            You scored {score} out of {mcqLength}
           </p>
           <div className="flex justify-center gap-4 mt-8">
             <Button onClick={handleRetake}>
                 <Repeat className="mr-2 h-4 w-4" />
-                New Quiz on Topic
+                New MCQ on Topic
             </Button>
             <Button variant="outline" asChild>
               <Link href="/dashboard">

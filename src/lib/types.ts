@@ -30,12 +30,12 @@ export interface UserData {
     examCategory: 'MTS' | 'POSTMAN' | 'PA';
 }
 
-export interface QuizData {
+export interface MCQData {
   topic: Topic;
   mcqs: MCQ[];
 }
 
-export interface QuizHistory {
+export interface MCQHistory {
     id: string;
     userId: string;
     topicId: string;

@@ -1,16 +1,16 @@
 import { notFound } from "next/navigation";
-import { QuizClient } from "@/components/quiz/quiz-client";
+import { MCQClient } from "@/components/mcq/mcq-client";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 
-export default function QuizPage({
+export default function MCQPage({
   params,
 }: {
   params: { topicId: string };
 }) {
 
-  // This page now relies on quiz data being passed via localStorage
+  // This page now relies on MCQ data being passed via localStorage
   // after being generated on the dashboard.
 
   return (
@@ -22,7 +22,7 @@ export default function QuizPage({
             Back to Dashboard
           </Link>
          </Button>
-        <QuizClient topicId={params.topicId} />
+        <MCQClient topicId={params.topicId} />
       </div>
     </main>
   );

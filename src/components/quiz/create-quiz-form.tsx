@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getUserData, getQuizHistoryForTopic } from '@/lib/firestore';
+import { getUserData, getMCQHistoryForTopic } from '@/lib/firestore';
 import type { Category, Topic, UserData } from '@/lib/types';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { onAuthStateChanged, type User } from 'firebase/auth';
@@ -27,14 +27,14 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface CreateQuizFormProps {
+interface CreateMCQFormProps {
     initialCategories: Category[];
     initialTopics: Topic[];
 }
 
 const ADMIN_EMAIL = "admin@anjalkaran.com";
 
-export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizFormProps) {
+export function CreateMCQForm({ initialCategories, initialTopics }: CreateMCQFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
@@ -103,7 +103,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     setIsGenerating(true);
 
     if (!user) {
-        toast({ title: 'Not Authenticated', description: 'You must be logged in to create a quiz.', variant: 'destructive' });
+        toast({ title: 'Not Authenticated', description: 'You must be logged in to create an MCQ.', variant: 'destructive' });
         setIsGenerating(false);
         return;
     }
@@ -129,7 +129,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
 
     try {
       // Fetch previous questions to avoid repetition
-      const previousQuestions = await getQuizHistoryForTopic(user.uid, values.topicId);
+      const previousQuestions = await getMCQHistoryForTopic(user.uid, values.topicId);
 
       const generationInput = {
           topic: selectedTopic.title,
@@ -143,8 +143,8 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
 
       if (!mcqs || mcqs.length === 0) {
         toast({
-          title: 'Quiz Generation Failed',
-          description: 'The AI could not generate a quiz for the selected topic. Please try again.',
+          title: 'MCQ Generation Failed',
+          description: 'The AI could not generate an MCQ for the selected topic. Please try again.',
           variant: 'destructive',
         });
         setIsGenerating(false);
@@ -152,11 +152,11 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
       }
 
       const topicId = values.topicId;
-      const quizData = {
+      const mcqData = {
         topic: {
           id: topicId,
           title: selectedTopic.title,
-          description: 'A custom generated quiz.',
+          description: 'A custom generated MCQ.',
           icon: selectedTopic.icon,
           categoryId: selectedTopic.categoryId,
           material: selectedTopic.material,
@@ -164,14 +164,14 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
         mcqs: mcqs,
       };
 
-      localStorage.setItem(`quiz-${topicId}`, JSON.stringify(quizData));
+      localStorage.setItem(`mcq-${topicId}`, JSON.stringify(mcqData));
       router.push(`/quiz/${topicId}`);
 
     } catch (error) {
-      console.error('Error generating quiz:', error);
+      console.error('Error generating MCQ:', error);
       toast({
         title: 'Error',
-        description: 'Failed to generate quiz. Please try again later.',
+        description: 'Failed to generate MCQ. Please try again later.',
         variant: 'destructive',
       });
       setIsGenerating(false);
@@ -184,7 +184,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Quiz Details</CardTitle>
+                <CardTitle>MCQ Details</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="flex justify-center items-center h-40">
@@ -199,8 +199,8 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Quiz Details</CardTitle>
-        <CardDescription>Select a category and topic to generate a quiz for your exam type: <span className='font-bold'>{user?.email === ADMIN_EMAIL ? 'Admin (All Access)' : (userData?.examCategory || 'N/A')}</span>.</CardDescription>
+        <CardTitle>MCQ Details</CardTitle>
+        <CardDescription>Select a category and topic to generate an MCQ for your exam type: <span className='font-bold'>{user?.email === ADMIN_EMAIL ? 'Admin (All Access)' : (userData?.examCategory || 'N/A')}</span>.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -272,7 +272,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
             <div className="flex flex-col sm:flex-row gap-2">
               <Button type="submit" disabled={isGenerating || !form.formState.isValid} className="flex-1">
                 {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Generate & Start Quiz
+                Generate & Start MCQ
               </Button>
             </div>
           </form>

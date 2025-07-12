@@ -1,7 +1,7 @@
 
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc } from 'firebase/firestore';
-import type { Category, Topic, UserData, QuizHistory } from './types';
+import type { Category, Topic, UserData, MCQHistory } from './types';
 
 // USER MANAGEMENT
 export const getUserData = async (userId: string): Promise<UserData | null> => {
@@ -120,17 +120,17 @@ export const deleteTopic = async (topicId: string): Promise<void> => {
     await deleteDoc(doc(db, 'topics', topicId));
 };
 
-// QUIZ HISTORY MANAGEMENT
-export const saveQuizHistory = async (historyData: Omit<QuizHistory, 'id'>): Promise<void> => {
+// MCQ HISTORY MANAGEMENT
+export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
-    await addDoc(collection(db, 'quizHistory'), historyData);
+    await addDoc(collection(db, 'mcqHistory'), historyData);
 };
 
-export const getQuizHistoryForTopic = async (userId: string, topicId: string): Promise<string[]> => {
+export const getMCQHistoryForTopic = async (userId: string, topicId: string): Promise<string[]> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
-    const historyCollection = collection(db, 'quizHistory');
+    const historyCollection = collection(db, 'mcqHistory');
     const q = query(historyCollection, where('userId', '==', userId), where('topicId', '==', topicId));
     
     const querySnapshot = await getDocs(q);

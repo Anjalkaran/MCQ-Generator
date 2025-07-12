@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview Summarizes topic material to provide users with a quick overview before taking a quiz.
+ * @fileOverview Summarizes topic material to provide users with a quick overview before taking an MCQ.
  *
  * - summarizeTopicMaterial - A function that summarizes the topic material.
  * - SummarizeTopicMaterialInput - The input type for the summarizeTopicMaterial function.
