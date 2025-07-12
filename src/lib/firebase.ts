@@ -24,7 +24,7 @@ const firebaseConfigIsValid =
   firebaseConfig.messagingSenderId &&
   firebaseConfig.appId;
 
-if (firebaseConfigIsValid) {
+if (typeof window !== 'undefined' && firebaseConfigIsValid) {
   if (!getApps().length) {
     app = initializeApp(firebaseConfig);
   } else {
@@ -32,17 +32,36 @@ if (firebaseConfigIsValid) {
   }
   auth = getAuth(app);
   db = getFirestore(app);
-} else {
-    console.error("Firebase config is missing or incomplete. Make sure all NEXT_PUBLIC_FIREBASE_* environment variables are set.");
 }
 
-
 function getFirebaseAuth(): Auth | null {
-    return firebaseConfigIsValid ? auth : null;
+    if (firebaseConfigIsValid) {
+        if (!auth) {
+             if (!getApps().length) {
+                app = initializeApp(firebaseConfig);
+            } else {
+                app = getApp();
+            }
+            auth = getAuth(app);
+        }
+        return auth;
+    }
+    return null;
 }
 
 function getFirebaseDb(): Firestore | null {
-    return firebaseConfigIsValid ? db : null;
+    if (firebaseConfigIsValid) {
+        if (!db) {
+            if (!getApps().length) {
+                app = initializeApp(firebaseConfig);
+            } else {
+                app = getApp();
+            }
+            db = getFirestore(app);
+        }
+        return db;
+    }
+    return null;
 }
 
 export { getFirebaseAuth, getFirebaseDb };
