@@ -11,9 +11,12 @@ export function MainHeader() {
         <BrainCircuit className="h-6 w-6 text-primary" />
         <span className="ml-2 text-xl font-bold font-headline">Anjalkaran MCQ Generator</span>
       </Link>
-      <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
+      <nav className="ml-auto flex gap-2 sm:gap-4 items-center">
         <Button variant="ghost" asChild>
-          <Link href="/dashboard">Dashboard</Link>
+          <Link href="/auth/login">Login</Link>
+        </Button>
+        <Button asChild>
+          <Link href="/auth/register">Register</Link>
         </Button>
       </nav>
     </header>
