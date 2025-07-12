@@ -11,22 +11,38 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-function getFirebaseApp(): FirebaseApp | null {
-    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-        console.error("Firebase config is missing. Make sure NEXT_PUBLIC_FIREBASE_* environment variables are set.");
-        return null;
-    }
-    return getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
+
+// Check if all necessary environment variables are set.
+const firebaseConfigIsValid =
+  firebaseConfig.apiKey &&
+  firebaseConfig.authDomain &&
+  firebaseConfig.projectId &&
+  firebaseConfig.storageBucket &&
+  firebaseConfig.messagingSenderId &&
+  firebaseConfig.appId;
+
+if (firebaseConfigIsValid) {
+  if (!getApps().length) {
+    app = initializeApp(firebaseConfig);
+  } else {
+    app = getApp();
+  }
+  auth = getAuth(app);
+  db = getFirestore(app);
+} else {
+    console.error("Firebase config is missing or incomplete. Make sure all NEXT_PUBLIC_FIREBASE_* environment variables are set.");
 }
 
+
 function getFirebaseAuth(): Auth | null {
-    const app = getFirebaseApp();
-    return app ? getAuth(app) : null;
+    return firebaseConfigIsValid ? auth : null;
 }
 
 function getFirebaseDb(): Firestore | null {
-    const app = getFirebaseApp();
-    return app ? getFirestore(app) : null;
+    return firebaseConfigIsValid ? db : null;
 }
 
 export { getFirebaseAuth, getFirebaseDb };
