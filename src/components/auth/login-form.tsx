@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import Link from "next/link";
-import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
@@ -29,6 +28,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { loginUser } from "@/actions/auth";
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -37,7 +37,6 @@ const formSchema = z.object({
 
 export function LoginForm() {
   const { toast } = useToast();
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -61,7 +60,9 @@ export function LoginForm() {
           title: "Login Successful",
           description: "Redirecting to dashboard...",
         });
-        router.push("/dashboard");
+        // Use window.location.href to force a full page reload and ensure
+        // the new auth state is picked up by the dashboard layout.
+        window.location.href = "/dashboard";
       }
     });
   }
