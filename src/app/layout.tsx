@@ -3,8 +3,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'QuizWiz - AI-Powered MCQ Generator',
-  description: 'Generate and take quizzes on any topic with QuizWiz.',
+  title: 'Anjalkaran MCQ Generator - AI-Powered Quizzes',
+  description: 'Generate and take quizzes on any topic with the Anjalkaran MCQ Generator.',
 };
 
 export default function RootLayout({

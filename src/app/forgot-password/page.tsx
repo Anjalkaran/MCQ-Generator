@@ -8,7 +8,7 @@ export default function ForgotPasswordPage() {
        <div className="absolute top-6 left-6">
         <Link href="/" className="flex items-center justify-center">
             <BrainCircuit className="h-6 w-6 text-primary" />
-            <span className="ml-2 text-xl font-bold font-headline">QuizWiz</span>
+            <span className="ml-2 text-xl font-bold font-headline">Anjalkaran MCQ Generator</span>
         </Link>
        </div>
       <ForgotPasswordForm />
