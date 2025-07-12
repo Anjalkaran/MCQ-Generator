@@ -19,7 +19,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
+      <div className="space-y-2 text-center">
         <h1 className="text-3xl font-bold tracking-tight">Create Your Own Exam</h1>
         <p className="text-muted-foreground">
           Select a topic to generate an exam.

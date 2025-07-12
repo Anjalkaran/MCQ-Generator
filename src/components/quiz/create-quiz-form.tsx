@@ -183,7 +183,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
   if (isLoading) {
     return (
         <Card>
-            <CardHeader>
+            <CardHeader className="text-center">
                 <CardTitle>Exam Details</CardTitle>
             </CardHeader>
             <CardContent>
@@ -198,7 +198,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="text-center">
         <CardTitle>Exam Details</CardTitle>
         <CardDescription>Select a category and topic to generate a quiz for your exam type: <span className='font-bold'>{user?.email === ADMIN_EMAIL ? 'Admin (All Access)' : (userData?.examCategory || 'N/A')}</span>.</CardDescription>
       </CardHeader>
