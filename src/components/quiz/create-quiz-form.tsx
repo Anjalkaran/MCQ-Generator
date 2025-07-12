@@ -33,6 +33,8 @@ interface CreateQuizFormProps {
     initialTopics: Topic[];
 }
 
+const ADMIN_EMAIL = "admin@anjalkaran.com";
+
 export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizFormProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -75,21 +77,24 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
   const selectedCategoryId = form.watch('categoryId');
 
   useEffect(() => {
-    if (userData) {
-        const userExamCategory = userData.examCategory;
-        const userCategories = initialCategories.filter(c => 
-            c.examCategories?.includes(userExamCategory)
-        );
-        setCategories(userCategories);
+    if (user?.email === ADMIN_EMAIL) {
+      setCategories(initialCategories);
+      setTopics(initialTopics);
+    } else if (userData) {
+      const userExamCategory = userData.examCategory;
+      const userCategories = initialCategories.filter(c =>
+        c.examCategories && c.examCategories.includes(userExamCategory)
+      );
+      setCategories(userCategories);
 
-        const userCategoryIds = userCategories.map(c => c.id);
-        const userTopics = initialTopics.filter(t => userCategoryIds.includes(t.categoryId));
-        setTopics(userTopics);
+      const userCategoryIds = userCategories.map(c => c.id);
+      const userTopics = initialTopics.filter(t => userCategoryIds.includes(t.categoryId));
+      setTopics(userTopics);
     } else {
-        setCategories([]);
-        setTopics([]);
+      setCategories([]);
+      setTopics([]);
     }
-  }, [userData, initialCategories, initialTopics]);
+  }, [user, userData, initialCategories, initialTopics]);
   
 
   const onSubmit = async (values: FormValues) => {
@@ -179,7 +184,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     <Card>
       <CardHeader>
         <CardTitle>Quiz Details</CardTitle>
-        <CardDescription>Select a category and topic to generate a quiz for your exam type: <span className='font-bold'>{userData?.examCategory || 'N/A'}</span>.</CardDescription>
+        <CardDescription>Select a category and topic to generate a quiz for your exam type: <span className='font-bold'>{user?.email === ADMIN_EMAIL ? 'Admin (All Access)' : (userData?.examCategory || 'N/A')}</span>.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -193,10 +198,10 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                    <Select onValueChange={(value) => {
                      field.onChange(value);
                      form.setValue('topicId', '');
-                   }} value={field.value} disabled={!userData || categories.length === 0}>
+                   }} value={field.value} disabled={!user || categories.length === 0}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder={!userData ? "Login to see categories" : (categories.length === 0 ? "No categories available for your exam type" : "Select a category")} />
+                        <SelectValue placeholder={!user ? "Login to see categories" : (categories.length === 0 ? "No categories available for your exam type" : "Select a category")} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
