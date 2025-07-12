@@ -18,6 +18,8 @@ import { getUserData, getMCQHistoryForTopic } from '@/lib/firestore';
 import type { Category, Topic, UserData } from '@/lib/types';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { onAuthStateChanged, type User } from 'firebase/auth';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 const formSchema = z.object({
   categoryId: z.string().min(1, 'Please select a category.'),
@@ -263,20 +265,34 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
               control={form.control}
               name="difficulty"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="space-y-3">
                   <FormLabel>Difficulty Level</FormLabel>
-                   <Select onValueChange={field.onChange} value={field.value} defaultValue="Moderate">
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a difficulty level" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                        <SelectItem value="Easy">Easy</SelectItem>
-                        <SelectItem value="Moderate">Moderate</SelectItem>
-                        <SelectItem value="Difficult">Difficult</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex flex-row space-x-4"
+                    >
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="Easy" />
+                        </FormControl>
+                        <Label className="font-normal">Easy</Label>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="Moderate" />
+                        </FormControl>
+                        <Label className="font-normal">Moderate</Label>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="Difficult" />
+                        </FormControl>
+                        <Label className="font-normal">Difficult</Label>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
