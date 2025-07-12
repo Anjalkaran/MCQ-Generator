@@ -70,7 +70,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
 
   const categoryForm = useForm<z.infer<typeof categorySchema>>({
     resolver: zodResolver(categorySchema),
-    defaultValues: { name: '', examCategory: '' },
+    defaultValues: { name: '', examCategory: 'MTS' },
   });
 
   const topicForm = useForm<z.infer<typeof topicSchema>>({
@@ -473,7 +473,3 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     </div>
   );
 }
-
-    
-
-    
