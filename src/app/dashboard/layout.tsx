@@ -100,7 +100,7 @@ export default function DashboardLayout({
           <div className="flex items-center gap-2 p-2">
             <SidebarTrigger />
              <Link href="/" className="flex items-center gap-2">
-                <Logo className="w-8 h-8 text-primary" />
+                <Logo className="w-10 h-10 text-primary" />
                 <h2 className="font-bold text-lg group-data-[collapsible=icon]:hidden transition-opacity duration-200">
                   Anjalkaran
                 </h2>
