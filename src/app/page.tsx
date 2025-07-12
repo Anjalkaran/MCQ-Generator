@@ -29,7 +29,7 @@ export default function Home() {
   };
 
   const selectedTopicData = topics.find(t => t.id === selectedTopic);
-  const maxQuestions = selectedTopicData ? selectedTopicData.mcqs.length : 0;
+  const maxQuestions = 50;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -71,7 +71,7 @@ export default function Home() {
                       value={numberOfQuestions}
                       onChange={(e) => setNumberOfQuestions(parseInt(e.target.value, 10))}
                       min="1"
-                      max={maxQuestions > 0 ? maxQuestions : undefined}
+                      max={maxQuestions}
                       disabled={!selectedTopic}
                       className="w-full"
                     />
