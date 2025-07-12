@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -18,9 +18,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { addCategory, addTopic, getCategories, getTopics, deleteTopic, deleteCategory } from '@/lib/firestore';
+import { addCategory, addTopic, deleteTopic, deleteCategory } from '@/lib/firestore';
 import type { Topic, Category } from '@/lib/types';
-import { Loader2, PlusCircle, Trash2 } from 'lucide-react';
+import { Loader2, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,10 +49,15 @@ type GroupedTopics = {
   [key: string]: Topic[];
 };
 
-export function TopicManagement() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [topics, setTopics] = useState<Topic[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+interface TopicManagementProps {
+    initialCategories: Category[];
+    initialTopics: Topic[];
+}
+
+export function TopicManagement({ initialCategories, initialTopics }: TopicManagementProps) {
+  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const [topics, setTopics] = useState<Topic[]>(initialTopics);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const categoryForm = useForm<z.infer<typeof categorySchema>>({
@@ -65,24 +70,8 @@ export function TopicManagement() {
     defaultValues: { title: '', description: '', categoryId: '' },
   });
 
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const [catData, topicData] = await Promise.all([getCategories(), getTopics()]);
-      setCategories(catData);
-      setTopics(topicData);
-    } catch (error) {
-      toast({ title: 'Error', description: 'Failed to fetch topics and categories.', variant: 'destructive' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const onCategorySubmit = async (values: z.infer<typeof categorySchema>) => {
+    setIsLoading(true);
     try {
       const newCategoryDoc = await addCategory(values);
       const newCategory = { id: newCategoryDoc.id, ...values };
@@ -91,10 +80,13 @@ export function TopicManagement() {
       categoryForm.reset();
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to add category.', variant: 'destructive' });
+    } finally {
+        setIsLoading(false);
     }
   };
 
   const onTopicSubmit = async (values: z.infer<typeof topicSchema>) => {
+    setIsLoading(true);
     try {
       const topicData = { ...values, description: values.description || '', icon: 'default' };
       const newTopicDoc = await addTopic(topicData);
@@ -104,6 +96,8 @@ export function TopicManagement() {
       topicForm.reset();
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to add topic.', variant: 'destructive' });
+    } finally {
+        setIsLoading(false);
     }
   };
 
@@ -147,11 +141,6 @@ export function TopicManagement() {
                 <CardDescription>View and manage all topics grouped by category.</CardDescription>
             </CardHeader>
             <CardContent>
-                 {isLoading ? (
-                    <div className="flex justify-center items-center h-48">
-                        <Loader2 className="h-8 w-8 animate-spin" />
-                    </div>
-                 ) : (
                 <Accordion type="single" collapsible className="w-full">
                 {Object.entries(groupedTopics).map(([categoryName, topics]) => {
                   const category = categories.find(c => c.name === categoryName);
@@ -166,7 +155,7 @@ export function TopicManagement() {
                          {category && (
                            <AlertDialog>
                               <AlertDialogTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                <Button variant="ghost" size="icon">
+                                <Button variant="ghost" size="icon" disabled={isLoading}>
                                     <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
                               </AlertDialogTrigger>
@@ -196,7 +185,7 @@ export function TopicManagement() {
                               </div>
                                <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon">
+                                  <Button variant="ghost" size="icon" disabled={isLoading}>
                                       <Trash2 className="h-4 w-4 text-destructive" />
                                   </Button>
                                 </AlertDialogTrigger>
@@ -221,7 +210,6 @@ export function TopicManagement() {
                   )
                 })}
                 </Accordion>
-                )}
             </CardContent>
          </Card>
       </div>
@@ -269,8 +257,8 @@ export function TopicManagement() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" disabled={categoryForm.formState.isSubmitting}>
-                  {categoryForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Add Category
                 </Button>
               </form>
@@ -328,8 +316,8 @@ export function TopicManagement() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" disabled={topicForm.formState.isSubmitting}>
-                  {topicForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Add Topic
                 </Button>
               </form>

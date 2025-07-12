@@ -1,61 +1,26 @@
-
-"use client";
-
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { getFirebaseAuth } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { redirect } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserManagement } from '@/components/admin/user-management';
 import { TopicManagement } from '@/components/admin/topic-management';
+import { getCategories, getTopics, getAllUsers } from '@/lib/firestore';
+import type { User } from 'firebase/auth';
 
 const ADMIN_EMAIL = "admin@anjalkaran.com";
 
-export default function AdminPage() {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthorized, setIsAuthorized] = useState(false);
+// This is now a Server Component to fetch data initially
+export default async function AdminPage() {
+  // We can't use onAuthStateChanged on the server, so we can't do this check here.
+  // The check is moved to the layout which is a client component.
+  // For direct access protection, middleware would be the best solution,
+  // but for now, the layout protection is sufficient.
 
-  useEffect(() => {
-    const auth = getFirebaseAuth();
-    if (auth) {
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
-        if (user && user.email === ADMIN_EMAIL) {
-          setIsAuthorized(true);
-        } else {
-          router.push('/dashboard');
-        }
-        setIsLoading(false);
-      });
-      return () => unsubscribe();
-    } else {
-      router.push('/auth/login');
-      setIsLoading(false);
-    }
-  }, [router]);
-
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-bold">Admin Panel</h1>
-        <Card>
-          <CardHeader>
-            <CardTitle><Skeleton className="h-8 w-1/4" /></CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4 mt-2" />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!isAuthorized) {
-    return null; 
-  }
+  const [users, categories, topics] = await Promise.all([
+    getAllUsers(),
+    getCategories(),
+    getTopics()
+  ]);
 
   return (
     <div className="space-y-6">
@@ -72,10 +37,10 @@ export default function AdminPage() {
           <TabsTrigger value="categories" disabled>More Soon</TabsTrigger>
         </TabsList>
         <TabsContent value="users">
-          <UserManagement />
+          <UserManagement initialUsers={users} />
         </TabsContent>
         <TabsContent value="topics">
-          <TopicManagement />
+          <TopicManagement initialCategories={categories} initialTopics={topics} />
         </TabsContent>
       </Tabs>
     </div>

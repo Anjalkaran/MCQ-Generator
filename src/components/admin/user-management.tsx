@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getAllUsers, deleteUserDocument } from '@/lib/firestore';
+import { deleteUserDocument } from '@/lib/firestore';
 import type { UserData } from '@/lib/types';
 import {
   AlertDialog,
@@ -21,32 +21,17 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
-export function UserManagement() {
-  const [users, setUsers] = useState<UserData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+interface UserManagementProps {
+    initialUsers: UserData[];
+}
+
+export function UserManagement({ initialUsers }: UserManagementProps) {
+  const [users, setUsers] = useState<UserData[]>(initialUsers);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
-    setIsLoading(true);
-    try {
-      const userList = await getAllUsers();
-      setUsers(userList);
-    } catch (error) {
-      toast({
-        title: 'Error Fetching Users',
-        description: 'Could not retrieve the user list. Please try again later.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleDeleteUser = async (userId: string) => {
+    setIsLoading(true);
     try {
       await deleteUserDocument(userId);
       // For a full implementation, you would also call a serverless function here
@@ -55,7 +40,7 @@ export function UserManagement() {
         title: 'User Deleted',
         description: 'User data has been removed from Firestore.',
       });
-      fetchUsers(); // Refresh the list
+      setUsers(prevUsers => prevUsers.filter(user => user.uid !== userId));
     } catch (error) {
         console.error("Error deleting user:", error)
       toast({
@@ -63,6 +48,8 @@ export function UserManagement() {
         description: 'Could not delete the user. This action is sensitive and may require server privileges.',
         variant: 'destructive',
       });
+    } finally {
+        setIsLoading(false);
     }
   };
 
@@ -73,11 +60,6 @@ export function UserManagement() {
         <CardDescription>A list of all registered users in the system.</CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="flex justify-center items-center h-48">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-        ) : (
           <div className="border rounded-md">
             <Table>
               <TableHeader>
@@ -98,7 +80,7 @@ export function UserManagement() {
                       <TableCell className="text-right">
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" disabled={user.email === 'admin@anjalkaran.com'}>
+                            <Button variant="ghost" size="icon" disabled={user.email === 'admin@anjalkaran.com' || isLoading}>
                               <Trash2 className="h-4 w-4" />
                               <span className="sr-only">Delete</span>
                             </Button>
@@ -132,7 +114,6 @@ export function UserManagement() {
               </TableBody>
             </Table>
           </div>
-        )}
       </CardContent>
     </Card>
   );

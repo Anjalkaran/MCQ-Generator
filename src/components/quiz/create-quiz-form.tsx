@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getCategories, getTopics, getUserData } from '@/lib/firestore';
+import { getUserData } from '@/lib/firestore';
 import type { Category, Topic, UserData } from '@/lib/types';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { onAuthStateChanged, type User } from 'firebase/auth';
@@ -27,15 +27,20 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export function CreateQuizForm() {
+interface CreateQuizFormProps {
+    initialCategories: Category[];
+    initialTopics: Topic[];
+}
+
+export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [topics, setTopics] = useState<Topic[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [topics, setTopics] = useState<Topic[]>(initialTopics);
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -48,13 +53,19 @@ export function CreateQuizForm() {
 
   useEffect(() => {
     const auth = getFirebaseAuth();
-    if (!auth) return;
+    if (!auth) {
+        setIsLoading(false);
+        return;
+    };
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
         getUserData(currentUser.uid).then(data => {
             if(data) setUserData(data);
+            setIsLoading(false);
         });
+      } else {
+        setIsLoading(false);
       }
     });
     return () => unsubscribe();
@@ -63,33 +74,15 @@ export function CreateQuizForm() {
   const selectedCategoryId = form.watch('categoryId');
 
   useEffect(() => {
-    async function fetchData() {
-        if (!userData) return;
-        setIsLoading(true);
-        try {
-            const [catData, topicData] = await Promise.all([getCategories(), getTopics()]);
-            
-            const userCategories = catData.filter(c => c.examCategory === userData.examCategory || c.examCategory === 'ALL');
-            setCategories(userCategories);
-
-            const userCategoryIds = userCategories.map(c => c.id);
-            const userTopics = topicData.filter(t => userCategoryIds.includes(t.categoryId));
-            setTopics(userTopics);
-
-        } catch (error) {
-            toast({
-                title: 'Error loading data',
-                description: 'Could not fetch topics and categories for your exam type.',
-                variant: 'destructive',
-            })
-        } finally {
-            setIsLoading(false);
-        }
-    }
     if (userData) {
-      fetchData();
+        const userCategories = initialCategories.filter(c => c.examCategory === userData.examCategory || c.examCategory === 'ALL');
+        setCategories(userCategories);
+
+        const userCategoryIds = userCategories.map(c => c.id);
+        const userTopics = initialTopics.filter(t => userCategoryIds.includes(t.categoryId));
+        setTopics(userTopics);
     }
-  }, [toast, userData]);
+  }, [userData, initialCategories, initialTopics]);
   
 
   const onSubmit = async (values: FormValues) => {
@@ -149,7 +142,7 @@ export function CreateQuizForm() {
 
   const filteredTopics = selectedCategoryId ? topics.filter(topic => topic.categoryId === selectedCategoryId) : [];
 
-  if (!user || !userData) {
+  if (isLoading) {
     return (
         <Card>
             <CardHeader>
@@ -169,15 +162,9 @@ export function CreateQuizForm() {
     <Card>
       <CardHeader>
         <CardTitle>Quiz Details</CardTitle>
-        <CardDescription>Select a category and topic to generate a quiz for your exam type: <span className='font-bold'>{userData.examCategory}</span>.</CardDescription>
+        <CardDescription>Select a category and topic to generate a quiz for your exam type: <span className='font-bold'>{userData?.examCategory || 'N/A'}</span>.</CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-             <div className="flex justify-center items-center h-40">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className='ml-4'>Loading categories and topics...</p>
-             </div>
-        ) : (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
@@ -189,10 +176,10 @@ export function CreateQuizForm() {
                    <Select onValueChange={(value) => {
                      field.onChange(value);
                      form.setValue('topicId', '');
-                   }} defaultValue={field.value}>
+                   }} defaultValue={field.value} disabled={!userData}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
+                        <SelectValue placeholder={!userData ? "Login to see categories" : "Select a category"} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -252,7 +239,6 @@ export function CreateQuizForm() {
             </div>
           </form>
         </Form>
-        )}
       </CardContent>
     </Card>
   );

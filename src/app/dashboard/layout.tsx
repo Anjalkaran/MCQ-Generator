@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
@@ -23,6 +23,7 @@ export default function DashboardLayout({
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const auth = getFirebaseAuth();
@@ -30,16 +31,26 @@ export default function DashboardLayout({
       const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
         if (currentUser) {
           setUser(currentUser);
-          setIsAdmin(currentUser.email === ADMIN_EMAIL);
+          const userIsAdmin = currentUser.email === ADMIN_EMAIL;
+          setIsAdmin(userIsAdmin);
+          
+          if(pathname === '/dashboard/admin' && !userIsAdmin) {
+             router.push('/dashboard');
+          }
+
         } else {
           setUser(null);
           setIsAdmin(false);
           router.push('/auth/login');
         }
+        setIsLoading(false);
       });
       return () => unsubscribe();
+    } else {
+        router.push('/auth/login');
+        setIsLoading(false);
     }
-  }, [router]);
+  }, [router, pathname]);
 
 
   const handleLogout = async () => {
@@ -67,6 +78,14 @@ export default function DashboardLayout({
       });
     }
   };
+
+  if (isLoading) {
+    return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    )
+  }
 
 
   return (
