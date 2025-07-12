@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { getAuth, onAuthStateChanged, signOut, type User } from 'firebase/auth';
+import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from '@/components/ui/sidebar';
 import { LayoutDashboard, User as UserIcon, History, LogOut, Loader2 } from 'lucide-react';
@@ -22,6 +22,8 @@ export default function DashboardLayout({
   useEffect(() => {
     const auth = getFirebaseAuth();
     if (!auth) {
+        // This case would happen if Firebase isn't configured.
+        // It's safer to redirect to login than to do nothing.
         setLoading(false);
         router.push('/login');
         return;
@@ -30,18 +32,23 @@ export default function DashboardLayout({
       if (user) {
         setUser(user);
       } else {
+        // User is signed out or session expired.
         router.push('/login');
       }
+      // Only set loading to false AFTER we've received the first auth state.
       setLoading(false);
     });
 
+    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, [router]);
 
   const handleLogout = async () => {
-    const auth = getAuth();
-    await signOut(auth);
-    router.push('/login');
+    const auth = getFirebaseAuth();
+    if (auth) {
+      await signOut(auth);
+      router.push('/login');
+    }
   };
 
   if (loading) {
@@ -53,7 +60,9 @@ export default function DashboardLayout({
   }
   
   if (!user) {
-    return null; // The redirect is handled in the effect, this prevents rendering children without a user
+    // This case should ideally not be hit if the onAuthStateChanged logic is correct,
+    // but it's a fallback to prevent rendering children without a user.
+    return null; 
   }
 
   return (
