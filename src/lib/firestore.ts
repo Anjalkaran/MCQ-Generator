@@ -1,4 +1,5 @@
 
+
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy } from 'firebase/firestore';
 import type { Category, Topic, UserData, MCQHistory, TopicPerformance } from './types';
@@ -157,14 +158,15 @@ export const getExamHistoryForUser = async (userId: string): Promise<MCQHistory[
     if (!db) throw new Error("Firestore is not initialized");
     
     const historyCollection = collection(db, 'mcqHistory');
-    const q = query(historyCollection, where('userId', '==', userId), orderBy('takenAt', 'desc'));
+    // The query that requires an index. We will filter first, then sort in code.
+    const q = query(historyCollection, where('userId', '==', userId));
     
     const querySnapshot = await getDocs(q);
     
     const topics = await getTopics();
     const topicMap = new Map(topics.map(t => [t.id, t]));
 
-    return querySnapshot.docs.map(doc => {
+    const history = querySnapshot.docs.map(doc => {
         const data = doc.data();
         const topic = topicMap.get(data.topicId);
         
@@ -178,6 +180,9 @@ export const getExamHistoryForUser = async (userId: string): Promise<MCQHistory[
             takenAt: takenAt,
         } as MCQHistory;
     });
+
+    // Sort the results by date in descending order in the application code
+    return history.sort((a, b) => b.takenAt.getTime() - a.takenAt.getTime());
 };
 
 // PERFORMANCE ANALYSIS
