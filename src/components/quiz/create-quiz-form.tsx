@@ -13,10 +13,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { topics } from '@/lib/data';
 
 const formSchema = z.object({
+  category: z.string().min(1, 'Please select a category.'),
   topic: z.string().min(1, 'Please select a topic.'),
   numberOfQuestions: z.coerce.number().min(3).max(10),
 });
@@ -27,15 +28,17 @@ export function CreateQuizForm() {
   const router = useRouter();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('');
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      category: '',
       topic: '',
       numberOfQuestions: 5,
     },
   });
-  
+
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
     
@@ -102,46 +105,63 @@ export function CreateQuizForm() {
     }
   };
 
-  const groupedTopics = topics.reduce((acc, topic) => {
-    const category = topic.category || 'General';
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(topic);
-    return acc;
-  }, {} as Record<string, typeof topics>);
+  const categories = [...new Set(topics.map(topic => topic.category))];
+  const filteredTopics = selectedCategory ? topics.filter(topic => topic.category === selectedCategory) : [];
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Quiz Details</CardTitle>
-        <CardDescription>Select a topic to generate a quiz.</CardDescription>
+        <CardDescription>Select a category and topic to generate a quiz.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
               control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                   <Select onValueChange={(value) => {
+                     field.onChange(value);
+                     setSelectedCategory(value);
+                     form.resetField('topic');
+                   }} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
               name="topic"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Topic</FormLabel>
-                   <Select onValueChange={field.onChange} defaultValue={field.value}>
+                   <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedCategory}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a pre-defined topic" />
+                        <SelectValue placeholder="Select a topic" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {Object.entries(groupedTopics).map(([category, topicsInCategory]) => (
-                        <SelectGroup key={category}>
-                          <SelectLabel>{category}</SelectLabel>
-                          {topicsInCategory.map(topic => (
-                            <SelectItem key={topic.id} value={topic.id}>
-                              {topic.title}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
+                      {filteredTopics.map(topic => (
+                        <SelectItem key={topic.id} value={topic.id}>
+                          {topic.title}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
