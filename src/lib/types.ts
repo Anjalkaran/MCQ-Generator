@@ -1,3 +1,4 @@
+
 import type { LucideIcon } from 'lucide-react';
 
 export interface MCQ {
@@ -10,7 +11,20 @@ export interface Topic {
   id: string;
   title: string;
   description: string;
-  icon: LucideIcon;
+  icon: string; // Storing icon name as string, mapping to component elsewhere
   material: string;
-  category: string;
+  categoryId: string;
+}
+
+export interface Category {
+    id: string;
+    name: string;
+}
+
+export interface UserData {
+    id: string;
+    uid: string;
+    name: string;
+    email: string;
+    examCategory: 'MTS' | 'POSTMAN' | 'PA';
 }

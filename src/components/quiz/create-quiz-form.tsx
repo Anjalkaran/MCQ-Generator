@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,11 +14,12 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { topics } from '@/lib/data';
+import { getCategories, getTopics } from '@/lib/firestore';
+import type { Category, Topic } from '@/lib/types';
 
 const formSchema = z.object({
-  category: z.string().min(1, 'Please select a category.'),
-  topic: z.string().min(1, 'Please select a topic.'),
+  categoryId: z.string().min(1, 'Please select a category.'),
+  topicId: z.string().min(1, 'Please select a topic.'),
   numberOfQuestions: z.coerce.number().min(3).max(50),
 });
 
@@ -28,21 +29,46 @@ export function CreateQuizForm() {
   const router = useRouter();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('');
-
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      category: '',
-      topic: '',
+      categoryId: '',
+      topicId: '',
       numberOfQuestions: 5,
     },
   });
 
+  const selectedCategoryId = form.watch('categoryId');
+
+  useEffect(() => {
+    async function fetchData() {
+        setIsLoading(true);
+        try {
+            const [catData, topicData] = await Promise.all([getCategories(), getTopics()]);
+            setCategories(catData);
+            setTopics(topicData);
+        } catch (error) {
+            toast({
+                title: 'Error loading data',
+                description: 'Could not fetch topics and categories from the database.',
+                variant: 'destructive',
+            })
+        } finally {
+            setIsLoading(false);
+        }
+    }
+    fetchData();
+  }, [toast]);
+  
+
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
     
-    const selectedTopic = topics.find(t => t.id === values.topic);
+    const selectedTopic = topics.find(t => t.id === values.topicId);
 
     if (!selectedTopic) {
         toast({
@@ -81,7 +107,7 @@ export function CreateQuizForm() {
         return;
       }
 
-      const topicId = values.topic;
+      const topicId = values.topicId;
       const quizData = {
         topic: {
           id: topicId,
@@ -105,8 +131,7 @@ export function CreateQuizForm() {
     }
   };
 
-  const categories = [...new Set(topics.map(topic => topic.category))];
-  const filteredTopics = selectedCategory ? topics.filter(topic => topic.category === selectedCategory) : [];
+  const filteredTopics = selectedCategoryId ? topics.filter(topic => topic.categoryId === selectedCategoryId) : [];
 
   return (
     <Card>
@@ -115,18 +140,22 @@ export function CreateQuizForm() {
         <CardDescription>Select a category and topic to generate a quiz.</CardDescription>
       </CardHeader>
       <CardContent>
+        {isLoading ? (
+             <div className="flex justify-center items-center h-40">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+             </div>
+        ) : (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
               control={form.control}
-              name="category"
+              name="categoryId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category</FormLabel>
                    <Select onValueChange={(value) => {
                      field.onChange(value);
-                     setSelectedCategory(value);
-                     form.resetField('topic');
+                     form.setValue('topicId', '');
                    }} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -135,8 +164,8 @@ export function CreateQuizForm() {
                     </FormControl>
                     <SelectContent>
                       {categories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -147,11 +176,11 @@ export function CreateQuizForm() {
             />
             <FormField
               control={form.control}
-              name="topic"
+              name="topicId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Topic</FormLabel>
-                   <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedCategory}>
+                   <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCategoryId}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a topic" />
@@ -183,13 +212,14 @@ export function CreateQuizForm() {
               )}
             />
             <div className="flex flex-col sm:flex-row gap-2">
-              <Button type="submit" disabled={isGenerating} className="flex-1">
+              <Button type="submit" disabled={isGenerating || !form.formState.isValid} className="flex-1">
                 {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Generate & Start Quiz
               </Button>
             </div>
           </form>
         </Form>
+        )}
       </CardContent>
     </Card>
   );

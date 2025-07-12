@@ -1,3 +1,9 @@
+
+// This file is now deprecated as topics are managed in Firestore.
+// It is kept for reference or can be deleted.
+
+// Example of how data was structured:
+/*
 import {
   Calculator,
   Divide,
@@ -11,68 +17,6 @@ import {
 import type { Topic } from './types';
 
 export const topics: Topic[] = [
-  {
-    id: 'bodmas',
-    title: 'BODMAS',
-    description: 'Master the order of mathematical operations.',
-    icon: Divide,
-    category: 'Basic Arithmetics',
-    material: `The BODMAS rule is an acronym to help children remember the order of operations in calculations. It stands for Brackets, Orders, Division, Multiplication, Addition, Subtraction. 'Orders' means square roots or square numbers. Calculations should be done in this sequence. For example, in '10 + 2 * 5', multiplication comes before addition, so it is 10 + (2*5) = 20. In '(5 + 3) * 2 - 1', brackets come first, so (8) * 2 - 1 = 16 - 1 = 15.`,
-  },
-  {
-    id: 'average',
-    title: 'Average',
-    description: 'Learn to calculate the central value of a set of numbers.',
-    icon: Calculator,
-    category: 'Basic Arithmetics',
-    material: 'The average is the central value of a set of numbers. It is calculated by adding all the numbers in a set and then dividing by the count of numbers in that set. For example, the average of 2, 4, and 6 is (2 + 4 + 6) / 3 = 12 / 3 = 4. If the average of 5 numbers is 10, their sum is 5 * 10 = 50.',
-  },
-  {
-    id: 'percentage',
-    title: 'Percentage',
-    description: 'Understand and calculate percentages.',
-    icon: Percent,
-    category: 'Basic Arithmetics',
-    material: `A percentage is a number or ratio expressed as a fraction of 100. It is often denoted using the percent sign, "%". To calculate a percentage of a number, you convert the percentage to a decimal and multiply. For example, 20% of 150 is 0.20 * 150 = 30. For discounts, you calculate the discount amount and subtract it from the original price. A 25% discount on a $40 shirt is 0.25 * 40 = $10. The final price is $40 - $10 = $30.`,
-  },
-    {
-    id: 'unitary-method',
-    title: 'Unitary Method',
-    description: 'Find the value of a single unit to find the value of multiple units.',
-    icon: Tally1,
-    category: 'Basic Arithmetics',
-    material: 'The unitary method is a technique for solving a problem by first finding the value of a single unit, and then finding the necessary value by multiplying the single unit value. For example, if 5 pens cost $10, the cost of 1 pen is $10 / 5 = $2. From this, you can find the cost of any number of pens.',
-  },
-  {
-    id: 'profit-and-loss',
-    title: 'Profit and Loss',
-    description: 'Calculate profits and losses in business transactions.',
-    icon: TrendingUp,
-    category: 'Basic Arithmetics',
-    material: 'Profit is the gain in a business transaction, calculated as Selling Price (SP) minus Cost Price (CP). Loss is the amount lost, calculated as CP - SP. For example, if CP is $50 and SP is $70, the profit is $70 - $50 = $20. Loss percentage is (Loss / CP) * 100. If an item bought for $100 is sold for $80, the loss is $20. The loss percentage is (20 / 100) * 100 = 20%.',
-  },
-  {
-    id: 'simple-interest',
-    title: 'Simple Interest',
-    description: 'Learn the basics of calculating simple interest.',
-    icon: Landmark,
-    category: 'Basic Arithmetics',
-    material: 'Simple Interest (SI) is calculated on the principal amount, or the original amount of a loan. The formula is SI = P * R * T / 100, where P is the principal amount, R is the rate of interest per annum, and T is the time in years. For $1000 at 5% for 2 years, SI = (1000 * 5 * 2) / 100 = $100.',
-  },
-  {
-    id: 'time-and-distance',
-    title: 'Time and Distance',
-    description: 'Solve problems related to speed, time, and distance.',
-    icon: Clock,
-    category: 'Basic Arithmetics',
-    material: 'The relationship between speed, time, and distance is Distance = Speed × Time. If you know two of the values, you can find the third. For example, if a car travels at a speed of 60 km/h for 3 hours, the distance it travels is 60 * 3 = 180 km.',
-  },
-  {
-    id: 'time-and-work',
-    title: 'Time and Work',
-    description: 'Understand the relationship between time taken and work done.',
-    icon: Briefcase,
-    category: 'Basic Arithmetics',
-    material: 'If a person can complete a piece of work in \'n\' days, then the work done by that person in one day is 1/n. This concept is fundamental to solving problems related to time and work. For instance, if A can do a piece of work in 10 days, he does 1/10 of the work each day.',
-  },
-];
+  // ... topic objects
+]
+*/
