@@ -153,7 +153,7 @@ export default function DashboardLayout({
              </Button>
            </div>
             <div className='p-4 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden'>
-                <p>Anjalkaran MCQ Generator</p>
+                <p>&copy; {new Date().getFullYear()} Anjalkaran</p>
             </div>
         </SidebarFooter>
       </Sidebar>
