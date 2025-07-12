@@ -15,7 +15,7 @@ export default function Home() {
           <div className="container px-4 md:px-6 flex justify-center">
             <Card className="w-full max-w-lg shadow-lg text-center">
               <CardHeader>
-                <CardTitle className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl font-headline">
+                <CardTitle className="text-3xl font-bold sm:text-4xl md:text-5xl font-headline">
                   Welcome to MCQ Practice center
                 </CardTitle>
                 <CardDescription className="mx-auto max-w-[700px] text-muted-foreground pt-2">
