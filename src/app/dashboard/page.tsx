@@ -1,17 +1,13 @@
 
-
 import { CreateQuizForm } from "@/components/quiz/create-quiz-form";
 import { getCategories, getTopics } from '@/lib/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
-import { getAuth } from "firebase/auth";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MockTestForm } from "@/components/quiz/mock-test-form";
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  // We can't reliably get the current user on the server without a session management library.
-  // We will continue to fetch user-specific data on the client in create-quiz-form.
-  // However, we can pre-load the generic categories and topics.
   const [categories, topics] = await Promise.all([
     getCategories(),
     getTopics(),
@@ -22,7 +18,19 @@ export default async function DashboardPage() {
       <div className="space-y-2 text-center">
         <h1 className="text-3xl font-bold tracking-tight">Create Your Own Exam</h1>
       </div>
-      <CreateQuizForm initialCategories={categories} initialTopics={topics} />
+
+      <Tabs defaultValue="topic-wise" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="topic-wise">Topic-wise MCQ</TabsTrigger>
+          <TabsTrigger value="mock-test">Mock Test</TabsTrigger>
+        </TabsList>
+        <TabsContent value="topic-wise">
+          <CreateQuizForm initialCategories={categories} initialTopics={topics} />
+        </TabsContent>
+        <TabsContent value="mock-test">
+          <MockTestForm />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
