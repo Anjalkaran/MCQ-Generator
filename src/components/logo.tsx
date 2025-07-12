@@ -1,3 +1,4 @@
+
 import type { ComponentProps } from 'react';
 
 export function Logo(props: Omit<ComponentProps<'svg'>, 'children'>) {
@@ -20,7 +21,7 @@ export function Logo(props: Omit<ComponentProps<'svg'>, 'children'>) {
         Anjal
       </text>
       <text
-        x="125"
+        x="145"
         y="65"
         fontFamily="Verdana, sans-serif"
         fontSize="50"
