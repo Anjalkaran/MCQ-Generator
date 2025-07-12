@@ -75,16 +75,10 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
 
   useEffect(() => {
     if (userData) {
-        const allowedCategories: Category['examCategory'][] = ['ALL'];
-        if(userData.examCategory === 'MTS') {
-            allowedCategories.push('MTS');
-        } else if (userData.examCategory === 'POSTMAN') {
-            allowedCategories.push('MTS', 'POSTMAN');
-        } else if (userData.examCategory === 'PA') {
-            allowedCategories.push('MTS', 'POSTMAN', 'PA');
-        }
-        
-        const userCategories = initialCategories.filter(c => allowedCategories.includes(c.examCategory));
+        const userExamCategory = userData.examCategory;
+        const userCategories = initialCategories.filter(c => 
+            userExamCategory === 'ALL' || c.examCategories.includes(userExamCategory)
+        );
         setCategories(userCategories);
 
         const userCategoryIds = userCategories.map(c => c.id);

@@ -29,11 +29,16 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 
+
+const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 
 const categorySchema = z.object({
   name: z.string().min(2, { message: 'Category name must be at least 2 characters.' }),
-  examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA' | 'ALL'>,
+  examCategories: z.array(z.string()).refine((value) => value.some((item) => item), {
+    message: "You have to select at least one exam category.",
+  }),
 });
 
 const topicSchema = z.object({
@@ -57,7 +62,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
 
   const categoryForm = useForm<z.infer<typeof categorySchema>>({
     resolver: zodResolver(categorySchema),
-    defaultValues: { name: '', examCategory: 'ALL' },
+    defaultValues: { name: '', examCategories: [] },
   });
 
   const topicForm = useForm<z.infer<typeof topicSchema>>({
@@ -146,19 +151,47 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                             />
                             <FormField
                             control={categoryForm.control}
-                            name="examCategory"
-                            render={({ field }) => (
+                            name="examCategories"
+                            render={() => (
                                 <FormItem>
-                                <FormLabel>Exam Category</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select an exam category" /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                    <SelectItem value="MTS">MTS</SelectItem>
-                                    <SelectItem value="POSTMAN">POSTMAN</SelectItem>
-                                    <SelectItem value="PA">PA</SelectItem>
-                                    <SelectItem value="ALL">ALL (Common)</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <div className="mb-4">
+                                    <FormLabel className="text-base">Exam Categories</FormLabel>
+                                </div>
+                                <div className="space-y-2">
+                                {examCategories.map((item) => (
+                                    <FormField
+                                    key={item}
+                                    control={categoryForm.control}
+                                    name="examCategories"
+                                    render={({ field }) => {
+                                        return (
+                                        <FormItem
+                                            key={item}
+                                            className="flex flex-row items-start space-x-3 space-y-0"
+                                        >
+                                            <FormControl>
+                                            <Checkbox
+                                                checked={field.value?.includes(item)}
+                                                onCheckedChange={(checked) => {
+                                                return checked
+                                                    ? field.onChange([...field.value, item])
+                                                    : field.onChange(
+                                                        field.value?.filter(
+                                                        (value) => value !== item
+                                                        )
+                                                    )
+                                                }}
+                                            />
+                                            </FormControl>
+                                            <FormLabel className="font-normal">
+                                            {item}
+                                            </FormLabel>
+                                        </FormItem>
+                                        )
+                                    }}
+                                    />
+                                ))}
+                                </div>
                                 <FormMessage />
                                 </FormItem>
                             )}
@@ -188,7 +221,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                     <Select onValueChange={field.onChange} value={field.value} disabled={categories.length === 0}>
                                     <FormControl><SelectTrigger><SelectValue placeholder={categories.length > 0 ? "Select a category" : "Please add a category first"} /></SelectTrigger></FormControl>
                                     <SelectContent>
-                                        {categories.map(cat => (<SelectItem key={cat.id} value={cat.id}>{cat.name} ({cat.examCategory})</SelectItem>))}
+                                        {categories.map(cat => (<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>))}
                                     </SelectContent>
                                     </Select>
                                     <FormMessage />
@@ -245,7 +278,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                             <TableHeader>
                                 <TableRow>
                                 <TableHead>Category Name</TableHead>
-                                <TableHead>Exam Type</TableHead>
+                                <TableHead>Exam Types</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -253,7 +286,11 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                 {categories.map((cat) => (
                                 <TableRow key={cat.id}>
                                     <TableCell className="font-medium">{cat.name}</TableCell>
-                                    <TableCell><Badge variant="secondary">{cat.examCategory}</Badge></TableCell>
+                                    <TableCell>
+                                        <div className="flex gap-1">
+                                            {cat.examCategories.map(ec => <Badge key={ec} variant="secondary">{ec}</Badge>)}
+                                        </div>
+                                    </TableCell>
                                     <TableCell className="text-right">
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
