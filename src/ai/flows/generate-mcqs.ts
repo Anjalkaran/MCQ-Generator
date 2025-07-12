@@ -11,7 +11,6 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import pdf from 'pdf-parse/lib/pdf-parse.js';
 
 const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
@@ -20,7 +19,7 @@ const GenerateMCQsInputSchema = z.object({
     .string()
     .optional()
     .describe(
-      "The base64 encoded content of the material (PDF or text) to be used for generating questions. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "The text content of the material to be used for generating questions."
     ),
 });
 export type GenerateMCQsInput = z.infer<typeof GenerateMCQsInputSchema>;
@@ -37,39 +36,12 @@ const GenerateMCQsOutputSchema = z.object({
 export type GenerateMCQsOutput = z.infer<typeof GenerateMCQsOutputSchema>;
 
 export async function generateMCQs(input: GenerateMCQsInput): Promise<GenerateMCQsOutput> {
-  let materialContent = '';
-  if (input.topicMaterial) {
-    const [header, base64Data] = input.topicMaterial.split(',');
-    if (!header || !base64Data) {
-      throw new Error('Invalid topic material format. Expected a data URI.');
-    }
-    const buffer = Buffer.from(base64Data, 'base64');
-
-    if (header.includes('application/pdf')) {
-      const data = await pdf(buffer);
-      materialContent = data.text;
-    } else if (header.includes('text/plain')) {
-      materialContent = buffer.toString('utf-8');
-    } else {
-      throw new Error('Unsupported file type. Please upload a PDF or TXT file.');
-    }
-  }
-  
-  const flowInput = {
-    ...input,
-    topicMaterial: materialContent, // Pass extracted text to the flow
-  };
-
-  return generateMCQsFlow(flowInput);
+  return generateMCQsFlow(input);
 }
 
 const prompt = ai.definePrompt({
   name: 'generateMCQsPrompt',
-  input: {schema: z.object({
-      topic: z.string(),
-      numberOfQuestions: z.number(),
-      topicMaterial: z.string().optional(),
-  })},
+  input: {schema: GenerateMCQsInputSchema},
   output: {schema: GenerateMCQsOutputSchema},
   prompt: `You are an expert in generating multiple-choice questions (MCQs).
 
@@ -88,11 +60,7 @@ const prompt = ai.definePrompt({
 const generateMCQsFlow = ai.defineFlow(
   {
     name: 'generateMCQsFlow',
-    inputSchema: z.object({
-        topic: z.string(),
-        numberOfQuestions: z.number(),
-        topicMaterial: z.string().optional(),
-    }),
+    inputSchema: GenerateMCQsInputSchema,
     outputSchema: GenerateMCQsOutputSchema,
   },
   async input => {

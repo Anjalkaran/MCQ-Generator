@@ -12,11 +12,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { addCategory, addTopic, deleteTopic, deleteCategory } from '@/lib/firestore';
-import type { Topic, Category, QuizData } from '@/lib/types';
+import { addCategory, addTopic, deleteTopic, deleteCategory, updateTopicMaterial } from '@/lib/firestore';
+import type { Topic, Category } from '@/lib/types';
 import { Loader2, PlusCircle, Trash2, Upload } from 'lucide-react';
-import { generateMCQs } from '@/ai/flows/generate-mcqs';
-import { useRouter } from 'next/navigation';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +29,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import pdf from 'pdf-parse/lib/pdf-parse.js';
 
 
 const categorySchema = z.object({
@@ -46,7 +45,6 @@ const topicSchema = z.object({
 
 const materialSchema = z.object({
   topicId: z.string().min(1, 'Please select a topic.'),
-  numberOfQuestions: z.coerce.number().min(3).max(50),
   file: z.instanceof(File, { message: 'Please upload a file.' }).refine(
     (file) => file.size < 5 * 1024 * 1024, // 5MB limit
     'File size must be less than 5MB.'
@@ -62,7 +60,6 @@ interface TopicManagementProps {
 }
 
 export function TopicManagement({ initialCategories, initialTopics }: TopicManagementProps) {
-  const router = useRouter();
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [topics, setTopics] = useState<Topic[]>(initialTopics);
   const [isLoadingCategory, setIsLoadingCategory] = useState(false);
@@ -85,7 +82,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     resolver: zodResolver(materialSchema),
     defaultValues: {
       topicId: '',
-      numberOfQuestions: 10,
     },
   });
 
@@ -147,23 +143,35 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
             const fileAsDataUri = event.target.result as string;
 
             try {
-                const { mcqs } = await generateMCQs({
-                    topic: selectedTopic.title,
-                    numberOfQuestions: values.numberOfQuestions,
-                    topicMaterial: fileAsDataUri
-                });
-                
-                const quizData: QuizData = {
-                    topic: { id: selectedTopic.id, title: selectedTopic.title, description: `Quiz from uploaded material: ${file.name}`, icon: 'default', categoryId: selectedTopic.categoryId },
-                    mcqs: mcqs,
-                };
-                
-                localStorage.setItem(`quiz-${selectedTopic.id}`, JSON.stringify(quizData));
-                router.push(`/quiz/${selectedTopic.id}`);
+                const [header, base64Data] = fileAsDataUri.split(',');
+                if (!header || !base64Data) {
+                  throw new Error('Invalid data URI format.');
+                }
+                const buffer = Buffer.from(base64Data, 'base64');
+                let materialContent = '';
+        
+                if (header.includes('application/pdf')) {
+                  const data = await pdf(buffer);
+                  materialContent = data.text;
+                } else if (header.includes('text/plain')) {
+                  materialContent = buffer.toString('utf-8');
+                } else {
+                  throw new Error('Unsupported file type.');
+                }
+
+                await updateTopicMaterial(selectedTopic.id, materialContent);
+
+                // Optimistically update local state
+                setTopics(prevTopics => prevTopics.map(t => 
+                    t.id === selectedTopic.id ? { ...t, material: materialContent } : t
+                ));
+
+                toast({ title: 'Success', description: `Material uploaded to topic: ${selectedTopic.title}` });
+                materialForm.reset();
 
             } catch (e: any) {
-                console.error('Error in quiz generation from material:', e);
-                toast({ title: 'Quiz Generation Failed', description: e.message || 'An unexpected error occurred.', variant: 'destructive' });
+                console.error('Error in material upload:', e);
+                toast({ title: 'Material Upload Failed', description: e.message || 'An unexpected error occurred.', variant: 'destructive' });
             } finally {
                 setIsLoadingMaterial(false);
             }
@@ -312,8 +320,8 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
 
              <Card className="border-dashed">
                 <CardHeader>
-                <CardTitle>Generate Quiz from Material</CardTitle>
-                <CardDescription>Upload a PDF or TXT file to generate a quiz for a specific topic.</CardDescription>
+                <CardTitle>Upload Material to Topic</CardTitle>
+                <CardDescription>Upload a PDF or TXT file and link it to a topic.</CardDescription>
                 </CardHeader>
                 <CardContent>
                 <Form {...materialForm}>
@@ -325,7 +333,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                 <FormItem>
                                 <FormLabel>Topic</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value} disabled={topics.length === 0}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a topic to generate a quiz for" /></SelectTrigger></FormControl>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a topic to upload material for" /></SelectTrigger></FormControl>
                                     <SelectContent>
                                     {topics.map(topic => (
                                         <SelectItem key={topic.id} value={topic.id}>
@@ -338,19 +346,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                 </FormItem>
                             )}
                         />
-
-                        <FormField
-                            control={materialForm.control}
-                            name="numberOfQuestions"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Number of Questions (3-50)</FormLabel>
-                                <FormControl><Input type="number" min="3" max="50" {...field} /></FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
                         <FormField
                             control={materialForm.control}
                             name="file"
@@ -367,7 +362,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
 
                         <Button type="submit" disabled={isLoadingMaterial}>
                             {isLoadingMaterial ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                            Generate & Start Quiz
+                            Upload Material
                         </Button>
                     </form>
                 </Form>
@@ -433,7 +428,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                 <TableRow>
                                 <TableHead>Topic Title</TableHead>
                                 <TableHead>Category</TableHead>
-                                <TableHead>Description</TableHead>
+                                <TableHead>Has Material?</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -442,7 +437,13 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                 <TableRow key={topic.id}>
                                     <TableCell className="font-medium">{topic.title}</TableCell>
                                     <TableCell>{getCategoryName(topic.categoryId)}</TableCell>
-                                    <TableCell className="text-muted-foreground">{topic.description}</TableCell>
+                                    <TableCell>
+                                        {topic.material && topic.material.length > 0 ? (
+                                            <Badge variant="default">Yes</Badge>
+                                        ) : (
+                                            <Badge variant="secondary">No</Badge>
+                                        )}
+                                    </TableCell>
                                     <TableCell className="text-right">
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
