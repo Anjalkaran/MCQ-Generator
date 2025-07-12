@@ -96,7 +96,7 @@ export function LoginForm() {
                     <FormLabel>Password</FormLabel>
                     <Link
                       href="/auth/forgot-password"
-                      className="ml-auto inline-block text-xs underline"
+                      className="ml-auto inline-block text-xs underline text-primary"
                     >
                       Forgot password?
                     </Link>
@@ -116,7 +116,7 @@ export function LoginForm() {
         </Form>
         <div className="mt-4 text-center text-sm">
             New user?{' '}
-            <Link href="/auth/register" className="underline">
+            <Link href="/auth/register" className="underline text-primary">
               Register here
             </Link>
         </div>
