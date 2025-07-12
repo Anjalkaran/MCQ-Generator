@@ -85,7 +85,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
         c.examCategories && c.examCategories.includes(userExamCategory)
       );
       setCategories(userCategories);
-
+  
       const userCategoryIds = userCategories.map(c => c.id);
       const userTopics = initialTopics.filter(t => userCategoryIds.includes(t.categoryId));
       setTopics(userTopics);
