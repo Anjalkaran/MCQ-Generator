@@ -20,7 +20,7 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
         x="75"
         y="45"
         fontFamily="cursive, sans-serif"
-        fontSize="40"
+        fontSize="30"
         fill="#FBBF24"
         fontWeight="bold"
         fontStyle="italic"
@@ -30,10 +30,10 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
 
       {/* Text: Karan */}
       <text
-        x="175"
+        x="155"
         y="45"
         fontFamily="sans-serif"
-        fontSize="22"
+        fontSize="30"
         fill="#d40000"
         fontWeight="bold"
       >
