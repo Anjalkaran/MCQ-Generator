@@ -13,8 +13,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { addCategory, addTopic, deleteTopic, deleteCategory } from '@/lib/firestore';
-import type { Topic, Category } from '@/lib/types';
-import { Loader2, PlusCircle, Trash2 } from 'lucide-react';
+import type { Topic, Category, QuizData } from '@/lib/types';
+import { Loader2, PlusCircle, Trash2, Upload } from 'lucide-react';
+import { generateMCQs } from '@/ai/flows/generate-mcqs';
+import { useRouter } from 'next/navigation';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,12 +54,25 @@ const topicSchema = z.object({
   categoryId: z.string({ required_error: 'Please select a category.' }),
 });
 
+const materialSchema = z.object({
+  topicId: z.string().min(1, 'Please select a topic.'),
+  numberOfQuestions: z.coerce.number().min(3).max(50),
+  file: z.instanceof(File, { message: 'Please upload a file.' }).refine(
+    (file) => file.size < 5 * 1024 * 1024, // 5MB limit
+    'File size must be less than 5MB.'
+  ).refine(
+    (file) => ['application/pdf', 'text/plain'].includes(file.type),
+    'Only PDF and TXT files are allowed.'
+  ),
+});
+
 interface TopicManagementProps {
     initialCategories: Category[];
     initialTopics: Topic[];
 }
 
 export function TopicManagement({ initialCategories, initialTopics }: TopicManagementProps) {
+  const router = useRouter();
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [topics, setTopics] = useState<Topic[]>(initialTopics);
   const [isLoading, setIsLoading] = useState(false);
@@ -73,6 +88,14 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
   const topicForm = useForm<z.infer<typeof topicSchema>>({
     resolver: zodResolver(topicSchema),
     defaultValues: { title: '', description: '', categoryId: '' },
+  });
+  
+  const materialForm = useForm<z.infer<typeof materialSchema>>({
+    resolver: zodResolver(materialSchema),
+    defaultValues: {
+      topicId: '',
+      numberOfQuestions: 10,
+    },
   });
 
   const onCategorySubmit = async (values: z.infer<typeof categorySchema>) => {
@@ -108,8 +131,65 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     }
   };
 
+  const onMaterialSubmit = async (values: z.infer<typeof materialSchema>) => {
+    setIsLoading(true);
+    const selectedTopic = topics.find(t => t.id === values.topicId);
+     if (!selectedTopic) {
+        toast({ title: 'Error', description: 'Topic not found.', variant: 'destructive' });
+        setIsLoading(false);
+        return;
+    }
+
+    try {
+        const file = values.file;
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+
+        reader.onload = async (event) => {
+            const fileAsDataUri = event.target?.result as string;
+
+            try {
+                const { mcqs } = await generateMCQs({
+                    topic: selectedTopic.title,
+                    numberOfQuestions: values.numberOfQuestions,
+                    topicMaterial: fileAsDataUri
+                });
+
+                if (!mcqs || mcqs.length === 0) {
+                    toast({ title: 'Quiz Generation Failed', description: 'The AI could not generate a quiz from the document.', variant: 'destructive' });
+                    setIsLoading(false);
+                    return;
+                }
+                
+                const quizData: QuizData = {
+                    topic: { id: selectedTopic.id, title: selectedTopic.title, description: `Quiz from uploaded material: ${file.name}`, icon: 'default', categoryId: selectedTopic.categoryId },
+                    mcqs: mcqs,
+                };
+                
+                localStorage.setItem(`quiz-${selectedTopic.id}`, JSON.stringify(quizData));
+                router.push(`/quiz/${selectedTopic.id}`);
+
+            } catch (e: any) {
+                console.error('Error in quiz generation from material:', e);
+                toast({ title: 'Error', description: e.message || 'Failed to generate quiz from document.', variant: 'destructive' });
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        reader.onerror = (error) => {
+            console.error('FileReader error:', error);
+            toast({ title: 'Error', description: 'Failed to read the uploaded file.', variant: 'destructive' });
+            setIsLoading(false);
+        };
+    } catch (error) {
+        console.error('Error setting up file reader:', error);
+        toast({ title: 'Error', description: 'An unexpected error occurred.', variant: 'destructive' });
+        setIsLoading(false);
+    }
+  }
+
+
   const handleDeleteTopic = async (topicId: string) => {
-    // No need to set loading state here as it's not disabling a global button
     try {
         await deleteTopic(topicId);
         setTopics(prev => prev.filter(t => t.id !== topicId));
@@ -135,6 +215,8 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     return categories.find(c => c.id === categoryId)?.name || 'N/A';
   }
 
+  const fileRef = materialForm.register("file");
+
   return (
     <Card>
         <CardHeader>
@@ -143,9 +225,10 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
         </CardHeader>
         <CardContent>
            <Tabs defaultValue="categories">
-              <TabsList className="mb-4">
+              <TabsList className="grid w-full grid-cols-3 mb-4">
                 <TabsTrigger value="categories">Manage Categories ({categories.length})</TabsTrigger>
                 <TabsTrigger value="topics">Manage Topics ({topics.length})</TabsTrigger>
+                <TabsTrigger value="materials">Upload Material</TabsTrigger>
               </TabsList>
 
               <TabsContent value="categories">
@@ -343,10 +426,74 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                    </Table>
                 </div>
               </TabsContent>
+
+               <TabsContent value="materials">
+                <Card className="border-dashed">
+                  <CardHeader>
+                    <CardTitle>Generate Quiz from Material</CardTitle>
+                    <CardDescription>Upload a PDF or TXT file to generate a quiz for a specific topic.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Form {...materialForm}>
+                        <form onSubmit={materialForm.handleSubmit(onMaterialSubmit)} className="space-y-6">
+                            <FormField
+                                control={materialForm.control}
+                                name="topicId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Topic</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={topics.length === 0}>
+                                        <FormControl><SelectTrigger><SelectValue placeholder="Select a topic to generate a quiz for" /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                        {topics.map(topic => (
+                                            <SelectItem key={topic.id} value={topic.id}>
+                                                {topic.title} ({getCategoryName(topic.categoryId)})
+                                            </SelectItem>
+                                        ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={materialForm.control}
+                                name="numberOfQuestions"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Number of Questions (3-50)</FormLabel>
+                                    <FormControl><Input type="number" min="3" max="50" {...field} /></FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={materialForm.control}
+                                name="file"
+                                render={({ field: { onChange, ...fieldProps } }) => (
+                                    <FormItem>
+                                        <FormLabel>Material File (PDF or TXT, max 5MB)</FormLabel>
+                                        <FormControl>
+                                            <Input type="file" accept=".pdf,.txt" {...fileRef} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <Button type="submit" disabled={isLoading}>
+                                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                                Generate & Start Quiz
+                            </Button>
+                        </form>
+                    </Form>
+                  </CardContent>
+                </Card>
+              </TabsContent>
            </Tabs>
         </CardContent>
     </Card>
   );
 }
-
-    

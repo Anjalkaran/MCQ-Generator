@@ -28,3 +28,8 @@ export interface UserData {
     email: string;
     examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'ALL';
 }
+
+export interface QuizData {
+  topic: Topic;
+  mcqs: MCQ[];
+}
