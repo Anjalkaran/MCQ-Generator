@@ -53,54 +53,64 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     },
   });
 
+  // Consolidated useEffect for fetching user data and setting categories/topics
   useEffect(() => {
     const auth = getFirebaseAuth();
     if (!auth) {
         setIsLoading(false);
+        setCategories([]);
+        setTopics([]);
         return;
-    };
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
-        getUserData(currentUser.uid).then(data => {
-            if(data) setUserData(data);
-            setIsLoading(false);
-        });
+        setUser(currentUser);
+        const data = await getUserData(currentUser.uid);
+        setUserData(data);
+
+        if (currentUser.email === ADMIN_EMAIL) {
+          setCategories(initialCategories);
+          setTopics(initialTopics);
+        } else if (data) {
+          const userExamCategory = data.examCategory;
+          // Robust filtering logic
+          const userCategories = initialCategories.filter(c => 
+            c.examCategories && c.examCategories.includes(userExamCategory)
+          );
+          setCategories(userCategories);
+
+          const userCategoryIds = userCategories.map(c => c.id);
+          const userTopics = initialTopics.filter(t => userCategoryIds.includes(t.categoryId));
+          setTopics(userTopics);
+        } else {
+          // User is logged in but has no user data, show no categories
+          setCategories([]);
+          setTopics([]);
+        }
       } else {
-        setIsLoading(false);
+        // No user is logged in
+        setUser(null);
+        setUserData(null);
+        setCategories([]);
+        setTopics([]);
       }
+      setIsLoading(false);
     });
+
     return () => unsubscribe();
-  }, []);
+  }, [initialCategories, initialTopics]);
 
   const selectedCategoryId = form.watch('categoryId');
-
-  useEffect(() => {
-    if (user?.email === ADMIN_EMAIL) {
-      setCategories(initialCategories);
-      setTopics(initialTopics);
-    } else if (userData) {
-      const userExamCategory = userData.examCategory;
-      const userCategories = initialCategories.filter(c =>
-        c.examCategories && c.examCategories.includes(userExamCategory)
-      );
-      setCategories(userCategories);
-  
-      const userCategoryIds = userCategories.map(c => c.id);
-      const userTopics = initialTopics.filter(t => userCategoryIds.includes(t.categoryId));
-      setTopics(userTopics);
-    } else {
-      setCategories([]);
-      setTopics([]);
-    }
-  }, [user, userData, initialCategories, initialTopics]);
-  
 
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
     
-    const selectedTopic = topics.find(t => t.id === values.topicId);
-    const selectedCategory = categories.find(c => c.id === values.categoryId);
+    const allTopics = topics;
+    const allCategories = categories;
+
+    const selectedTopic = allTopics.find(t => t.id === values.topicId);
+    const selectedCategory = allCategories.find(c => c.id === values.categoryId);
 
     if (!selectedTopic || !selectedCategory) {
         toast({
