@@ -1,7 +1,7 @@
 import { MainHeader } from "@/components/main-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BrainCircuit } from "lucide-react";
+import { Logo } from "@/components/logo";
 import Link from "next/link";
 
 export default function Home() {
@@ -15,7 +15,7 @@ export default function Home() {
             <Card className="w-full max-w-lg shadow-lg text-center">
               <CardHeader>
                   <div className="flex justify-center mb-4">
-                    <BrainCircuit className="h-16 w-16 text-primary" />
+                    <Logo className="h-20 w-20 text-primary" />
                   </div>
                 <CardTitle className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl font-headline">
                   Welcome to Anjalkaran MCQ Generator

@@ -10,6 +10,7 @@ import { getFirebaseAuth } from '@/lib/firebase';
 import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/logo';
 
 const ADMIN_EMAIL = "admin@anjalkaran.com";
 
@@ -98,9 +99,12 @@ export default function DashboardLayout({
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
             <SidebarTrigger />
-            <h2 className="font-bold text-lg group-data-[collapsible=icon]:hidden transition-opacity duration-200">
-              Anjalkaran
-            </h2>
+             <Link href="/" className="flex items-center gap-2">
+                <Logo className="w-8 h-8 text-primary" />
+                <h2 className="font-bold text-lg group-data-[collapsible=icon]:hidden transition-opacity duration-200">
+                  Anjalkaran
+                </h2>
+             </Link>
           </div>
         </SidebarHeader>
         <SidebarContent>
