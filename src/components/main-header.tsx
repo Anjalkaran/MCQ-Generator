@@ -62,8 +62,7 @@ export function MainHeader() {
         <span className="ml-2 text-xl font-bold font-headline">Anjalkaran MCQ Generator</span>
       </Link>
       <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
-        {!loading && (
-          user ? (
+        {loading ? null : user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="secondary" size="icon" className="rounded-full">
@@ -90,8 +89,7 @@ export function MainHeader() {
                 <Link href="/register">Register</Link>
               </Button>
             </>
-          )
-        )}
+          )}
       </nav>
     </header>
   );
