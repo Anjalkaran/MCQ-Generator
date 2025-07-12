@@ -13,6 +13,7 @@ export interface Topic {
   description: string;
   icon: string; // Storing icon name as string, mapping to component elsewhere
   categoryId: string;
+  categoryName?: string; // Optional: To hold the category name
   material?: string;
 }
 
@@ -39,6 +40,7 @@ export interface MCQHistory {
     id: string;
     userId: string;
     topicId: string;
+    topicTitle?: string; // To hold the resolved topic title
     score: number;
     totalQuestions: number;
     questions: string[];

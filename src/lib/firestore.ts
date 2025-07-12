@@ -1,6 +1,6 @@
 
 import { getFirebaseDb } from './firebase';
-import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy } from 'firebase/firestore';
 import type { Category, Topic, UserData, MCQHistory } from './types';
 
 // USER MANAGEMENT
@@ -97,7 +97,16 @@ export const getTopics = async (): Promise<Topic[]> => {
     if (!db) throw new Error("Firestore is not initialized");
     const topicsCollection = collection(db, 'topics');
     const topicSnapshot = await getDocs(topicsCollection);
-    return topicSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Topic));
+    const topics = topicSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Topic));
+    
+    // Fetch category names for topics
+    const categories = await getCategories();
+    const categoryMap = new Map(categories.map(c => [c.id, c.name]));
+
+    return topics.map(topic => ({
+        ...topic,
+        categoryName: categoryMap.get(topic.categoryId) || 'N/A'
+    }));
 };
 
 export const addTopic = async (topic: Omit<Topic, 'id'>): Promise<DocumentReference> => {
@@ -140,4 +149,33 @@ export const getMCQHistoryForTopic = async (userId: string, topicId: string): Pr
 
     const allQuestions = querySnapshot.docs.flatMap(doc => doc.data().questions || []);
     return allQuestions;
+};
+
+
+export const getExamHistoryForUser = async (userId: string): Promise<MCQHistory[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    
+    const historyCollection = collection(db, 'mcqHistory');
+    const q = query(historyCollection, where('userId', '==', userId), orderBy('takenAt', 'desc'));
+    
+    const querySnapshot = await getDocs(q);
+    
+    const topics = await getTopics();
+    const topicMap = new Map(topics.map(t => [t.id, t]));
+
+    return querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        const topic = topicMap.get(data.topicId);
+        
+        // Convert Firestore Timestamp to Date
+        const takenAt = data.takenAt?.toDate ? data.takenAt.toDate() : new Date();
+
+        return {
+            id: doc.id,
+            ...data,
+            topicTitle: topic?.title || 'Unknown Topic',
+            takenAt: takenAt,
+        } as MCQHistory;
+    });
 };
