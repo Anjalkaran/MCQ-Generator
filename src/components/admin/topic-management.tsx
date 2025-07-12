@@ -32,9 +32,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Badge } from '@/components/ui/badge';
 
 const categorySchema = z.object({
   name: z.string().min(2, { message: 'Category name must be at least 2 characters.' }),
+  examCategory: z.string().min(1, { message: 'Please select an exam category.' }),
 });
 
 const topicSchema = z.object({
@@ -55,7 +57,7 @@ export function TopicManagement() {
 
   const categoryForm = useForm<z.infer<typeof categorySchema>>({
     resolver: zodResolver(categorySchema),
-    defaultValues: { name: '' },
+    defaultValues: { name: '', examCategory: '' },
   });
 
   const topicForm = useForm<z.infer<typeof topicSchema>>({
@@ -152,7 +154,10 @@ export function TopicManagement() {
                     <AccordionItem value={categoryName} key={categoryName}>
                       <AccordionTrigger className='text-lg font-medium'>
                         <div className='flex justify-between items-center w-full pr-4'>
-                         {categoryName}
+                          <div className="flex items-center gap-2">
+                           {categoryName}
+                           {category && <Badge variant="secondary">{category.examCategory}</Badge>}
+                          </div>
                          {category && (
                            <AlertDialog>
                               <AlertDialogTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -236,6 +241,28 @@ export function TopicManagement() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={categoryForm.control}
+                  name="examCategory"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Exam Category</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select an exam category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="MTS">MTS</SelectItem>
+                          <SelectItem value="POSTMAN">POSTMAN</SelectItem>
+                          <SelectItem value="PA">PA</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <Button type="submit" disabled={categoryForm.formState.isSubmitting}>
                   {categoryForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Add Category
@@ -265,7 +292,7 @@ export function TopicManagement() {
                         </FormControl>
                         <SelectContent>
                           {categories.map(cat => (
-                            <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                            <SelectItem key={cat.id} value={cat.id}>{cat.name} ({cat.examCategory})</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>

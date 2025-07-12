@@ -1,9 +1,20 @@
 
 import { getFirebaseDb } from './firebase';
-import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc } from 'firebase/firestore';
 import type { Category, Topic, UserData } from './types';
 
 // USER MANAGEMENT
+export const getUserData = async (userId: string): Promise<UserData | null> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists()) {
+      return { id: userSnap.id, ...userSnap.data() } as UserData;
+    }
+    return null;
+}
+
 export const getAllUsers = async (): Promise<UserData[]> => {
   const db = getFirebaseDb();
   if (!db) throw new Error("Firestore is not initialized");

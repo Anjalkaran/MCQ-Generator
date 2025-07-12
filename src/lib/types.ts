@@ -18,6 +18,7 @@ export interface Topic {
 export interface Category {
     id: string;
     name: string;
+    examCategory: 'MTS' | 'POSTMAN' | 'PA';
 }
 
 export interface UserData {

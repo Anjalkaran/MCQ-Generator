@@ -14,8 +14,10 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getCategories, getTopics } from '@/lib/firestore';
-import type { Category, Topic } from '@/lib/types';
+import { getCategories, getTopics, getUserData } from '@/lib/firestore';
+import type { Category, Topic, UserData } from '@/lib/types';
+import { getFirebaseAuth } from '@/lib/firebase';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 
 const formSchema = z.object({
   categoryId: z.string().min(1, 'Please select a category.'),
@@ -32,6 +34,8 @@ export function CreateQuizForm() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -42,27 +46,50 @@ export function CreateQuizForm() {
     },
   });
 
+  useEffect(() => {
+    const auth = getFirebaseAuth();
+    if (!auth) return;
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        getUserData(currentUser.uid).then(data => {
+            if(data) setUserData(data);
+        });
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   const selectedCategoryId = form.watch('categoryId');
 
   useEffect(() => {
     async function fetchData() {
+        if (!userData) return;
         setIsLoading(true);
         try {
             const [catData, topicData] = await Promise.all([getCategories(), getTopics()]);
-            setCategories(catData);
-            setTopics(topicData);
+            
+            const userCategories = catData.filter(c => c.examCategory === userData.examCategory);
+            setCategories(userCategories);
+
+            const userCategoryIds = userCategories.map(c => c.id);
+            const userTopics = topicData.filter(t => userCategoryIds.includes(t.categoryId));
+            setTopics(userTopics);
+
         } catch (error) {
             toast({
                 title: 'Error loading data',
-                description: 'Could not fetch topics and categories from the database.',
+                description: 'Could not fetch topics and categories for your exam type.',
                 variant: 'destructive',
             })
         } finally {
             setIsLoading(false);
         }
     }
-    fetchData();
-  }, [toast]);
+    if (userData) {
+      fetchData();
+    }
+  }, [toast, userData]);
   
 
   const onSubmit = async (values: FormValues) => {
@@ -122,16 +149,33 @@ export function CreateQuizForm() {
 
   const filteredTopics = selectedCategoryId ? topics.filter(topic => topic.categoryId === selectedCategoryId) : [];
 
+  if (!user || !userData) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Quiz Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="flex justify-center items-center h-40">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="ml-4">Loading user data...</p>
+                </div>
+            </CardContent>
+        </Card>
+    )
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Quiz Details</CardTitle>
-        <CardDescription>Select a category and topic to generate a quiz.</CardDescription>
+        <CardDescription>Select a category and topic to generate a quiz for your exam type: <span className='font-bold'>{userData.examCategory}</span>.</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
              <div className="flex justify-center items-center h-40">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className='ml-4'>Loading categories and topics...</p>
              </div>
         ) : (
         <Form {...form}>
