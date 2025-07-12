@@ -136,7 +136,7 @@ export default function DashboardLayout({
               <SidebarMenuButton asChild isActive={pathname === '/dashboard/history'}>
                 <Link href="/dashboard/history">
                   <History />
-                  <span>Quiz History</span>
+                  <span>Exam History</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
