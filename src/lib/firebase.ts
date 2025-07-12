@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getAuth, type Auth } from 'firebase/auth';
+import { getFirestore, type Firestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -11,34 +11,22 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
-let app: FirebaseApp;
-if (!getApps().length) {
-  app = initializeApp(firebaseConfig);
-} else {
-  app = getApp();
-}
-
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-
 function getFirebaseApp(): FirebaseApp | null {
-    if (!firebaseConfig.apiKey) {
+    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+        console.error("Firebase config is missing. Make sure NEXT_PUBLIC_FIREBASE_* environment variables are set.");
         return null;
     }
-    return !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    return getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 }
 
-function getFirebaseAuth() {
+function getFirebaseAuth(): Auth | null {
     const app = getFirebaseApp();
     return app ? getAuth(app) : null;
 }
 
-function getFirebaseDb() {
+function getFirebaseDb(): Firestore | null {
     const app = getFirebaseApp();
     return app ? getFirestore(app) : null;
 }
-
 
 export { getFirebaseAuth, getFirebaseDb };
