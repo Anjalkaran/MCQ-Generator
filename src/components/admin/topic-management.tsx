@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { addCategory, addTopic, deleteTopic, deleteCategory, updateTopic } from '@/lib/firestore';
+import { addCategory, addTopic, deleteTopic, deleteCategory } from '@/lib/firestore';
 import type { Topic, Category } from '@/lib/types';
 import { Loader2, PlusCircle, Trash2, Upload } from 'lucide-react';
 import {
@@ -30,8 +30,6 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
-import pdf from 'pdf-parse';
-import mammoth from 'mammoth';
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 
@@ -50,7 +48,7 @@ const topicSchema = z.object({
 
 const materialSchema = z.object({
     topicId: z.string().min(1, 'Please select a topic.'),
-    file: z.any().refine(file => file && file.length > 0, 'File is required.'),
+    file: z.instanceof(FileList).refine(files => files?.length > 0, 'File is required.'),
 });
 
 interface TopicManagementProps {
@@ -79,6 +77,10 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
 
   const materialForm = useForm<z.infer<typeof materialSchema>>({
     resolver: zodResolver(materialSchema),
+    defaultValues: {
+        topicId: '',
+        file: undefined,
+    }
   });
 
   const onCategorySubmit = async (values: z.infer<typeof categorySchema>) => {
@@ -121,31 +123,28 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
         return;
     }
 
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('topicId', values.topicId);
+
     try {
-        let textContent = '';
-        if (file.type === 'application/pdf') {
-            const arrayBuffer = await file.arrayBuffer();
-            const data = await pdf(arrayBuffer);
-            textContent = data.text;
-        } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-            const arrayBuffer = await file.arrayBuffer();
-            const result = await mammoth.extractRawText({ arrayBuffer });
-            textContent = result.value;
-        } else {
-            throw new Error('Unsupported file type. Please upload a PDF or DOCX file.');
-        }
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
 
-        if (!textContent.trim()) {
-            throw new Error("Could not extract any text from the file.");
-        }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload file.');
+      }
 
-        await updateTopic(values.topicId, { material: textContent });
-        
-        // Update local state to reflect the change
-        setTopics(prevTopics => prevTopics.map(t => t.id === values.topicId ? {...t, material: textContent} : t));
+      const result = await response.json();
+      
+      // Update local state to reflect the change
+      setTopics(prevTopics => prevTopics.map(t => t.id === values.topicId ? {...t, material: result.material} : t));
 
-        toast({ title: 'Success', description: 'Material uploaded and saved.' });
-        materialForm.reset();
+      toast({ title: 'Success', description: 'Material uploaded and saved.' });
+      materialForm.reset();
 
     } catch (error: any) {
         console.error("Material upload error:", error);
@@ -181,6 +180,8 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
   const getCategoryName = (categoryId: string) => {
     return categories.find(c => c.id === categoryId)?.name || 'N/A';
   }
+  
+  const fileRef = materialForm.register("file");
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -339,14 +340,14 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                              <FormField
                                 control={materialForm.control}
                                 name="file"
-                                render={({ field }) => (
+                                render={() => (
                                     <FormItem>
                                         <FormLabel>Material File</FormLabel>
                                         <FormControl>
                                             <Input 
                                                 type="file" 
                                                 accept=".pdf,.docx"
-                                                onChange={e => field.onChange(e.target.files)}
+                                                {...fileRef}
                                             />
                                         </FormControl>
                                         <FormMessage />

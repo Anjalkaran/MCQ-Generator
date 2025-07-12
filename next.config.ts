@@ -19,7 +19,6 @@ const nextConfig: NextConfig = {
     ],
   },
   webpack: (config, { isServer }) => {
-    // This is the correct way to fix the 'fs' module not found error.
     if (!isServer) {
         config.resolve.fallback = {
             ...config.resolve.fallback,
@@ -28,12 +27,6 @@ const nextConfig: NextConfig = {
             os: false,
         };
     }
-
-    // This is to handle pdf-parse. It may not be needed with the fallback above but is good practice.
-    config.externals.push({
-      'pdf-parse': 'commonjs pdf-parse',
-    });
-
     return config;
   },
 };
