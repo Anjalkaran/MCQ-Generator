@@ -77,7 +77,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     if (userData) {
         const userExamCategory = userData.examCategory;
         const userCategories = initialCategories.filter(c => 
-            (c.examCategories && c.examCategories.includes(userExamCategory))
+            c.examCategories && (userExamCategory === 'ALL' || c.examCategories.includes(userExamCategory))
         );
         setCategories(userCategories);
 
