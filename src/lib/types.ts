@@ -13,7 +13,6 @@ export interface Topic {
   description: string;
   icon: string; // Storing icon name as string, mapping to component elsewhere
   categoryId: string;
-  material?: string; // Optional field to store text content from uploaded material
 }
 
 export interface Category {

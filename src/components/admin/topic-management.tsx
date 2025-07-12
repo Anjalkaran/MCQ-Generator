@@ -12,9 +12,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { addCategory, addTopic, deleteTopic, deleteCategory, updateTopicMaterial } from '@/lib/firestore';
+import { addCategory, addTopic, deleteTopic, deleteCategory } from '@/lib/firestore';
 import type { Topic, Category } from '@/lib/types';
-import { Loader2, PlusCircle, Trash2, Upload } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,7 +29,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import pdf from 'pdf-parse';
 
 
 const categorySchema = z.object({
@@ -43,17 +42,6 @@ const topicSchema = z.object({
   categoryId: z.string({ required_error: 'Please select a category.' }),
 });
 
-const materialSchema = z.object({
-  topicId: z.string().min(1, 'Please select a topic.'),
-  file: z.instanceof(File, { message: 'Please upload a file.' }).refine(
-    (file) => file.size < 5 * 1024 * 1024, // 5MB limit
-    'File size must be less than 5MB.'
-  ).refine(
-    (file) => ['application/pdf', 'text/plain'].includes(file.type),
-    'Only PDF and TXT files are allowed.'
-  ),
-});
-
 interface TopicManagementProps {
     initialCategories: Category[];
     initialTopics: Topic[];
@@ -64,7 +52,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
   const [topics, setTopics] = useState<Topic[]>(initialTopics);
   const [isLoadingCategory, setIsLoadingCategory] = useState(false);
   const [isLoadingTopic, setIsLoadingTopic] = useState(false);
-  const [isLoadingMaterial, setIsLoadingMaterial] = useState(false);
 
   const { toast } = useToast();
 
@@ -78,12 +65,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     defaultValues: { title: '', description: '', categoryId: '' },
   });
   
-  const materialForm = useForm<z.infer<typeof materialSchema>>({
-    resolver: zodResolver(materialSchema),
-    defaultValues: {
-      topicId: '',
-    },
-  });
 
   const onCategorySubmit = async (values: z.infer<typeof categorySchema>) => {
     setIsLoadingCategory(true);
@@ -116,73 +97,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     }
   };
 
-  const onMaterialSubmit = async (values: z.infer<typeof materialSchema>) => {
-    setIsLoadingMaterial(true);
-    const selectedTopic = topics.find(t => t.id === values.topicId);
-     if (!selectedTopic) {
-        toast({ title: 'Error', description: 'Topic not found.', variant: 'destructive' });
-        setIsLoadingMaterial(false);
-        return;
-    }
-
-    try {
-        const file = values.file;
-        const reader = new FileReader();
-        
-        reader.onerror = () => {
-          toast({ title: 'Error', description: 'Failed to read the uploaded file.', variant: 'destructive' });
-          setIsLoadingMaterial(false);
-        };
-
-        reader.onload = async (event) => {
-            if (!event.target?.result) {
-                toast({ title: 'Error', description: 'Could not read file data.', variant: 'destructive' });
-                setIsLoadingMaterial(false);
-                return;
-            }
-            const arrayBuffer = event.target.result as ArrayBuffer;
-            const buffer = Buffer.from(arrayBuffer);
-
-            try {
-                let materialContent = '';
-        
-                if (file.type === 'application/pdf') {
-                  const data = await pdf(buffer);
-                  materialContent = data.text;
-                } else if (file.type === 'text/plain') {
-                  materialContent = buffer.toString('utf-8');
-                } else {
-                  throw new Error('Unsupported file type.');
-                }
-
-                await updateTopicMaterial(selectedTopic.id, materialContent);
-
-                // Optimistically update local state
-                setTopics(prevTopics => prevTopics.map(t => 
-                    t.id === selectedTopic.id ? { ...t, material: materialContent } : t
-                ));
-
-                toast({ title: 'Success', description: `Material uploaded to topic: ${selectedTopic.title}` });
-                materialForm.reset();
-
-            } catch (e: any) {
-                console.error('Error in material upload:', e);
-                toast({ title: 'Material Upload Failed', description: e.message || 'An unexpected error occurred.', variant: 'destructive' });
-            } finally {
-                setIsLoadingMaterial(false);
-            }
-        };
-
-        reader.readAsArrayBuffer(file);
-
-    } catch (error) {
-        console.error('Error setting up file reader:', error);
-        toast({ title: 'Error', description: 'An unexpected error occurred while preparing the file.', variant: 'destructive' });
-        setIsLoadingMaterial(false);
-    }
-  }
-
-
   const handleDeleteTopic = async (topicId: string) => {
     try {
         await deleteTopic(topicId);
@@ -208,8 +122,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
   const getCategoryName = (categoryId: string) => {
     return categories.find(c => c.id === categoryId)?.name || 'N/A';
   }
-
-  const fileRef = materialForm.register("file");
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -313,57 +225,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                     </Form>
                 </CardContent>
             </Card>
-
-             <Card className="border-dashed">
-                <CardHeader>
-                <CardTitle>Upload Material to Topic</CardTitle>
-                <CardDescription>Upload a PDF or TXT file and link it to a topic.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                <Form {...materialForm}>
-                    <form onSubmit={materialForm.handleSubmit(onMaterialSubmit)} className="space-y-6">
-                        <FormField
-                            control={materialForm.control}
-                            name="topicId"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Topic</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={topics.length === 0}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a topic to upload material for" /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                    {topics.map(topic => (
-                                        <SelectItem key={topic.id} value={topic.id}>
-                                            {topic.title} ({getCategoryName(topic.categoryId)})
-                                        </SelectItem>
-                                    ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={materialForm.control}
-                            name="file"
-                            render={({ field: { onChange, ...fieldProps } }) => (
-                                <FormItem>
-                                    <FormLabel>Material File (PDF or TXT, max 5MB)</FormLabel>
-                                    <FormControl>
-                                        <Input type="file" accept=".pdf,.txt" {...fileRef} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <Button type="submit" disabled={isLoadingMaterial}>
-                            {isLoadingMaterial ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                            Upload Material
-                        </Button>
-                    </form>
-                </Form>
-                </CardContent>
-            </Card>
         </div>
 
         <Card>
@@ -424,7 +285,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                 <TableRow>
                                 <TableHead>Topic Title</TableHead>
                                 <TableHead>Category</TableHead>
-                                <TableHead>Has Material?</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -433,13 +293,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                 <TableRow key={topic.id}>
                                     <TableCell className="font-medium">{topic.title}</TableCell>
                                     <TableCell>{getCategoryName(topic.categoryId)}</TableCell>
-                                    <TableCell>
-                                        {topic.material && topic.material.length > 0 ? (
-                                            <Badge variant="default">Yes</Badge>
-                                        ) : (
-                                            <Badge variant="secondary">No</Badge>
-                                        )}
-                                    </TableCell>
                                     <TableCell className="text-right">
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>

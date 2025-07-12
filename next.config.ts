@@ -18,19 +18,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  webpack: (config, { isServer }) => {
-    // This is to make `pdf-parse` work on the client side
-    if (!isServer) {
-        config.resolve.fallback = {
-            ...config.resolve.fallback,
-            "fs": false,
-            "path": false,
-            "os": false,
-        }
-    }
-    config.externals.push('pdf-parse');
-    return config
-  }
 };
 
 export default nextConfig;

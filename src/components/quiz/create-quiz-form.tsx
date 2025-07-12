@@ -116,7 +116,6 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
       const { mcqs } = await generateMCQs({
         topic: selectedTopic.title,
         numberOfQuestions: values.numberOfQuestions,
-        topicMaterial: selectedTopic.material, // Pass the stored material if it exists
       });
 
       if (!mcqs || mcqs.length === 0) {
@@ -224,7 +223,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                     <SelectContent>
                       {filteredTopics.map(topic => (
                         <SelectItem key={topic.id} value={topic.id}>
-                          {topic.title} {topic.material ? '(Has Material)' : ''}
+                          {topic.title}
                         </SelectItem>
                       ))}
                     </SelectContent>

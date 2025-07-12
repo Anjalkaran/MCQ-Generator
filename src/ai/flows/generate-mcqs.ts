@@ -15,12 +15,6 @@ import {z} from 'genkit';
 const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
   numberOfQuestions: z.number().describe('The number of MCQs to generate.'),
-  topicMaterial: z
-    .string()
-    .optional()
-    .describe(
-      "The text content of the material to be used for generating questions."
-    ),
 });
 export type GenerateMCQsInput = z.infer<typeof GenerateMCQsInputSchema>;
 
@@ -46,14 +40,6 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert in generating multiple-choice questions (MCQs).
 
   Please generate exactly {{numberOfQuestions}} multiple-choice questions on the topic of "{{topic}}". Each question must have four options and one correct answer.
-
-  {{#if topicMaterial}}
-  IMPORTANT: Use the following material as the primary source of truth for generating the questions. All questions, options, and answers must be derived directly from this text.
-
-  <MATERIAL>
-  {{{topicMaterial}}}
-  </MATERIAL>
-  {{/if}}
   `,
 });
 
@@ -66,7 +52,7 @@ const generateMCQsFlow = ai.defineFlow(
   async input => {
     const {output} = await prompt(input);
     if (!output || !output.mcqs || output.mcqs.length === 0) {
-        throw new Error('The AI could not generate questions from the provided material.');
+        throw new Error('The AI could not generate questions for the selected topic.');
     }
     return output;
   }
