@@ -10,8 +10,20 @@ export default async function ProfilePage() {
     const currentUser = auth?.currentUser;
 
     if (!currentUser) {
-        // This should be handled by the layout, but as a safeguard
-        redirect('/auth/login');
+        // The layout's client-side check will handle the redirect.
+        // This check is a safeguard for direct server access attempts.
+        // Returning a loading/null state is better than redirecting here.
+        return (
+          <div className="space-y-6">
+            <div className="space-y-0.5">
+                <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
+                <p className="text-muted-foreground">
+                  Manage your account settings and exam preferences.
+                </p>
+            </div>
+            <div>Loading user data...</div>
+          </div>
+        );
     }
 
     const userData = await getUserData(currentUser.uid);
