@@ -27,14 +27,14 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface CreateMCQFormProps {
+interface CreateQuizFormProps {
     initialCategories: Category[];
     initialTopics: Topic[];
 }
 
 const ADMIN_EMAIL = "admin@anjalkaran.com";
 
-export function CreateMCQForm({ initialCategories, initialTopics }: CreateMCQFormProps) {
+export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
@@ -103,7 +103,7 @@ export function CreateMCQForm({ initialCategories, initialTopics }: CreateMCQFor
     setIsGenerating(true);
 
     if (!user) {
-        toast({ title: 'Not Authenticated', description: 'You must be logged in to create an MCQ.', variant: 'destructive' });
+        toast({ title: 'Not Authenticated', description: 'You must be logged in to create a quiz.', variant: 'destructive' });
         setIsGenerating(false);
         return;
     }
@@ -143,8 +143,8 @@ export function CreateMCQForm({ initialCategories, initialTopics }: CreateMCQFor
 
       if (!mcqs || mcqs.length === 0) {
         toast({
-          title: 'MCQ Generation Failed',
-          description: 'The AI could not generate an MCQ for the selected topic. Please try again.',
+          title: 'Quiz Generation Failed',
+          description: 'The AI could not generate a quiz for the selected topic. Please try again.',
           variant: 'destructive',
         });
         setIsGenerating(false);
@@ -152,11 +152,11 @@ export function CreateMCQForm({ initialCategories, initialTopics }: CreateMCQFor
       }
 
       const topicId = values.topicId;
-      const mcqData = {
+      const quizData = {
         topic: {
           id: topicId,
           title: selectedTopic.title,
-          description: 'A custom generated MCQ.',
+          description: 'A custom generated quiz.',
           icon: selectedTopic.icon,
           categoryId: selectedTopic.categoryId,
           material: selectedTopic.material,
@@ -164,14 +164,14 @@ export function CreateMCQForm({ initialCategories, initialTopics }: CreateMCQFor
         mcqs: mcqs,
       };
 
-      localStorage.setItem(`mcq-${topicId}`, JSON.stringify(mcqData));
+      localStorage.setItem(`quiz-${topicId}`, JSON.stringify(quizData));
       router.push(`/quiz/${topicId}`);
 
     } catch (error) {
-      console.error('Error generating MCQ:', error);
+      console.error('Error generating quiz:', error);
       toast({
         title: 'Error',
-        description: 'Failed to generate MCQ. Please try again later.',
+        description: 'Failed to generate quiz. Please try again later.',
         variant: 'destructive',
       });
       setIsGenerating(false);
@@ -184,7 +184,7 @@ export function CreateMCQForm({ initialCategories, initialTopics }: CreateMCQFor
     return (
         <Card>
             <CardHeader>
-                <CardTitle>MCQ Details</CardTitle>
+                <CardTitle>Quiz Details</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="flex justify-center items-center h-40">
@@ -199,8 +199,8 @@ export function CreateMCQForm({ initialCategories, initialTopics }: CreateMCQFor
   return (
     <Card>
       <CardHeader>
-        <CardTitle>MCQ Details</CardTitle>
-        <CardDescription>Select a category and topic to generate an MCQ for your exam type: <span className='font-bold'>{user?.email === ADMIN_EMAIL ? 'Admin (All Access)' : (userData?.examCategory || 'N/A')}</span>.</CardDescription>
+        <CardTitle>Quiz Details</CardTitle>
+        <CardDescription>Select a category and topic to generate a quiz for your exam type: <span className='font-bold'>{user?.email === ADMIN_EMAIL ? 'Admin (All Access)' : (userData?.examCategory || 'N/A')}</span>.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -272,7 +272,7 @@ export function CreateMCQForm({ initialCategories, initialTopics }: CreateMCQFor
             <div className="flex flex-col sm:flex-row gap-2">
               <Button type="submit" disabled={isGenerating || !form.formState.isValid} className="flex-1">
                 {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Generate & Start MCQ
+                Generate & Start Quiz
               </Button>
             </div>
           </form>
