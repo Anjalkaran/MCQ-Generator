@@ -21,19 +21,16 @@ export default function Home() {
                   Welcome to Anjalkaran MCQ Generator
                 </CardTitle>
                 <CardDescription className="mx-auto max-w-[700px] text-muted-foreground md:text-xl pt-2">
-                  The best place to generate and take quizzes on any topic. Log in to start creating.
+                  The best place to generate and take quizzes on any topic.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col items-center space-y-4">
                   <Button asChild size="lg">
                     <Link href="/dashboard">
-                      Go to Dashboard
+                      Get Started
                     </Link>
                   </Button>
-                   <p className="text-sm text-muted-foreground">
-                    Or <Link href="/login" className="underline hover:text-primary">log in</Link> to your account.
-                  </p>
                 </div>
               </CardContent>
             </Card>
