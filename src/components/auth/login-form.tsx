@@ -124,9 +124,9 @@ export function LoginForm() {
               Sign In
             </Button>
             <div className="mt-4 text-center text-sm">
-              Don&apos;t have an account?{" "}
+              New user?{" "}
               <Link href="/register" className="underline">
-                Sign up
+                Register here
               </Link>
             </div>
           </CardFooter>
