@@ -16,6 +16,7 @@ const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
   category: z.string().optional().describe('The parent category of the topic.'),
   numberOfQuestions: z.number().describe('The number of MCQs to generate.'),
+  difficulty: z.string().describe('The difficulty level of the questions (e.g., Easy, Moderate, Difficult).'),
   material: z.string().optional().describe('The study material for the topic, if available.'),
   previousQuestions: z.array(z.string()).optional().describe('A list of previously asked questions to avoid repetition.'),
 });
@@ -43,6 +44,8 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert in generating multiple-choice questions (MCQs).
 
   Please generate exactly {{numberOfQuestions}} multiple-choice questions on the topic of "{{topic}}". Each question must have four options and one correct answer.
+  
+  The difficulty level for these questions should be "{{difficulty}}".
   
   {{#ifEquals category "General Awareness"}}
     {{#ifEquals topic "Current Affairs"}}

@@ -23,6 +23,7 @@ const formSchema = z.object({
   categoryId: z.string().min(1, 'Please select a category.'),
   topicId: z.string().min(1, 'Please select a topic.'),
   numberOfQuestions: z.coerce.number().min(3).max(50),
+  difficulty: z.string().min(1, 'Please select a difficulty level.'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -50,6 +51,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
       categoryId: '',
       topicId: '',
       numberOfQuestions: 5,
+      difficulty: 'Moderate',
     },
   });
 
@@ -135,6 +137,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
           topic: selectedTopic.title,
           category: selectedCategory.name,
           numberOfQuestions: values.numberOfQuestions,
+          difficulty: values.difficulty,
           material: (selectedTopic.material && !excludedCategories.includes(selectedCategory.name)) ? selectedTopic.material : undefined,
           previousQuestions: previousQuestions,
       };
@@ -250,6 +253,28 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                           {topic.title}
                         </SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="difficulty"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Difficulty Level</FormLabel>
+                   <Select onValueChange={field.onChange} value={field.value} defaultValue="Moderate">
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a difficulty level" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        <SelectItem value="Easy">Easy</SelectItem>
+                        <SelectItem value="Moderate">Moderate</SelectItem>
+                        <SelectItem value="Difficult">Difficult</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
