@@ -14,22 +14,6 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
         fill="#d40000"
       />
       
-      {/* Air swooshes */}
-      <path
-        d="M 25 53 C 45 72, 65 72, 85 53"
-        fill="none"
-        stroke="#FBBF24"
-        strokeWidth="6"
-        strokeLinecap="round"
-      />
-      <path
-        d="M 28 60 C 48 79, 68 79, 88 60"
-        fill="none"
-        stroke="#FBBF24"
-        strokeWidth="6"
-        strokeLinecap="round"
-      />
-
       {/* Text: Anjal */}
       <text
         x="95"
