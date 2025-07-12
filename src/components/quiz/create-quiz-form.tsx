@@ -133,6 +133,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
 
       const generationInput = {
           topic: selectedTopic.title,
+          category: selectedCategory.name,
           numberOfQuestions: values.numberOfQuestions,
           material: (selectedTopic.material && !excludedCategories.includes(selectedCategory.name)) ? selectedTopic.material : undefined,
           previousQuestions: previousQuestions,

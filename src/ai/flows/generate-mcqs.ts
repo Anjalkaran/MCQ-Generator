@@ -14,6 +14,7 @@ import {z} from 'genkit';
 
 const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
+  category: z.string().optional().describe('The parent category of the topic.'),
   numberOfQuestions: z.number().describe('The number of MCQs to generate.'),
   material: z.string().optional().describe('The study material for the topic, if available.'),
   previousQuestions: z.array(z.string()).optional().describe('A list of previously asked questions to avoid repetition.'),
@@ -43,8 +44,12 @@ const prompt = ai.definePrompt({
 
   Please generate exactly {{numberOfQuestions}} multiple-choice questions on the topic of "{{topic}}". Each question must have four options and one correct answer.
   
-  {{#ifEquals topic "General Awareness"}}
-  When generating questions for "General Awareness", focus on current affairs from the period between January 2024 to June 2025. Also, refer to NCERT school text books and MCQs from reputable coaching centers like Suresh IAS Academy and SSA Adda to ensure the questions are relevant and of high quality.
+  {{#ifEquals category "General Awareness"}}
+    {{#ifEquals topic "Current Affairs"}}
+      When generating questions for "Current Affairs", focus on the period between January 2024 to June 2025.
+    {{else}}
+      For other topics in General Awareness, please refer to NCERT school text books and MCQs from reputable coaching centers like Suresh IAS Academy and SSA Adda to ensure the questions are relevant and of high quality.
+    {{/ifEquals}}
   {{/ifEquals}}
 
   {{#if material}}
