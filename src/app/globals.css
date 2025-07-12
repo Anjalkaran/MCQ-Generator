@@ -4,25 +4,25 @@
 
 @layer base {
   :root {
-    --background: 216 100% 95.5%; /* Light Blue: #E6EFFF */
-    --foreground: 224 71.4% 4.1%; /* Dark Blue for text */
+    --background: 0 0% 98%; /* Almost White */
+    --foreground: 224 71.4% 4.1%;
     --card: 0 0% 100%;
     --card-foreground: 224 71.4% 4.1%;
     --popover: 0 0% 100%;
     --popover-foreground: 224 71.4% 4.1%;
-    --primary: 225 73% 57%; /* Royal Blue: #4169E1 */
+    --primary: 4 79% 49%; /* Post Office Red: #D82C20 */
     --primary-foreground: 0 0% 100%;
     --secondary: 220 13% 91%;
     --secondary-foreground: 224 71.4% 4.1%;
     --muted: 220 13% 91%;
     --muted-foreground: 220 8.9% 46.1%;
-    --accent: 240 67% 94.1%; /* Lavender: #E6E6FA */
-    --accent-foreground: 225 73% 40%;
+    --accent: 4 79% 95%; /* Light Red */
+    --accent-foreground: 4 79% 40%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 225 73% 57%;
+    --ring: 4 79% 49%;
     --radius: 0.5rem;
   }
  
@@ -33,7 +33,7 @@
     --card-foreground: 210 20% 98%;
     --popover: 224 71.4% 4.1%;
     --popover-foreground: 210 20% 98%;
-    --primary: 225 73% 57%;
+    --primary: 4 79% 55%; /* Lighter Post Office Red for dark mode */
     --primary-foreground: 0 0% 100%;
     --secondary: 215 27.9% 16.9%;
     --secondary-foreground: 210 20% 98%;
@@ -45,7 +45,7 @@
     --destructive-foreground: 0 0% 98%;
     --border: 215 27.9% 16.9%;
     --input: 215 27.9% 16.9%;
-    --ring: 225 73% 57%;
+    --ring: 4 79% 55%;
   }
 }
  
