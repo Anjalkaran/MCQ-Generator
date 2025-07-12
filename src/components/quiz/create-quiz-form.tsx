@@ -19,7 +19,7 @@ import { topics } from '@/lib/data';
 const formSchema = z.object({
   category: z.string().min(1, 'Please select a category.'),
   topic: z.string().min(1, 'Please select a topic.'),
-  numberOfQuestions: z.coerce.number().min(3).max(10),
+  numberOfQuestions: z.coerce.number().min(3).max(50),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -174,9 +174,9 @@ export function CreateQuizForm() {
               name="numberOfQuestions"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Number of Questions (3-10)</FormLabel>
+                  <FormLabel>Number of Questions (3-50)</FormLabel>
                   <FormControl>
-                    <Input type="number" min="3" max="10" {...field} />
+                    <Input type="number" min="3" max="50" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
