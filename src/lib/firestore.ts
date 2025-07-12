@@ -1,7 +1,7 @@
 
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance } from './types';
 
 // USER MANAGEMENT
 export const getUserData = async (userId: string): Promise<UserData | null> => {
@@ -178,4 +178,45 @@ export const getExamHistoryForUser = async (userId: string): Promise<MCQHistory[
             takenAt: takenAt,
         } as MCQHistory;
     });
+};
+
+// PERFORMANCE ANALYSIS
+export const getPerformanceByTopic = async (userId: string): Promise<TopicPerformance[]> => {
+    const allHistory = await getExamHistoryForUser(userId);
+
+    if (allHistory.length === 0) {
+        return [];
+    }
+
+    const performanceMap = new Map<string, { totalScore: number; totalQuestions: number; attempts: number; topicTitle: string; }>();
+
+    allHistory.forEach(item => {
+        const { topicId, topicTitle, score, totalQuestions } = item;
+
+        if (performanceMap.has(topicId)) {
+            const existing = performanceMap.get(topicId)!;
+            existing.totalScore += score;
+            existing.totalQuestions += totalQuestions;
+            existing.attempts += 1;
+        } else {
+            performanceMap.set(topicId, {
+                totalScore: score,
+                totalQuestions: totalQuestions,
+                attempts: 1,
+                topicTitle: topicTitle || 'Unknown Topic',
+            });
+        }
+    });
+
+    const performanceData: TopicPerformance[] = [];
+    performanceMap.forEach((data, topicId) => {
+        performanceData.push({
+            topicId,
+            topicTitle: data.topicTitle,
+            attempts: data.attempts,
+            averageScore: (data.totalScore / data.totalQuestions) * 100,
+        });
+    });
+
+    return performanceData.sort((a, b) => a.topicTitle.localeCompare(b.topicTitle));
 };

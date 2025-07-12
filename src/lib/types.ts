@@ -46,3 +46,10 @@ export interface MCQHistory {
     questions: string[];
     takenAt: Date;
 }
+
+export interface TopicPerformance {
+    topicId: string;
+    topicTitle: string;
+    attempts: number;
+    averageScore: number;
+}

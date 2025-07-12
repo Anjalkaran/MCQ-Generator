@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2 } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
@@ -137,6 +137,14 @@ export default function DashboardLayout({
                 <Link href="/dashboard/history">
                   <History />
                   <span>Exam History</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/performance')}>
+                <Link href="/dashboard/performance">
+                  <TrendingUp />
+                  <span>Performance</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
