@@ -1,3 +1,4 @@
+
 import { MainHeader } from "@/components/main-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -15,10 +16,10 @@ export default function Home() {
             <Card className="w-full max-w-lg shadow-lg text-center">
               <CardHeader>
                 <CardTitle className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl font-headline">
-                  Welcome to Anjalkaran MCQ Generator
+                  Welcome to MCQ Test
                 </CardTitle>
                 <CardDescription className="mx-auto max-w-[700px] text-muted-foreground md:text-xl pt-2">
-                  The best place to generate and take quizzes on any topic.
+                  Test your knowledge
                 </CardDescription>
               </CardHeader>
               <CardContent>
