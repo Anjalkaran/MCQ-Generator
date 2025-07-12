@@ -4,6 +4,7 @@ import { QuizClient } from "@/components/quiz/quiz-client";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
+import type { Topic } from "@/lib/types";
 
 export default function QuizPage({
   params,
@@ -15,6 +16,8 @@ export default function QuizPage({
   if (!topic) {
     notFound();
   }
+  
+  const { icon, ...serializableTopic } = topic;
 
   return (
     <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-6">
@@ -25,7 +28,7 @@ export default function QuizPage({
             Back to Topics
           </Link>
          </Button>
-        <QuizClient topic={topic} />
+        <QuizClient topic={serializableTopic as Omit<Topic, 'icon'>} />
       </div>
     </main>
   );

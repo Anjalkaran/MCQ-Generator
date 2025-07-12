@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 interface QuizResultsClientProps {
-  topic: Topic;
+  topic: Omit<Topic, 'icon'>;
 }
 
 export function QuizResultsClient({ topic }: QuizResultsClientProps) {

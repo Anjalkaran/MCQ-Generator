@@ -20,7 +20,7 @@ import { Progress } from "@/components/ui/progress";
 import type { Topic } from "@/lib/types";
 
 interface QuizClientProps {
-  topic: Topic;
+  topic: Omit<Topic, 'icon'>;
 }
 
 export function QuizClient({ topic }: QuizClientProps) {
