@@ -43,6 +43,10 @@ const prompt = ai.definePrompt({
 
   Please generate exactly {{numberOfQuestions}} multiple-choice questions on the topic of "{{topic}}". Each question must have four options and one correct answer.
   
+  {{#ifEquals topic "General Awareness"}}
+  When generating questions for "General Awareness", refer to NCERT school text books and MCQs from reputable coaching centers like Suresh IAS Academy and SSA Adda to ensure the questions are relevant and of high quality.
+  {{/ifEquals}}
+
   {{#if material}}
   Use the following material as the primary source for generating the questions.
   Material:
