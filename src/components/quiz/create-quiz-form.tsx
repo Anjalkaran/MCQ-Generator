@@ -18,8 +18,8 @@ import { getUserData, getMCQHistoryForTopic } from '@/lib/firestore';
 import type { Category, Topic, UserData } from '@/lib/types';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
+
 
 const formSchema = z.object({
   categoryId: z.string().min(1, 'Please select a category.'),
@@ -29,6 +29,9 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
+type DifficultyLevel = 'Easy' | 'Moderate' | 'Difficult';
+const difficultyLevels: DifficultyLevel[] = ['Easy', 'Moderate', 'Difficult'];
+
 
 interface CreateQuizFormProps {
     initialCategories: Category[];
@@ -102,6 +105,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
   }, [initialCategories, initialTopics]);
 
   const selectedCategoryId = form.watch('categoryId');
+  const selectedDifficulty = form.watch('difficulty');
 
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
@@ -265,33 +269,25 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
               control={form.control}
               name="difficulty"
               render={({ field }) => (
-                <FormItem className="space-y-3">
+                <FormItem>
                   <FormLabel>Difficulty Level</FormLabel>
                   <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="flex flex-row space-x-4"
-                    >
-                      <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="Easy" />
-                        </FormControl>
-                        <Label className="font-normal">Easy</Label>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="Moderate" />
-                        </FormControl>
-                        <Label className="font-normal">Moderate</Label>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="Difficult" />
-                        </FormControl>
-                        <Label className="font-normal">Difficult</Label>
-                      </FormItem>
-                    </RadioGroup>
+                    <div className="grid grid-cols-3 gap-4">
+                      {difficultyLevels.map((level) => (
+                        <Card
+                          key={level}
+                          onClick={() => form.setValue('difficulty', level, { shouldValidate: true })}
+                          className={cn(
+                            'cursor-pointer p-4 text-center transition-all',
+                            selectedDifficulty === level
+                              ? 'border-primary ring-2 ring-primary bg-accent'
+                              : 'hover:bg-muted/50'
+                          )}
+                        >
+                          <CardTitle className="text-base">{level}</CardTitle>
+                        </Card>
+                      ))}
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -322,3 +318,5 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     </Card>
   );
 }
+
+    
