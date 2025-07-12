@@ -53,28 +53,26 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     },
   });
 
-  // Consolidated useEffect for fetching user data and setting categories/topics
+  // Consolidated useEffect to fetch user data and then filter categories/topics
   useEffect(() => {
+    setIsLoading(true);
     const auth = getFirebaseAuth();
     if (!auth) {
         setIsLoading(false);
-        setCategories([]);
-        setTopics([]);
         return;
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
       if (currentUser) {
-        setUser(currentUser);
-        const data = await getUserData(currentUser.uid);
-        setUserData(data);
+        const fetchedUserData = await getUserData(currentUser.uid);
+        setUserData(fetchedUserData);
 
         if (currentUser.email === ADMIN_EMAIL) {
           setCategories(initialCategories);
           setTopics(initialTopics);
-        } else if (data) {
-          const userExamCategory = data.examCategory;
-          // Robust filtering logic
+        } else if (fetchedUserData) {
+          const userExamCategory = fetchedUserData.examCategory;
           const userCategories = initialCategories.filter(c => 
             c.examCategories && c.examCategories.includes(userExamCategory)
           );
@@ -84,13 +82,11 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
           const userTopics = initialTopics.filter(t => userCategoryIds.includes(t.categoryId));
           setTopics(userTopics);
         } else {
-          // User is logged in but has no user data, show no categories
           setCategories([]);
           setTopics([]);
         }
       } else {
-        // No user is logged in
-        setUser(null);
+        // No user logged in
         setUserData(null);
         setCategories([]);
         setTopics([]);
@@ -106,6 +102,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
     
+    // Use the filtered state for users, and initial props for admin
     const allTopics = topics;
     const allCategories = categories;
 
@@ -182,7 +179,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
             <CardContent>
                 <div className="flex justify-center items-center h-40">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="ml-4">Loading user data...</p>
+                    <p className="ml-4">Loading your categories and topics...</p>
                 </div>
             </CardContent>
         </Card>
