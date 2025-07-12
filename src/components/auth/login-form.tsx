@@ -96,7 +96,7 @@ export function LoginForm() {
                     <FormLabel>Password</FormLabel>
                     <Link
                       href="/auth/forgot-password"
-                      className="ml-auto inline-block text-sm underline"
+                      className="ml-auto inline-block text-xs underline"
                     >
                       Forgot password?
                     </Link>
