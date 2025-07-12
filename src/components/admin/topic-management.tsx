@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 
 const categorySchema = z.object({
   name: z.string().min(2, { message: 'Category name must be at least 2 characters.' }),
-  examCategory: z.string().min(1, { message: 'Please select an exam category.' }),
+  examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA' | 'ALL'>,
 });
 
 const topicSchema = z.object({
@@ -84,10 +84,11 @@ export function TopicManagement() {
 
   const onCategorySubmit = async (values: z.infer<typeof categorySchema>) => {
     try {
-      await addCategory(values);
+      const newCategoryDoc = await addCategory(values);
+      const newCategory = { id: newCategoryDoc.id, ...values };
+      setCategories(prev => [...prev, newCategory].sort((a,b) => a.name.localeCompare(b.name)));
       toast({ title: 'Success', description: 'New category added.' });
       categoryForm.reset();
-      fetchData();
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to add category.', variant: 'destructive' });
     }
@@ -95,10 +96,12 @@ export function TopicManagement() {
 
   const onTopicSubmit = async (values: z.infer<typeof topicSchema>) => {
     try {
-      await addTopic({ ...values, icon: 'default' }); // icon is legacy, can be removed later
+      const topicData = { ...values, icon: 'default' };
+      const newTopicDoc = await addTopic(topicData);
+      const newTopic = { id: newTopicDoc.id, ...topicData };
+      setTopics(prev => [...prev, newTopic]);
       toast({ title: 'Success', description: 'New topic added.' });
       topicForm.reset();
-      fetchData();
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to add topic.', variant: 'destructive' });
     }
@@ -107,8 +110,8 @@ export function TopicManagement() {
   const handleDeleteTopic = async (topicId: string) => {
     try {
         await deleteTopic(topicId);
+        setTopics(prev => prev.filter(t => t.id !== topicId));
         toast({ title: 'Success', description: 'Topic deleted.' });
-        fetchData();
     } catch (error) {
         toast({ title: 'Error', description: 'Failed to delete topic.', variant: 'destructive' });
     }
@@ -116,9 +119,11 @@ export function TopicManagement() {
   
   const handleDeleteCategory = async (categoryId: string) => {
     try {
-        await deleteCategory(categoryId, topics);
+        const topicsToDelete = topics.filter(topic => topic.categoryId === categoryId);
+        await deleteCategory(categoryId, topicsToDelete);
+        setCategories(prev => prev.filter(c => c.id !== categoryId));
+        setTopics(prev => prev.filter(t => t.categoryId !== categoryId));
         toast({ title: 'Success', description: 'Category and its topics have been deleted.' });
-        fetchData();
     } catch (error) {
         toast({ title: 'Error', description: 'Failed to delete category.', variant: 'destructive' });
     }
@@ -151,7 +156,7 @@ export function TopicManagement() {
                 {Object.entries(groupedTopics).map(([categoryName, topics]) => {
                   const category = categories.find(c => c.name === categoryName);
                   return (
-                    <AccordionItem value={categoryName} key={categoryName}>
+                    <AccordionItem value={categoryName} key={category?.id || categoryName}>
                       <AccordionTrigger className='text-lg font-medium'>
                         <div className='flex justify-between items-center w-full pr-4'>
                           <div className="flex items-center gap-2">

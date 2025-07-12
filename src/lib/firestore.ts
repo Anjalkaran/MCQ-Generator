@@ -1,6 +1,6 @@
 
 import { getFirebaseDb } from './firebase';
-import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference } from 'firebase/firestore';
 import type { Category, Topic, UserData } from './types';
 
 // USER MANAGEMENT
@@ -34,17 +34,17 @@ export const getCategories = async (): Promise<Category[]> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     const categoriesCollection = collection(db, 'categories');
-    const categorySnapshot = await getDocs(categoriesCollection);
-    return categorySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
+    const categorySnapshot = await getDocs(query(categoriesCollection));
+    return categorySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category)).sort((a,b) => a.name.localeCompare(b.name));
 };
 
-export const addCategory = async (category: Omit<Category, 'id'>): Promise<void> => {
+export const addCategory = async (category: Omit<Category, 'id'>): Promise<DocumentReference> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
-    await addDoc(collection(db, 'categories'), category);
+    return await addDoc(collection(db, 'categories'), category);
 };
 
-export const deleteCategory = async (categoryId: string, allTopics: Topic[]): Promise<void> => {
+export const deleteCategory = async (categoryId: string, topicsToDelete: Topic[]): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     
@@ -55,7 +55,6 @@ export const deleteCategory = async (categoryId: string, allTopics: Topic[]): Pr
     batch.delete(categoryRef);
 
     // Find and delete all topics associated with this category
-    const topicsToDelete = allTopics.filter(topic => topic.categoryId === categoryId);
     topicsToDelete.forEach(topic => {
         const topicRef = doc(db, 'topics', topic.id);
         batch.delete(topicRef);
@@ -74,10 +73,10 @@ export const getTopics = async (): Promise<Topic[]> => {
     return topicSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Topic));
 };
 
-export const addTopic = async (topic: Omit<Topic, 'id'>): Promise<void> => {
+export const addTopic = async (topic: Omit<Topic, 'id'>): Promise<DocumentReference> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
-    await addDoc(collection(db, 'topics'), topic);
+    return await addDoc(collection(db, 'topics'), topic);
 };
 
 export const deleteTopic = async (topicId: string): Promise<void> => {
