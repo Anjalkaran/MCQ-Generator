@@ -20,8 +20,8 @@ export function Logo(props: Omit<ComponentProps<'svg'>, 'children'>) {
         Anjal
       </text>
       <text
-        x="145"
-        y="65"
+        x="155"
+        y="75"
         fontFamily="sans-serif"
         fontSize="65"
         fontWeight="bold"
