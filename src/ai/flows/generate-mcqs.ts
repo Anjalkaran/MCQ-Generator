@@ -56,9 +56,16 @@ const prompt = ai.definePrompt({
   {{/ifEquals}}
 
   {{#if material}}
-  Use the following material as the primary source for generating the questions.
-  Material:
-  {{{material}}}
+    Use the following material as the primary source for generating the questions.
+    
+    {{#ifEquals difficulty "Difficult"}}
+      Generate statement-based questions and questions that test conceptual understanding based on the material. These questions should require deeper analysis rather than simple fact recall.
+    {{else}}
+      Generate direct questions based on the facts and information presented in the material.
+    {{/ifEquals}}
+
+    Material:
+    {{{material}}}
   {{/if}}
 
   {{#if previousQuestions}}
