@@ -1,15 +1,17 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { getFirebaseAuth } from '@/lib/firebase';
-import { signOut } from 'firebase/auth';
+import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+
+const ADMIN_EMAIL = "admin@anjalkaran.com";
 
 export default function DashboardLayout({
   children,
@@ -19,6 +21,26 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
+  const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const auth = getFirebaseAuth();
+    if (auth) {
+      const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        if (currentUser) {
+          setUser(currentUser);
+          setIsAdmin(currentUser.email === ADMIN_EMAIL);
+        } else {
+          setUser(null);
+          setIsAdmin(false);
+          router.push('/auth/login');
+        }
+      });
+      return () => unsubscribe();
+    }
+  }, [router]);
+
 
   const handleLogout = async () => {
     const auth = getFirebaseAuth();
@@ -68,6 +90,16 @@ export default function DashboardLayout({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            {isAdmin && (
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === '/dashboard/admin'}>
+                  <Link href="/dashboard/admin">
+                    <Shield />
+                    <span>Admin</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname === '/dashboard/profile'}>
                 <Link href="/dashboard/profile">
