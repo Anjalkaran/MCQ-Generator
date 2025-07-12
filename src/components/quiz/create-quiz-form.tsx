@@ -74,15 +74,24 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
 
   useEffect(() => {
     if (userData) {
-        const userCategories = initialCategories.filter(c => c.examCategory === userData.examCategory || c.examCategory === 'ALL');
+        const allowedCategories: Category['examCategory'][] = ['ALL'];
+        if(userData.examCategory === 'MTS') {
+            allowedCategories.push('MTS');
+        } else if (userData.examCategory === 'POSTMAN') {
+            allowedCategories.push('MTS', 'POSTMAN');
+        } else if (userData.examCategory === 'PA') {
+            allowedCategories.push('MTS', 'POSTMAN', 'PA');
+        }
+        
+        const userCategories = initialCategories.filter(c => allowedCategories.includes(c.examCategory));
         setCategories(userCategories);
 
         const userCategoryIds = userCategories.map(c => c.id);
         const userTopics = initialTopics.filter(t => userCategoryIds.includes(t.categoryId));
         setTopics(userTopics);
     } else {
-        setCategories(initialCategories);
-        setTopics(initialTopics);
+        setCategories([]);
+        setTopics([]);
     }
   }, [userData, initialCategories, initialTopics]);
   
@@ -180,10 +189,10 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                    <Select onValueChange={(value) => {
                      field.onChange(value);
                      form.setValue('topicId', '');
-                   }} value={field.value} disabled={!userData}>
+                   }} value={field.value} disabled={!userData || categories.length === 0}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder={!userData ? "Login to see categories" : "Select a category"} />
+                        <SelectValue placeholder={!userData ? "Login to see categories" : (categories.length === 0 ? "No categories available" : "Select a category")} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -204,10 +213,10 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Topic</FormLabel>
-                   <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCategoryId}>
+                   <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCategoryId || filteredTopics.length === 0}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a topic" />
+                        <SelectValue placeholder={filteredTopics.length === 0 ? "No topics in this category" : "Select a topic"} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
