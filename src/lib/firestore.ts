@@ -64,6 +64,13 @@ export const addCategory = async (category: Omit<Category, 'id'>): Promise<Docum
     return await addDoc(collection(db, 'categories'), category);
 };
 
+export const updateCategory = async (categoryId: string, data: Partial<Category>): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const categoryRef = doc(db, "categories", categoryId);
+    await updateDoc(categoryRef, data);
+};
+
 export const deleteCategory = async (categoryId: string, topicsToDelete: Topic[]): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");

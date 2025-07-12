@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,9 +12,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { addCategory, addTopic, deleteTopic, deleteCategory } from '@/lib/firestore';
+import { addCategory, addTopic, deleteTopic, deleteCategory, updateCategory, updateTopic } from '@/lib/firestore';
 import type { Topic, Category } from '@/lib/types';
-import { Loader2, PlusCircle, Trash2, Upload } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Upload, Edit } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +26,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -62,6 +71,10 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
   const [isLoadingCategory, setIsLoadingCategory] = useState(false);
   const [isLoadingTopic, setIsLoadingTopic] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const [isTopicDialogOpen, setIsTopicDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingTopic, setEditingTopic] = useState<Topic | null>(null);
 
   const { toast } = useToast();
 
@@ -83,16 +96,44 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     }
   });
 
+  useEffect(() => {
+    if (editingCategory) {
+        categoryForm.reset(editingCategory);
+    } else {
+        categoryForm.reset({ name: '', examCategories: [] });
+    }
+  }, [editingCategory, categoryForm]);
+
+  useEffect(() => {
+    if (editingTopic) {
+        topicForm.reset({
+            title: editingTopic.title,
+            description: editingTopic.description,
+            categoryId: editingTopic.categoryId,
+        });
+    } else {
+        topicForm.reset({ title: '', description: '', categoryId: '' });
+    }
+  }, [editingTopic, topicForm]);
+
   const onCategorySubmit = async (values: z.infer<typeof categorySchema>) => {
     setIsLoadingCategory(true);
     try {
-      const newCategoryDoc = await addCategory(values);
-      const newCategory = { id: newCategoryDoc.id, ...values };
-      setCategories(prev => [...prev, newCategory].sort((a,b) => a.name.localeCompare(b.name)));
-      toast({ title: 'Success', description: 'New category added.' });
-      categoryForm.reset();
+      if (editingCategory) {
+        await updateCategory(editingCategory.id, values);
+        setCategories(prev => prev.map(c => c.id === editingCategory.id ? { ...c, ...values } : c).sort((a,b) => a.name.localeCompare(b.name)));
+        toast({ title: 'Success', description: 'Category updated.' });
+      } else {
+        const newCategoryDoc = await addCategory(values);
+        const newCategory = { id: newCategoryDoc.id, ...values };
+        setCategories(prev => [...prev, newCategory].sort((a,b) => a.name.localeCompare(b.name)));
+        toast({ title: 'Success', description: 'New category added.' });
+      }
+      categoryForm.reset({ name: '', examCategories: [] });
+      setEditingCategory(null);
+      setIsCategoryDialogOpen(false);
     } catch (error) {
-      toast({ title: 'Error', description: 'Failed to add category.', variant: 'destructive' });
+      toast({ title: 'Error', description: editingCategory ? 'Failed to update category.' : 'Failed to add category.', variant: 'destructive' });
     } finally {
         setIsLoadingCategory(false);
     }
@@ -101,14 +142,23 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
   const onTopicSubmit = async (values: z.infer<typeof topicSchema>) => {
     setIsLoadingTopic(true);
     try {
-      const topicData = { ...values, description: values.description || '', icon: 'default' };
-      const newTopicDoc = await addTopic(topicData);
-      const newTopic = { id: newTopicDoc.id, ...topicData };
-      setTopics(prev => [...prev, newTopic].sort((a,b) => a.title.localeCompare(b.title)));
-      toast({ title: 'Success', description: 'New topic added.' });
-      topicForm.reset();
+        if(editingTopic) {
+            const topicData = { ...values, description: values.description || '' };
+            await updateTopic(editingTopic.id, topicData);
+            setTopics(prev => prev.map(t => t.id === editingTopic.id ? { ...t, ...topicData } : t).sort((a,b) => a.title.localeCompare(b.title)));
+            toast({ title: 'Success', description: 'Topic updated.' });
+        } else {
+            const topicData = { ...values, description: values.description || '', icon: 'default' };
+            const newTopicDoc = await addTopic(topicData);
+            const newTopic = { id: newTopicDoc.id, ...topicData };
+            setTopics(prev => [...prev, newTopic].sort((a,b) => a.title.localeCompare(b.title)));
+            toast({ title: 'Success', description: 'New topic added.' });
+        }
+      topicForm.reset({ title: '', description: '', categoryId: '' });
+      setEditingTopic(null);
+      setIsTopicDialogOpen(false);
     } catch (error) {
-      toast({ title: 'Error', description: 'Failed to add topic.', variant: 'destructive' });
+      toast({ title: 'Error', description: editingTopic ? 'Failed to update topic.' : 'Failed to add topic.', variant: 'destructive' });
     } finally {
         setIsLoadingTopic(false);
     }
@@ -179,17 +229,33 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
   const getCategoryName = (categoryId: string) => {
     return categories.find(c => c.id === categoryId)?.name || 'N/A';
   }
+
+  const handleOpenCategoryDialog = (category: Category | null) => {
+    setEditingCategory(category);
+    setIsCategoryDialogOpen(true);
+  }
+
+  const handleOpenTopicDialog = (topic: Topic | null) => {
+    setEditingTopic(topic);
+    setIsTopicDialogOpen(true);
+  }
   
   const fileRef = materialForm.register("file");
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Add New Category</CardTitle>
-                </CardHeader>
-                <CardContent>
+            <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
+                <DialogTrigger asChild>
+                    <Button onClick={() => handleOpenCategoryDialog(null)} className="w-full">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Create New Category
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                     <DialogHeader>
+                        <DialogTitle>{editingCategory ? 'Edit Category' : 'Add New Category'}</DialogTitle>
+                    </DialogHeader>
                     <Form {...categoryForm}>
                         <form onSubmit={categoryForm.handleSubmit(onCategorySubmit)} className="space-y-4">
                             <FormField
@@ -250,20 +316,28 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                 </FormItem>
                             )}
                             />
-                            <Button type="submit" disabled={isLoadingCategory}>
-                                {isLoadingCategory ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                                Create Category
-                            </Button>
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setIsCategoryDialogOpen(false)}>Cancel</Button>
+                                <Button type="submit" disabled={isLoadingCategory}>
+                                    {isLoadingCategory ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Save"}
+                                </Button>
+                            </DialogFooter>
                         </form>
                     </Form>
-                </CardContent>
-            </Card>
+                </DialogContent>
+            </Dialog>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Add New Topic</CardTitle>
-                </CardHeader>
-                <CardContent>
+            <Dialog open={isTopicDialogOpen} onOpenChange={setIsTopicDialogOpen}>
+                 <DialogTrigger asChild>
+                    <Button onClick={() => handleOpenTopicDialog(null)} className="w-full">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Create New Topic
+                    </Button>
+                </DialogTrigger>
+                 <DialogContent>
+                     <DialogHeader>
+                        <DialogTitle>{editingTopic ? 'Edit Topic' : 'Add New Topic'}</DialogTitle>
+                    </DialogHeader>
                     <Form {...topicForm}>
                         <form onSubmit={topicForm.handleSubmit(onTopicSubmit)} className="space-y-4">
                             <FormField
@@ -304,14 +378,16 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                 </FormItem>
                                 )}
                             />
-                            <Button type="submit" disabled={isLoadingTopic || categories.length === 0}>
-                                {isLoadingTopic ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                                Create Topic
-                            </Button>
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setIsTopicDialogOpen(false)}>Cancel</Button>
+                                <Button type="submit" disabled={isLoadingTopic || categories.length === 0}>
+                                    {isLoadingTopic ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Save"}
+                                </Button>
+                            </DialogFooter>
                         </form>
                     </Form>
-                </CardContent>
-            </Card>
+                </DialogContent>
+            </Dialog>
              <Card>
                 <CardHeader>
                     <CardTitle>Upload Material</CardTitle>
@@ -395,6 +471,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right">
+                                    <Button variant="ghost" size="icon" onClick={() => handleOpenCategoryDialog(cat)}><Edit className="h-4 w-4" /></Button>
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
                                         <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
@@ -436,6 +513,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                     <TableCell>{getCategoryName(topic.categoryId)}</TableCell>
                                     <TableCell>{topic.material ? 'Yes' : 'No'}</TableCell>
                                     <TableCell className="text-right">
+                                    <Button variant="ghost" size="icon" onClick={() => handleOpenTopicDialog(topic)}><Edit className="h-4 w-4" /></Button>
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
                                         <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
