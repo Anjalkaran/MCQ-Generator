@@ -12,4 +12,5 @@ export interface Topic {
   description: string;
   icon: LucideIcon;
   material: string;
+  category: string;
 }

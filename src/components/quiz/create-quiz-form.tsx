@@ -13,7 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { topics } from '@/lib/data';
 
 const formSchema = z.object({
@@ -41,7 +41,7 @@ export function CreateQuizForm() {
     
     const selectedTopic = topics.find(t => t.id === values.topic);
 
-    if (!selectedTopic || !selectedTopic.material) {
+    if (!selectedTopic) {
         toast({
           title: 'Topic Not Found',
           description: 'The selected topic could not be found. Please try again.',
@@ -49,6 +49,16 @@ export function CreateQuizForm() {
         });
         setIsGenerating(false);
         return;
+    }
+
+    if (!selectedTopic.material) {
+      toast({
+        title: 'Material Not Found',
+        description: 'Study material for the selected topic is missing.',
+        variant: 'destructive',
+      });
+      setIsGenerating(false);
+      return;
     }
 
     try {
@@ -92,6 +102,15 @@ export function CreateQuizForm() {
     }
   };
 
+  const groupedTopics = topics.reduce((acc, topic) => {
+    const category = topic.category || 'General';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(topic);
+    return acc;
+  }, {} as Record<string, typeof topics>);
+
   return (
     <Card>
       <CardHeader>
@@ -114,10 +133,15 @@ export function CreateQuizForm() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {topics.map(topic => (
-                        <SelectItem key={topic.id} value={topic.id}>
-                          {topic.title}
-                        </SelectItem>
+                      {Object.entries(groupedTopics).map(([category, topicsInCategory]) => (
+                        <SelectGroup key={category}>
+                          <SelectLabel>{category}</SelectLabel>
+                          {topicsInCategory.map(topic => (
+                            <SelectItem key={topic.id} value={topic.id}>
+                              {topic.title}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
                       ))}
                     </SelectContent>
                   </Select>
