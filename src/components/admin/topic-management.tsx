@@ -143,10 +143,19 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     try {
         const file = values.file;
         const reader = new FileReader();
-        reader.readAsDataURL(file);
+        
+        reader.onerror = () => {
+          toast({ title: 'Error', description: 'Failed to read the uploaded file.', variant: 'destructive' });
+          setIsLoading(false);
+        };
 
         reader.onload = async (event) => {
-            const fileAsDataUri = event.target?.result as string;
+            if (!event.target?.result) {
+                toast({ title: 'Error', description: 'Could not read file data.', variant: 'destructive' });
+                setIsLoading(false);
+                return;
+            }
+            const fileAsDataUri = event.target.result as string;
 
             try {
                 const { mcqs } = await generateMCQs({
@@ -154,12 +163,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                     numberOfQuestions: values.numberOfQuestions,
                     topicMaterial: fileAsDataUri
                 });
-
-                if (!mcqs || mcqs.length === 0) {
-                    toast({ title: 'Quiz Generation Failed', description: 'The AI could not generate a quiz from the document.', variant: 'destructive' });
-                    setIsLoading(false);
-                    return;
-                }
                 
                 const quizData: QuizData = {
                     topic: { id: selectedTopic.id, title: selectedTopic.title, description: `Quiz from uploaded material: ${file.name}`, icon: 'default', categoryId: selectedTopic.categoryId },
@@ -171,19 +174,17 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
 
             } catch (e: any) {
                 console.error('Error in quiz generation from material:', e);
-                toast({ title: 'Error', description: e.message || 'Failed to generate quiz from document.', variant: 'destructive' });
+                toast({ title: 'Quiz Generation Failed', description: e.message || 'An unexpected error occurred.', variant: 'destructive' });
             } finally {
                 setIsLoading(false);
             }
         };
-        reader.onerror = (error) => {
-            console.error('FileReader error:', error);
-            toast({ title: 'Error', description: 'Failed to read the uploaded file.', variant: 'destructive' });
-            setIsLoading(false);
-        };
+
+        reader.readAsDataURL(file);
+
     } catch (error) {
         console.error('Error setting up file reader:', error);
-        toast({ title: 'Error', description: 'An unexpected error occurred.', variant: 'destructive' });
+        toast({ title: 'Error', description: 'An unexpected error occurred while preparing the file.', variant: 'destructive' });
         setIsLoading(false);
     }
   }

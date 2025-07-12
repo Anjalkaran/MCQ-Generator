@@ -41,7 +41,7 @@ export async function generateMCQs(input: GenerateMCQsInput): Promise<GenerateMC
   if (input.topicMaterial) {
     const [header, base64Data] = input.topicMaterial.split(',');
     if (!header || !base64Data) {
-      throw new Error('Invalid topic material format.');
+      throw new Error('Invalid topic material format. Expected a data URI.');
     }
     const buffer = Buffer.from(base64Data, 'base64');
 
@@ -51,7 +51,6 @@ export async function generateMCQs(input: GenerateMCQsInput): Promise<GenerateMC
     } else if (header.includes('text/plain')) {
       materialContent = buffer.toString('utf-8');
     } else {
-      // Potentially support other document types here later
       throw new Error('Unsupported file type. Please upload a PDF or TXT file.');
     }
   }
@@ -98,6 +97,9 @@ const generateMCQsFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+    if (!output || !output.mcqs || output.mcqs.length === 0) {
+        throw new Error('The AI could not generate questions from the provided material.');
+    }
+    return output;
   }
 );
