@@ -41,7 +41,7 @@ const categorySchema = z.object({
 
 const topicSchema = z.object({
   title: z.string().min(3, { message: 'Topic title is required.' }),
-  description: z.string().min(10, { message: 'Description is required.' }),
+  description: z.string().optional(),
   categoryId: z.string({ required_error: 'Please select a category.' }),
 });
 
@@ -96,7 +96,7 @@ export function TopicManagement() {
 
   const onTopicSubmit = async (values: z.infer<typeof topicSchema>) => {
     try {
-      const topicData = { ...values, icon: 'default' };
+      const topicData = { ...values, description: values.description || '', icon: 'default' };
       const newTopicDoc = await addTopic(topicData);
       const newTopic = { id: newTopicDoc.id, ...topicData };
       setTopics(prev => [...prev, newTopic]);
@@ -322,7 +322,7 @@ export function TopicManagement() {
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Description</FormLabel>
+                      <FormLabel>Description (Optional)</FormLabel>
                       <FormControl><Textarea placeholder="A short description of the topic." {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
