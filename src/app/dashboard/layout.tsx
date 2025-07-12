@@ -34,11 +34,14 @@ export default function DashboardLayout({
           const userIsAdmin = currentUser.email === ADMIN_EMAIL;
           setIsAdmin(userIsAdmin);
           
-          if(pathname === '/dashboard/admin' && !userIsAdmin) {
+          // More robust check: if trying to access admin page and is NOT admin, redirect.
+          if(pathname.startsWith('/dashboard/admin') && !userIsAdmin) {
+             toast({ title: "Access Denied", description: "You do not have permission to view this page.", variant: "destructive"});
              router.push('/dashboard');
           }
 
         } else {
+          // If no user is logged in, redirect to login page.
           setUser(null);
           setIsAdmin(false);
           router.push('/auth/login');
@@ -47,10 +50,11 @@ export default function DashboardLayout({
       });
       return () => unsubscribe();
     } else {
+        // If firebase auth is not available, redirect to login.
         router.push('/auth/login');
         setIsLoading(false);
     }
-  }, [router, pathname]);
+  }, [router, pathname, toast]);
 
 
   const handleLogout = async () => {
