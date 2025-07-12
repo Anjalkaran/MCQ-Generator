@@ -16,10 +16,10 @@ export default function Home() {
             <Card className="w-full max-w-lg shadow-lg text-center">
               <CardHeader>
                 <CardTitle className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl font-headline">
-                  Welcome to MCQ Test
+                  Welcome to MCQ Practice center
                 </CardTitle>
                 <CardDescription className="mx-auto max-w-[700px] text-muted-foreground md:text-xl pt-2">
-                  Test your knowledge
+                  Generate targeted practice test to succeed
                 </CardDescription>
               </CardHeader>
               <CardContent>
