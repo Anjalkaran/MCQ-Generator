@@ -1,6 +1,6 @@
 
 import { getFirebaseDb } from './firebase';
-import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc } from 'firebase/firestore';
 import type { Category, Topic, UserData } from './types';
 
 // USER MANAGEMENT
@@ -21,6 +21,13 @@ export const getAllUsers = async (): Promise<UserData[]> => {
   const usersCollection = collection(db, 'users');
   const userSnapshot = await getDocs(usersCollection);
   return userSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserData));
+};
+
+export const updateUserDocument = async (userId: string, data: Partial<Pick<UserData, 'name' | 'examCategory'>>): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, data);
 };
 
 export const deleteUserDocument = async (userId: string): Promise<void> => {

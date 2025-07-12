@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -82,7 +81,6 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
         const userTopics = initialTopics.filter(t => userCategoryIds.includes(t.categoryId));
         setTopics(userTopics);
     } else {
-        // If no user data, maybe show all topics or none
         setCategories(initialCategories);
         setTopics(initialTopics);
     }
@@ -210,7 +208,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a topic" />
-                      </Trigger>
+                      </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {filteredTopics.map(topic => (

@@ -5,9 +5,9 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Loader2, Trash2, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { deleteUserDocument } from '@/lib/firestore';
+import { deleteUserDocument, updateUserDocument } from '@/lib/firestore';
 import type { UserData } from '@/lib/types';
 import {
   AlertDialog,
@@ -19,7 +19,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
+import { Input } from '../ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+
+const userUpdateSchema = z.object({
+  name: z.string().min(1, { message: 'Username is required.' }),
+  examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA' | 'ALL'>,
+});
+
 
 interface UserManagementProps {
     initialUsers: UserData[];
@@ -28,7 +41,40 @@ interface UserManagementProps {
 export function UserManagement({ initialUsers }: UserManagementProps) {
   const [users, setUsers] = useState<UserData[]>(initialUsers);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const { toast } = useToast();
+
+  const form = useForm<z.infer<typeof userUpdateSchema>>({
+    resolver: zodResolver(userUpdateSchema),
+  });
+
+  const handleOpenUpdateDialog = (user: UserData) => {
+    setSelectedUser(user);
+    form.reset({
+      name: user.name,
+      examCategory: user.examCategory,
+    });
+    setIsUpdateDialogOpen(true);
+  };
+
+  const onUpdateSubmit = async (values: z.infer<typeof userUpdateSchema>) => {
+    if (!selectedUser) return;
+    setIsLoading(true);
+    try {
+      await updateUserDocument(selectedUser.uid, values);
+      setUsers(users.map(u => u.uid === selectedUser.uid ? { ...u, ...values } : u));
+      toast({ title: 'Success', description: 'User updated successfully.' });
+      setIsUpdateDialogOpen(false);
+      setSelectedUser(null);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      toast({ title: 'Error', description: 'Failed to update user.', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   const handleDeleteUser = async (userId: string) => {
     setIsLoading(true);
@@ -78,6 +124,11 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                       <TableCell>{user.email}</TableCell>
                       <TableCell>{user.examCategory}</TableCell>
                       <TableCell className="text-right">
+                         <Button variant="ghost" size="icon" onClick={() => handleOpenUpdateDialog(user)} disabled={user.email === 'admin@anjalkaran.com' || isLoading}>
+                            <Edit className="h-4 w-4" />
+                            <span className="sr-only">Edit</span>
+                         </Button>
+
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button variant="ghost" size="icon" disabled={user.email === 'admin@anjalkaran.com' || isLoading}>
@@ -114,6 +165,56 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
               </TableBody>
             </Table>
           </div>
+            <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                    <DialogTitle>Edit User: {selectedUser?.name}</DialogTitle>
+                    <DialogDescription>
+                        Update the user's details below. Email address cannot be changed.
+                    </DialogDescription>
+                    </DialogHeader>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onUpdateSubmit)} className="space-y-4">
+                            <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Username</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="examCategory"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Exam Category</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                        <SelectItem value="MTS">MTS</SelectItem>
+                                        <SelectItem value="POSTMAN">POSTMAN</SelectItem>
+                                        <SelectItem value="PA">PA</SelectItem>
+                                        <SelectItem value="ALL">ALL (Common)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setIsUpdateDialogOpen(false)}>Cancel</Button>
+                                <Button type="submit" disabled={isLoading}>
+                                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Save Changes"}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
       </CardContent>
     </Card>
   );
