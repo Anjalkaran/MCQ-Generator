@@ -1,4 +1,4 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
@@ -11,9 +11,23 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-const db = getFirestore(app);
+function getFirebaseApp(): FirebaseApp | null {
+    if (!firebaseConfig.apiKey) {
+        console.error("Firebase API key is missing. Please check your environment variables.");
+        return null;
+    }
+    return !getApps().length ? initializeApp(firebaseConfig) : getApp();
+}
 
-export { app as firebaseApp, auth, db };
+function getFirebaseAuth() {
+    const app = getFirebaseApp();
+    return app ? getAuth(app) : null;
+}
+
+function getFirebaseDb() {
+    const app = getFirebaseApp();
+    return app ? getFirestore(app) : null;
+}
+
+
+export { getFirebaseApp, getFirebaseAuth, getFirebaseDb };

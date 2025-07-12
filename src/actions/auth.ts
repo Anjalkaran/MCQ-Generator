@@ -1,12 +1,9 @@
 'use server';
 
 import * as z from 'zod';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
-import { firebaseApp } from '@/lib/firebase';
-
-const auth = getAuth(firebaseApp);
-const db = getFirestore(firebaseApp);
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebase';
 
 const registerSchema = z.object({
   username: z.string().min(2, { message: 'Username must be at least 2 characters.' }),
@@ -15,6 +12,13 @@ const registerSchema = z.object({
 });
 
 export async function registerUser(values: z.infer<typeof registerSchema>) {
+  const auth = getFirebaseAuth();
+  const db = getFirebaseDb();
+
+  if (!auth || !db) {
+    return { error: 'Firebase is not configured correctly.' };
+  }
+
   const validatedFields = registerSchema.safeParse(values);
 
   if (!validatedFields.success) {
@@ -37,6 +41,9 @@ export async function registerUser(values: z.infer<typeof registerSchema>) {
     if (error.code === 'auth/email-already-in-use') {
       return { error: 'Email is already in use.' };
     }
+     if (error.code === 'auth/invalid-api-key') {
+        return { error: 'Invalid Firebase API Key.' };
+    }
     return { error: 'An unknown error occurred.' };
   }
 }
@@ -48,6 +55,10 @@ const loginSchema = z.object({
 });
 
 export async function loginUser(values: z.infer<typeof loginSchema>) {
+    const auth = getFirebaseAuth();
+     if (!auth) {
+      return { error: 'Firebase is not configured correctly.' };
+    }
     const validatedFields = loginSchema.safeParse(values);
 
     if (!validatedFields.success) {
@@ -65,6 +76,8 @@ export async function loginUser(values: z.infer<typeof loginSchema>) {
             case 'auth/wrong-password':
             case 'auth/invalid-credential':
                 return { error: 'Invalid email or password.' };
+            case 'auth/invalid-api-key':
+                return { error: 'Invalid Firebase API Key.' };
             default:
                 return { error: 'An unknown error occurred.' };
         }
