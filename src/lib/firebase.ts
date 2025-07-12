@@ -11,10 +11,20 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+// Initialize Firebase
+let app: FirebaseApp;
+if (!getApps().length) {
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApp();
+}
+
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+
 function getFirebaseApp(): FirebaseApp | null {
     if (!firebaseConfig.apiKey) {
-        // This check is primarily for server-side operations where env vars are critical.
-        // The error will be caught and handled in the action files.
         return null;
     }
     return !getApps().length ? initializeApp(firebaseConfig) : getApp();
