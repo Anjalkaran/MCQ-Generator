@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { auth } from 'firebase-admin';
 import { getAuth } from "firebase/auth";
 
+export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
   const auth = getAuth();
