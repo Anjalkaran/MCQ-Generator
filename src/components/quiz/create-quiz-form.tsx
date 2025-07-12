@@ -272,19 +272,19 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                 <FormItem>
                   <FormLabel>Difficulty Level</FormLabel>
                   <FormControl>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-3 gap-2">
                       {difficultyLevels.map((level) => (
                         <Card
                           key={level}
                           onClick={() => form.setValue('difficulty', level, { shouldValidate: true })}
                           className={cn(
-                            'cursor-pointer p-4 text-center transition-all',
+                            'cursor-pointer p-2 text-center transition-all',
                             selectedDifficulty === level
                               ? 'border-primary ring-2 ring-primary bg-accent'
                               : 'hover:bg-muted/50'
                           )}
                         >
-                          <CardTitle className="text-base">{level}</CardTitle>
+                          <CardTitle className="text-base font-medium">{level}</CardTitle>
                         </Card>
                       ))}
                     </div>
@@ -318,5 +318,3 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     </Card>
   );
 }
-
-    
