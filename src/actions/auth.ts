@@ -31,10 +31,16 @@ export async function registerUser(values: z.infer<typeof registerSchema>) {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    await setDoc(doc(db, 'users', user.uid), {
+    const userDoc: { username: string; email: string; isAdmin?: boolean } = {
       username: username,
       email: email,
-    });
+    };
+    
+    if (email === 'admin@anjalkaran.com') {
+      userDoc.isAdmin = true;
+    }
+
+    await setDoc(doc(db, 'users', user.uid), userDoc);
 
     return { success: 'Registration successful!' };
   } catch (error: any) {
