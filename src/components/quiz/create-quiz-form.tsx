@@ -77,7 +77,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     if (userData) {
         const userExamCategory = userData.examCategory;
         const userCategories = initialCategories.filter(c => 
-            userExamCategory === 'ALL' || c.examCategories.includes(userExamCategory)
+            userExamCategory === 'ALL' || (c.examCategories && c.examCategories.includes(userExamCategory))
         );
         setCategories(userCategories);
 
@@ -107,7 +107,6 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
         return;
     }
     
-    // Define categories that should not use uploaded material
     const excludedCategories = ["Basic Arithmetics", "General Awareness"];
 
     const generationInput = {
@@ -138,6 +137,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
           description: 'A custom generated quiz.',
           icon: selectedTopic.icon,
           categoryId: selectedTopic.categoryId,
+          material: selectedTopic.material,
         },
         mcqs: mcqs,
       };
