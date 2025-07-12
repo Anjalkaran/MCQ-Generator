@@ -9,8 +9,13 @@ const registerSchema = z.object({
   username: z.string().min(2, { message: 'Username must be at least 2 characters.' }),
   email: z.string().email({ message: 'Invalid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  confirmPassword: z.string(),
   examCategory: z.enum(['MTS', 'POSTMAN', 'PA'], { required_error: 'Please select an exam category.'}),
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
+
 
 export async function registerUser(values: z.infer<typeof registerSchema>) {
   const auth = getFirebaseAuth();
