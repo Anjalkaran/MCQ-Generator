@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { UserData } from "@/lib/types";
 import { updateUserProfile } from '@/actions/update-user-profile';
 import { useToast } from '@/hooks/use-toast';
@@ -57,7 +56,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
         <Card>
             <CardHeader>
                 <CardTitle>Personal & Course Details</CardTitle>
-                <CardDescription>Manage your personal information and exam preferences. Changing this will update the price for your next renewal.</CardDescription>
+                <CardDescription>Manage your personal information. Your exam category cannot be changed here.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -70,16 +69,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="examCategory">Preferred Exam Category</Label>
-                    <Select name="examCategory" defaultValue={user.examCategory}>
-                        <SelectTrigger>
-                        <SelectValue placeholder="Select your exam preference" />
-                        </SelectTrigger>
-                        <SelectContent>
-                        <SelectItem value="MTS">MTS</SelectItem>
-                        <SelectItem value="POSTMAN">POSTMAN</SelectItem>
-                        <SelectItem value="PA">PA</SelectItem>
-                        </SelectContent>
-                    </Select>
+                     <Input id="examCategory" name="examCategory" defaultValue={user.examCategory} disabled />
                 </div>
             </CardContent>
             <CardFooter className="border-t px-6 py-4">

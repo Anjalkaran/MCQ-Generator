@@ -9,9 +9,6 @@ import { revalidatePath } from 'next/cache';
 
 const profileUpdateSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
-  examCategory: z.enum(['MTS', 'POSTMAN', 'PA'], {
-    errorMap: () => ({ message: 'Please select a valid exam category.' }),
-  }),
 });
 
 export async function updateUserProfile(
@@ -28,7 +25,6 @@ export async function updateUserProfile(
 
   const rawFormData = {
     name: formData.get('name'),
-    examCategory: formData.get('examCategory'),
   };
 
   const validatedFields = profileUpdateSchema.safeParse(rawFormData);
@@ -43,8 +39,12 @@ export async function updateUserProfile(
   }
 
   try {
-    // Update Firestore document
-    await updateUserDocument(userId, validatedFields.data);
+    const dataToUpdate: { name: string, examCategory?: 'MTS' | 'POSTMAN' | 'PA' } = {
+        name: validatedFields.data.name
+    };
+
+    // Update Firestore document (only with name)
+    await updateUserDocument(userId, { name: dataToUpdate.name });
 
     // Update Firebase Auth display name if it has changed
     if (currentUser.displayName !== validatedFields.data.name) {
