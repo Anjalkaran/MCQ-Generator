@@ -1,6 +1,5 @@
 
-import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
