@@ -303,9 +303,5 @@ export const getDashboardData = async (userId: string) => {
         getTopics()
     ]);
 
-    if (!userData) {
-        throw new Error("User data could not be loaded.");
-    }
-
     return { userData, categories, topics };
 }

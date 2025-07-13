@@ -49,52 +49,6 @@ export default function DashboardLayout({
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const auth = getFirebaseAuth();
-    if (!auth) {
-      router.push('/auth/login');
-      setIsLoading(false);
-      return;
-    }
-    
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setIsLoading(true);
-      if (currentUser) {
-        setUser(currentUser);
-        const userIsAdmin = currentUser.email === ADMIN_EMAIL;
-        setIsAdmin(userIsAdmin);
-
-        if (pathname.startsWith('/dashboard/admin') && !userIsAdmin) {
-          toast({ title: "Access Denied", description: "You do not have permission to view this page.", variant: "destructive" });
-          router.push('/dashboard');
-          setIsLoading(false);
-          return;
-        }
-
-        try {
-            const { userData, categories, topics } = await getDashboardData(currentUser.uid);
-            setUserData(userData);
-            setCategories(categories);
-            setTopics(topics);
-        } catch (error) {
-            console.error("Error fetching dashboard data:", error);
-            toast({ title: "Error", description: "Could not load dashboard data.", variant: "destructive" });
-            handleLogout(auth, false); // Log out on data fetch failure
-        }
-      } else {
-        setUser(null);
-        setIsAdmin(false);
-        setUserData(null);
-        setCategories([]);
-        setTopics([]);
-        router.push('/auth/login');
-      }
-      setIsLoading(false);
-    });
-    return () => unsubscribe();
-    
-  }, [router, pathname, toast]);
-
   const handleLogout = async (authInstance = getFirebaseAuth(), showToast = true) => {
     if (!authInstance) {
       if (showToast) toast({ title: "Authentication Error", description: "Could not connect to service.", variant: "destructive" });
@@ -108,6 +62,61 @@ export default function DashboardLayout({
       if (showToast) toast({ title: 'Logout Failed', description: error.message || 'An unexpected error occurred.', variant: 'destructive' });
     }
   };
+
+  useEffect(() => {
+    const auth = getFirebaseAuth();
+    if (!auth) {
+      router.push('/auth/login');
+      setIsLoading(false);
+      return;
+    }
+    
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setIsLoading(true);
+      if (currentUser) {
+        setUser(currentUser);
+        
+        try {
+            const { userData, categories, topics } = await getDashboardData(currentUser.uid);
+            if (!userData) {
+                 toast({ title: "Authentication Error", description: "Could not load user profile. Please log in again.", variant: "destructive" });
+                 handleLogout(auth, false);
+                 return;
+            }
+
+            const userIsAdmin = currentUser.email === ADMIN_EMAIL;
+            setIsAdmin(userIsAdmin);
+
+            if (pathname.startsWith('/dashboard/admin') && !userIsAdmin) {
+              toast({ title: "Access Denied", description: "You do not have permission to view this page.", variant: "destructive" });
+              router.push('/dashboard');
+              setIsLoading(false);
+              return;
+            }
+
+            setUserData(userData);
+            setCategories(categories);
+            setTopics(topics);
+        } catch (error) {
+            console.error("Error fetching dashboard data:", error);
+            toast({ title: "Error", description: "Could not load dashboard data.", variant: "destructive" });
+            handleLogout(auth, false);
+        }
+      } else {
+        setUser(null);
+        setIsAdmin(false);
+        setUserData(null);
+        setCategories([]);
+        setTopics([]);
+        if (!pathname.startsWith('/auth')) {
+            router.push('/auth/login');
+        }
+      }
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
+    
+  }, [pathname, router, toast]);
 
   const contextValue = { user, userData, categories, topics, isLoading };
 
