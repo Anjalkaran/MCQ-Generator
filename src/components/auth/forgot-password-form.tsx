@@ -50,9 +50,20 @@ export function ForgotPasswordForm() {
       await sendPasswordResetEmail(auth, values.email);
       setIsSubmitted(true);
     } catch (error: any) {
+      let errorMessage = 'An unexpected error occurred. Please try again.';
+      switch (error.code) {
+        case 'auth/user-not-found':
+            // To avoid revealing if an email is registered, we show a success message.
+            // The user will just not receive an email.
+            setIsSubmitted(true); 
+            return;
+        case 'auth/invalid-email':
+            errorMessage = 'The email address you entered is not valid. Please check and try again.';
+            break;
+      }
       toast({
         title: 'Error',
-        description: error.message || 'An unexpected error occurred.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -66,7 +77,7 @@ export function ForgotPasswordForm() {
             <CardHeader className="text-center">
                 <CardTitle>Check Your Email</CardTitle>
                 <CardDescription>
-                    A password reset link has been sent to your email address. Please check your inbox and spam folder.
+                    If an account exists for the email you entered, a password reset link has been sent. Please check your inbox and spam folder.
                 </CardDescription>
             </CardHeader>
             <CardContent>

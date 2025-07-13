@@ -55,9 +55,23 @@ export function LoginForm() {
       });
       router.push('/dashboard');
     } catch (error: any) {
+      let errorMessage = 'An unexpected error occurred. Please try again.';
+      switch (error.code) {
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+        case 'auth/invalid-credential':
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = 'Access to this account has been temporarily disabled due to many failed login attempts. You can reset your password or try again later.';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = 'The email address you entered is not valid. Please check and try again.';
+          break;
+      }
       toast({
         title: 'Login Failed',
-        description: error.message || 'An unexpected error occurred.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {

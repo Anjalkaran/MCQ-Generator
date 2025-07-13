@@ -82,11 +82,17 @@ export function RegisterForm() {
       });
       router.push('/dashboard');
     } catch (error: any) {
-      let errorMessage = 'An unexpected error occurred.';
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'This email address is already registered. Please use a different email or log in.';
-      } else {
-        errorMessage = error.message;
+      let errorMessage = 'An unexpected error occurred. Please try again.';
+      switch (error.code) {
+        case 'auth/email-already-in-use':
+          errorMessage = 'This email address is already registered. Please use a different email or log in.';
+          break;
+        case 'auth/weak-password':
+          errorMessage = 'The password is too weak. Please choose a stronger password with at least 6 characters.';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = 'The email address you entered is not valid. Please check and try again.';
+          break;
       }
       toast({
         title: 'Registration Failed',
