@@ -36,7 +36,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -76,7 +75,8 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingTopic, setEditingTopic] = useState<Topic | null>(null);
   const [uploadCategoryId, setUploadCategoryId] = useState<string>('');
-  const [filterCategoryId, setFilterCategoryId] = useState<string>('all');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [selectedTopicId, setSelectedTopicId] = useState<string>('');
 
 
   const { toast } = useToast();
@@ -124,7 +124,9 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     try {
       if (editingCategory) {
         await updateCategory(editingCategory.id, values);
-        setCategories(prev => prev.map(c => c.id === editingCategory.id ? { ...c, ...values } : c).sort((a,b) => a.name.localeCompare(b.name)));
+        const updatedCategories = prev => prev.map(c => c.id === editingCategory.id ? { ...c, ...values } : c).sort((a,b) => a.name.localeCompare(b.name));
+        setCategories(updatedCategories);
+        setSelectedCategoryId(editingCategory.id);
         toast({ title: 'Success', description: 'Category updated.' });
         setEditingCategory(null);
         setIsCategoryDialogOpen(false); 
@@ -148,7 +150,9 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
         if(editingTopic) {
             const topicData = { ...values, description: values.description || '' };
             await updateTopic(editingTopic.id, topicData);
-            setTopics(prev => prev.map(t => t.id === editingTopic.id ? { ...t, ...topicData } : t).sort((a,b) => a.title.localeCompare(b.title)));
+            const updatedTopics = prev => prev.map(t => t.id === editingTopic.id ? { ...t, ...topicData } : t).sort((a,b) => a.title.localeCompare(b.title));
+            setTopics(updatedTopics);
+            setSelectedTopicId(editingTopic.id);
             toast({ title: 'Success', description: 'Topic updated.' });
             setEditingTopic(null);
             setIsTopicDialogOpen(false);
@@ -212,6 +216,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     try {
         await deleteTopic(topicId);
         setTopics(prev => prev.filter(t => t.id !== topicId));
+        setSelectedTopicId('');
         toast({ title: 'Success', description: 'Topic deleted.' });
     } catch (error) {
         toast({ title: 'Error', description: 'Failed to delete topic.', variant: 'destructive' });
@@ -224,14 +229,11 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
         await deleteCategory(categoryId, topicsToDelete);
         setCategories(prev => prev.filter(c => c.id !== categoryId));
         setTopics(prev => prev.filter(t => t.categoryId !== categoryId));
+        setSelectedCategoryId('');
         toast({ title: 'Success', description: 'Category and its topics have been deleted.' });
     } catch (error) {
         toast({ title: 'Error', description: 'Failed to delete category.', variant: 'destructive' });
     }
-  }
-
-  const getCategoryName = (categoryId: string) => {
-    return categories.find(c => c.id === categoryId)?.name || 'N/A';
   }
 
   const handleOpenCategoryDialog = (category: Category | null) => {
@@ -247,9 +249,8 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
   const fileRef = materialForm.register("file");
   const filteredUploadTopics = uploadCategoryId ? topics.filter(topic => topic.categoryId === uploadCategoryId) : [];
   
-  const filteredTopicsByView = filterCategoryId === 'all' 
-    ? topics 
-    : topics.filter(topic => topic.categoryId === filterCategoryId);
+  const currentlySelectedCategory = categories.find(c => c.id === selectedCategoryId);
+  const currentlySelectedTopic = topics.find(t => t.id === selectedTopicId);
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -480,117 +481,115 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
             <CardContent>
                 <Tabs defaultValue="categories">
                     <TabsList className="grid w-full grid-cols-2 mb-4">
-                        <TabsTrigger value="categories">Categories ({categories.length})</TabsTrigger>
-                        <TabsTrigger value="topics">Topics ({topics.length})</TabsTrigger>
+                        <TabsTrigger value="categories">Categories</TabsTrigger>
+                        <TabsTrigger value="topics">Topics</TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="categories">
-                        <div className="border rounded-md">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                <TableHead>Category Name</TableHead>
-                                <TableHead>Exam Types</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {categories.map((cat) => (
-                                <TableRow key={cat.id}>
-                                    <TableCell className="font-medium">{cat.name}</TableCell>
-                                    <TableCell>
-                                        <div className="flex gap-1 flex-wrap">
-                                            {cat.examCategories && cat.examCategories.map(ec => <Badge key={ec} variant="secondary">{ec}</Badge>)}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                    <Button variant="ghost" size="icon" onClick={() => handleOpenCategoryDialog(cat)}><Edit className="h-4 w-4" /></Button>
+                    <TabsContent value="categories" className="space-y-4">
+                        <div className="flex items-end gap-2">
+                           <div className="flex-1">
+                                <Label>Select Category</Label>
+                                <Select onValueChange={setSelectedCategoryId} value={selectedCategoryId} disabled={categories.length === 0}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={categories.length > 0 ? "Select a category..." : "No categories found"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {categories.map(cat => (
+                                            <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            {currentlySelectedCategory && (
+                                <>
+                                 <Button variant="ghost" size="icon" onClick={() => handleOpenCategoryDialog(currentlySelectedCategory)}><Edit className="h-4 w-4" /></Button>
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
                                         <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                         </AlertDialogTrigger>
                                         <AlertDialogContent>
                                         <AlertDialogHeader>
-                                            <AlertDialogTitle>Delete Category: {cat.name}?</AlertDialogTitle>
+                                            <AlertDialogTitle>Delete Category: {currentlySelectedCategory.name}?</AlertDialogTitle>
                                             <AlertDialogDescription>This will permanently delete the category and all its topics. This action cannot be undone.</AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDeleteCategory(cat.id)}>Delete</AlertDialogAction>
+                                            <AlertDialogAction onClick={() => handleDeleteCategory(currentlySelectedCategory.id)}>Delete</AlertDialogAction>
                                         </AlertDialogFooter>
                                         </AlertDialogContent>
                                     </AlertDialog>
-                                    </TableCell>
-                                </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                                </>
+                            )}
                         </div>
+                        {currentlySelectedCategory && (
+                            <Card className="bg-muted/50">
+                                <CardHeader>
+                                    <CardTitle className="text-lg">{currentlySelectedCategory.name}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm font-medium">Associated Exam Types:</p>
+                                     <div className="flex gap-1 flex-wrap mt-2">
+                                        {currentlySelectedCategory.examCategories && currentlySelectedCategory.examCategories.map(ec => <Badge key={ec} variant="secondary">{ec}</Badge>)}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
                     </TabsContent>
 
                     <TabsContent value="topics" className="space-y-4">
-                        <div className="w-full max-w-sm">
-                            <Select onValueChange={setFilterCategoryId} value={filterCategoryId}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Filter by category..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Topics</SelectItem>
-                                    {categories.map(cat => (
-                                        <SelectItem key={cat.id} value={cat.id}>
-                                            {cat.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="border rounded-md">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                <TableHead>Topic Title</TableHead>
-                                {filterCategoryId === 'all' && <TableHead>Category</TableHead>}
-                                <TableHead>Material</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredTopicsByView.map((topic) => (
-                                <TableRow key={topic.id}>
-                                    <TableCell className="font-medium">{topic.title}</TableCell>
-                                    {filterCategoryId === 'all' && <TableCell>{getCategoryName(topic.categoryId)}</TableCell>}
-                                    <TableCell>{topic.material ? 'Yes' : 'No'}</TableCell>
-                                    <TableCell className="text-right">
-                                    <Button variant="ghost" size="icon" onClick={() => handleOpenTopicDialog(topic)}><Edit className="h-4 w-4" /></Button>
+                        <div className="flex items-end gap-2">
+                             <div className="flex-1">
+                                <Label>Select Topic</Label>
+                                <Select onValueChange={setSelectedTopicId} value={selectedTopicId} disabled={topics.length === 0}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={topics.length > 0 ? "Select a topic..." : "No topics found"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {topics.map(topic => (
+                                            <SelectItem key={topic.id} value={topic.id}>{topic.title}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            {currentlySelectedTopic && (
+                                <>
+                                <Button variant="ghost" size="icon" onClick={() => handleOpenTopicDialog(currentlySelectedTopic)}><Edit className="h-4 w-4" /></Button>
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
                                         <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                         </AlertDialogTrigger>
                                         <AlertDialogContent>
                                         <AlertDialogHeader>
-                                            <AlertDialogTitle>Delete Topic: {topic.title}?</AlertDialogTitle>
+                                            <AlertDialogTitle>Delete Topic: {currentlySelectedTopic.title}?</AlertDialogTitle>
                                             <AlertDialogDescription>This action is permanent and cannot be undone.</AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDeleteTopic(topic.id)}>Delete</AlertDialogAction>
+                                            <AlertDialogAction onClick={() => handleDeleteTopic(currentlySelectedTopic.id)}>Delete</AlertDialogAction>
                                         </AlertDialogFooter>
                                         </AlertDialogContent>
                                     </AlertDialog>
-                                    </TableCell>
-                                </TableRow>
-                                ))}
-                                {filteredTopicsByView.length === 0 && (
-                                    <TableRow>
-                                        <TableCell colSpan={filterCategoryId === 'all' ? 4 : 3} className="h-24 text-center">
-                                            No topics found in this category.
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
+                                </>
+                            )}
                         </div>
+                        {currentlySelectedTopic && (
+                             <Card className="bg-muted/50">
+                                <CardHeader>
+                                    <CardTitle className="text-lg">{currentlySelectedTopic.title}</CardTitle>
+                                     <CardDescription>
+                                        Category: {categories.find(c => c.id === currentlySelectedTopic.categoryId)?.name || 'N/A'}
+                                     </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm">{currentlySelectedTopic.description}</p>
+                                    <p className="text-sm mt-4">
+                                        <Badge variant={currentlySelectedTopic.material ? "default" : "secondary"}>
+                                            {currentlySelectedTopic.material ? 'Material Uploaded' : 'No Material'}
+                                        </Badge>
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        )}
                     </TabsContent>
                 </Tabs>
             </CardContent>
