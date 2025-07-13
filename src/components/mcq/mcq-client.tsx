@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -20,29 +20,76 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import type { MCQData } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Clock } from "lucide-react";
 
 interface MCQClientProps {
   topicId: string;
 }
+
+const formatTime = (seconds: number) => {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`;
+};
 
 export function MCQClient({ topicId }: MCQClientProps) {
   const router = useRouter();
   const [quizData, setQuizData] = useState<MCQData | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<{ [key: number]: string }>({});
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleFinish = useCallback(() => {
+    if (timerRef.current) {
+        clearInterval(timerRef.current);
+    }
+    if (typeof window !== 'undefined' && quizData) {
+      const answersToStore = {
+        answers: selectedAnswers,
+        numberOfQuestions: quizData.mcqs.length,
+        mcqs: quizData.mcqs,
+        topic: quizData.topic,
+      };
+      localStorage.setItem(`quizState-${quizData.topic.id}`, JSON.stringify(answersToStore));
+      router.push(`/quiz/${quizData.topic.id}/results`);
+    }
+  }, [quizData, selectedAnswers, router]);
 
   useEffect(() => {
     setIsClient(true);
     const savedQuiz = localStorage.getItem(`quiz-${topicId}`);
     if (savedQuiz) {
-      const parsedData = JSON.parse(savedQuiz);
+      const parsedData: MCQData = JSON.parse(savedQuiz);
       setQuizData(parsedData);
+      if (parsedData.timeLimit) {
+        setTimeLeft(parsedData.timeLimit);
+      }
     } else {
-      // Handle case where quiz data is not found, maybe redirect or show error
       router.push('/dashboard');
     }
   }, [topicId, router]);
+  
+  useEffect(() => {
+    if (timeLeft === null || timeLeft <= 0) {
+        if (timeLeft === 0) {
+            handleFinish();
+        }
+        return;
+    }
+
+    timerRef.current = setInterval(() => {
+        setTimeLeft((prevTime) => (prevTime !== null ? prevTime - 1 : null));
+    }, 1000);
+
+    return () => {
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+        }
+    };
+}, [timeLeft, handleFinish]);
+
 
   if (!isClient || !quizData) {
     return (
@@ -81,19 +128,6 @@ export function MCQClient({ topicId }: MCQClientProps) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   }
-  
-  const handleFinish = () => {
-    if (typeof window !== 'undefined') {
-      const answersToStore = {
-        answers: selectedAnswers,
-        numberOfQuestions: quizMcqs.length,
-        mcqs: quizMcqs,
-        topic: topic,
-      };
-      localStorage.setItem(`quizState-${topic.id}`, JSON.stringify(answersToStore));
-    }
-    router.push(`/quiz/${topic.id}/results`);
-  }
 
   const handleAnswerSelect = (value: string) => {
     setSelectedAnswers({
@@ -105,11 +139,21 @@ export function MCQClient({ topicId }: MCQClientProps) {
   return (
     <Card className="w-full shadow-lg">
       <CardHeader>
-        <CardTitle className="text-2xl font-headline">{topic.title}</CardTitle>
-        <CardDescription>
-          Question {currentQuestionIndex + 1} of {quizMcqs.length}
-        </CardDescription>
-        <Progress value={progress} className="mt-2" />
+        <div className="flex justify-between items-start">
+            <div>
+                <CardTitle className="text-2xl font-headline">{topic.title}</CardTitle>
+                <CardDescription>
+                Question {currentQuestionIndex + 1} of {quizMcqs.length}
+                </CardDescription>
+            </div>
+            {timeLeft !== null && (
+                <div className="flex items-center gap-2 text-lg font-semibold text-primary">
+                    <Clock className="h-6 w-6" />
+                    <span>{formatTime(timeLeft)}</span>
+                </div>
+            )}
+        </div>
+        <Progress value={progress} className="mt-4" />
       </CardHeader>
       <CardContent>
         <p className="font-semibold text-lg mb-6">{currentQuestion.question}</p>

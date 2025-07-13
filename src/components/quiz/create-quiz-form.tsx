@@ -160,6 +160,14 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
         return;
       }
 
+      const timePerQuestion: Record<DifficultyLevel, number> = {
+        Easy: 30,
+        Moderate: 45,
+        Difficult: 60,
+      };
+      const timeLimit = values.numberOfQuestions * timePerQuestion[values.difficulty as DifficultyLevel];
+
+
       const topicId = values.topicId;
       const quizData = {
         topic: {
@@ -171,6 +179,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
           material: selectedTopic.material,
         },
         mcqs: mcqs,
+        timeLimit,
       };
 
       localStorage.setItem(`quiz-${topicId}`, JSON.stringify(quizData));
