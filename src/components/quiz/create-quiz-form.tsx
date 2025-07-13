@@ -91,11 +91,14 @@ export function CreateQuizForm({ initialCategories, initialTopics, user, userDat
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
 
-    if (!user || !userData) {
+    if (!user) {
         toast({ title: 'Not Authenticated', description: 'You must be logged in to create a quiz.', variant: 'destructive' });
         setIsGenerating(false);
         return;
     }
+    
+    const isAdmin = user.email === ADMIN_EMAIL;
+    const effectiveUserId = isAdmin ? 'admin' : user.uid;
 
     const selectedTopic = topics.find(t => t.id === values.topicId);
     const selectedCategory = categories.find(c => c.id === values.categoryId);
@@ -122,7 +125,7 @@ export function CreateQuizForm({ initialCategories, initialTopics, user, userDat
           difficulty: values.difficulty,
           material: (selectedTopic.material && !excludedCategories.includes(selectedCategory.name)) ? selectedTopic.material : undefined,
           previousQuestions: previousQuestions,
-          userId: user.uid,
+          userId: effectiveUserId,
       };
 
       const { mcqs } = await generateMCQs(generationInput);

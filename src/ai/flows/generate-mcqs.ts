@@ -12,7 +12,6 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { getUserData } from '@/lib/firestore';
-import { getFirebaseAuth } from '@/lib/firebase';
 
 const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
@@ -41,7 +40,6 @@ export async function generateMCQs(input: GenerateMCQsInput): Promise<GenerateMC
 }
 
 const FREE_TOPIC_EXAM_LIMIT = 1;
-const ADMIN_EMAIL = "admin@anjalkaran.com";
 
 const prompt = ai.definePrompt({
   name: 'generateMCQsPrompt',
@@ -94,9 +92,7 @@ const generateMCQsFlow = ai.defineFlow(
       throw new Error("A user ID must be provided to generate a quiz.");
     }
     
-    const auth = getFirebaseAuth();
-    const currentUser = auth?.currentUser;
-    const isRunningAsAdmin = currentUser?.email === ADMIN_EMAIL;
+    const isRunningAsAdmin = input.userId === 'admin';
 
     // Skip DB checks for the admin user
     if (!isRunningAsAdmin) {
