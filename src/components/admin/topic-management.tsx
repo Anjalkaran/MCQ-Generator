@@ -76,6 +76,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingTopic, setEditingTopic] = useState<Topic | null>(null);
   const [uploadCategoryId, setUploadCategoryId] = useState<string>('');
+  const [filterCategoryId, setFilterCategoryId] = useState<string>('all');
 
 
   const { toast } = useToast();
@@ -245,6 +246,10 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
   
   const fileRef = materialForm.register("file");
   const filteredUploadTopics = uploadCategoryId ? topics.filter(topic => topic.categoryId === uploadCategoryId) : [];
+  
+  const filteredTopicsByView = filterCategoryId === 'all' 
+    ? topics 
+    : topics.filter(topic => topic.categoryId === filterCategoryId);
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -523,22 +528,38 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                         </div>
                     </TabsContent>
 
-                    <TabsContent value="topics">
+                    <TabsContent value="topics" className="space-y-4">
+                        <div className="w-full max-w-sm">
+                            <Select onValueChange={setFilterCategoryId} value={filterCategoryId}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Filter by category..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Topics</SelectItem>
+                                    {categories.map(cat => (
+                                        <SelectItem key={cat.id} value={cat.id}>
+                                            {cat.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
                         <div className="border rounded-md">
                         <Table>
                             <TableHeader>
                                 <TableRow>
                                 <TableHead>Topic Title</TableHead>
-                                <TableHead>Category</TableHead>
+                                {filterCategoryId === 'all' && <TableHead>Category</TableHead>}
                                 <TableHead>Material</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {topics.map((topic) => (
+                                {filteredTopicsByView.map((topic) => (
                                 <TableRow key={topic.id}>
                                     <TableCell className="font-medium">{topic.title}</TableCell>
-                                    <TableCell>{getCategoryName(topic.categoryId)}</TableCell>
+                                    {filterCategoryId === 'all' && <TableCell>{getCategoryName(topic.categoryId)}</TableCell>}
                                     <TableCell>{topic.material ? 'Yes' : 'No'}</TableCell>
                                     <TableCell className="text-right">
                                     <Button variant="ghost" size="icon" onClick={() => handleOpenTopicDialog(topic)}><Edit className="h-4 w-4" /></Button>
@@ -560,6 +581,13 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                     </TableCell>
                                 </TableRow>
                                 ))}
+                                {filteredTopicsByView.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={filterCategoryId === 'all' ? 4 : 3} className="h-24 text-center">
+                                            No topics found in this category.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
                             </TableBody>
                         </Table>
                         </div>
