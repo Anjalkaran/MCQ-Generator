@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, AlertTriangle, CreditCard } from 'lucide-react';
+import { Loader2, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getMCQHistoryForTopic } from '@/lib/firestore';
 import type { Category, Topic, UserData } from '@/lib/types';
@@ -20,7 +20,8 @@ import type { User } from 'firebase/auth';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { FREE_TOPIC_EXAM_LIMIT } from '@/lib/constants';
-import PaymentButton from './payment-button';
+import Link from 'next/link';
+import { useDashboard } from '@/app/dashboard/layout';
 
 
 const formSchema = z.object({
@@ -50,9 +51,9 @@ export function CreateQuizForm({ initialCategories, initialTopics, user, userDat
   const [isGenerating, setIsGenerating] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [userData, setUserData] = useState<UserData | null>(initialUserData);
   
+  const { userData } = useDashboard();
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -64,7 +65,6 @@ export function CreateQuizForm({ initialCategories, initialTopics, user, userDat
   });
 
   useEffect(() => {
-    setIsLoading(true);
     if (user && userData) {
         if (userData.email === ADMIN_EMAIL) {
           setCategories(initialCategories);
@@ -84,18 +84,10 @@ export function CreateQuizForm({ initialCategories, initialTopics, user, userDat
         setCategories([]);
         setTopics([]);
     }
-    setIsLoading(false);
   }, [initialCategories, initialTopics, user, userData]);
 
   const selectedCategoryId = form.watch('categoryId');
   const selectedDifficulty = form.watch('difficulty');
-
-  const onPaymentSuccess = () => {
-    // When payment is successful, we know the exam limit is reset to 0.
-    // We update the local state to reflect this, re-enabling the form.
-    setUserData(prev => prev ? { ...prev, topicExamsTaken: 0 } : null);
-    toast({ title: "Ready to go!", description: "You can now generate your next exam." });
-  }
 
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
@@ -187,22 +179,6 @@ export function CreateQuizForm({ initialCategories, initialTopics, user, userDat
 
   const filteredTopics = selectedCategoryId ? topics.filter(topic => topic.categoryId === selectedCategoryId) : [];
   
-  if (isLoading) {
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Quiz Details</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="flex justify-center items-center h-40">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="ml-4">Loading your categories and topics...</p>
-                </div>
-            </CardContent>
-        </Card>
-    );
-  }
-
   const getCardDescription = () => {
     if (!userData) return "Log in to see your status.";
     if (userData.email === ADMIN_EMAIL) return "Admin has unlimited access.";
@@ -222,7 +198,21 @@ export function CreateQuizForm({ initialCategories, initialTopics, user, userDat
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CardContent>
-                <fieldset disabled={hasExceededFreeLimit || isGenerating} className="space-y-6">
+                {hasExceededFreeLimit ? (
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Free Limit Reached</AlertTitle>
+                        <AlertDescription>
+                            You have used your free exam allocation. Please upgrade to reset your limit and continue practicing.
+                        </AlertDescription>
+                        <Button asChild className="mt-4">
+                            <Link href="/dashboard/upgrade">
+                                Upgrade Now <ArrowRight className="ml-2 h-4 w-4" />
+                            </Link>
+                        </Button>
+                    </Alert>
+                ) : (
+                <fieldset disabled={isGenerating} className="space-y-6">
                     <FormField
                     control={form.control}
                     name="categoryId"
@@ -316,34 +306,18 @@ export function CreateQuizForm({ initialCategories, initialTopics, user, userDat
                     )}
                     />
                 </fieldset>
+                )}
              </CardContent>
-            <CardFooter>
-                 {!hasExceededFreeLimit && (
+            {!hasExceededFreeLimit && (
+                 <CardFooter>
                     <Button type="submit" disabled={isGenerating || !form.formState.isValid} className="w-full">
                         {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Start Exam
                     </Button>
-                 )}
-            </CardFooter>
+                </CardFooter>
+            )}
         </form>
         </Form>
-        {hasExceededFreeLimit && (
-            <CardContent>
-                 <Alert variant="destructive" className="mb-4">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Free Limit Reached</AlertTitle>
-                    <AlertDescription>
-                        You have used your free exam allocation. Please pay to reset your limit and continue practicing.
-                    </AlertDescription>
-                </Alert>
-                 <PaymentButton
-                    userId={userData.uid}
-                    userName={userData.name}
-                    email={userData.email}
-                    onPaymentSuccess={onPaymentSuccess}
-                 />
-            </CardContent>
-        )}
     </Card>
   );
 }

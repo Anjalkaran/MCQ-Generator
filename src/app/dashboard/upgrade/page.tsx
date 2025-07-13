@@ -1,0 +1,85 @@
+
+"use client";
+
+import { useDashboard } from "@/app/dashboard/layout";
+import PaymentButton from "@/components/quiz/payment-button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { Gem, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+export default function UpgradePage() {
+    const { user, userData, setUserData, isLoading } = useDashboard();
+    const { toast } = useToast();
+    const router = useRouter();
+
+    if (isLoading) {
+        return (
+            <div className="flex h-[50vh] w-full items-center justify-center">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+        );
+    }
+    
+    if (!userData || !user) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Error</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p>Could not load user data. Please try logging in again.</p>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    const onPaymentSuccess = () => {
+        setUserData(prev => prev ? { ...prev, topicExamsTaken: 0 } : null);
+        toast({
+            title: "Payment Successful!",
+            description: "Your exam limit has been reset. You can now generate a new quiz.",
+        });
+        router.push('/dashboard');
+    }
+
+    const price = userData.examCategory === 'PA' ? 749 : 499;
+
+    return (
+        <div className="space-y-6 max-w-2xl mx-auto">
+            <div className="space-y-0.5">
+                <h1 className="text-2xl font-bold tracking-tight">Upgrade Your Plan</h1>
+                <p className="text-muted-foreground">
+                    Reset your exam limit to continue practicing.
+                </p>
+            </div>
+            
+            <Card>
+                <CardHeader className="text-center">
+                     <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit">
+                        <Gem className="h-8 w-8 text-primary" />
+                     </div>
+                    <CardTitle className="text-2xl pt-4">Free Limit Reached</CardTitle>
+                    <CardDescription className="max-w-md mx-auto">
+                        You've used up your free topic exam allocation. To unlock unlimited practice, please complete the payment below.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col items-center space-y-4">
+                    <div className="text-4xl font-bold">
+                        ₹{price}
+                        <span className="text-lg font-normal text-muted-foreground"> / one-time</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">This will reset your topic exam counter.</p>
+                    <div className="w-full max-w-sm pt-4">
+                         <PaymentButton
+                            userId={user.uid}
+                            userName={userData.name}
+                            email={userData.email || 'not-provided@example.com'}
+                            onPaymentSuccess={onPaymentSuccess}
+                         />
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    )
+}

@@ -4,7 +4,7 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem } from 'lucide-react';
 import Link from 'next/link';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
@@ -13,8 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { getDashboardData } from '@/lib/firestore';
 import type { UserData, Category, Topic } from "@/lib/types";
-
-const ADMIN_EMAIL = "admin@anjalkaran.com";
+import { ADMIN_EMAIL, FREE_TOPIC_EXAM_LIMIT } from '@/lib/constants';
 
 interface DashboardContextType {
   user: User | null;
@@ -22,6 +21,7 @@ interface DashboardContextType {
   categories: Category[];
   topics: Topic[];
   isLoading: boolean;
+  setUserData: React.Dispatch<React.SetStateAction<UserData | null>>;
 }
 
 const DashboardContext = createContext<DashboardContextType | null>(null);
@@ -134,7 +134,9 @@ export default function DashboardLayout({
     
   }, [pathname, router, toast]);
 
-  const contextValue = { user, userData, categories, topics, isLoading };
+  const hasExceededFreeLimit = userData && !isAdmin && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
+
+  const contextValue = { user, userData, categories, topics, isLoading, setUserData };
 
   return (
     <DashboardContext.Provider value={contextValue}>
@@ -192,6 +194,16 @@ export default function DashboardLayout({
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+               {hasExceededFreeLimit && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname === '/dashboard/upgrade'} variant="outline" className="text-primary hover:bg-primary/10 hover:text-primary border-primary/50">
+                    <Link href="/dashboard/upgrade">
+                      <Gem />
+                      <span>Upgrade</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter>
