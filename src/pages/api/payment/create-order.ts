@@ -1,4 +1,7 @@
 
+import { config } from 'dotenv';
+config();
+
 import type { NextApiRequest, NextApiResponse } from 'next';
 import Razorpay from 'razorpay';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
@@ -20,9 +23,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ error: 'User ID is required.' });
         }
 
-        // Verify user token in a real app to ensure the user is who they say they are
-        // For simplicity, we trust the userId from the client here, but this is not secure for production.
-
         const userDoc = await adminDb.collection('users').doc(userId).get();
         if (!userDoc.exists) {
             return res.status(404).json({ error: 'User not found.' });
@@ -35,7 +35,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ error: 'User exam category not set.' });
         }
 
-        // Determine price based on exam category
         const amountInRupees = examCategory === 'PA' ? 749 : 499;
         const amountInPaise = amountInRupees * 100;
 

@@ -1,4 +1,7 @@
 
+import { config } from 'dotenv';
+config();
+
 import type { NextApiRequest, NextApiResponse } from 'next';
 import crypto from 'crypto';
 import { adminDb } from '@/lib/firebase-admin';
