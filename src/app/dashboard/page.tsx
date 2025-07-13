@@ -1,57 +1,19 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
-import { getFirebaseAuth } from '@/lib/firebase';
-import { getCategories, getTopics, getUserData } from '@/lib/firestore';
-import type { UserData, Category, Topic } from "@/lib/types";
+import { useDashboard } from "@/app/dashboard/layout";
 import { CreateQuizForm } from "@/components/quiz/create-quiz-form";
 import { MockTestForm } from "@/components/quiz/mock-test-form";
 import { PaymentButtonContainer } from "@/components/payment/payment-button-container";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from 'lucide-react';
-import type { User } from 'firebase/auth';
-import { onAuthStateChanged } from 'firebase/auth';
 
 const ADMIN_EMAIL = "admin@anjalkaran.com";
 const FREE_TOPIC_EXAM_LIMIT = 1;
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [topics, setTopics] = useState<Topic[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const auth = getFirebaseAuth();
-    if (!auth) {
-      setIsLoading(false);
-      return;
-    }
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        const [fetchedUserData, fetchedCategories, fetchedTopics] = await Promise.all([
-          getUserData(currentUser.uid),
-          getCategories(),
-          getTopics()
-        ]);
-        setUserData(fetchedUserData);
-        setCategories(fetchedCategories);
-        setTopics(fetchedTopics);
-      } else {
-        // No user is logged in, layout should handle redirect
-        setUserData(null);
-        setCategories([]);
-        setTopics([]);
-      }
-      setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
+  const { user, userData, categories, topics, isLoading } = useDashboard();
 
   if (isLoading) {
     return (
