@@ -41,6 +41,7 @@ const userCreateSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
   examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA'>,
+  paymentStatus: z.string().min(1, { message: 'Please select a payment status.' }) as z.ZodType<'free' | 'paid'>,
 });
 
 interface UserManagementProps {
@@ -65,7 +66,8 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
         name: '',
         email: '',
         password: '',
-        examCategory: 'MTS'
+        examCategory: 'MTS',
+        paymentStatus: 'free',
     }
   });
 
@@ -214,6 +216,23 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                                     <SelectItem value="MTS">MTS</SelectItem>
                                     <SelectItem value="POSTMAN">POSTMAN</SelectItem>
                                     <SelectItem value="PA">PA</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={createUserForm.control}
+                            name="paymentStatus"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Payment Status</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                    <SelectItem value="free">Free</SelectItem>
+                                    <SelectItem value="paid">Paid</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />

@@ -2,29 +2,19 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import type { UserData } from '@/lib/types';
+import { createUserDocument } from '@/lib/firestore';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // A basic check to see if the request is coming from an authenticated admin.
-  // In a production app, you would want a more robust solution like checking
-  // for a valid session cookie and custom claims on the user.
-  // This is a simplified check for the purpose of this example.
-  // const { token } = req.headers;
-  // try {
-  //   const decodedToken = await adminAuth.verifyIdToken(token as string);
-  //   if (decodedToken.email !== 'admin@anjalkaran.com') {
-  //     throw new Error('Not an admin');
-  //   }
-  // } catch (error) {
-  //   return res.status(403).json({ error: 'Forbidden. Admin access required.' });
-  // }
+  // Basic security check - in a real app, verify the caller is an admin
+  // via session tokens and custom claims.
   
-  const { name, email, password, examCategory } = req.body;
+  const { name, email, password, examCategory, paymentStatus } = req.body;
 
-  if (!name || !email || !password || !examCategory) {
+  if (!name || !email || !password || !examCategory || !paymentStatus) {
     return res.status(400).json({ error: 'Missing required fields.' });
   }
 
@@ -45,9 +35,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       name,
       email,
       examCategory,
+      paymentStatus,
+      topicExamsTaken: 0,
+      mockTestsTaken: 0,
     };
 
-    await adminDb.collection('users').doc(uid).set(newUser);
+    await createUserDocument(newUser);
 
     return res.status(201).json({ message: 'User created successfully', newUser });
 

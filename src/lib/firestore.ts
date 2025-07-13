@@ -2,6 +2,7 @@
 
 
 
+
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment } from 'firebase/firestore';
 import type { Category, Topic, UserData, MCQHistory, TopicPerformance } from './types';
@@ -34,19 +35,17 @@ export const getAllUsers = async (): Promise<UserData[]> => {
   return userSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserData));
 };
 
-export const createUserDocument = async (userData: UserData): Promise<void> => {
+export const createUserDocument = async (userData: Omit<UserData, 'id'>): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     const userRef = doc(db, 'users', userData.uid);
     // Use setDoc to create a document with a specific ID (the UID)
     await setDoc(userRef, {
-        uid: userData.uid,
-        name: userData.name,
-        email: userData.email,
-        examCategory: userData.examCategory,
-        paymentStatus: 'free',
-        topicExamsTaken: 0,
-        mockTestsTaken: 0,
+      ...userData,
+      // Ensure default values are set even if not provided
+      paymentStatus: userData.paymentStatus || 'free',
+      topicExamsTaken: userData.topicExamsTaken || 0,
+      mockTestsTaken: userData.mockTestsTaken || 0,
     });
 };
 
