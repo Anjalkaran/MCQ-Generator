@@ -2,6 +2,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import Razorpay from 'razorpay';
 import { getUserData } from '@/lib/firestore';
+import { config } from 'dotenv';
+
+// Explicitly load environment variables
+config({ path: '.env.local' });
 
 const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
 const keySecret = process.env.RAZORPAY_KEY_SECRET;

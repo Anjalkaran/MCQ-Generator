@@ -1,5 +1,9 @@
 
 import * as admin from 'firebase-admin';
+import { config } from 'dotenv';
+
+// Explicitly load environment variables from .env.local
+config({ path: '.env.local' });
 
 let adminAuth: admin.auth.Auth;
 let adminDb: admin.firestore.Firestore;

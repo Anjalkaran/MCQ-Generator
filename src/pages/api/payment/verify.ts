@@ -2,6 +2,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import crypto from 'crypto';
 import { updateUserPaymentStatus } from '@/lib/firestore';
+import { config } from 'dotenv';
+
+// Explicitly load environment variables
+config({ path: '.env.local' });
 
 const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
