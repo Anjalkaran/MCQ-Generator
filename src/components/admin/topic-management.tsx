@@ -125,15 +125,16 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
         await updateCategory(editingCategory.id, values);
         setCategories(prev => prev.map(c => c.id === editingCategory.id ? { ...c, ...values } : c).sort((a,b) => a.name.localeCompare(b.name)));
         toast({ title: 'Success', description: 'Category updated.' });
+        setIsCategoryDialogOpen(false); // Close dialog only on edit
+        setEditingCategory(null);
       } else {
         const newCategoryDoc = await addCategory(values);
         const newCategory = { id: newCategoryDoc.id, ...values };
         setCategories(prev => [...prev, newCategory].sort((a,b) => a.name.localeCompare(b.name)));
         toast({ title: 'Success', description: 'New category added.' });
+        // Keep dialog open and reset form for next entry
+        categoryForm.reset({ name: '', examCategories: [] });
       }
-      categoryForm.reset({ name: '', examCategories: [] });
-      setEditingCategory(null);
-      setIsCategoryDialogOpen(false);
     } catch (error) {
       toast({ title: 'Error', description: editingCategory ? 'Failed to update category.' : 'Failed to add category.', variant: 'destructive' });
     } finally {
