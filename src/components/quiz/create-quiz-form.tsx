@@ -241,7 +241,8 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
       return `Your subscription is active until ${format(new Date(userData.paidUntil), 'PPP')}.`;
     }
     if (userData) {
-      return `You have ${Math.max(0, FREE_TOPIC_EXAM_LIMIT - userData.topicExamsTaken)} free exams remaining.`;
+      const remainingExams = FREE_TOPIC_EXAM_LIMIT - userData.topicExamsTaken;
+      return `You have ${Math.max(0, remainingExams)} free exams remaining.`;
     }
     return "Create a practice exam based on your preferences.";
   }

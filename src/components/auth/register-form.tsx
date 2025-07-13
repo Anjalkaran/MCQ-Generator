@@ -70,6 +70,10 @@ export function RegisterForm() {
         name: values.name,
         email: values.email,
         examCategory: values.examCategory,
+        paymentStatus: 'free',
+        paidUntil: null,
+        topicExamsTaken: 0,
+        mockTestsTaken: 0,
       });
 
       toast({

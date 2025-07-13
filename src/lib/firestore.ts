@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment } from 'firebase/firestore';
 import type { Category, Topic, UserData, MCQHistory, TopicPerformance } from './types';
@@ -67,8 +62,8 @@ export const createUserDocument = async (userData: Omit<UserData, 'id'>): Promis
     await setDoc(userRef, {
       ...userData,
       paymentStatus: userData.paymentStatus || 'free',
-      topicExamsTaken: userData.topicExamsTaken || 0,
-      mockTestsTaken: userData.mockTestsTaken || 0,
+      topicExamsTaken: 0,
+      mockTestsTaken: 0,
       paidUntil: paidUntil,
     });
 };
@@ -188,23 +183,27 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
 
+    const userRef = doc(db, 'users', historyData.userId);
+    const userDoc = await getDoc(userRef);
+    const userData = userDoc.data();
+
+    if (!userData) {
+        console.error("User not found, cannot save history or increment count.");
+        return;
+    }
+
     const batch = writeBatch(db);
     
     // Add the history document
     const historyRef = doc(collection(db, 'mcqHistory'));
     batch.set(historyRef, historyData);
 
-    const userDoc = await getDoc(doc(db, 'users', historyData.userId));
-    const userData = userDoc.data();
-
     // Increment the user's exam count only if they are a free user
-    if (userData?.paymentStatus === 'free') {
-        const userRef = doc(db, 'users', historyData.userId);
+    if (userData.paymentStatus === 'free') {
         batch.update(userRef, {
             topicExamsTaken: increment(1)
         });
     }
-
 
     await batch.commit();
 };
@@ -288,7 +287,7 @@ export const getPerformanceByTopic = async (userId: string): Promise<TopicPerfor
             topicId,
             topicTitle: data.topicTitle,
             attempts: data.attempts,
-            averageScore: (data.totalScore / data.totalQuestions) * 100,
+            averageScore: (data.totalQuestions > 0 ? data.totalScore / data.totalQuestions : 0) * 100,
         });
     });
 
