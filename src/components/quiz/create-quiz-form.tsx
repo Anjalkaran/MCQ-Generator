@@ -120,8 +120,10 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
         setIsGenerating(false);
         return;
     }
-
-    if (userData.paymentStatus === 'free' && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT) {
+    
+    // Admin check to bypass payment
+    const isAdmin = user.email === ADMIN_EMAIL;
+    if (!isAdmin && userData.paymentStatus === 'free' && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT) {
         toast({ title: 'Free Limit Reached', description: 'Please upgrade to create more exams.', variant: 'destructive' });
         setIsGenerating(false);
         return;
@@ -227,16 +229,18 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     );
   }
 
-  const hasReachedFreeLimit = userData && userData.paymentStatus === 'free' && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
+  const isAdmin = user?.email === ADMIN_EMAIL;
+  const hasReachedFreeLimit = !isAdmin && userData && userData.paymentStatus === 'free' && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
 
   return (
     <Card>
       <CardHeader className="text-center">
         <CardTitle>Exam Details</CardTitle>
         <CardDescription>
-            {userData && userData.paymentStatus === 'free' ?
+            {isAdmin ? "Admin has unlimited access." :
+             (userData && userData.paymentStatus === 'free' ?
                 `You have ${Math.max(0, FREE_TOPIC_EXAM_LIMIT - userData.topicExamsTaken)} free exams remaining.` :
-                "You have unlimited access."
+                "You have unlimited access.")
             }
         </CardDescription>
       </CardHeader>
