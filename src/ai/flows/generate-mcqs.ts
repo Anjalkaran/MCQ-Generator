@@ -61,10 +61,18 @@ const prompt = ai.definePrompt({
   {{/ifEquals}}
   
   {{#ifEquals category "Basic Arithmetics"}}
-  For each question, you MUST provide a detailed, step-by-step solution in the "solution" field. Explain the formula used and the calculation process clearly. Format each step on a new line. For example:
-  Step 1: [Explanation]
-  Step 2: [Calculation]
-  Step 3: [Final Answer]
+  You are a meticulous mathematics teacher. Your task is to create high-quality arithmetic problems.
+  For each question, you MUST follow this process:
+  1. First, create a word problem and solve it yourself step-by-step to arrive at a single, correct numerical answer.
+  2. The 'correctAnswer' field in your output MUST be this exact answer.
+  3. One of the four 'options' MUST be the correct answer.
+  4. The other three options must be plausible but incorrect distractors, derived from common calculation mistakes.
+  5. The 'solution' field MUST provide a detailed, step-by-step explanation of how to arrive at the correct answer. Format each step on a new line. For example:
+    Step 1: [Identify the given values]
+    Step 2: [State the formula to be used]
+    Step 3: [Show the calculation]
+    Step 4: [State the final answer clearly]
+  DO NOT include any verification or notes about your own calculation process in the solution. The solution should only explain how to solve the problem.
   {{/ifEquals}}
 
   {{#if material}}
@@ -123,3 +131,4 @@ const generateMCQsFlow = ai.defineFlow(
     return output;
   }
 );
+
