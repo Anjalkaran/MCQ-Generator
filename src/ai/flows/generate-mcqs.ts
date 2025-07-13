@@ -30,6 +30,7 @@ const GenerateMCQsOutputSchema = z.object({
       question: z.string().describe('The multiple-choice question.'),
       options: z.array(z.string()).describe('Four possible answers.'),
       correctAnswer: z.string().describe('The correct answer to the question.'),
+      solution: z.string().optional().describe('A step-by-step solution, especially for arithmetic problems.'),
     })
   ).describe('The generated multiple-choice questions.'),
 });
@@ -57,6 +58,10 @@ const prompt = ai.definePrompt({
     {{else}}
       For other topics in General Awareness, please refer to NCERT school text books and MCQs from reputable coaching centers like Suresh IAS Academy and SSA Adda to ensure the questions are relevant and of high quality.
     {{/ifEquals}}
+  {{/ifEquals}}
+  
+  {{#ifEquals category "Basic Arithmetics"}}
+  For each question, you MUST provide a detailed, step-by-step solution in the "solution" field. Explain the formula used and the calculation process clearly.
   {{/ifEquals}}
 
   {{#if material}}

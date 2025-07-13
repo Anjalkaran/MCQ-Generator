@@ -5,6 +5,7 @@ export interface MCQ {
   question: string;
   options: string[];
   correctAnswer: string;
+  solution?: string;
 }
 
 export interface Topic {

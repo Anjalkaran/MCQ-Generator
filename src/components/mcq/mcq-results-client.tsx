@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle, XCircle, Award, Repeat, Home } from "lucide-react";
+import { CheckCircle, XCircle, Award, Repeat, Home, BrainCircuit } from "lucide-react";
 import type { MCQ, MCQData, UserData } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -175,6 +175,17 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
                    )}
                    {!userAnswer && (
                      <p className="text-sm mt-2 text-yellow-700 dark:text-yellow-400">You did not answer this question. Correct answer: {mcq.correctAnswer}</p>
+                   )}
+                   {mcq.solution && (
+                    <div className="mt-4 p-4 bg-muted/50 rounded-lg border">
+                        <div className="flex items-center gap-2 mb-2">
+                            <BrainCircuit className="w-5 h-5 text-primary" />
+                            <h4 className="font-semibold text-primary">Solution</h4>
+                        </div>
+                        <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
+                            {mcq.solution}
+                        </div>
+                    </div>
                    )}
                   {index < quizMcqs.length - 1 && <Separator className="mt-6" />}
                 </li>
