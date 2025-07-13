@@ -75,6 +75,8 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
   const [isTopicDialogOpen, setIsTopicDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingTopic, setEditingTopic] = useState<Topic | null>(null);
+  const [uploadCategoryId, setUploadCategoryId] = useState<string>('');
+
 
   const { toast } = useToast();
 
@@ -194,6 +196,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
 
       toast({ title: 'Success', description: 'Material uploaded and saved.' });
       materialForm.reset();
+      setUploadCategoryId('');
 
     } catch (error: any) {
         console.error("Material upload error:", error);
@@ -241,6 +244,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
   }
   
   const fileRef = materialForm.register("file");
+  const filteredUploadTopics = uploadCategoryId ? topics.filter(topic => topic.categoryId === uploadCategoryId) : [];
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -396,16 +400,40 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                 <CardContent>
                     <Form {...materialForm}>
                         <form onSubmit={materialForm.handleSubmit(onMaterialSubmit)} className="space-y-4">
+                            <FormItem>
+                                <FormLabel>Category</FormLabel>
+                                <Select 
+                                    onValueChange={(value) => {
+                                        setUploadCategoryId(value);
+                                        materialForm.setValue('topicId', '');
+                                    }} 
+                                    value={uploadCategoryId} 
+                                    disabled={categories.length === 0}
+                                >
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={categories.length > 0 ? "Select a category" : "Please add a category first"} />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {categories.map(cat => (<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>))}
+                                </SelectContent>
+                                </Select>
+                            </FormItem>
                             <FormField
                                 control={materialForm.control}
                                 name="topicId"
                                 render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Topic</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value} disabled={topics.length === 0}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder={topics.length > 0 ? "Select a topic to upload material" : "Please add a topic first"} /></SelectTrigger></FormControl>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={!uploadCategoryId || filteredUploadTopics.length === 0}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={!uploadCategoryId ? "Select a category first" : (filteredUploadTopics.length === 0 ? "No topics in this category" : "Select a topic")} />
+                                        </SelectTrigger>
+                                    </FormControl>
                                     <SelectContent>
-                                        {topics.map(topic => (<SelectItem key={topic.id} value={topic.id}>{topic.title}</SelectItem>))}
+                                        {filteredUploadTopics.map(topic => (<SelectItem key={topic.id} value={topic.id}>{topic.title}</SelectItem>))}
                                     </SelectContent>
                                     </Select>
                                     <FormMessage />
