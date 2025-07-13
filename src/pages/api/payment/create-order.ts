@@ -4,14 +4,13 @@ import Razorpay from 'razorpay';
 import { getUserData } from '@/lib/firestore';
 import { config } from 'dotenv';
 
-// Explicitly load environment variables
-config({ path: '.env.local' });
+config();
 
-const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-const keySecret = process.env.RAZORPAY_KEY_SECRET;
+const keyId = "rzp_test_NCdSaCHBDEB0pl";
+const keySecret = "7VwCtEjrBjDN3mnrHvh8Rq8Z";
 
 if (!keyId || !keySecret) {
-    throw new Error("Razorpay API keys are not configured in environment variables.");
+    throw new Error("Razorpay API keys are not configured correctly.");
 }
 
 const razorpay = new Razorpay({
@@ -43,7 +42,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(404).json({ error: 'User not found' });
         }
         
-        // Check if the user is already paid and their subscription is still valid
         const isPaidAndActive = userData.paymentStatus === 'paid' && userData.paidUntil && new Date(userData.paidUntil) > new Date();
         if (isPaidAndActive) {
             return res.status(400).json({ error: 'User already has an active subscription.' });

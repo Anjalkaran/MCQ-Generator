@@ -4,13 +4,12 @@ import crypto from 'crypto';
 import { updateUserPaymentStatus } from '@/lib/firestore';
 import { config } from 'dotenv';
 
-// Explicitly load environment variables
-config({ path: '.env.local' });
+config();
 
-const keySecret = process.env.RAZORPAY_KEY_SECRET;
+const keySecret = "7VwCtEjrBjDN3mnrHvh8Rq8Z";
 
 if (!keySecret) {
-    throw new Error("Razorpay Key Secret is not configured in environment variables.");
+    throw new Error("Razorpay Key Secret is not configured.");
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -35,7 +34,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const isAuthentic = expectedSignature === razorpay_signature;
 
         if (isAuthentic) {
-            // Signature is valid, update user status in Firestore
             await updateUserPaymentStatus(userId, razorpay_order_id);
 
             return res.status(200).json({ success: true, message: "Payment verified and user status updated." });
