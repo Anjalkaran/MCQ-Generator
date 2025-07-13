@@ -1,21 +1,18 @@
 
 import 'dotenv/config';
-import type { NextApiRequest, NextApiResponse } from 'next';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
-
+export async function POST(req: NextRequest) {
     try {
-        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, userId } = req.body;
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, userId } = await req.json();
         
         if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !userId) {
-            return res.status(400).json({ error: "Missing required payment details." });
+            return NextResponse.json({ error: "Missing required payment details." }, { status: 400 });
         }
 
         const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET;
@@ -46,13 +43,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 upgradedAt: FieldValue.serverTimestamp(),
             });
 
-            res.status(200).json({ success: true, message: "Payment verified successfully." });
+            return NextResponse.json({ success: true, message: "Payment verified successfully." });
         } else {
-            res.status(400).json({ success: false, error: "Invalid payment signature." });
+            return NextResponse.json({ success: false, error: "Invalid payment signature." }, { status: 400 });
         }
 
     } catch (error: any) {
         console.error("Payment verification error:", error);
-        res.status(500).json({ error: 'Failed to verify payment. Check server logs for configuration issues.' });
+        return NextResponse.json({ error: 'Failed to verify payment. Check server logs for configuration issues.' }, { status: 500 });
     }
 }
