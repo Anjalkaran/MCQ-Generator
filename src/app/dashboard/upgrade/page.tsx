@@ -9,7 +9,7 @@ import { Gem, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function UpgradePage() {
-    const { user, userData, setUserData, isLoading } = useDashboard();
+    const { userData, setUserData, isLoading } = useDashboard();
     const { toast } = useToast();
     const router = useRouter();
 
@@ -21,7 +21,7 @@ export default function UpgradePage() {
         );
     }
     
-    if (!userData || !user) {
+    if (!userData) {
         return (
             <Card>
                 <CardHeader>
@@ -72,9 +72,7 @@ export default function UpgradePage() {
                     <p className="text-sm text-muted-foreground">This will reset your topic exam counter.</p>
                     <div className="w-full max-w-sm pt-4">
                          <PaymentButton
-                            userId={user.uid}
-                            userName={userData.name}
-                            email={userData.email || 'not-provided@example.com'}
+                            user={userData}
                             onPaymentSuccess={onPaymentSuccess}
                          />
                     </div>

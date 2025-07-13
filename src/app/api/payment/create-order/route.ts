@@ -1,8 +1,7 @@
 'use server';
-
+import 'dotenv/config';
 import { NextRequest, NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
-import { adminDb } from '@/lib/firebase-admin';
 
 function initializeRazorpay() {
     const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
@@ -21,24 +20,12 @@ function initializeRazorpay() {
 export async function POST(req: NextRequest) {
     try {
         const razorpay = initializeRazorpay();
-        const { userId } = await req.json();
+        const { userId, examCategory } = await req.json();
 
-        if (!userId) {
-            return NextResponse.json({ error: 'User ID is required.' }, { status: 400 });
+        if (!userId || !examCategory) {
+            return NextResponse.json({ error: 'User ID and Exam Category are required.' }, { status: 400 });
         }
         
-        const userDoc = await adminDb.collection('users').doc(userId).get();
-        if (!userDoc.exists) {
-            return NextResponse.json({ error: 'User not found.' }, { status: 404 });
-        }
-        
-        const userData = userDoc.data();
-        const examCategory = userData?.examCategory;
-
-        if (!examCategory) {
-            return NextResponse.json({ error: 'User exam category not set.' }, { status: 400 });
-        }
-
         const amountInRupees = examCategory === 'PA' ? 749 : 499;
         const amountInPaise = amountInRupees * 100;
 

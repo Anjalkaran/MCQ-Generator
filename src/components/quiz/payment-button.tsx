@@ -5,6 +5,7 @@ import Script from 'next/script';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import type { UserData } from '@/lib/types';
 
 declare global {
     interface Window {
@@ -13,13 +14,11 @@ declare global {
 }
 
 interface PaymentButtonProps {
-  userId: string;
-  userName: string;
-  email: string;
+  user: UserData;
   onPaymentSuccess: () => void;
 }
 
-export default function PaymentButton({ userId, userName, email, onPaymentSuccess }: PaymentButtonProps) {
+export default function PaymentButton({ user, onPaymentSuccess }: PaymentButtonProps) {
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
 
@@ -31,7 +30,7 @@ export default function PaymentButton({ userId, userName, email, onPaymentSucces
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ userId }),
+                body: JSON.stringify({ userId: user.uid, examCategory: user.examCategory }),
             });
 
             if (!response.ok) {
@@ -58,8 +57,8 @@ export default function PaymentButton({ userId, userName, email, onPaymentSucces
                     await verifyPayment(response);
                 },
                 prefill: {
-                    name: userName,
-                    email: email,
+                    name: user.name,
+                    email: user.email,
                 },
                 theme: {
                     color: "#D62927" 
@@ -91,7 +90,7 @@ export default function PaymentButton({ userId, userName, email, onPaymentSucces
                     razorpay_order_id: paymentResponse.razorpay_order_id,
                     razorpay_payment_id: paymentResponse.razorpay_payment_id,
                     razorpay_signature: paymentResponse.razorpay_signature,
-                    userId,
+                    userId: user.uid,
                 }),
             });
 
