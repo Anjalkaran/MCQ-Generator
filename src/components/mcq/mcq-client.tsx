@@ -133,12 +133,19 @@ export function MCQClient({ topicId }: MCQClientProps) {
   const currentQuestion = quizMcqs[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / quizMcqs.length) * 100;
   const isLastQuestion = currentQuestionIndex === quizMcqs.length - 1;
+  const isFirstQuestion = currentQuestionIndex === 0;
 
   const handleNext = () => {
     if (!isLastQuestion) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   };
+  
+  const handlePrevious = () => {
+    if (!isFirstQuestion) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+    }
+  }
 
   const handleSkip = () => {
     if (!isLastQuestion) {
@@ -200,21 +207,26 @@ export function MCQClient({ topicId }: MCQClientProps) {
           ))}
         </RadioGroup>
       </CardContent>
-      <CardFooter className="justify-end gap-2">
-        {isLastQuestion ? (
-          <Button onClick={handleFinish} disabled={!selectedAnswers[currentQuestionIndex]}>
-            Finish Quiz
-          </Button>
-        ) : (
-          <>
-            <Button onClick={handleSkip} variant="outline">
-              Skip
+      <CardFooter className="justify-between">
+        <Button onClick={handlePrevious} variant="outline" disabled={isFirstQuestion}>
+            Previous
+        </Button>
+        <div className="flex gap-2">
+            {isLastQuestion ? (
+            <Button onClick={handleFinish} disabled={!selectedAnswers[currentQuestionIndex]}>
+                Finish Quiz
             </Button>
-            <Button onClick={handleNext} disabled={!selectedAnswers[currentQuestionIndex]}>
-              Next
-            </Button>
-          </>
-        )}
+            ) : (
+            <>
+                <Button onClick={handleSkip} variant="outline">
+                Skip
+                </Button>
+                <Button onClick={handleNext} disabled={!selectedAnswers[currentQuestionIndex]}>
+                Next
+                </Button>
+            </>
+            )}
+        </div>
       </CardFooter>
     </Card>
   );
