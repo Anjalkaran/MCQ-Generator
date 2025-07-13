@@ -8,16 +8,20 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { generateMCQs } from '@/ai/flows/generate-mcqs';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle, CreditCard } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getMCQHistoryForTopic } from '@/lib/firestore';
 import type { Category, Topic, UserData } from '@/lib/types';
 import type { User } from 'firebase/auth';
 import { cn } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { FREE_TOPIC_EXAM_LIMIT } from '@/lib/constants';
+import PaymentButton from './payment-button';
+
 
 const formSchema = z.object({
   categoryId: z.string().min(1, 'Please select a category.'),
@@ -40,13 +44,14 @@ interface CreateQuizFormProps {
 
 const ADMIN_EMAIL = "admin@anjalkaran.com";
 
-export function CreateQuizForm({ initialCategories, initialTopics, user, userData }: CreateQuizFormProps) {
+export function CreateQuizForm({ initialCategories, initialTopics, user, userData: initialUserData }: CreateQuizFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [userData, setUserData] = useState<UserData | null>(initialUserData);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -84,6 +89,13 @@ export function CreateQuizForm({ initialCategories, initialTopics, user, userDat
 
   const selectedCategoryId = form.watch('categoryId');
   const selectedDifficulty = form.watch('difficulty');
+
+  const onPaymentSuccess = () => {
+    // When payment is successful, we know the exam limit is reset to 0.
+    // We update the local state to reflect this, re-enabling the form.
+    setUserData(prev => prev ? { ...prev, topicExamsTaken: 0 } : null);
+    toast({ title: "Ready to go!", description: "You can now generate your next exam." });
+  }
 
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
@@ -196,6 +208,8 @@ export function CreateQuizForm({ initialCategories, initialTopics, user, userDat
     if (userData.email === ADMIN_EMAIL) return "Admin has unlimited access.";
     return `Welcome, ${userData.name}! Select a topic to start practicing.`;
   }
+  
+  const hasExceededFreeLimit = userData && userData.email !== ADMIN_EMAIL && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
 
   return (
     <Card>
@@ -205,110 +219,131 @@ export function CreateQuizForm({ initialCategories, initialTopics, user, userDat
             {getCardDescription()}
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <Form {...form}>
+      <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-            control={form.control}
-            name="categoryId"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Category</FormLabel>
-                <Select onValueChange={(value) => {
-                    field.onChange(value);
-                    form.setValue('topicId', '');
-                }} value={field.value} disabled={!user || categories.length === 0}>
-                    <FormControl>
-                    <SelectTrigger>
-                        <SelectValue placeholder={!user ? "Login to see categories" : (categories.length === 0 ? "No categories available for your exam type" : "Select a category")} />
-                    </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                    {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                        </SelectItem>
-                    ))}
-                    </SelectContent>
-                </Select>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-            <FormField
-            control={form.control}
-            name="topicId"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Topic</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCategoryId || filteredTopics.length === 0}>
-                    <FormControl>
-                    <SelectTrigger>
-                        <SelectValue placeholder={!selectedCategoryId ? "Select a category first" : (filteredTopics.length === 0 ? "No topics in this category" : "Select a topic")} />
-                    </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                    {filteredTopics.map(topic => (
-                        <SelectItem key={topic.id} value={topic.id}>
-                        {topic.title}
-                        </SelectItem>
-                    ))}
-                    </SelectContent>
-                </Select>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-            <FormField
-            control={form.control}
-            name="difficulty"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Difficulty Level</FormLabel>
-                <FormControl>
-                    <div className="grid grid-cols-3 gap-2">
-                    {difficultyLevels.map((level) => (
-                        <Card
-                        key={level}
-                        onClick={() => form.setValue('difficulty', level, { shouldValidate: true })}
-                        className={cn(
-                            'cursor-pointer p-2 text-center transition-all',
-                            selectedDifficulty === level
-                            ? 'border-primary ring-2 ring-primary bg-accent'
-                            : 'hover:bg-muted/50'
-                        )}
-                        >
-                        <CardTitle className="text-base font-medium">{level}</CardTitle>
-                        </Card>
-                    ))}
-                    </div>
-                </FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-            <FormField
-            control={form.control}
-            name="numberOfQuestions"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Number of Questions (3-50)</FormLabel>
-                <FormControl>
-                    <Input type="number" min="3" max="50" {...field} />
-                </FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-            <div className="flex flex-col sm:flex-row gap-2">
-            <Button type="submit" disabled={isGenerating || !form.formState.isValid} className="flex-1">
-                {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Start Exam
-            </Button>
-            </div>
+            <CardContent>
+                <fieldset disabled={hasExceededFreeLimit || isGenerating} className="space-y-6">
+                    <FormField
+                    control={form.control}
+                    name="categoryId"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <Select onValueChange={(value) => {
+                            field.onChange(value);
+                            form.setValue('topicId', '');
+                        }} value={field.value} disabled={!user || categories.length === 0}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder={!user ? "Login to see categories" : (categories.length === 0 ? "No categories available for your exam type" : "Select a category")} />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            {categories.map((category) => (
+                                <SelectItem key={category.id} value={category.id}>
+                                {category.name}
+                                </SelectItem>
+                            ))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="topicId"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Topic</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCategoryId || filteredTopics.length === 0}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder={!selectedCategoryId ? "Select a category first" : (filteredTopics.length === 0 ? "No topics in this category" : "Select a topic")} />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            {filteredTopics.map(topic => (
+                                <SelectItem key={topic.id} value={topic.id}>
+                                {topic.title}
+                                </SelectItem>
+                            ))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="difficulty"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Difficulty Level</FormLabel>
+                        <FormControl>
+                            <div className="grid grid-cols-3 gap-2">
+                            {difficultyLevels.map((level) => (
+                                <Card
+                                key={level}
+                                onClick={() => form.setValue('difficulty', level, { shouldValidate: true })}
+                                className={cn(
+                                    'cursor-pointer p-2 text-center transition-all',
+                                    selectedDifficulty === level
+                                    ? 'border-primary ring-2 ring-primary bg-accent'
+                                    : 'hover:bg-muted/50'
+                                )}
+                                >
+                                <CardTitle className="text-base font-medium">{level}</CardTitle>
+                                </Card>
+                            ))}
+                            </div>
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="numberOfQuestions"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Number of Questions (3-50)</FormLabel>
+                        <FormControl>
+                            <Input type="number" min="3" max="50" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                </fieldset>
+             </CardContent>
+            <CardFooter>
+                 {!hasExceededFreeLimit && (
+                    <Button type="submit" disabled={isGenerating || !form.formState.isValid} className="w-full">
+                        {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Start Exam
+                    </Button>
+                 )}
+            </CardFooter>
         </form>
         </Form>
-      </CardContent>
+        {hasExceededFreeLimit && (
+            <CardContent>
+                 <Alert variant="destructive" className="mb-4">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Free Limit Reached</AlertTitle>
+                    <AlertDescription>
+                        You have used your free exam allocation. Please pay to reset your limit and continue practicing.
+                    </AlertDescription>
+                </Alert>
+                 <PaymentButton
+                    userId={userData.uid}
+                    userName={userData.name}
+                    email={userData.email}
+                    onPaymentSuccess={onPaymentSuccess}
+                 />
+            </CardContent>
+        )}
     </Card>
   );
 }
