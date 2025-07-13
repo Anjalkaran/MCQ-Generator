@@ -5,20 +5,24 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, XCircle, Award, Repeat, Home } from "lucide-react";
-import type { MCQ, MCQData } from "@/lib/types";
+import type { MCQ, MCQData, UserData } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { getFirebaseAuth } from "@/lib/firebase";
-import { saveMCQHistory } from "@/lib/firestore";
+import { getUserData, saveMCQHistory } from "@/lib/firestore";
+import { useToast } from "@/hooks/use-toast";
 
 interface MCQResultsClientProps {
   topicId: string;
 }
 
+const FREE_TOPIC_EXAM_LIMIT = 5;
+
 export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [score, setScore] = useState(0);
   const [userAnswers, setUserAnswers] = useState<{ [key: number]: string }>({});
   const [quizLength, setQuizLength] = useState(0);
@@ -32,35 +36,62 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
     const auth = getFirebaseAuth();
     const currentUser = auth?.currentUser;
 
-    if (savedState && currentUser) {
-      const { answers, numberOfQuestions, mcqs, topic } = JSON.parse(savedState);
-      setUserAnswers(answers);
-      setQuizLength(numberOfQuestions);
-      setQuizData({ mcqs, topic });
+    const processResults = async () => {
+      if (savedState && currentUser) {
+        const { answers, numberOfQuestions, mcqs, topic } = JSON.parse(savedState);
+        setUserAnswers(answers);
+        setQuizLength(numberOfQuestions);
+        setQuizData({ mcqs, topic });
+  
+        let correctCount = 0;
+        mcqs.forEach((mcq: MCQ, index: number) => {
+          if (answers[index] === mcq.correctAnswer) {
+            correctCount++;
+          }
+        });
+        setScore(correctCount);
+  
+        try {
+          // Check user status BEFORE saving history
+          const userDataBeforeSave = await getUserData(currentUser.uid);
+          
+          // Save history to Firestore
+          await saveMCQHistory({
+              userId: currentUser.uid,
+              topicId: topic.id,
+              score: correctCount,
+              totalQuestions: numberOfQuestions,
+              questions: mcqs.map((mcq: MCQ) => mcq.question),
+              takenAt: new Date(),
+          });
 
-      let correctCount = 0;
-      mcqs.forEach((mcq: MCQ, index: number) => {
-        if (answers[index] === mcq.correctAnswer) {
-          correctCount++;
+          // If user was free before this exam, show remaining count
+          if (userDataBeforeSave?.paymentStatus === 'free') {
+            const newExamsTaken = (userDataBeforeSave.topicExamsTaken || 0) + 1;
+            const remainingExams = FREE_TOPIC_EXAM_LIMIT - newExamsTaken;
+            
+            if (remainingExams > 0) {
+                toast({
+                    title: "Exam Finished",
+                    description: `You have ${remainingExams} free exams remaining.`
+                });
+            } else {
+                 toast({
+                    title: "Free Exams Used",
+                    description: `You have used all your free exams. Please upgrade for unlimited access.`
+                });
+            }
+          }
+
+        } catch (err) {
+            console.error("Failed to save quiz history or fetch user data:", err);
         }
-      });
-      setScore(correctCount);
+      }
+    };
 
-      // Save history to Firestore
-      saveMCQHistory({
-          userId: currentUser.uid,
-          topicId: topic.id,
-          score: correctCount,
-          totalQuestions: numberOfQuestions,
-          questions: mcqs.map((mcq: MCQ) => mcq.question), // Save the question strings
-          takenAt: new Date(),
-      }).catch(err => {
-          console.error("Failed to save quiz history:", err);
-          // Optional: Show a toast message to the user
-      });
+    processResults();
 
-    }
-  }, [topicId]);
+  }, [topicId, toast]);
 
   if (!isClient || !quizData) {
     return null; // or a loading spinner
@@ -70,7 +101,6 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
   const percentage = quizLength > 0 ? Math.round((score / quizLength) * 100) : 0;
 
   const handleRetake = () => {
-    // Clear the specific quiz state from local storage before retaking
     localStorage.removeItem(`quiz-${topicId}`);
     localStorage.removeItem(`quizState-${topicId}`);
     router.push('/dashboard');

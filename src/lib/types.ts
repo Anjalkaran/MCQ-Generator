@@ -55,7 +55,6 @@ export interface MCQHistory {
 export interface TopicPerformance {
     topicId: string;
     topicTitle: string;
-
     attempts: number;
     averageScore: number;
 }
