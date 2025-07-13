@@ -18,6 +18,18 @@ export function MockTestForm() {
     const [userData, setUserData] = useState<UserData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    const fetchAndSetUserData = async (currentUser: User | null) => {
+        if (!currentUser) {
+            setUserData(null);
+            setIsLoading(false);
+            return;
+        }
+        setIsLoading(true);
+        const data = await getUserData(currentUser.uid);
+        setUserData(data);
+        setIsLoading(false);
+    };
+
     useEffect(() => {
         const auth = getFirebaseAuth();
         if (!auth) {
@@ -27,23 +39,27 @@ export function MockTestForm() {
 
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
             setUser(currentUser);
-            if (currentUser) {
-                const data = await getUserData(currentUser.uid);
-                setUserData(data);
-            }
-            setIsLoading(false);
+            await fetchAndSetUserData(currentUser);
         });
 
-        return () => unsubscribe();
+        const handleFocus = async () => {
+            if (auth.currentUser) {
+                await fetchAndSetUserData(auth.currentUser);
+            }
+        };
+
+        window.addEventListener('focus', handleFocus);
+
+        return () => {
+            unsubscribe();
+            window.removeEventListener('focus', handleFocus);
+        };
     }, []);
 
-    const handlePaymentSuccess = async () => {
-        setIsLoading(true);
+    const handlePaymentSuccess = () => {
         if (user) {
-            const data = await getUserData(user.uid);
-            setUserData(data);
+            fetchAndSetUserData(user);
         }
-        setIsLoading(false);
     }
 
     if (isLoading) {

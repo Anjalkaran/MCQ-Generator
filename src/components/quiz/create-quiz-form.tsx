@@ -204,7 +204,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
 
     } catch (error: any) {
       console.error('Error generating quiz:', error);
-      if (error.message?.includes('You have used all your')) {
+      if (error.message?.includes(`You have used all your ${FREE_TOPIC_EXAM_LIMIT} free exams`)) {
         toast({
             title: "Free Limit Reached",
             description: "Please upgrade to a paid plan for unlimited exam access.",
