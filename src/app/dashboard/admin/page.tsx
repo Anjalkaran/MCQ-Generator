@@ -1,21 +1,12 @@
-import { getFirebaseAuth } from '@/lib/firebase';
-import { redirect } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+import { getCategories, getTopics, getAllUsers } from '@/lib/firestore';
 import { UserManagement } from '@/components/admin/user-management';
 import { TopicManagement } from '@/components/admin/topic-management';
-import { getCategories, getTopics, getAllUsers } from '@/lib/firestore';
-import type { User } from 'firebase/auth';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const ADMIN_EMAIL = "admin@anjalkaran.com";
+export const dynamic = 'force-dynamic';
 
-// This is now a Server Component to fetch data initially
 export default async function AdminPage() {
-  // We can't use onAuthStateChanged on the server, so we can't do this check here.
-  // The check is moved to the layout which is a client component.
-  // For direct access protection, middleware would be the best solution,
-  // but for now, the layout protection is sufficient.
-
   const [users, categories, topics] = await Promise.all([
     getAllUsers(),
     getCategories(),
