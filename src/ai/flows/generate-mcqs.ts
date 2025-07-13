@@ -12,6 +12,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { getUserData } from '@/lib/firestore';
+import { getFirebaseAuth } from '@/lib/firebase';
 
 const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
@@ -89,23 +90,26 @@ const generateMCQsFlow = ai.defineFlow(
     outputSchema: GenerateMCQsOutputSchema,
   },
   async input => {
-
     if (!input.userId) {
       throw new Error("A user ID must be provided to generate a quiz.");
     }
     
-    // Server-side check for user exam limit
-    const userData = await getUserData(input.userId);
-    if (!userData) {
-      throw new Error("User not found. Cannot generate quiz.");
-    }
-    
-    const isAdmin = userData.email === ADMIN_EMAIL;
-    const isPaid = userData.paymentStatus === 'paid';
+    const auth = getFirebaseAuth();
+    const currentUser = auth?.currentUser;
+    const isRunningAsAdmin = currentUser?.email === ADMIN_EMAIL;
 
-    // Enforce limit only for non-admin, non-paid users
-    if (!isAdmin && !isPaid && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT) {
-      throw new Error(`You have used all your ${FREE_TOPIC_EXAM_LIMIT} free exams. Please upgrade to continue.`);
+    // Skip DB checks for the admin user
+    if (!isRunningAsAdmin) {
+        const userData = await getUserData(input.userId);
+        if (!userData) {
+          throw new Error("User not found. Cannot generate quiz.");
+        }
+        
+        const isPaid = userData.paymentStatus === 'paid';
+
+        if (!isPaid && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT) {
+          throw new Error(`You have used all your ${FREE_TOPIC_EXAM_LIMIT} free exams. Please upgrade to continue.`);
+        }
     }
 
     const {output} = await prompt(input);
