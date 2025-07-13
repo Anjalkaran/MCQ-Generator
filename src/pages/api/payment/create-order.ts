@@ -1,4 +1,5 @@
 
+import 'dotenv/config';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import Razorpay from 'razorpay';
 import { adminDb } from '@/lib/firebase-admin';
