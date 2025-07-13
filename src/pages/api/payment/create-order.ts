@@ -1,8 +1,6 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import Razorpay from 'razorpay';
-import { getFirebaseAuth } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
 import { getUserData } from '@/lib/firestore';
 
 const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
@@ -17,11 +15,11 @@ const razorpay = new Razorpay({
     key_secret: keySecret
 });
 
-const getAmount = (examCategory: 'MTS' | 'POSTMAN' | 'PA'): number => {
+const getAmountInPaise = (examCategory: 'MTS' | 'POSTMAN' | 'PA'): number => {
     if (examCategory === 'PA') {
-        return 74900; // Rs. 749.00
+        return 749 * 100; // Rs. 749.00
     }
-    return 49900; // Rs. 499.00
+    return 499 * 100; // Rs. 499.00
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -41,15 +39,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(404).json({ error: 'User not found' });
         }
         
-        if (userData.paymentStatus === 'paid') {
-            return res.status(400).json({ error: 'User has already paid.' });
+        // Check if the user is already paid and their subscription is still valid
+        const isPaidAndActive = userData.paymentStatus === 'paid' && userData.paidUntil && new Date(userData.paidUntil) > new Date();
+        if (isPaidAndActive) {
+            return res.status(400).json({ error: 'User already has an active subscription.' });
         }
 
-        const amount = getAmount(userData.examCategory);
+        const amount = getAmountInPaise(userData.examCategory);
         const options = {
             amount,
             currency: 'INR',
-            receipt: `receipt_user_${userId}`,
+            receipt: `receipt_user_${userId}_${new Date().getTime()}`,
             payment_capture: 1
         };
 

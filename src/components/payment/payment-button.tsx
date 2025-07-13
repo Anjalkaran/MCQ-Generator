@@ -7,8 +7,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Zap } from 'lucide-react';
 import type { UserData } from '@/lib/types';
 import Script from 'next/script';
-import { getUserData } from '@/lib/firestore';
-import { format } from 'date-fns';
 
 declare global {
   interface Window {
@@ -36,7 +34,6 @@ export function PaymentButton({ user, onPaymentSuccess }: PaymentButtonProps) {
     const { toast } = useToast();
 
     const isExpired = user.paidUntil && new Date(user.paidUntil) < new Date();
-    const hasUsedFreeTier = user.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
 
     const handlePayment = async () => {
         setIsLoading(true);
@@ -71,7 +68,7 @@ export function PaymentButton({ user, onPaymentSuccess }: PaymentButtonProps) {
                 amount: order.amount,
                 currency: order.currency,
                 name: 'Anjalkaran Exam Prep',
-                description: `Unlock unlimited access for ${user.examCategory}`,
+                description: `Unlimited Access for ${user.examCategory}`,
                 order_id: order.id,
                 handler: async function (response: any) {
                     // 3. Verify Payment
@@ -102,7 +99,7 @@ export function PaymentButton({ user, onPaymentSuccess }: PaymentButtonProps) {
                     email: user.email,
                 },
                 theme: {
-                    color: '#FF0000'
+                    color: '#D6001C'
                 }
             };
             
@@ -110,7 +107,7 @@ export function PaymentButton({ user, onPaymentSuccess }: PaymentButtonProps) {
             rzp.on('payment.failed', function (response: any) {
                 toast({
                     title: 'Payment Failed',
-                    description: response.error.description,
+                    description: response.error.description || 'An unknown error occurred.',
                     variant: 'destructive',
                 });
             });
@@ -143,15 +140,18 @@ export function PaymentButton({ user, onPaymentSuccess }: PaymentButtonProps) {
                 src="https://checkout.razorpay.com/v1/checkout.js"
                 onLoad={() => console.log('Razorpay SDK loaded.')}
             />
-            <div className="text-center p-4 border border-dashed rounded-lg bg-red-50/50 dark:bg-red-900/10 space-y-3">
-                <p className="font-semibold text-primary">{title}</p>
+            <div className="text-center p-6 border-2 border-dashed rounded-lg bg-red-50/50 dark:bg-red-900/10 space-y-4">
+                <p className="font-semibold text-lg text-primary">{title}</p>
                 <p className="text-sm text-muted-foreground">
-                    To continue practicing and access all features, please upgrade.
+                    To continue practicing and access all features, please upgrade your plan.
                 </p>
                 <Button onClick={handlePayment} disabled={isLoading} size="lg">
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
                     {ctaText}
                 </Button>
+                 <p className="text-xs text-muted-foreground pt-2">
+                    Your plan for the <strong>{user.examCategory}</strong> exam requires a one-time payment for a full year of unlimited access.
+                </p>
             </div>
         </>
     );
