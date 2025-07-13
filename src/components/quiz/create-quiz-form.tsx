@@ -72,6 +72,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
         return;
     }
     
+    setIsLoading(true);
     const fetchedUserData = await getUserData(currentUser.uid);
     setUserData(fetchedUserData);
 
@@ -93,10 +94,9 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
         setTopics([]);
     }
     setIsLoading(false);
-}, [initialCategories, initialTopics]);
+  }, [initialCategories, initialTopics]);
 
   useEffect(() => {
-    setIsLoading(true);
     const auth = getFirebaseAuth();
     if (!auth) {
         setIsLoading(false);
@@ -105,10 +105,25 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      await fetchAndSetUserData(currentUser);
+      if(currentUser) {
+        await fetchAndSetUserData(currentUser);
+      } else {
+        setIsLoading(false);
+      }
     });
 
-    return () => unsubscribe();
+    const handleFocus = () => {
+        if (auth.currentUser) {
+            fetchAndSetUserData(auth.currentUser);
+        }
+    };
+    
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+        unsubscribe();
+        window.removeEventListener('focus', handleFocus);
+    };
   }, [fetchAndSetUserData]);
 
   const selectedCategoryId = form.watch('categoryId');
@@ -123,9 +138,9 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
         return;
     }
     
-    // Admin check to bypass payment
     const isAdmin = user.email === ADMIN_EMAIL;
-    if (!isAdmin && userData.paymentStatus === 'free' && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT) {
+    const isPaid = userData.paymentStatus === 'paid';
+    if (!isAdmin && !isPaid && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT) {
         toast({ title: 'Free Limit Reached', description: 'Please upgrade to create more exams.', variant: 'destructive' });
         setIsGenerating(false);
         return;
