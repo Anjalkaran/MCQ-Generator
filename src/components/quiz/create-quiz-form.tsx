@@ -41,7 +41,7 @@ interface CreateQuizFormProps {
 }
 
 const ADMIN_EMAIL = "admin@anjalkaran.com";
-const FREE_TOPIC_EXAM_LIMIT = 2;
+const FREE_TOPIC_EXAM_LIMIT = 5;
 
 export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizFormProps) {
   const router = useRouter();

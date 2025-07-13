@@ -22,7 +22,7 @@ interface PaymentButtonProps {
 }
 
 const RAZORPAY_KEY_ID = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-const FREE_TIER_LIMIT = 2;
+const FREE_TIER_LIMIT = 5;
 
 const getAmount = (examCategory: 'MTS' | 'POSTMAN' | 'PA'): number => {
     if (examCategory === 'PA') {

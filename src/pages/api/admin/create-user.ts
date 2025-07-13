@@ -36,7 +36,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Create user document in Firestore
     const newUser: UserData = {
-      id: uid, // Use uid as the document id for consistency
       uid,
       name,
       email,
@@ -50,7 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await adminDb.collection('users').doc(uid).set(newUser);
 
 
-    return res.status(201).json({ message: 'User created successfully', newUser });
+    return res.status(201).json({ message: 'User created successfully', newUser: { id: uid, ...newUser} });
 
   } catch (error: any) {
     console.error('Error creating user:', error);
