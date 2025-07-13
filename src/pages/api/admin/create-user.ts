@@ -58,6 +58,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (error.code === 'auth/email-already-exists') {
         return res.status(409).json({ error: 'The email address is already in use by another account.' });
     }
-    return res.status(500).json({ error: 'Failed to create user. ' + (error.message || '') });
+    return res.status(500).json({ error: 'An unexpected error occurred while creating the user.' });
   }
 }

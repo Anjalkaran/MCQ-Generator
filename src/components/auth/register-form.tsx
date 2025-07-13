@@ -78,9 +78,15 @@ export function RegisterForm() {
       });
       router.push('/dashboard');
     } catch (error: any) {
+      let errorMessage = 'An unexpected error occurred.';
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'This email address is already registered. Please use a different email or log in.';
+      } else {
+        errorMessage = error.message;
+      }
       toast({
         title: 'Registration Failed',
-        description: error.message || 'An unexpected error occurred.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
