@@ -1,6 +1,7 @@
 
 
 
+
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment } from 'firebase/firestore';
 import type { Category, Topic, UserData, MCQHistory, TopicPerformance } from './types';
@@ -49,7 +50,7 @@ export const createUserDocument = async (userData: UserData): Promise<void> => {
     });
 };
 
-export const updateUserDocument = async (userId: string, data: Partial<Pick<UserData, 'name' | 'examCategory'>>): Promise<void> => {
+export const updateUserDocument = async (userId: string, data: Partial<Pick<UserData, 'name' | 'examCategory' | 'paymentStatus'>>): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     const userRef = doc(db, 'users', userId);

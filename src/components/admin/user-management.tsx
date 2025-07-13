@@ -28,10 +28,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import Link from 'next/link';
+import { Badge } from '../ui/badge';
 
 const userUpdateSchema = z.object({
   name: z.string().min(1, { message: 'Username is required.' }),
   examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA'>,
+  paymentStatus: z.string().min(1, { message: 'Please select a payment status.' }) as z.ZodType<'free' | 'paid'>,
 });
 
 const userCreateSchema = z.object({
@@ -72,6 +74,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     updateUserForm.reset({
       name: user.name,
       examCategory: user.examCategory,
+      paymentStatus: user.paymentStatus || 'free',
     });
     setIsUpdateDialogOpen(true);
   };
@@ -236,6 +239,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                 <TableHead>Username</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Exam Category</TableHead>
+                <TableHead>Payment Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
             </TableHeader>
@@ -246,6 +250,11 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.examCategory}</TableCell>
+                    <TableCell>
+                        <Badge variant={user.paymentStatus === 'paid' ? 'default' : 'secondary'}>
+                            {user.paymentStatus === 'paid' ? 'Paid' : 'Free'}
+                        </Badge>
+                    </TableCell>
                     <TableCell className="text-right">
                         <Button asChild variant="ghost" size="icon" disabled={user.email === 'admin@anjalkaran.com'}>
                           <Link href={`/dashboard/admin/history/${user.uid}`}>
@@ -286,7 +295,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                 ))
                 ) : (
                 <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
+                    <TableCell colSpan={5} className="h-24 text-center">
                     No users found.
                     </TableCell>
                 </TableRow>
@@ -327,6 +336,23 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                                         <SelectItem value="MTS">MTS</SelectItem>
                                         <SelectItem value="POSTMAN">POSTMAN</SelectItem>
                                         <SelectItem value="PA">PA</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={updateUserForm.control}
+                                name="paymentStatus"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Payment Status</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                        <SelectItem value="free">Free</SelectItem>
+                                        <SelectItem value="paid">Paid</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
