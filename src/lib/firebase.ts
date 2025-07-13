@@ -3,12 +3,12 @@ import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyCgHVZAjOL5p2i_CJNY4MOvj6h8RjSg-Bc",
+  authDomain: "quizwiz-be479.firebaseapp.com",
+  projectId: "quizwiz-be479",
+  storageBucket: "quizwiz-be479.appspot.com",
+  messagingSenderId: "750766638065",
+  appId: "1:750766638065:web:f3bdcc38ca89a7e9e53a50"
 };
 
 let app: FirebaseApp | null = null;
@@ -29,8 +29,7 @@ function initializeFirebase() {
     firebaseConfig.projectId &&
     firebaseConfig.storageBucket &&
     firebaseConfig.messagingSenderId &&
-    firebaseConfig.appId &&
-    !firebaseConfig.apiKey.startsWith('YOUR_');
+    firebaseConfig.appId;
 
   if (firebaseConfigIsValid) {
     try {
@@ -40,6 +39,8 @@ function initializeFirebase() {
     } catch (e) {
         console.error("Error initializing Firebase", e);
     }
+  } else {
+    console.error("Firebase configuration is invalid.");
   }
 }
 
