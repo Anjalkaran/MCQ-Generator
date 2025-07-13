@@ -1,9 +1,8 @@
 
 "use client";
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { useFormState } from 'react-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +37,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
     
     // Bind the user ID to the server action
     const updateUserProfileWithId = updateUserProfile.bind(null, user.uid);
-    const [state, formAction] = useFormState(updateUserProfileWithId, initialState);
+    const [state, formAction] = useActionState(updateUserProfileWithId, initialState);
     
     useEffect(() => {
         if (state.message) {
