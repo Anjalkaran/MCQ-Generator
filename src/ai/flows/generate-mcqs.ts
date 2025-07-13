@@ -68,10 +68,10 @@ const prompt = ai.definePrompt({
   3. One of the four 'options' MUST be the correct answer.
   4. The other three options must be plausible but incorrect distractors, derived from common calculation mistakes.
   5. The 'solution' field MUST provide a detailed, step-by-step explanation of how to arrive at the correct answer. Format each step on a new line. For example:
-    Step 1: [Identify the given values]
-    Step 2: [State the formula to be used]
-    Step 3: [Show the calculation]
-    Step 4: [State the final answer clearly]
+    Step 1: Identify the given values.
+    Step 2: State the formula to be used.
+    Step 3: Show the calculation.
+    Step 4: State the final answer clearly.
   DO NOT include any verification or notes about your own calculation process in the solution. The solution should only explain how to solve the problem.
   {{/ifEquals}}
 
@@ -131,4 +131,3 @@ const generateMCQsFlow = ai.defineFlow(
     return output;
   }
 );
-
