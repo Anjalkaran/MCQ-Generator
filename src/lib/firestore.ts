@@ -1,7 +1,8 @@
 
 
+
 import { getFirebaseDb } from './firebase';
-import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment } from 'firebase/firestore';
 import type { Category, Topic, UserData, MCQHistory, TopicPerformance } from './types';
 
 // USER MANAGEMENT
@@ -11,7 +12,15 @@ export const getUserData = async (userId: string): Promise<UserData | null> => {
     const userRef = doc(db, 'users', userId);
     const userSnap = await getDoc(userRef);
     if (userSnap.exists()) {
-      return { id: userSnap.id, ...userSnap.data() } as UserData;
+      // Add default values for new fields if they don't exist
+      const data = userSnap.data();
+      return {
+        id: userSnap.id,
+        ...data,
+        paymentStatus: data.paymentStatus || 'free',
+        topicExamsTaken: data.topicExamsTaken || 0,
+        mockTestsTaken: data.mockTestsTaken || 0,
+      } as UserData;
     }
     return null;
 }
@@ -34,6 +43,9 @@ export const createUserDocument = async (userData: UserData): Promise<void> => {
         name: userData.name,
         email: userData.email,
         examCategory: userData.examCategory,
+        paymentStatus: 'free',
+        topicExamsTaken: 0,
+        mockTestsTaken: 0,
     });
 };
 
@@ -43,6 +55,17 @@ export const updateUserDocument = async (userId: string, data: Partial<Pick<User
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, data);
 };
+
+export const updateUserPaymentStatus = async (userId: string, orderId: string) => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const userRef = doc(db, "users", userId);
+    await updateDoc(userRef, {
+        paymentStatus: "paid",
+        orderId: orderId,
+    });
+};
+
 
 export const deleteUserDocument = async (userId: string): Promise<void> => {
   const db = getFirebaseDb();
@@ -134,7 +157,20 @@ export const deleteTopic = async (topicId: string): Promise<void> => {
 export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
-    await addDoc(collection(db, 'mcqHistory'), historyData);
+
+    const batch = writeBatch(db);
+    
+    // Add the history document
+    const historyRef = doc(collection(db, 'mcqHistory'));
+    batch.set(historyRef, historyData);
+
+    // Increment the user's exam count
+    const userRef = doc(db, 'users', historyData.userId);
+    batch.update(userRef, {
+        topicExamsTaken: increment(1)
+    });
+
+    await batch.commit();
 };
 
 export const getMCQHistoryForTopic = async (userId: string, topicId: string): Promise<string[]> => {

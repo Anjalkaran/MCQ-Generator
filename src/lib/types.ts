@@ -29,6 +29,10 @@ export interface UserData {
     name: string;
     email: string;
     examCategory: 'MTS' | 'POSTMAN' | 'PA';
+    paymentStatus: 'free' | 'paid';
+    topicExamsTaken: number;
+    mockTestsTaken: number;
+    orderId?: string;
 }
 
 export interface MCQData {
