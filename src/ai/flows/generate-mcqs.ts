@@ -99,6 +99,7 @@ const generateMCQsFlow = ai.defineFlow(
     const isAdmin = userData.email === ADMIN_EMAIL;
     const isPaid = userData.paymentStatus === 'paid';
 
+    // Enforce limit only for non-admin, non-paid users
     if (!isAdmin && !isPaid && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT) {
       throw new Error(`You have used all your ${FREE_TOPIC_EXAM_LIMIT} free exams. Please upgrade to continue.`);
     }
