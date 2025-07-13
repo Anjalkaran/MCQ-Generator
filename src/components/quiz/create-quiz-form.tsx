@@ -14,10 +14,9 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getUserData, getMCQHistoryForTopic } from '@/lib/firestore';
+import { getMCQHistoryForTopic } from '@/lib/firestore';
 import type { Category, Topic, UserData } from '@/lib/types';
-import { getFirebaseAuth } from '@/lib/firebase';
-import { onAuthStateChanged, type User } from 'firebase/auth';
+import type { User } from 'firebase/auth';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
@@ -37,19 +36,19 @@ const difficultyLevels: DifficultyLevel[] = ['Easy', 'Moderate', 'Difficult'];
 interface CreateQuizFormProps {
     initialCategories: Category[];
     initialTopics: Topic[];
+    user: User | null;
+    userData: UserData | null;
 }
 
 const ADMIN_EMAIL = "admin@anjalkaran.com";
 const FREE_TOPIC_EXAM_LIMIT = 1;
 
-export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizFormProps) {
+export function CreateQuizForm({ initialCategories, initialTopics, user, userData }: CreateQuizFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
-  const [user, setUser] = useState<User | null>(null);
-  const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
   const form = useForm<FormValues>({
@@ -62,27 +61,14 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     },
   });
 
-  // This logic is now handled by the parent page component to enforce the paywall.
-  // This component will only render if the user has access.
   useEffect(() => {
     setIsLoading(true);
-    const auth = getFirebaseAuth();
-    if (!auth) {
-        setIsLoading(false);
-        return;
-    }
-
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        const fetchedUserData = await getUserData(currentUser.uid);
-        setUserData(fetchedUserData);
-
-        if (currentUser.email === ADMIN_EMAIL) {
+    if (user && userData) {
+        if (userData.email === ADMIN_EMAIL) {
           setCategories(initialCategories);
           setTopics(initialTopics);
-        } else if (fetchedUserData) {
-          const userExamCategory = fetchedUserData.examCategory;
+        } else {
+          const userExamCategory = userData.examCategory;
           const userCategories = initialCategories.filter(c => 
             c.examCategories && c.examCategories.includes(userExamCategory)
           );
@@ -92,16 +78,12 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
           const userTopics = initialTopics.filter(t => userCategoryIds.includes(t.categoryId));
           setTopics(userTopics);
         }
-      } else {
-        setUserData(null);
+    } else {
         setCategories([]);
         setTopics([]);
-      }
-      setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [initialCategories, initialTopics]);
+    }
+    setIsLoading(false);
+  }, [initialCategories, initialTopics, user, userData]);
 
   const selectedCategoryId = form.watch('categoryId');
   const selectedDifficulty = form.watch('difficulty');
@@ -190,7 +172,6 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
             description: "Please upgrade to a paid plan for unlimited exam access.",
             variant: "destructive"
         });
-        // The parent component will re-render with the payment button on next focus/reload
       } else {
         toast({
             title: 'Error Generating Quiz',
@@ -221,11 +202,12 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
   }
 
   const getCardDescription = () => {
-    if (userData?.email === ADMIN_EMAIL) return "Admin has unlimited access.";
-    if (userData?.paymentStatus === 'paid' && userData?.paidUntil) {
+    if (!userData) return "Log in to see your status.";
+    if (userData.email === ADMIN_EMAIL) return "Admin has unlimited access.";
+    if (userData.paymentStatus === 'paid' && userData.paidUntil) {
       return `Your subscription is active until ${format(new Date(userData.paidUntil), 'PPP')}.`;
     }
-    return `You have ${FREE_TOPIC_EXAM_LIMIT - (userData?.topicExamsTaken || 0)} free exam(s) remaining.`;
+    return `You have ${FREE_TOPIC_EXAM_LIMIT - (userData.topicExamsTaken || 0)} free exam(s) remaining.`;
   }
 
   return (

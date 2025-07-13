@@ -71,7 +71,12 @@ export default function DashboardPage() {
           <TabsTrigger value="mock-test">Mock Test</TabsTrigger>
         </TabsList>
         <TabsContent value="topic-wise">
-          <CreateQuizForm initialCategories={categories} initialTopics={topics} />
+          <CreateQuizForm 
+            initialCategories={categories} 
+            initialTopics={topics} 
+            user={user}
+            userData={userData}
+          />
         </TabsContent>
         <TabsContent value="mock-test">
           <MockTestForm />
