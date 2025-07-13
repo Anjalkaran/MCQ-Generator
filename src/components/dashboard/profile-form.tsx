@@ -71,7 +71,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
         <Card>
             <CardHeader>
                 <CardTitle>Course Details</CardTitle>
-                <CardDescription>Manage your exam preferences.</CardDescription>
+                <CardDescription>Manage your exam preferences. Changing this will update the price for your next renewal.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="space-y-2">

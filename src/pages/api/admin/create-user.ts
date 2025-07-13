@@ -2,7 +2,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import type { UserData } from '@/lib/types';
-import { createUserDocument } from '@/lib/firestore';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -28,6 +27,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const uid = userRecord.uid;
 
+    let paidUntil = null;
+    if (paymentStatus === 'paid') {
+      const expiryDate = new Date();
+      expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+      paidUntil = expiryDate.toISOString();
+    }
+
     // Create user document in Firestore
     const newUser: UserData = {
       id: uid, // Use uid as the document id for consistency
@@ -38,9 +44,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       paymentStatus,
       topicExamsTaken: 0,
       mockTestsTaken: 0,
+      paidUntil,
     };
 
-    await createUserDocument(newUser);
+    await adminDb.collection('users').doc(uid).set(newUser);
+
 
     return res.status(201).json({ message: 'User created successfully', newUser });
 

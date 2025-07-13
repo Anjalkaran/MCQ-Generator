@@ -8,6 +8,7 @@ import { Loader2, Zap } from 'lucide-react';
 import type { UserData } from '@/lib/types';
 import Script from 'next/script';
 import { getUserData } from '@/lib/firestore';
+import { format } from 'date-fns';
 
 declare global {
   interface Window {
@@ -32,6 +33,9 @@ const getAmount = (examCategory: 'MTS' | 'POSTMAN' | 'PA'): number => {
 export function PaymentButton({ user, onPaymentSuccess }: PaymentButtonProps) {
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
+
+    const isExpired = user.paidUntil && new Date(user.paidUntil) < new Date();
+    const hasUsedFreeTier = user.topicExamsTaken >= 5;
 
     const handlePayment = async () => {
         setIsLoading(true);
@@ -123,6 +127,13 @@ export function PaymentButton({ user, onPaymentSuccess }: PaymentButtonProps) {
     };
 
     const amount = getAmount(user.examCategory);
+    let title = "You've used all your free exams!";
+    let ctaText = `Unlock for ₹${amount}`;
+
+    if (isExpired) {
+        title = "Your subscription has expired!";
+        ctaText = `Renew for ₹${amount}`;
+    }
 
     return (
         <>
@@ -132,16 +143,15 @@ export function PaymentButton({ user, onPaymentSuccess }: PaymentButtonProps) {
                 onLoad={() => console.log('Razorpay SDK loaded.')}
             />
             <div className="text-center p-4 border border-dashed rounded-lg bg-red-50/50 dark:bg-red-900/10 space-y-3">
-                <p className="font-semibold text-primary">You've used all your free exams!</p>
+                <p className="font-semibold text-primary">{title}</p>
                 <p className="text-sm text-muted-foreground">
                     To continue practicing, please unlock unlimited access.
                 </p>
                 <Button onClick={handlePayment} disabled={isLoading} size="lg">
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
-                    Unlock for ₹{amount}
+                    {ctaText}
                 </Button>
             </div>
         </>
     );
 }
-

@@ -20,6 +20,8 @@ import { getFirebaseAuth } from '@/lib/firebase';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { cn } from '@/lib/utils';
 import { PaymentButton } from '@/components/payment/payment-button';
+import { format } from 'date-fns';
+
 
 const formSchema = z.object({
   categoryId: z.string().min(1, 'Please select a category.'),
@@ -230,18 +232,26 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
   }
 
   const isAdmin = user?.email === ADMIN_EMAIL;
-  const hasReachedFreeLimit = !isAdmin && userData && userData.paymentStatus === 'free' && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
+  const isPaid = userData?.paymentStatus === 'paid';
+  const hasReachedFreeLimit = !isAdmin && !isPaid && userData && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
+
+  const getCardDescription = () => {
+    if (isAdmin) return "Admin has unlimited access.";
+    if (isPaid && userData?.paidUntil) {
+      return `Your subscription is active until ${format(new Date(userData.paidUntil), 'PPP')}.`;
+    }
+    if (userData) {
+      return `You have ${Math.max(0, FREE_TOPIC_EXAM_LIMIT - userData.topicExamsTaken)} free exams remaining.`;
+    }
+    return "Create a practice exam based on your preferences.";
+  }
 
   return (
     <Card>
       <CardHeader className="text-center">
         <CardTitle>Exam Details</CardTitle>
         <CardDescription>
-            {isAdmin ? "Admin has unlimited access." :
-             (userData && userData.paymentStatus === 'free' ?
-                `You have ${Math.max(0, FREE_TOPIC_EXAM_LIMIT - userData.topicExamsTaken)} free exams remaining.` :
-                "You have unlimited access.")
-            }
+            {getCardDescription()}
         </CardDescription>
       </CardHeader>
       <CardContent>

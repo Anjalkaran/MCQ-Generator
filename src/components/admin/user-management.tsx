@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Trash2, Edit, Eye, PlusCircle } from 'lucide-react';
+import { Loader2, Trash2, Edit, Eye, PlusCircle, Calendar as CalendarIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { deleteUserDocument, updateUserDocument } from '@/lib/firestore';
 import type { UserData } from '@/lib/types';
@@ -29,11 +29,16 @@ import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import Link from 'next/link';
 import { Badge } from '../ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const userUpdateSchema = z.object({
   name: z.string().min(1, { message: 'Username is required.' }),
   examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA'>,
   paymentStatus: z.string().min(1, { message: 'Please select a payment status.' }) as z.ZodType<'free' | 'paid'>,
+  paidUntil: z.date().optional().nullable(),
 });
 
 const userCreateSchema = z.object({
@@ -77,6 +82,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
       name: user.name,
       examCategory: user.examCategory,
       paymentStatus: user.paymentStatus || 'free',
+      paidUntil: user.paidUntil ? new Date(user.paidUntil) : null,
     });
     setIsUpdateDialogOpen(true);
   };
@@ -85,8 +91,24 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     if (!selectedUser) return;
     setIsLoading(true);
     try {
-      await updateUserDocument(selectedUser.uid, values);
-      setUsers(users.map(u => u.uid === selectedUser.uid ? { ...u, ...values } : u));
+      const dataToUpdate: Partial<UserData> = {
+        name: values.name,
+        examCategory: values.examCategory,
+        paymentStatus: values.paymentStatus,
+        paidUntil: values.paidUntil ? values.paidUntil.toISOString() : null,
+      };
+
+      if(values.paymentStatus === 'free'){
+        dataToUpdate.paidUntil = null;
+      } else if (values.paymentStatus === 'paid' && !values.paidUntil){
+        // If status is paid and date is not set, default to one year from now
+        const expiryDate = new Date();
+        expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+        dataToUpdate.paidUntil = expiryDate.toISOString();
+      }
+
+      await updateUserDocument(selectedUser.uid, dataToUpdate);
+      setUsers(users.map(u => u.uid === selectedUser.uid ? { ...u, ...dataToUpdate } : u));
       toast({ title: 'Success', description: 'User updated successfully.' });
       setIsUpdateDialogOpen(false);
       setSelectedUser(null);
@@ -259,6 +281,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                 <TableHead>Email</TableHead>
                 <TableHead>Exam Category</TableHead>
                 <TableHead>Payment Status</TableHead>
+                 <TableHead>Paid Until</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
             </TableHeader>
@@ -273,6 +296,9 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                         <Badge variant={user.paymentStatus === 'paid' ? 'default' : 'secondary'}>
                             {user.paymentStatus === 'paid' ? 'Paid' : 'Free'}
                         </Badge>
+                    </TableCell>
+                    <TableCell>
+                        {user.paidUntil ? format(new Date(user.paidUntil), 'PPP') : 'N/A'}
                     </TableCell>
                     <TableCell className="text-right">
                         <Button asChild variant="ghost" size="icon" disabled={user.email === 'admin@anjalkaran.com'}>
@@ -314,7 +340,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                 ))
                 ) : (
                 <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
+                    <TableCell colSpan={6} className="h-24 text-center">
                     No users found.
                     </TableCell>
                 </TableRow>
@@ -378,6 +404,47 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                                     </FormItem>
                                 )}
                             />
+                             <FormField
+                                control={updateUserForm.control}
+                                name="paidUntil"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                    <FormLabel>Subscription Expires On</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button
+                                            variant={"outline"}
+                                            className={cn(
+                                                "pl-3 text-left font-normal",
+                                                !field.value && "text-muted-foreground"
+                                            )}
+                                            >
+                                            {field.value ? (
+                                                format(field.value, "PPP")
+                                            ) : (
+                                                <span>Pick a date</span>
+                                            )}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                            mode="single"
+                                            selected={field.value || undefined}
+                                            onSelect={field.onChange}
+                                            disabled={(date) =>
+                                                date < new Date("1900-01-01")
+                                            }
+                                            initialFocus
+                                        />
+                                        </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setIsUpdateDialogOpen(false)}>Cancel</Button>
                                 <Button type="submit" disabled={isLoading}>

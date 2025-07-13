@@ -3,6 +3,7 @@
 
 
 
+
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment } from 'firebase/firestore';
 import type { Category, Topic, UserData, MCQHistory, TopicPerformance } from './types';
@@ -13,16 +14,32 @@ export const getUserData = async (userId: string): Promise<UserData | null> => {
     if (!db) throw new Error("Firestore is not initialized");
     const userRef = doc(db, 'users', userId);
     const userSnap = await getDoc(userRef);
+
     if (userSnap.exists()) {
-      // Add default values for new fields if they don't exist
-      const data = userSnap.data();
-      return {
-        id: userSnap.id,
-        ...data,
-        paymentStatus: data.paymentStatus || 'free',
-        topicExamsTaken: data.topicExamsTaken || 0,
-        mockTestsTaken: data.mockTestsTaken || 0,
-      } as UserData;
+        const data = userSnap.data();
+        let paymentStatus = data.paymentStatus || 'free';
+
+        // Check for subscription expiry
+        if (paymentStatus === 'paid' && data.paidUntil) {
+            const paidUntilDate = new Date(data.paidUntil);
+            if (paidUntilDate < new Date()) {
+                // Subscription has expired, reset to free
+                paymentStatus = 'free';
+                // Update in Firestore asynchronously
+                updateDoc(userRef, { paymentStatus: 'free' }).catch(err => {
+                    console.error("Failed to auto-revert user status to free:", err);
+                });
+            }
+        }
+
+        return {
+            id: userSnap.id,
+            ...data,
+            paymentStatus,
+            topicExamsTaken: data.topicExamsTaken || 0,
+            mockTestsTaken: data.mockTestsTaken || 0,
+            paidUntil: data.paidUntil || null,
+        } as UserData;
     }
     return null;
 }
@@ -39,17 +56,24 @@ export const createUserDocument = async (userData: Omit<UserData, 'id'>): Promis
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     const userRef = doc(db, 'users', userData.uid);
-    // Use setDoc to create a document with a specific ID (the UID)
+    
+    let paidUntil = null;
+    if (userData.paymentStatus === 'paid') {
+        const expiryDate = new Date();
+        expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+        paidUntil = expiryDate.toISOString();
+    }
+    
     await setDoc(userRef, {
       ...userData,
-      // Ensure default values are set even if not provided
       paymentStatus: userData.paymentStatus || 'free',
       topicExamsTaken: userData.topicExamsTaken || 0,
       mockTestsTaken: userData.mockTestsTaken || 0,
+      paidUntil: paidUntil,
     });
 };
 
-export const updateUserDocument = async (userId: string, data: Partial<Pick<UserData, 'name' | 'examCategory' | 'paymentStatus'>>): Promise<void> => {
+export const updateUserDocument = async (userId: string, data: Partial<Pick<UserData, 'name' | 'examCategory' | 'paymentStatus' | 'paidUntil'>>): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     const userRef = doc(db, 'users', userId);
@@ -59,10 +83,16 @@ export const updateUserDocument = async (userId: string, data: Partial<Pick<User
 export const updateUserPaymentStatus = async (userId: string, orderId: string) => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
+    
     const userRef = doc(db, "users", userId);
+    
+    const expiryDate = new Date();
+    expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+
     await updateDoc(userRef, {
         paymentStatus: "paid",
         orderId: orderId,
+        paidUntil: expiryDate.toISOString(),
     });
 };
 
@@ -164,11 +194,17 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
     const historyRef = doc(collection(db, 'mcqHistory'));
     batch.set(historyRef, historyData);
 
-    // Increment the user's exam count
-    const userRef = doc(db, 'users', historyData.userId);
-    batch.update(userRef, {
-        topicExamsTaken: increment(1)
-    });
+    const userDoc = await getDoc(doc(db, 'users', historyData.userId));
+    const userData = userDoc.data();
+
+    // Increment the user's exam count only if they are a free user
+    if (userData?.paymentStatus === 'free') {
+        const userRef = doc(db, 'users', historyData.userId);
+        batch.update(userRef, {
+            topicExamsTaken: increment(1)
+        });
+    }
+
 
     await batch.commit();
 };

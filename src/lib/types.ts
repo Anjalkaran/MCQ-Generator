@@ -30,6 +30,7 @@ export interface UserData {
     email: string;
     examCategory: 'MTS' | 'POSTMAN' | 'PA';
     paymentStatus: 'free' | 'paid';
+    paidUntil?: string | null; // ISO string date
     topicExamsTaken: number;
     mockTestsTaken: number;
     orderId?: string;
