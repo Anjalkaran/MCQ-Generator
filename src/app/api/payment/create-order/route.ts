@@ -1,3 +1,4 @@
+
 'use server';
 import 'dotenv/config';
 import { NextRequest, NextResponse } from 'next/server';
@@ -27,7 +28,11 @@ export async function POST(req: NextRequest) {
         }
         
         const amountInRupees = examCategory === 'PA' ? 749 : 499;
-        const amountInPaise = amountInRupees * 100;
+        const amountInPaise = Math.round(amountInRupees * 100); // Ensure it's an integer
+
+        if (isNaN(amountInPaise) || amountInPaise < 100) {
+            return NextResponse.json({ error: 'Invalid amount calculated.' }, { status: 400 });
+        }
 
         const options = {
             amount: amountInPaise,
@@ -45,8 +50,10 @@ export async function POST(req: NextRequest) {
 
     } catch (error: any) {
         console.error('Razorpay order creation error:', error);
+        // Log the detailed error from Razorpay if available
+        const errorMessage = error.error?.description || error.message || 'An unknown error occurred.';
         return NextResponse.json(
-            { error: 'Failed to create payment order. Check server logs for configuration issues.' },
+            { error: `Failed to create payment order: ${errorMessage}` },
             { status: 500 }
         );
     }
