@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { getFirebaseAuth } from "@/lib/firebase";
 import { getUserData, saveMCQHistory } from "@/lib/firestore";
 import { useToast } from "@/hooks/use-toast";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 interface MCQResultsClientProps {
   topicId: string;
@@ -177,15 +178,21 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
                      <p className="text-sm mt-2 text-yellow-700 dark:text-yellow-400">You did not answer this question. Correct answer: {mcq.correctAnswer}</p>
                    )}
                    {mcq.solution && (
-                    <div className="mt-4 p-4 bg-muted/50 rounded-lg border">
-                        <div className="flex items-center gap-2 mb-2">
-                            <BrainCircuit className="w-5 h-5 text-primary" />
-                            <h4 className="font-semibold text-primary">Solution</h4>
-                        </div>
-                        <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
-                            {mcq.solution}
-                        </div>
-                    </div>
+                    <Accordion type="single" collapsible className="w-full mt-4">
+                        <AccordionItem value="item-1">
+                            <AccordionTrigger>
+                                <div className="flex items-center gap-2 text-primary">
+                                    <BrainCircuit className="w-5 h-5" />
+                                    <span className="font-semibold">View Solution</span>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                                <div className="p-4 bg-muted/50 rounded-lg border prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
+                                    {mcq.solution}
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
                    )}
                   {index < quizMcqs.length - 1 && <Separator className="mt-6" />}
                 </li>

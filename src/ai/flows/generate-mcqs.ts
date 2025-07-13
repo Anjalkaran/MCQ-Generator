@@ -61,7 +61,10 @@ const prompt = ai.definePrompt({
   {{/ifEquals}}
   
   {{#ifEquals category "Basic Arithmetics"}}
-  For each question, you MUST provide a detailed, step-by-step solution in the "solution" field. Explain the formula used and the calculation process clearly.
+  For each question, you MUST provide a detailed, step-by-step solution in the "solution" field. Explain the formula used and the calculation process clearly. Format each step on a new line. For example:
+  Step 1: [Explanation]
+  Step 2: [Calculation]
+  Step 3: [Final Answer]
   {{/ifEquals}}
 
   {{#if material}}
