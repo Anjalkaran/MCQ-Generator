@@ -1,6 +1,6 @@
 
 import { config } from 'dotenv';
-config();
+config(); // This line ensures environment variables are loaded immediately.
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import crypto from 'crypto';
@@ -20,10 +20,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ error: "Missing required payment details." });
         }
 
+        const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET;
+        if (!razorpayKeySecret) {
+            console.error("RAZORPAY_KEY_SECRET is not defined in .env file.");
+            throw new Error("Payment verification key is not configured.");
+        }
+
         const body = razorpay_order_id + "|" + razorpay_payment_id;
 
         const expectedSignature = crypto
-            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
+            .createHmac('sha256', razorpayKeySecret)
             .update(body.toString())
             .digest('hex');
 
@@ -49,6 +55,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     } catch (error: any) {
         console.error("Payment verification error:", error);
-        res.status(500).json({ error: 'Failed to verify payment.' });
+        res.status(500).json({ error: 'Failed to verify payment. Check server logs for configuration issues.' });
     }
 }

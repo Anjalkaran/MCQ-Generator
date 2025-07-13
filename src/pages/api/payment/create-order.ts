@@ -1,15 +1,26 @@
 
 import { config } from 'dotenv';
-config();
+config(); // This line ensures environment variables are loaded immediately.
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import Razorpay from 'razorpay';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 
-const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID!,
-    key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
+const initializeRazorpay = () => {
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+    if (!keyId || !keySecret) {
+        console.error("Razorpay keys are not configured in .env file.");
+        throw new Error('Razorpay keys are not configured.');
+    }
+
+    return new Razorpay({
+        key_id: keyId,
+        key_secret: keySecret,
+    });
+}
+
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
@@ -17,6 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
+        const razorpay = initializeRazorpay();
         const { userId } = req.body;
 
         if (!userId) {
@@ -54,6 +66,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     } catch (error: any) {
         console.error('Razorpay order creation error:', error);
-        res.status(500).json({ error: 'Failed to create payment order.' });
+        res.status(500).json({ error: 'Failed to create payment order. Check server logs for configuration issues.' });
     }
 }
