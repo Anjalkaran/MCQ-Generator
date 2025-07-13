@@ -204,11 +204,19 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
 
     } catch (error: any) {
       console.error('Error generating quiz:', error);
-      toast({
-        title: 'Error Generating Quiz',
-        description: error.message || 'An unexpected error occurred. Please try again.',
-        variant: 'destructive',
-      });
+      if (error.message?.includes('You have used all your')) {
+        toast({
+            title: "Free Limit Reached",
+            description: "Please upgrade to a paid plan for unlimited exam access.",
+            variant: "destructive"
+        });
+      } else {
+        toast({
+            title: 'Error Generating Quiz',
+            description: error.message || 'An unexpected error occurred. Please try again.',
+            variant: 'destructive',
+        });
+      }
       setIsGenerating(false);
     }
   };
