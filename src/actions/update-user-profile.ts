@@ -14,6 +14,7 @@ const profileUpdateSchema = z.object({
 
 export async function updateUserProfile(
   userId: string,
+  prevState: any,
   formData: FormData
 ): Promise<{ success: boolean; message: string; }> {
   const auth = getFirebaseAuth();

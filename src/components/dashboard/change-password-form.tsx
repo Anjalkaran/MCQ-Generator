@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRef, useEffect } from 'react';
@@ -8,15 +7,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { UserData } from "@/lib/types";
-import { updateUserProfile } from '@/actions/update-user-profile';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-
-interface ProfileFormProps {
-  user: UserData;
-}
+import { changePassword } from '@/actions/change-password';
 
 const initialState = {
   message: '',
@@ -28,21 +21,22 @@ function SubmitButton() {
   return (
     <Button type="submit" disabled={pending}>
       {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-      Save Changes
+      Update Password
     </Button>
   );
 }
 
-export function ProfileForm({ user }: ProfileFormProps) {
+export function ChangePasswordForm() {
     const { toast } = useToast();
     const formRef = useRef<HTMLFormElement>(null);
     
-    const [state, formAction] = useFormState(updateUserProfile.bind(null, user.uid), initialState);
-    
+    const [state, formAction] = useFormState(changePassword, initialState);
+
     useEffect(() => {
         if (state.message) {
             if (state.success) {
                 toast({ title: "Success", description: state.message });
+                formRef.current?.reset();
             } else {
                 toast({ title: "Error", description: state.message, variant: "destructive" });
             }
@@ -54,30 +48,21 @@ export function ProfileForm({ user }: ProfileFormProps) {
     <form ref={formRef} action={formAction} className="space-y-6">
         <Card>
             <CardHeader>
-                <CardTitle>Personal & Course Details</CardTitle>
-                <CardDescription>Manage your personal information and exam preferences. Changing this will update the price for your next renewal.</CardDescription>
+                <CardTitle>Change Password</CardTitle>
+                <CardDescription>Enter your current password and a new password.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" name="name" defaultValue={user.name} required />
+                    <Label htmlFor="currentPassword">Current Password</Label>
+                    <Input id="currentPassword" name="currentPassword" type="password" required />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" name="email" type="email" defaultValue={user.email} disabled />
+                    <Label htmlFor="newPassword">New Password</Label>
+                    <Input id="newPassword" name="newPassword" type="password" required />
                 </div>
                  <div className="space-y-2">
-                    <Label htmlFor="examCategory">Preferred Exam Category</Label>
-                    <Select name="examCategory" defaultValue={user.examCategory}>
-                        <SelectTrigger>
-                        <SelectValue placeholder="Select your exam preference" />
-                        </SelectTrigger>
-                        <SelectContent>
-                        <SelectItem value="MTS">MTS</SelectItem>
-                        <SelectItem value="POSTMAN">POSTMAN</SelectItem>
-                        <SelectItem value="PA">PA</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                    <Input id="confirmPassword" name="confirmPassword" type="password" required />
                 </div>
             </CardContent>
             <CardFooter className="border-t px-6 py-4">

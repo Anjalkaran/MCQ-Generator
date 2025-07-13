@@ -1,7 +1,8 @@
 import { getFirebaseAuth } from '@/lib/firebase';
 import { getUserData } from '@/lib/firestore';
-import { redirect } from 'next/navigation';
 import { ProfileForm } from '@/components/dashboard/profile-form';
+import { ChangePasswordForm } from '@/components/dashboard/change-password-form';
+import { Separator } from '@/components/ui/separator';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,9 +11,6 @@ export default async function ProfilePage() {
     const currentUser = auth?.currentUser;
 
     if (!currentUser) {
-        // The layout's client-side check will handle the redirect.
-        // This check is a safeguard for direct server access attempts.
-        // Returning a loading/null state is better than redirecting here.
         return (
           <div className="space-y-6">
             <div className="space-y-0.5">
@@ -29,7 +27,6 @@ export default async function ProfilePage() {
     const userData = await getUserData(currentUser.uid);
 
     if (!userData) {
-        // Handle case where user data is not in Firestore
         return <div>Could not load user data. Please contact support.</div>;
     }
 
@@ -38,10 +35,12 @@ export default async function ProfilePage() {
       <div className="space-y-0.5">
           <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
           <p className="text-muted-foreground">
-            Manage your account settings and exam preferences.
+            Manage your account settings and security.
           </p>
       </div>
+      <Separator />
       <ProfileForm user={userData} />
+      <ChangePasswordForm />
     </div>
   );
 }
