@@ -229,7 +229,7 @@ export const getExamHistoryForUser = async (userId: string): Promise<MCQHistory[
     if (!db) throw new Error("Firestore is not initialized");
     
     const historyCollection = collection(db, 'mcqHistory');
-    const q = query(historyCollection, where('userId', '==', userId));
+    const q = query(historyCollection, where('userId', '==', userId), orderBy('takenAt', 'desc'));
     
     const querySnapshot = await getDocs(q);
     
@@ -250,8 +250,7 @@ export const getExamHistoryForUser = async (userId: string): Promise<MCQHistory[
         } as MCQHistory;
     });
 
-    // Sort the history by date in descending order (newest first)
-    return history.sort((a, b) => b.takenAt.getTime() - a.takenAt.getTime());
+    return history;
 };
 
 // PERFORMANCE ANALYSIS
@@ -294,3 +293,19 @@ export const getPerformanceByTopic = async (userId: string): Promise<TopicPerfor
 
     return performanceData.sort((a, b) => a.topicTitle.localeCompare(b.topicTitle));
 };
+
+
+// CONSOLIDATED DASHBOARD DATA FETCHING
+export const getDashboardData = async (userId: string) => {
+    const [userData, categories, topics] = await Promise.all([
+        getUserData(userId),
+        getCategories(),
+        getTopics()
+    ]);
+
+    if (!userData) {
+        throw new Error("User data could not be loaded.");
+    }
+
+    return { userData, categories, topics };
+}

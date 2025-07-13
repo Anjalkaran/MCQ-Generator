@@ -11,7 +11,7 @@ import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
-import { getCategories, getTopics, getUserData } from '@/lib/firestore';
+import { getDashboardData } from '@/lib/firestore';
 import type { UserData, Category, Topic } from "@/lib/types";
 
 const ADMIN_EMAIL = "admin@anjalkaran.com";
@@ -58,6 +58,7 @@ export default function DashboardLayout({
     }
     
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setIsLoading(true);
       if (currentUser) {
         setUser(currentUser);
         const userIsAdmin = currentUser.email === ADMIN_EMAIL;
@@ -71,22 +72,15 @@ export default function DashboardLayout({
         }
 
         try {
-            const [fetchedUserData, fetchedCategories, fetchedTopics] = await Promise.all([
-                getUserData(currentUser.uid),
-                getCategories(),
-                getTopics()
-            ]);
-            setUserData(fetchedUserData);
-            setCategories(fetchedCategories);
-            setTopics(fetchedTopics);
+            const { userData, categories, topics } = await getDashboardData(currentUser.uid);
+            setUserData(userData);
+            setCategories(categories);
+            setTopics(topics);
         } catch (error) {
             console.error("Error fetching dashboard data:", error);
             toast({ title: "Error", description: "Could not load dashboard data.", variant: "destructive" });
-            setUser(null);
-            setUserData(null);
-            router.push('/auth/login');
+            handleLogout(auth, false); // Log out on data fetch failure
         }
-
       } else {
         setUser(null);
         setIsAdmin(false);
@@ -101,39 +95,19 @@ export default function DashboardLayout({
     
   }, [router, pathname, toast]);
 
-  const handleLogout = async () => {
-    const auth = getFirebaseAuth();
-    if (!auth) {
-      toast({
-        title: "Authentication Error",
-        description: "Could not connect to authentication service.",
-        variant: "destructive",
-      });
+  const handleLogout = async (authInstance = getFirebaseAuth(), showToast = true) => {
+    if (!authInstance) {
+      if (showToast) toast({ title: "Authentication Error", description: "Could not connect to service.", variant: "destructive" });
       return;
     }
     try {
-      await signOut(auth);
-      toast({
-        title: "Logged Out",
-        description: "You have been successfully logged out.",
-      });
+      await signOut(authInstance);
+      if (showToast) toast({ title: "Logged Out", description: "You have been successfully logged out." });
       router.push('/');
     } catch (error: any) {
-      toast({
-        title: 'Logout Failed',
-        description: error.message || 'An unexpected error occurred.',
-        variant: 'destructive',
-      });
+      if (showToast) toast({ title: 'Logout Failed', description: error.message || 'An unexpected error occurred.', variant: 'destructive' });
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    )
-  }
 
   const contextValue = { user, userData, categories, topics, isLoading };
 
@@ -197,7 +171,7 @@ export default function DashboardLayout({
           </SidebarContent>
           <SidebarFooter>
             <div className="p-2">
-              <Button onClick={handleLogout} variant="ghost" className="w-full justify-start">
+              <Button onClick={() => handleLogout()} variant="ghost" className="w-full justify-start">
                 <LogOut className="mr-2 h-4 w-4" />
                 <span className="group-data-[collapsible=icon]:hidden">Logout</span>
               </Button>
@@ -207,7 +181,13 @@ export default function DashboardLayout({
             </div>
           </SidebarFooter>
         </Sidebar>
-        <main className="flex-1 bg-muted/40 p-4 md:p-6">{children}</main>
+        <main className="flex-1 bg-muted/40 p-4 md:p-6">
+            {isLoading ? (
+                 <div className="flex h-screen w-full items-center justify-center">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                 </div>
+            ) : children}
+        </main>
       </SidebarProvider>
     </DashboardContext.Provider>
   );

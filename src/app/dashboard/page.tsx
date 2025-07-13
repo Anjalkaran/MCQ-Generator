@@ -17,39 +17,22 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Create Your Own Exam</h1>
-        </div>
-        <Card>
-          <CardHeader>
-            <CardTitle>Loading Your Dashboard...</CardTitle>
-            <CardDescription>Please wait while we fetch your details.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center items-center h-40">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </CardContent>
-        </Card>
+      <div className="flex h-[50vh] w-full items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
 
   if (!user || !userData) {
-    // This case is a fallback, as the layout should have redirected to login
     return (
-      <div className="space-y-6">
-        <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Create Your Own Exam</h1>
-        </div>
-        <Card>
-          <CardHeader>
-            <CardTitle>Authentication Required</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>You must be logged in to access this page.</p>
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Authentication Required</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>You must be logged in to access this page.</p>
+        </CardContent>
+      </Card>
     );
   }
 
