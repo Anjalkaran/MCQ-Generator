@@ -105,16 +105,12 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      if(currentUser) {
-        await fetchAndSetUserData(currentUser);
-      } else {
-        setIsLoading(false);
-      }
+      await fetchAndSetUserData(currentUser);
     });
 
-    const handleFocus = () => {
+    const handleFocus = async () => {
         if (auth.currentUser) {
-            fetchAndSetUserData(auth.currentUser);
+            await fetchAndSetUserData(auth.currentUser);
         }
     };
     
