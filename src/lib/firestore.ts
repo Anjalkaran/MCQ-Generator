@@ -82,7 +82,7 @@ export const deleteCategory = async (categoryId: string, topicsToDelete: Topic[]
     const categoryRef = doc(db, 'categories', categoryId);
     batch.delete(categoryRef);
 
-    // Find and delete all topics associated with this category
+    // Delete all topics associated with this category
     topicsToDelete.forEach(topic => {
         const topicRef = doc(db, 'topics', topic.id);
         batch.delete(topicRef);
@@ -97,7 +97,7 @@ export const getTopics = async (): Promise<Topic[]> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     const topicsCollection = collection(db, 'topics');
-    const topicSnapshot = await getDocs(topicsCollection);
+    const topicSnapshot = await getDocs(query(topicsCollection));
     const topics = topicSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Topic));
     
     // Fetch category names for topics
@@ -107,7 +107,7 @@ export const getTopics = async (): Promise<Topic[]> => {
     return topics.map(topic => ({
         ...topic,
         categoryName: categoryMap.get(topic.categoryId) || 'N/A'
-    }));
+    })).sort((a,b) => a.title.localeCompare(b.title));
 };
 
 export const addTopic = async (topic: Omit<Topic, 'id'>): Promise<DocumentReference> => {
@@ -158,7 +158,6 @@ export const getExamHistoryForUser = async (userId: string): Promise<MCQHistory[
     if (!db) throw new Error("Firestore is not initialized");
     
     const historyCollection = collection(db, 'mcqHistory');
-    // The query that requires an index. We will filter first, then sort in code.
     const q = query(historyCollection, where('userId', '==', userId));
     
     const querySnapshot = await getDocs(q);
@@ -170,7 +169,6 @@ export const getExamHistoryForUser = async (userId: string): Promise<MCQHistory[
         const data = doc.data();
         const topic = topicMap.get(data.topicId);
         
-        // Convert Firestore Timestamp to Date
         const takenAt = data.takenAt?.toDate ? data.takenAt.toDate() : new Date();
 
         return {
@@ -181,7 +179,6 @@ export const getExamHistoryForUser = async (userId: string): Promise<MCQHistory[
         } as MCQHistory;
     });
 
-    // Sort the results by date in descending order in the application code
     return history.sort((a, b) => b.takenAt.getTime() - a.takenAt.getTime());
 };
 

@@ -125,14 +125,13 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
         await updateCategory(editingCategory.id, values);
         setCategories(prev => prev.map(c => c.id === editingCategory.id ? { ...c, ...values } : c).sort((a,b) => a.name.localeCompare(b.name)));
         toast({ title: 'Success', description: 'Category updated.' });
-        setIsCategoryDialogOpen(false); // Close dialog only on edit
         setEditingCategory(null);
+        setIsCategoryDialogOpen(false); 
       } else {
         const newCategoryDoc = await addCategory(values);
         const newCategory = { id: newCategoryDoc.id, ...values };
         setCategories(prev => [...prev, newCategory].sort((a,b) => a.name.localeCompare(b.name)));
         toast({ title: 'Success', description: 'New category added.' });
-        // Keep dialog open and reset form for next entry
         categoryForm.reset({ name: '', examCategories: [] });
       }
     } catch (error) {
@@ -150,15 +149,14 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
             await updateTopic(editingTopic.id, topicData);
             setTopics(prev => prev.map(t => t.id === editingTopic.id ? { ...t, ...topicData } : t).sort((a,b) => a.title.localeCompare(b.title)));
             toast({ title: 'Success', description: 'Topic updated.' });
-            setIsTopicDialogOpen(false); // Close dialog only on edit
             setEditingTopic(null);
+            setIsTopicDialogOpen(false);
         } else {
             const topicData = { ...values, description: values.description || '', icon: 'default' };
             const newTopicDoc = await addTopic(topicData);
             const newTopic = { id: newTopicDoc.id, ...topicData };
             setTopics(prev => [...prev, newTopic].sort((a,b) => a.title.localeCompare(b.title)));
             toast({ title: 'Success', description: 'New topic added.' });
-            // Keep category selected, clear other fields for next entry
             topicForm.reset({ title: '', description: '', categoryId: values.categoryId });
         }
     } catch (error) {
@@ -251,7 +249,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
   return (
     <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-6">
-            <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
+            <Dialog open={isCategoryDialogOpen} onOpenChange={(isOpen) => { setIsCategoryDialogOpen(isOpen); if (!isOpen) setEditingCategory(null); }}>
                 <DialogTrigger asChild>
                     <Button onClick={() => handleOpenCategoryDialog(null)} className="w-full">
                         <PlusCircle className="mr-2 h-4 w-4" />
@@ -333,7 +331,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={isTopicDialogOpen} onOpenChange={setIsTopicDialogOpen}>
+            <Dialog open={isTopicDialogOpen} onOpenChange={(isOpen) => { setIsTopicDialogOpen(isOpen); if (!isOpen) setEditingTopic(null); }}>
                  <DialogTrigger asChild>
                     <Button onClick={() => handleOpenTopicDialog(null)} className="w-full">
                         <PlusCircle className="mr-2 h-4 w-4" />
@@ -496,7 +494,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                 <TableRow key={cat.id}>
                                     <TableCell className="font-medium">{cat.name}</TableCell>
                                     <TableCell>
-                                        <div className="flex gap-1">
+                                        <div className="flex gap-1 flex-wrap">
                                             {cat.examCategories && cat.examCategories.map(ec => <Badge key={ec} variant="secondary">{ec}</Badge>)}
                                         </div>
                                     </TableCell>
