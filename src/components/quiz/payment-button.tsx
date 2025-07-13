@@ -120,7 +120,7 @@ export default function PaymentButton({ userId, userName, email, onPaymentSucces
                 className="w-full"
                 size="lg"
             >
-                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Pay Now & Reset Limit'}
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Pay Now'}
             </Button>
         </>
     );

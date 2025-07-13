@@ -67,7 +67,7 @@ export default function UpgradePage() {
                 <CardContent className="flex flex-col items-center space-y-4">
                     <div className="text-4xl font-bold">
                         ₹{price}
-                        <span className="text-lg font-normal text-muted-foreground"> / one-time</span>
+                        <span className="text-lg font-normal text-muted-foreground"> / year</span>
                     </div>
                     <p className="text-sm text-muted-foreground">This will reset your topic exam counter.</p>
                     <div className="w-full max-w-sm pt-4">
