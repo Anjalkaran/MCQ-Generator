@@ -37,6 +37,9 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
+  env: {
+    NEXT_PUBLIC_RAZORPAY_KEY_ID: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+  }
 };
 
 export default pwaConfig(nextConfig);

@@ -1,13 +1,13 @@
 
 import { config } from 'dotenv';
-config(); // This line ensures environment variables are loaded immediately.
+config();
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import Razorpay from 'razorpay';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 
 const initializeRazorpay = () => {
-    const keyId = process.env.RAZORPAY_KEY_ID;
+    const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
     if (!keyId || !keySecret) {
