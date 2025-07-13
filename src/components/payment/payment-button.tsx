@@ -39,6 +39,16 @@ export function PaymentButton({ user, amount }: PaymentButtonProps) {
             }
 
             const order = await res.json();
+            
+            if (!window.Razorpay) {
+                toast({
+                    title: "Error",
+                    description: "Razorpay SDK failed to load. Please check your internet connection.",
+                    variant: "destructive",
+                });
+                setIsLoading(false);
+                return;
+            }
 
             const options = {
                 key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
@@ -71,7 +81,6 @@ export function PaymentButton({ user, amount }: PaymentButtonProps) {
                         description: 'Your account has been upgraded.',
                     });
 
-                    // Reload the page to reflect the new subscription status
                     window.location.reload();
                 },
                 prefill: {
@@ -79,7 +88,7 @@ export function PaymentButton({ user, amount }: PaymentButtonProps) {
                     email: user.email,
                 },
                 theme: {
-                    color: '#D40000', // Matches your primary red color
+                    color: '#D40000',
                 },
             };
             
@@ -105,12 +114,9 @@ export function PaymentButton({ user, amount }: PaymentButtonProps) {
     };
 
     return (
-        <>
-            <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
-            <Button onClick={handlePayment} disabled={isLoading} className="w-full mt-8" size="lg">
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Pay Now
-            </Button>
-        </>
+        <Button onClick={handlePayment} disabled={isLoading} className="w-full mt-8" size="lg">
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Pay Now
+        </Button>
     );
 }

@@ -1,7 +1,4 @@
 
-import { config } from 'dotenv';
-config(); // This line ensures environment variables are loaded immediately.
-
 import type { NextApiRequest, NextApiResponse } from 'next';
 import crypto from 'crypto';
 import { adminDb } from '@/lib/firebase-admin';
@@ -22,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET;
         if (!razorpayKeySecret) {
-            console.error("RAZORPAY_KEY_SECRET is not defined in .env file.");
+            console.error("RAZORPAY_KEY_SECRET is not defined in environment variables.");
             throw new Error("Payment verification key is not configured.");
         }
 

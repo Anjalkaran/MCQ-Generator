@@ -1,17 +1,14 @@
 
-import { config } from 'dotenv';
-config();
-
 import type { NextApiRequest, NextApiResponse } from 'next';
 import Razorpay from 'razorpay';
-import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { adminDb } from '@/lib/firebase-admin';
 
 const initializeRazorpay = () => {
     const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
     if (!keyId || !keySecret) {
-        console.error("Razorpay keys are not configured in .env file.");
+        console.error("Razorpay keys are not configured in environment variables.");
         throw new Error('Razorpay keys are not configured.');
     }
 
