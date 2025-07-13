@@ -24,7 +24,6 @@ export interface Category {
 }
 
 export interface UserData {
-    id: string;
     uid: string;
     name: string;
     email: string;
@@ -56,6 +55,7 @@ export interface MCQHistory {
 export interface TopicPerformance {
     topicId: string;
     topicTitle: string;
+
     attempts: number;
     averageScore: number;
 }

@@ -28,7 +28,7 @@ export const getUserData = async (userId: string): Promise<UserData | null> => {
         }
 
         return {
-            id: userSnap.id,
+            uid: userSnap.id,
             ...data,
             paymentStatus,
             topicExamsTaken: data.topicExamsTaken || 0,
@@ -44,7 +44,7 @@ export const getAllUsers = async (): Promise<UserData[]> => {
   if (!db) throw new Error("Firestore is not initialized");
   const usersCollection = collection(db, 'users');
   const userSnapshot = await getDocs(usersCollection);
-  return userSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserData));
+  return userSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserData));
 };
 
 export const createUserDocument = async (userData: Omit<UserData, 'id'>): Promise<void> => {
@@ -229,7 +229,7 @@ export const getExamHistoryForUser = async (userId: string): Promise<MCQHistory[
     if (!db) throw new Error("Firestore is not initialized");
     
     const historyCollection = collection(db, 'mcqHistory');
-    const q = query(historyCollection, where('userId', '==', userId));
+    const q = query(historyCollection, where('userId', '==', userId), orderBy('takenAt', 'desc'));
     
     const querySnapshot = await getDocs(q);
     
@@ -250,7 +250,7 @@ export const getExamHistoryForUser = async (userId: string): Promise<MCQHistory[
         } as MCQHistory;
     });
 
-    return history.sort((a, b) => b.takenAt.getTime() - a.takenAt.getTime());
+    return history;
 };
 
 // PERFORMANCE ANALYSIS
@@ -287,7 +287,7 @@ export const getPerformanceByTopic = async (userId: string): Promise<TopicPerfor
             topicId,
             topicTitle: data.topicTitle,
             attempts: data.attempts,
-            averageScore: (data.totalQuestions > 0 ? data.totalScore / data.totalQuestions : 0) * 100,
+            averageScore: (data.totalQuestions > 0 ? (data.totalScore / data.totalQuestions) * 100 : 0),
         });
     });
 

@@ -97,7 +97,7 @@ const generateMCQsFlow = ai.defineFlow(
     }
     
     const isAdmin = userData.email === ADMIN_EMAIL;
-    const isPaid = userData.paymentStatus === 'paid'; // This is now correctly updated by getUserData for expiry
+    const isPaid = userData.paymentStatus === 'paid';
 
     if (!isAdmin && !isPaid && userData.topicExamsTaken >= FREE_EXAM_LIMIT) {
       throw new Error("You have reached your free exam limit. Please upgrade to continue.");
