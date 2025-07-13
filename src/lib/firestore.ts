@@ -316,6 +316,7 @@ export const getDashboardData = async (userId: string, isAdmin: boolean = false)
 
     // A regular user MUST have a user data document.
     if (!userData) {
+         // Instead of throwing an error, return null. The layout will handle this.
         return { userData: null, categories: [], topics: [] };
     }
 

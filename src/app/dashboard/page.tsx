@@ -4,7 +4,6 @@
 import { useDashboard } from "@/app/dashboard/layout";
 import { CreateQuizForm } from "@/components/quiz/create-quiz-form";
 import { MockTestForm } from "@/components/quiz/mock-test-form";
-import { PaymentButtonContainer } from "@/components/payment/payment-button-container";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from 'lucide-react';
@@ -41,7 +40,16 @@ export default function DashboardPage() {
   const hasReachedFreeLimit = !isAdmin && !isPaid && (userData.topicExamsTaken || 0) >= FREE_TOPIC_EXAM_LIMIT;
 
   if (hasReachedFreeLimit) {
-    return <PaymentButtonContainer initialUserData={userData} />;
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Free Limit Reached</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p>You have used all of your free exams. The ability to upgrade will be available soon.</p>
+            </CardContent>
+        </Card>
+    );
   }
 
   return (
