@@ -229,7 +229,7 @@ export const getExamHistoryForUser = async (userId: string): Promise<MCQHistory[
     if (!db) throw new Error("Firestore is not initialized");
     
     const historyCollection = collection(db, 'mcqHistory');
-    const q = query(historyCollection, where('userId', '==', userId), orderBy('takenAt', 'desc'));
+    const q = query(historyCollection, where('userId', '==', userId));
     
     const querySnapshot = await getDocs(q);
     
@@ -250,7 +250,8 @@ export const getExamHistoryForUser = async (userId: string): Promise<MCQHistory[
         } as MCQHistory;
     });
 
-    return history;
+    // Sort the history by date in descending order (newest first)
+    return history.sort((a, b) => b.takenAt.getTime() - a.takenAt.getTime());
 };
 
 // PERFORMANCE ANALYSIS
