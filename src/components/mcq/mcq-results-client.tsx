@@ -18,7 +18,7 @@ interface MCQResultsClientProps {
   topicId: string;
 }
 
-const FREE_TOPIC_EXAM_LIMIT = 5;
+const FREE_TOPIC_EXAM_LIMIT = 1;
 
 export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
   const router = useRouter();

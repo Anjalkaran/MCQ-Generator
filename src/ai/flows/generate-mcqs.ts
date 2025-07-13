@@ -39,7 +39,7 @@ export async function generateMCQs(input: GenerateMCQsInput): Promise<GenerateMC
   return generateMCQsFlow(input);
 }
 
-const FREE_TOPIC_EXAM_LIMIT = 5;
+const FREE_TOPIC_EXAM_LIMIT = 1;
 const ADMIN_EMAIL = "admin@anjalkaran.com";
 
 const prompt = ai.definePrompt({
