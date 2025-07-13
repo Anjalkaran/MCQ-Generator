@@ -20,7 +20,8 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import type { MCQData } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Clock } from "lucide-react";
+import { Clock, PlusCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface MCQClientProps {
   topicId: string;
@@ -32,13 +33,18 @@ const formatTime = (seconds: number) => {
   return `${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`;
 };
 
+const TIME_EXTENSION_SECONDS = 60;
+const MAX_TIME_EXTENSIONS = 1;
+
 export function MCQClient({ topicId }: MCQClientProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [quizData, setQuizData] = useState<MCQData | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<{ [key: number]: string }>({});
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [timeExtensionsUsed, setTimeExtensionsUsed] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleFinish = useCallback(() => {
@@ -89,6 +95,17 @@ export function MCQClient({ topicId }: MCQClientProps) {
         }
     };
 }, [timeLeft, handleFinish]);
+
+  const handleExtendTime = () => {
+    if (timeLeft !== null && timeExtensionsUsed < MAX_TIME_EXTENSIONS) {
+      setTimeLeft(timeLeft + TIME_EXTENSION_SECONDS);
+      setTimeExtensionsUsed(timeExtensionsUsed + 1);
+      toast({
+        title: "Time Extended!",
+        description: `You've been given an extra ${TIME_EXTENSION_SECONDS} seconds.`,
+      });
+    }
+  };
 
 
   if (!isClient || !quizData) {
@@ -147,9 +164,20 @@ export function MCQClient({ topicId }: MCQClientProps) {
                 </CardDescription>
             </div>
             {timeLeft !== null && (
-                <div className="flex items-center gap-2 text-lg font-semibold text-primary">
-                    <Clock className="h-6 w-6" />
-                    <span>{formatTime(timeLeft)}</span>
+                <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 text-lg font-semibold text-primary">
+                        <Clock className="h-6 w-6" />
+                        <span>{formatTime(timeLeft)}</span>
+                    </div>
+                     <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        onClick={handleExtendTime}
+                        disabled={timeExtensionsUsed >= MAX_TIME_EXTENSIONS}
+                        aria-label="Extend Time"
+                     >
+                        <PlusCircle className="h-5 w-5" />
+                    </Button>
                 </div>
             )}
         </div>
