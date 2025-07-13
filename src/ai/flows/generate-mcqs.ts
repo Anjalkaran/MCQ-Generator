@@ -39,7 +39,7 @@ export async function generateMCQs(input: GenerateMCQsInput): Promise<GenerateMC
   return generateMCQsFlow(input);
 }
 
-const FREE_EXAM_LIMIT = 5;
+const FREE_TOPIC_EXAM_LIMIT = 5;
 const ADMIN_EMAIL = "admin@anjalkaran.com";
 
 const prompt = ai.definePrompt({
@@ -99,8 +99,8 @@ const generateMCQsFlow = ai.defineFlow(
     const isAdmin = userData.email === ADMIN_EMAIL;
     const isPaid = userData.paymentStatus === 'paid';
 
-    if (!isAdmin && !isPaid && userData.topicExamsTaken >= FREE_EXAM_LIMIT) {
-      throw new Error("You have reached your free exam limit. Please upgrade to continue.");
+    if (!isAdmin && !isPaid && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT) {
+      throw new Error(`You have used all your ${FREE_TOPIC_EXAM_LIMIT} free exams. Please upgrade to continue.`);
     }
 
     const {output} = await prompt(input);
