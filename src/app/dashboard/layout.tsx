@@ -11,7 +11,7 @@ import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
-import { getDashboardData } from '@/lib/firestore';
+import { getDashboardData, getUserData } from '@/lib/firestore';
 import type { UserData, Category, Topic } from "@/lib/types";
 
 const ADMIN_EMAIL = "admin@anjalkaran.com";
@@ -76,27 +76,43 @@ export default function DashboardLayout({
       if (currentUser) {
         setUser(currentUser);
         
-        try {
-            const { userData, categories, topics } = await getDashboardData(currentUser.uid);
-            if (!userData) {
-                 toast({ title: "Authentication Error", description: "Could not load user profile. Please log in again.", variant: "destructive" });
-                 handleLogout(auth, false);
-                 return;
-            }
+        const userIsAdmin = currentUser.email === ADMIN_EMAIL;
+        setIsAdmin(userIsAdmin);
 
-            const userIsAdmin = currentUser.email === ADMIN_EMAIL;
-            setIsAdmin(userIsAdmin);
+        try {
+            if (userIsAdmin) {
+                // If the user is admin, create a dummy userData object and fetch categories/topics
+                const adminUserData: UserData = {
+                    uid: currentUser.uid,
+                    name: currentUser.displayName || 'Admin',
+                    email: currentUser.email!,
+                    examCategory: 'PA', // Admins can see all, so this doesn't matter much
+                    paymentStatus: 'paid', // Admin has permanent paid status
+                    paidUntil: null, // No expiry
+                    topicExamsTaken: 0,
+                    mockTestsTaken: 0,
+                };
+                const { categories, topics } = await getDashboardData(currentUser.uid, true);
+                setUserData(adminUserData);
+                setCategories(categories);
+                setTopics(topics);
+            } else {
+                 // For regular users, fetch all data including userData
+                const { userData, categories, topics } = await getDashboardData(currentUser.uid);
+                if (!userData) {
+                     toast({ title: "Authentication Error", description: "Could not load user profile. Please log in again.", variant: "destructive" });
+                     handleLogout(auth, false);
+                     return;
+                }
+                setUserData(userData);
+                setCategories(categories);
+                setTopics(topics);
+            }
 
             if (pathname.startsWith('/dashboard/admin') && !userIsAdmin) {
               toast({ title: "Access Denied", description: "You do not have permission to view this page.", variant: "destructive" });
               router.push('/dashboard');
-              setIsLoading(false);
-              return;
             }
-
-            setUserData(userData);
-            setCategories(categories);
-            setTopics(topics);
         } catch (error) {
             console.error("Error fetching dashboard data:", error);
             toast({ title: "Error", description: "Could not load dashboard data.", variant: "destructive" });
