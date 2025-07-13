@@ -22,7 +22,7 @@ interface PaymentButtonProps {
 }
 
 const RAZORPAY_KEY_ID = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-const FREE_TIER_LIMIT = 1;
+const FREE_TOPIC_EXAM_LIMIT = 1;
 
 const getAmount = (examCategory: 'MTS' | 'POSTMAN' | 'PA'): number => {
     if (examCategory === 'PA') {
@@ -36,7 +36,7 @@ export function PaymentButton({ user, onPaymentSuccess }: PaymentButtonProps) {
     const { toast } = useToast();
 
     const isExpired = user.paidUntil && new Date(user.paidUntil) < new Date();
-    const hasUsedFreeTier = user.topicExamsTaken >= FREE_TIER_LIMIT;
+    const hasUsedFreeTier = user.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
 
     const handlePayment = async () => {
         setIsLoading(true);
@@ -128,8 +128,8 @@ export function PaymentButton({ user, onPaymentSuccess }: PaymentButtonProps) {
     };
 
     const amount = getAmount(user.examCategory);
-    let title = "You've used all your free exams!";
-    let ctaText = `Unlock for ₹${amount}`;
+    let title = "You've used your free exam!";
+    let ctaText = `Unlock Unlimited Exams for ₹${amount}`;
 
     if (isExpired) {
         title = "Your subscription has expired!";
@@ -146,7 +146,7 @@ export function PaymentButton({ user, onPaymentSuccess }: PaymentButtonProps) {
             <div className="text-center p-4 border border-dashed rounded-lg bg-red-50/50 dark:bg-red-900/10 space-y-3">
                 <p className="font-semibold text-primary">{title}</p>
                 <p className="text-sm text-muted-foreground">
-                    To continue practicing, please unlock unlimited access.
+                    To continue practicing and access all features, please upgrade.
                 </p>
                 <Button onClick={handlePayment} disabled={isLoading} size="lg">
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
