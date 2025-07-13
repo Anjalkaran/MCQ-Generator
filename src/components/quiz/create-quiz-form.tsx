@@ -63,40 +63,10 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     },
   });
 
-  const fetchAndSetUserData = useCallback(async (currentUser: User | null) => {
-    if (!currentUser) {
-        setUserData(null);
-        setCategories([]);
-        setTopics([]);
-        setIsLoading(false);
-        return;
-    }
-    
-    setIsLoading(true);
-    const fetchedUserData = await getUserData(currentUser.uid);
-    setUserData(fetchedUserData);
-
-    if (currentUser.email === ADMIN_EMAIL) {
-        setCategories(initialCategories);
-        setTopics(initialTopics);
-    } else if (fetchedUserData) {
-        const userExamCategory = fetchedUserData.examCategory;
-        const userCategories = initialCategories.filter(c => 
-            c.examCategories && c.examCategories.includes(userExamCategory)
-        );
-        setCategories(userCategories);
-
-        const userCategoryIds = userCategories.map(c => c.id);
-        const userTopics = initialTopics.filter(t => userCategoryIds.includes(t.categoryId));
-        setTopics(userTopics);
-    } else {
-        setCategories([]);
-        setTopics([]);
-    }
-    setIsLoading(false);
-  }, [initialCategories, initialTopics]);
-
+  // This logic is now handled by the parent page component to enforce the paywall.
+  // This component will only render if the user has access.
   useEffect(() => {
+    setIsLoading(true);
     const auth = getFirebaseAuth();
     if (!auth) {
         setIsLoading(false);
@@ -105,22 +75,34 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      await fetchAndSetUserData(currentUser);
+      if (currentUser) {
+        const fetchedUserData = await getUserData(currentUser.uid);
+        setUserData(fetchedUserData);
+
+        if (currentUser.email === ADMIN_EMAIL) {
+          setCategories(initialCategories);
+          setTopics(initialTopics);
+        } else if (fetchedUserData) {
+          const userExamCategory = fetchedUserData.examCategory;
+          const userCategories = initialCategories.filter(c => 
+            c.examCategories && c.examCategories.includes(userExamCategory)
+          );
+          setCategories(userCategories);
+
+          const userCategoryIds = userCategories.map(c => c.id);
+          const userTopics = initialTopics.filter(t => userCategoryIds.includes(t.categoryId));
+          setTopics(userTopics);
+        }
+      } else {
+        setUserData(null);
+        setCategories([]);
+        setTopics([]);
+      }
+      setIsLoading(false);
     });
 
-    const handleFocus = async () => {
-        if (auth.currentUser) {
-            await fetchAndSetUserData(auth.currentUser);
-        }
-    };
-    
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-        unsubscribe();
-        window.removeEventListener('focus', handleFocus);
-    };
-  }, [fetchAndSetUserData]);
+    return () => unsubscribe();
+  }, [initialCategories, initialTopics]);
 
   const selectedCategoryId = form.watch('categoryId');
   const selectedDifficulty = form.watch('difficulty');
@@ -134,11 +116,8 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
         return;
     }
 
-    const allTopics = topics;
-    const allCategories = categories;
-
-    const selectedTopic = allTopics.find(t => t.id === values.topicId);
-    const selectedCategory = allCategories.find(c => c.id === values.categoryId);
+    const selectedTopic = topics.find(t => t.id === values.topicId);
+    const selectedCategory = categories.find(c => c.id === values.categoryId);
 
     if (!selectedTopic || !selectedCategory) {
         toast({
@@ -204,12 +183,15 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
 
     } catch (error: any) {
       console.error('Error generating quiz:', error);
-      if (error.message?.includes(`You have used all your ${FREE_TOPIC_EXAM_LIMIT} free exams`)) {
+      const isLimitError = error.message?.includes(`You have used all your ${FREE_TOPIC_EXAM_LIMIT} free exam`);
+      
+      if (isLimitError) {
         toast({
             title: "Free Limit Reached",
             description: "Please upgrade to a paid plan for unlimited exam access.",
             variant: "destructive"
         });
+        // The parent component will re-render with the payment button on next focus/reload
       } else {
         toast({
             title: 'Error Generating Quiz',
@@ -222,16 +204,12 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
   };
 
   const filteredTopics = selectedCategoryId ? topics.filter(topic => topic.categoryId === selectedCategoryId) : [];
-
-  const handlePaymentSuccess = () => {
-    if(user) fetchAndSetUserData(user);
-  };
   
   if (isLoading) {
     return (
         <Card>
-            <CardHeader className="text-center">
-                <CardTitle>Exam Details</CardTitle>
+            <CardHeader>
+                <CardTitle>Quiz Details</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="flex justify-center items-center h-40">
@@ -243,133 +221,125 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     );
   }
 
-  const isAdmin = user?.email === ADMIN_EMAIL;
-  const isPaid = userData?.paymentStatus === 'paid';
-  const hasReachedFreeLimit = !isAdmin && !isPaid && userData && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
-
   const getCardDescription = () => {
-    if (isAdmin) return "Admin has unlimited access.";
-    if (isPaid && userData?.paidUntil) {
+    if (userData?.email === ADMIN_EMAIL) return "Admin has unlimited access.";
+    if (userData?.paymentStatus === 'paid' && userData?.paidUntil) {
       return `Your subscription is active until ${format(new Date(userData.paidUntil), 'PPP')}.`;
     }
-    return "Create a practice exam based on your preferences.";
+    return `You have ${FREE_TOPIC_EXAM_LIMIT - (userData?.topicExamsTaken || 0)} free exam(s) remaining.`;
   }
 
   return (
     <Card>
-      <CardHeader className="text-center">
-        <CardTitle>Exam Details</CardTitle>
+      <CardHeader>
+        <CardTitle>Quiz Details</CardTitle>
         <CardDescription>
             {getCardDescription()}
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {hasReachedFreeLimit && userData ? (
-            <PaymentButton user={userData} onPaymentSuccess={handlePaymentSuccess} />
-        ) : (
-            <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                control={form.control}
-                name="categoryId"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <Select onValueChange={(value) => {
-                        field.onChange(value);
-                        form.setValue('topicId', '');
-                    }} value={field.value} disabled={!user || categories.length === 0}>
-                        <FormControl>
-                        <SelectTrigger>
-                            <SelectValue placeholder={!user ? "Login to see categories" : (categories.length === 0 ? "No categories available for your exam type" : "Select a category")} />
-                        </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                        {categories.map((category) => (
-                            <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                            </SelectItem>
-                        ))}
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="topicId"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Topic</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCategoryId || filteredTopics.length === 0}>
-                        <FormControl>
-                        <SelectTrigger>
-                            <SelectValue placeholder={!selectedCategoryId ? "Select a category first" : (filteredTopics.length === 0 ? "No topics in this category" : "Select a topic")} />
-                        </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                        {filteredTopics.map(topic => (
-                            <SelectItem key={topic.id} value={topic.id}>
-                            {topic.title}
-                            </SelectItem>
-                        ))}
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="difficulty"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Difficulty Level</FormLabel>
+        <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+            control={form.control}
+            name="categoryId"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Category</FormLabel>
+                <Select onValueChange={(value) => {
+                    field.onChange(value);
+                    form.setValue('topicId', '');
+                }} value={field.value} disabled={!user || categories.length === 0}>
                     <FormControl>
-                        <div className="grid grid-cols-3 gap-2">
-                        {difficultyLevels.map((level) => (
-                            <Card
-                            key={level}
-                            onClick={() => form.setValue('difficulty', level, { shouldValidate: true })}
-                            className={cn(
-                                'cursor-pointer p-2 text-center transition-all',
-                                selectedDifficulty === level
-                                ? 'border-primary ring-2 ring-primary bg-accent'
-                                : 'hover:bg-muted/50'
-                            )}
-                            >
-                            <CardTitle className="text-base font-medium">{level}</CardTitle>
-                            </Card>
-                        ))}
-                        </div>
+                    <SelectTrigger>
+                        <SelectValue placeholder={!user ? "Login to see categories" : (categories.length === 0 ? "No categories available for your exam type" : "Select a category")} />
+                    </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="numberOfQuestions"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Number of Questions (3-50)</FormLabel>
+                    <SelectContent>
+                    {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                        </SelectItem>
+                    ))}
+                    </SelectContent>
+                </Select>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="topicId"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Topic</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCategoryId || filteredTopics.length === 0}>
                     <FormControl>
-                        <Input type="number" min="3" max="50" {...field} />
+                    <SelectTrigger>
+                        <SelectValue placeholder={!selectedCategoryId ? "Select a category first" : (filteredTopics.length === 0 ? "No topics in this category" : "Select a topic")} />
+                    </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <div className="flex flex-col sm:flex-row gap-2">
-                <Button type="submit" disabled={isGenerating || !form.formState.isValid} className="flex-1">
-                    {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Start Exam
-                </Button>
-                </div>
-            </form>
-            </Form>
-        )}
+                    <SelectContent>
+                    {filteredTopics.map(topic => (
+                        <SelectItem key={topic.id} value={topic.id}>
+                        {topic.title}
+                        </SelectItem>
+                    ))}
+                    </SelectContent>
+                </Select>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="difficulty"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Difficulty Level</FormLabel>
+                <FormControl>
+                    <div className="grid grid-cols-3 gap-2">
+                    {difficultyLevels.map((level) => (
+                        <Card
+                        key={level}
+                        onClick={() => form.setValue('difficulty', level, { shouldValidate: true })}
+                        className={cn(
+                            'cursor-pointer p-2 text-center transition-all',
+                            selectedDifficulty === level
+                            ? 'border-primary ring-2 ring-primary bg-accent'
+                            : 'hover:bg-muted/50'
+                        )}
+                        >
+                        <CardTitle className="text-base font-medium">{level}</CardTitle>
+                        </Card>
+                    ))}
+                    </div>
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="numberOfQuestions"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Number of Questions (3-50)</FormLabel>
+                <FormControl>
+                    <Input type="number" min="3" max="50" {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <div className="flex flex-col sm:flex-row gap-2">
+            <Button type="submit" disabled={isGenerating || !form.formState.isValid} className="flex-1">
+                {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Start Exam
+            </Button>
+            </div>
+        </form>
+        </Form>
       </CardContent>
     </Card>
   );

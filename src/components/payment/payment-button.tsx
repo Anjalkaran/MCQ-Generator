@@ -20,7 +20,6 @@ interface PaymentButtonProps {
 }
 
 const RAZORPAY_KEY_ID = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-const FREE_TOPIC_EXAM_LIMIT = 1;
 
 const getAmount = (examCategory: 'MTS' | 'POSTMAN' | 'PA'): number => {
     if (examCategory === 'PA') {
