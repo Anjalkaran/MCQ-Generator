@@ -1,34 +1,40 @@
-import { getFirebaseAuth } from '@/lib/firebase';
-import { getUserData } from '@/lib/firestore';
+
+"use client";
+
+import { useDashboard } from '@/app/dashboard/layout';
 import { ProfileForm } from '@/components/dashboard/profile-form';
 import { ChangePasswordForm } from '@/components/dashboard/change-password-form';
 import { Separator } from '@/components/ui/separator';
-import { notFound } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { User } from 'lucide-react';
-import { ADMIN_EMAIL } from '@/lib/constants';
+import { Loader2, User } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
+export default function ProfilePage() {
+    const { userData, isLoading } = useDashboard();
 
-export default async function ProfilePage() {
-    const auth = getFirebaseAuth();
-    const currentUser = auth?.currentUser;
-
-    if (!currentUser) {
+    if (isLoading) {
         return (
-          <div className="space-y-6">
-            <div className="space-y-0.5">
-                <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
-                <p className="text-muted-foreground">
-                  Manage your account settings and exam preferences.
-                </p>
+            <div className="flex h-[50vh] w-full items-center justify-center">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
-            <div>Loading user data...</div>
-          </div>
         );
     }
 
-    if (currentUser.email === ADMIN_EMAIL) {
+    if (!userData) {
+        return (
+            <div className="space-y-6">
+              <div className="space-y-0.5">
+                  <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
+                  <p className="text-muted-foreground">
+                    Manage your account settings and exam preferences.
+                  </p>
+              </div>
+              <div>Could not load user data. Please try logging in again.</div>
+            </div>
+          );
+    }
+    
+    // Check for admin email from userData, which is reliable from the context
+    if (userData.email === "admin@anjalkaran.com") {
          return (
             <div className="space-y-6">
                 <div className="space-y-0.5">
@@ -47,12 +53,6 @@ export default async function ProfilePage() {
                 </Alert>
             </div>
          )
-    }
-
-    const userData = await getUserData(currentUser.uid);
-
-    if (!userData) {
-        notFound();
     }
 
   return (
