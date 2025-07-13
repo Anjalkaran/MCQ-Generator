@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Trash2, Edit, Eye } from 'lucide-react';
+import { Loader2, Trash2, Edit, Eye, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { deleteUserDocument, updateUserDocument } from '@/lib/firestore';
 import type { UserData } from '@/lib/types';
@@ -34,6 +34,13 @@ const userUpdateSchema = z.object({
   examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA'>,
 });
 
+const userCreateSchema = z.object({
+  name: z.string().min(1, { message: 'Username is required.' }),
+  email: z.string().email({ message: 'Invalid email address.' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA'>,
+});
+
 interface UserManagementProps {
     initialUsers: UserData[];
 }
@@ -42,11 +49,22 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
   const [users, setUsers] = useState<UserData[]>(initialUsers);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const { toast } = useToast();
 
   const updateUserForm = useForm<z.infer<typeof userUpdateSchema>>({
     resolver: zodResolver(userUpdateSchema),
+  });
+  
+  const createUserForm = useForm<z.infer<typeof userCreateSchema>>({
+    resolver: zodResolver(userCreateSchema),
+    defaultValues: {
+        name: '',
+        email: '',
+        password: '',
+        examCategory: 'MTS'
+    }
   });
 
   const handleOpenUpdateDialog = (user: UserData) => {
@@ -74,6 +92,35 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
       setIsLoading(false);
     }
   };
+  
+  const onCreateSubmit = async (values: z.infer<typeof userCreateSchema>) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/admin/create-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(values),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create user.');
+      }
+
+      const { newUser } = await response.json();
+      
+      setUsers(prev => [...prev, newUser]);
+      toast({ title: 'Success', description: 'User created successfully.' });
+      setIsCreateDialogOpen(false);
+      createUserForm.reset();
+
+    } catch (error: any) {
+        console.error("Error creating user:", error);
+        toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+        setIsLoading(false);
+    }
+  };
 
   const handleDeleteUser = async (userId: string) => {
     setIsLoading(true);
@@ -98,9 +145,88 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
 
   return (
     <Card>
-    <CardHeader>
-        <CardTitle>Users</CardTitle>
-        <CardDescription>A list of all registered users in the system.</CardDescription>
+    <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+            <CardTitle>Users</CardTitle>
+            <CardDescription>A list of all registered users in the system.</CardDescription>
+        </div>
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+                <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Create User
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Create New User</DialogTitle>
+                    <DialogDescription>
+                        Enter the details for the new user. They will be created in both Authentication and Firestore.
+                    </DialogDescription>
+                </DialogHeader>
+                <Form {...createUserForm}>
+                    <form onSubmit={createUserForm.handleSubmit(onCreateSubmit)} className="space-y-4">
+                        <FormField
+                            control={createUserForm.control}
+                            name="name"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Username</FormLabel>
+                                <FormControl><Input placeholder="John Doe" {...field} /></FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={createUserForm.control}
+                            name="email"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Email</FormLabel>
+                                <FormControl><Input placeholder="name@example.com" {...field} /></FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={createUserForm.control}
+                            name="password"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Password</FormLabel>
+                                <FormControl><Input type="password" placeholder="********" {...field} /></FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={createUserForm.control}
+                            name="examCategory"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Exam Category</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                    <SelectItem value="MTS">MTS</SelectItem>
+                                    <SelectItem value="POSTMAN">POSTMAN</SelectItem>
+                                    <SelectItem value="PA">PA</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
+                            <Button type="submit" disabled={isLoading}>
+                                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Create User"}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
     </CardHeader>
     <CardContent>
         <div className="border rounded-md">
