@@ -11,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { getUserData } from '@/lib/firestore';
 
 const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
@@ -19,6 +20,7 @@ const GenerateMCQsInputSchema = z.object({
   difficulty: z.string().describe('The difficulty level of the questions (e.g., Easy, Moderate, Difficult).'),
   material: z.string().optional().describe('The study material for the topic, if available.'),
   previousQuestions: z.array(z.string()).optional().describe('A list of previously asked questions to avoid repetition.'),
+  userId: z.string().describe('The ID of the user requesting the quiz.'),
 });
 export type GenerateMCQsInput = z.infer<typeof GenerateMCQsInputSchema>;
 
@@ -36,6 +38,9 @@ export type GenerateMCQsOutput = z.infer<typeof GenerateMCQsOutputSchema>;
 export async function generateMCQs(input: GenerateMCQsInput): Promise<GenerateMCQsOutput> {
   return generateMCQsFlow(input);
 }
+
+const FREE_EXAM_LIMIT = 2;
+const ADMIN_EMAIL = "admin@anjalkaran.com";
 
 const prompt = ai.definePrompt({
   name: 'generateMCQsPrompt',
@@ -84,6 +89,20 @@ const generateMCQsFlow = ai.defineFlow(
     outputSchema: GenerateMCQsOutputSchema,
   },
   async input => {
+
+    // Server-side check for user exam limit
+    const userData = await getUserData(input.userId);
+    if (!userData) {
+      throw new Error("User not found. Cannot generate quiz.");
+    }
+    
+    const isAdmin = userData.email === ADMIN_EMAIL;
+    const isPaid = userData.paymentStatus === 'paid'; // This is now correctly updated by getUserData for expiry
+
+    if (!isAdmin && !isPaid && userData.topicExamsTaken >= FREE_EXAM_LIMIT) {
+      throw new Error("You have reached your free exam limit. Please upgrade to continue.");
+    }
+
     const {output} = await prompt(input);
     if (!output || !output.mcqs || output.mcqs.length === 0) {
         throw new Error('The AI could not generate questions for the selected topic.');

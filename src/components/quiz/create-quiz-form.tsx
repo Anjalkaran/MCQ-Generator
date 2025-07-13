@@ -137,15 +137,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
         setIsGenerating(false);
         return;
     }
-    
-    const isAdmin = user.email === ADMIN_EMAIL;
-    const isPaid = userData.paymentStatus === 'paid';
-    if (!isAdmin && !isPaid && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT) {
-        toast({ title: 'Free Limit Reached', description: 'Please upgrade to create more exams.', variant: 'destructive' });
-        setIsGenerating(false);
-        return;
-    }
-    
+
     const allTopics = topics;
     const allCategories = categories;
 
@@ -174,6 +166,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
           difficulty: values.difficulty,
           material: (selectedTopic.material && !excludedCategories.includes(selectedCategory.name)) ? selectedTopic.material : undefined,
           previousQuestions: previousQuestions,
+          userId: user.uid,
       };
 
       const { mcqs } = await generateMCQs(generationInput);
@@ -213,11 +206,11 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
       localStorage.setItem(`quiz-${topicId}`, JSON.stringify(quizData));
       router.push(`/quiz/${topicId}`);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating quiz:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to generate quiz. Please try again later.',
+        title: 'Error Generating Quiz',
+        description: error.message || 'An unexpected error occurred. Please try again.',
         variant: 'destructive',
       });
       setIsGenerating(false);
