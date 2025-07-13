@@ -37,7 +37,9 @@ export function ProfileForm({ user }: ProfileFormProps) {
     const { toast } = useToast();
     const formRef = useRef<HTMLFormElement>(null);
     
-    const [state, formAction] = useFormState(updateUserProfile.bind(null, user.uid), initialState);
+    // Bind the user ID to the server action
+    const updateUserProfileWithId = updateUserProfile.bind(null, user.uid);
+    const [state, formAction] = useFormState(updateUserProfileWithId, initialState);
     
     useEffect(() => {
         if (state.message) {

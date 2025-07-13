@@ -1,9 +1,11 @@
+
 'use server';
 
 import { z } from 'zod';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { updateUserDocument } from '@/lib/firestore';
 import { updateProfile } from 'firebase/auth';
+import { revalidatePath } from 'next/cache';
 
 const profileUpdateSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -32,10 +34,12 @@ export async function updateUserProfile(
   const validatedFields = profileUpdateSchema.safeParse(rawFormData);
 
   if (!validatedFields.success) {
-    return {
-      success: false,
-      message: validatedFields.error.flatten().fieldErrors.name?.[0] || validatedFields.error.flatten().fieldErrors.examCategory?.[0] || 'Validation failed.',
-    };
+      const fieldErrors = validatedFields.error.flatten().fieldErrors;
+      const firstError = Object.values(fieldErrors)[0]?.[0];
+      return {
+        success: false,
+        message: firstError || 'Validation failed.',
+      };
   }
 
   try {
@@ -46,6 +50,11 @@ export async function updateUserProfile(
     if (currentUser.displayName !== validatedFields.data.name) {
       await updateProfile(currentUser, { displayName: validatedFields.data.name });
     }
+    
+    // Revalidate relevant paths to show updated data
+    revalidatePath('/dashboard/profile');
+    revalidatePath('/dashboard/layout');
+
 
     return { success: true, message: 'Profile updated successfully!' };
 
