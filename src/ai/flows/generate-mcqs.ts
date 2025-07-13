@@ -36,11 +36,56 @@ const GenerateMCQsOutputSchema = z.object({
 });
 export type GenerateMCQsOutput = z.infer<typeof GenerateMCQsOutputSchema>;
 
+const ArithmeticSolutionSchema = z.object({
+    steps: z.array(z.string()).describe("An array of strings, where each string is a single step in the calculation using the LCM method."),
+    final_answer: z.string().describe("A string containing only the final, mathematically exact answer."),
+});
+
 export async function generateMCQs(input: GenerateMCQsInput): Promise<GenerateMCQsOutput> {
   return generateMCQsFlow(input);
 }
 
 const FREE_TOPIC_EXAM_LIMIT = 1;
+
+const arithmeticSolverPrompt = ai.definePrompt({
+    name: 'arithmeticSolverPrompt',
+    input: { schema: z.object({ problem: z.string() }) },
+    output: { schema: ArithmeticSolutionSchema },
+    prompt: `You are a precise mathematical solver AI. Your sole purpose is to solve the given word problem and provide a step-by-step solution and an exact final answer.
+
+Your output MUST be a valid JSON object. Do not include any text, apologies, or explanations outside of the JSON structure itself.
+
+The JSON object must have two keys:
+1.  "steps": An array of strings. Each string must be a single, clear step in the calculation. For work-rate problems like this, use the LCM (Least Common Multiple) method.
+2.  "final_answer": A string containing only the final, mathematically exact answer. Express it as a fraction or a decimal (e.g., "18.75 days" or "75/4 days").
+
+CRITICAL INSTRUCTIONS:
+-   Do NOT mention or analyze any multiple-choice options that might be in the problem description. Ignore them completely.
+-   Do NOT guess or select the "closest" answer. Calculate and provide only the true mathematical result.
+-   Do NOT use conversational language. Stick to formal, mathematical steps.
+
+---
+Here is a perfect example of the required output format.
+
+Problem: "A can do a piece of work in 10 days and B can do it in 15 days. If they work together, in how many days will the work be completed?"
+
+Expected JSON Output:
+{
+  "steps": [
+    "Step 1: Define the total work using the LCM of the days. The LCM of 10 and 15 is 30. Let the total work be 30 units.",
+    "Step 2: Calculate the individual daily work rates (efficiency). A's rate = 30 units / 10 days = 3 units/day. B's rate = 30 units / 15 days = 2 units/day.",
+    "Step 3: Calculate the combined work rate when they work together. Combined rate = A's rate + B's rate = 3 units/day + 2 units/day = 5 units/day.",
+    "Step 4: Calculate the total time required to complete the work together. Time = Total Work / Combined Rate = 30 units / 5 units/day = 6 days."
+  ],
+  "final_answer": "6 days"
+}
+---
+
+Now, solve the following problem according to all the rules above:
+
+Problem: "{{problem}}"`,
+});
+
 
 const prompt = ai.definePrompt({
   name: 'generateMCQsPrompt',
@@ -63,16 +108,11 @@ const prompt = ai.definePrompt({
   {{#ifEquals category "Basic Arithmetics"}}
   You are a meticulous mathematics teacher. Your task is to create high-quality arithmetic problems.
   For each question, you MUST follow this process:
-  1. First, create a word problem and solve it yourself step-by-step to arrive at a single, correct numerical answer.
-  2. The 'correctAnswer' field in your output MUST be this exact answer.
-  3. One of the four 'options' MUST be the correct answer.
-  4. The other three options must be plausible but incorrect distractors, derived from common calculation mistakes.
-  5. The 'solution' field MUST provide a detailed, step-by-step explanation of how to arrive at the correct answer. Format each step on a new line. For example:
-    Step 1: Identify the given values.
-    Step 2: State the formula to be used.
-    Step 3: Show the calculation.
-    Step 4: State the final answer clearly.
-  DO NOT include any verification or notes about your own calculation process in the solution. The solution should only explain how to solve the problem.
+  1.  First, create a word problem and solve it yourself to arrive at a single, correct numerical answer.
+  2.  The 'correctAnswer' field in your output MUST be this exact answer.
+  3.  One of the four 'options' MUST be the correct answer.
+  4.  The other three options must be plausible but incorrect distractors, derived from common calculation mistakes.
+  5.  The 'solution' field MUST BE an empty string (""). The solution will be generated separately. DO NOT generate a solution here.
   {{/ifEquals}}
 
   {{#if material}}
@@ -124,10 +164,32 @@ const generateMCQsFlow = ai.defineFlow(
         }
     }
 
-    const {output} = await prompt(input);
-    if (!output || !output.mcqs || output.mcqs.length === 0) {
+    const {output: initialOutput} = await prompt(input);
+    if (!initialOutput || !initialOutput.mcqs || initialOutput.mcqs.length === 0) {
         throw new Error('The AI could not generate questions for the selected topic.');
     }
-    return output;
+
+    if (input.category === "Basic Arithmetics") {
+        for (const mcq of initialOutput.mcqs) {
+            try {
+                const solutionResponse = await arithmeticSolverPrompt({ problem: mcq.question });
+                const solution = solutionResponse.output;
+
+                if (solution) {
+                    mcq.solution = solution.steps.join('\n');
+                    // Optional: Verify the final answer matches the correctAnswer
+                    // if (solution.final_answer !== mcq.correctAnswer) {
+                    //     console.warn(`Mismatch found for question: ${mcq.question}`);
+                    //     mcq.correctAnswer = solution.final_answer; 
+                    // }
+                }
+            } catch (e) {
+                console.error("Failed to generate a detailed solution for a question:", e);
+                mcq.solution = "A detailed solution could not be generated for this problem.";
+            }
+        }
+    }
+
+    return initialOutput;
   }
 );
