@@ -55,7 +55,7 @@ export default function DashboardPage() {
 
   const isPaid = userData.paymentStatus === 'paid';
   const isAdmin = userData.email === ADMIN_EMAIL;
-  const hasReachedFreeLimit = !isAdmin && !isPaid && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
+  const hasReachedFreeLimit = !isAdmin && !isPaid && (userData.topicExamsTaken || 0) >= FREE_TOPIC_EXAM_LIMIT;
 
   if (hasReachedFreeLimit) {
     return <PaymentButtonContainer initialUserData={userData} />;

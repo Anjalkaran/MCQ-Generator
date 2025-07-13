@@ -51,45 +51,54 @@ export default function DashboardLayout({
 
   useEffect(() => {
     const auth = getFirebaseAuth();
-    if (auth) {
-      const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-        if (currentUser) {
-          setUser(currentUser);
-          const userIsAdmin = currentUser.email === ADMIN_EMAIL;
-          setIsAdmin(userIsAdmin);
-
-          if (pathname.startsWith('/dashboard/admin') && !userIsAdmin) {
-            toast({ title: "Access Denied", description: "You do not have permission to view this page.", variant: "destructive" });
-            router.push('/dashboard');
-            setIsLoading(false);
-            return;
-          }
-
-          // Fetch all data here
-          const [fetchedUserData, fetchedCategories, fetchedTopics] = await Promise.all([
-            getUserData(currentUser.uid),
-            getCategories(),
-            getTopics()
-          ]);
-          setUserData(fetchedUserData);
-          setCategories(fetchedCategories);
-          setTopics(fetchedTopics);
-
-        } else {
-          setUser(null);
-          setIsAdmin(false);
-          setUserData(null);
-          setCategories([]);
-          setTopics([]);
-          router.push('/auth/login');
-        }
-        setIsLoading(false);
-      });
-      return () => unsubscribe();
-    } else {
+    if (!auth) {
       router.push('/auth/login');
       setIsLoading(false);
+      return;
     }
+    
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        const userIsAdmin = currentUser.email === ADMIN_EMAIL;
+        setIsAdmin(userIsAdmin);
+
+        if (pathname.startsWith('/dashboard/admin') && !userIsAdmin) {
+          toast({ title: "Access Denied", description: "You do not have permission to view this page.", variant: "destructive" });
+          router.push('/dashboard');
+          setIsLoading(false);
+          return;
+        }
+
+        try {
+            const [fetchedUserData, fetchedCategories, fetchedTopics] = await Promise.all([
+                getUserData(currentUser.uid),
+                getCategories(),
+                getTopics()
+            ]);
+            setUserData(fetchedUserData);
+            setCategories(fetchedCategories);
+            setTopics(fetchedTopics);
+        } catch (error) {
+            console.error("Error fetching dashboard data:", error);
+            toast({ title: "Error", description: "Could not load dashboard data.", variant: "destructive" });
+            setUser(null);
+            setUserData(null);
+            router.push('/auth/login');
+        }
+
+      } else {
+        setUser(null);
+        setIsAdmin(false);
+        setUserData(null);
+        setCategories([]);
+        setTopics([]);
+        router.push('/auth/login');
+      }
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
+    
   }, [router, pathname, toast]);
 
   const handleLogout = async () => {
