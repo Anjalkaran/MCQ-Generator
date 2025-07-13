@@ -188,8 +188,8 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
     const userData = userDoc.data();
 
     if (!userData) {
-        console.error("User not found, cannot save history or increment count.");
-        return;
+        // This can happen for the admin user, which is fine. Just don't increment counts.
+        console.log("User not found in DB, saving history without incrementing counts.");
     }
 
     const batch = writeBatch(db);
@@ -199,7 +199,7 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
     batch.set(historyRef, historyData);
 
     // Increment the user's exam count only if they are a free user
-    if (userData.paymentStatus === 'free') {
+    if (userData && userData.paymentStatus === 'free') {
         batch.update(userRef, {
             topicExamsTaken: increment(1)
         });
@@ -297,15 +297,25 @@ export const getPerformanceByTopic = async (userId: string): Promise<TopicPerfor
 
 // CONSOLIDATED DASHBOARD DATA FETCHING
 export const getDashboardData = async (userId: string, isAdmin: boolean = false) => {
-    const userDataPromise = isAdmin ? Promise.resolve(null) : getUserData(userId);
-    
+    // For admin, we don't need userData, just the content
+    if (isAdmin) {
+        const [categories, topics] = await Promise.all([
+            getCategories(),
+            getTopics()
+        ]);
+        return { userData: null, categories, topics };
+    }
+
+    // For regular users, fetch everything
+    const userDataPromise = getUserData(userId);
     const [userData, categories, topics] = await Promise.all([
         userDataPromise,
         getCategories(),
         getTopics()
     ]);
 
-    if (!isAdmin && !userData) {
+    // A regular user MUST have a user data document.
+    if (!userData) {
         return { userData: null, categories: [], topics: [] };
     }
 
