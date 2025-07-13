@@ -22,6 +22,7 @@ interface PaymentButtonProps {
 }
 
 const RAZORPAY_KEY_ID = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+const FREE_TIER_LIMIT = 2;
 
 const getAmount = (examCategory: 'MTS' | 'POSTMAN' | 'PA'): number => {
     if (examCategory === 'PA') {
@@ -35,7 +36,7 @@ export function PaymentButton({ user, onPaymentSuccess }: PaymentButtonProps) {
     const { toast } = useToast();
 
     const isExpired = user.paidUntil && new Date(user.paidUntil) < new Date();
-    const hasUsedFreeTier = user.topicExamsTaken >= 5;
+    const hasUsedFreeTier = user.topicExamsTaken >= FREE_TIER_LIMIT;
 
     const handlePayment = async () => {
         setIsLoading(true);
