@@ -19,7 +19,6 @@ import type { Category, Topic, UserData } from '@/lib/types';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { cn } from '@/lib/utils';
-import { PaymentButton } from '@/components/payment/payment-button';
 import { format } from 'date-fns';
 
 

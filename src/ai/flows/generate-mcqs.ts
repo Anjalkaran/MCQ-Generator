@@ -90,6 +90,10 @@ const generateMCQsFlow = ai.defineFlow(
   },
   async input => {
 
+    if (!input.userId) {
+      throw new Error("A user ID must be provided to generate a quiz.");
+    }
+    
     // Server-side check for user exam limit
     const userData = await getUserData(input.userId);
     if (!userData) {
