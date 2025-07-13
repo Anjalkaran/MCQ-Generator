@@ -39,7 +39,7 @@ export async function updateUserProfile(
   }
 
   try {
-    const dataToUpdate: { name: string, examCategory?: 'MTS' | 'POSTMAN' | 'PA' } = {
+    const dataToUpdate: { name: string } = {
         name: validatedFields.data.name
     };
 

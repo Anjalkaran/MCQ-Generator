@@ -6,12 +6,7 @@ import { CreateQuizForm } from "@/components/quiz/create-quiz-form";
 import { MockTestForm } from "@/components/quiz/mock-test-form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Zap } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-
-const ADMIN_EMAIL = "admin@anjalkaran.com";
-const FREE_TOPIC_EXAM_LIMIT = 1;
+import { Loader2 } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user, userData, categories, topics, isLoading } = useDashboard();
@@ -34,29 +29,6 @@ export default function DashboardPage() {
           <p>You must be logged in to access this page.</p>
         </CardContent>
       </Card>
-    );
-  }
-
-  const isPaid = userData.paymentStatus === 'paid';
-  const isAdmin = userData.email === ADMIN_EMAIL;
-  const hasReachedFreeLimit = !isAdmin && !isPaid && (userData.topicExamsTaken || 0) >= FREE_TOPIC_EXAM_LIMIT;
-
-  if (hasReachedFreeLimit) {
-    return (
-        <Card className="text-center">
-            <CardHeader>
-                <CardTitle className="text-2xl font-bold">Free Limit Reached</CardTitle>
-                <CardDescription>You've used all your free exams. Upgrade your account for unlimited access.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Button asChild size="lg">
-                    <Link href="/dashboard/upgrade">
-                        <Zap className="mr-2 h-4 w-4"/>
-                        Upgrade Now
-                    </Link>
-                </Button>
-            </CardContent>
-        </Card>
     );
   }
 

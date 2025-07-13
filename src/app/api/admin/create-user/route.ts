@@ -5,9 +5,9 @@ import type { UserData } from '@/lib/types';
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, password, examCategory, paymentStatus } = await req.json();
+    const { name, email, password, examCategory } = await req.json();
 
-    if (!name || !email || !password || !examCategory || !paymentStatus) {
+    if (!name || !email || !password || !examCategory) {
         return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
     }
 
@@ -20,23 +20,14 @@ export async function POST(req: NextRequest) {
 
     const uid = userRecord.uid;
 
-    let paidUntil = null;
-    if (paymentStatus === 'paid') {
-      const expiryDate = new Date();
-      expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-      paidUntil = expiryDate.toISOString();
-    }
-
     // Create user document in Firestore
     const newUser: UserData = {
       uid,
       name,
       email,
       examCategory,
-      paymentStatus,
       topicExamsTaken: 0,
       mockTestsTaken: 0,
-      paidUntil,
     };
 
     await adminDb.collection('users').doc(uid).set(newUser);

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,8 +18,6 @@ import { getMCQHistoryForTopic } from '@/lib/firestore';
 import type { Category, Topic, UserData } from '@/lib/types';
 import type { User } from 'firebase/auth';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-
 
 const formSchema = z.object({
   categoryId: z.string().min(1, 'Please select a category.'),
@@ -41,7 +39,6 @@ interface CreateQuizFormProps {
 }
 
 const ADMIN_EMAIL = "admin@anjalkaran.com";
-const FREE_TOPIC_EXAM_LIMIT = 1;
 
 export function CreateQuizForm({ initialCategories, initialTopics, user, userData }: CreateQuizFormProps) {
   const router = useRouter();
@@ -167,21 +164,11 @@ export function CreateQuizForm({ initialCategories, initialTopics, user, userDat
 
     } catch (error: any) {
       console.error('Error generating quiz:', error);
-      const isLimitError = error.message?.includes(`You have used all your ${FREE_TOPIC_EXAM_LIMIT} free exam`);
-      
-      if (isLimitError) {
-        toast({
-            title: "Free Limit Reached",
-            description: "Please upgrade to a paid plan for unlimited exam access.",
-            variant: "destructive"
-        });
-      } else {
-        toast({
-            title: 'Error Generating Quiz',
-            description: error.message || 'An unexpected error occurred. Please try again.',
-            variant: 'destructive',
-        });
-      }
+      toast({
+          title: 'Error Generating Quiz',
+          description: error.message || 'An unexpected error occurred. Please try again.',
+          variant: 'destructive',
+      });
       setIsGenerating(false);
     }
   };
@@ -207,10 +194,7 @@ export function CreateQuizForm({ initialCategories, initialTopics, user, userDat
   const getCardDescription = () => {
     if (!userData) return "Log in to see your status.";
     if (userData.email === ADMIN_EMAIL) return "Admin has unlimited access.";
-    if (userData.paymentStatus === 'paid' && userData.paidUntil) {
-      return `Your subscription is active until ${format(new Date(userData.paidUntil), 'PPP')}.`;
-    }
-    return `You have ${FREE_TOPIC_EXAM_LIMIT - (userData.topicExamsTaken || 0)} free exam(s) remaining.`;
+    return `Welcome, ${userData.name}! Select a topic to start practicing.`;
   }
 
   return (

@@ -45,8 +45,6 @@ export async function generateMCQs(input: GenerateMCQsInput): Promise<GenerateMC
   return generateMCQsFlow(input);
 }
 
-const FREE_TOPIC_EXAM_LIMIT = 1;
-
 const arithmeticSolverPrompt = ai.definePrompt({
     name: 'arithmeticSolverPrompt',
     input: { schema: z.object({ problem: z.string() }) },
@@ -147,22 +145,6 @@ const generateMCQsFlow = ai.defineFlow(
     if (!input.userId) {
       throw new Error("A user ID must be provided to generate a quiz.");
     }
-    
-    const isRunningAsAdmin = input.userId === 'admin';
-
-    // Skip DB checks for the admin user
-    if (!isRunningAsAdmin) {
-        const userData = await getUserData(input.userId);
-        if (!userData) {
-          throw new Error("User not found. Cannot generate quiz.");
-        }
-        
-        const isPaid = userData.paymentStatus === 'paid';
-
-        if (!isPaid && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT) {
-          throw new Error(`You have used all your ${FREE_TOPIC_EXAM_LIMIT} free exams. Please upgrade to continue.`);
-        }
-    }
 
     const {output: initialOutput} = await prompt(input);
     if (!initialOutput || !initialOutput.mcqs || initialOutput.mcqs.length === 0) {
@@ -177,11 +159,6 @@ const generateMCQsFlow = ai.defineFlow(
 
                 if (solution) {
                     mcq.solution = solution.steps.join('\n');
-                    // Optional: Verify the final answer matches the correctAnswer
-                    // if (solution.final_answer !== mcq.correctAnswer) {
-                    //     console.warn(`Mismatch found for question: ${mcq.question}`);
-                    //     mcq.correctAnswer = solution.final_answer; 
-                    // }
                 }
             } catch (e) {
                 console.error("Failed to generate a detailed solution for a question:", e);

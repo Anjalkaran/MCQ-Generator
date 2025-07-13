@@ -87,8 +87,6 @@ export default function DashboardLayout({
                     name: currentUser.displayName || 'Admin',
                     email: currentUser.email!,
                     examCategory: 'PA', // Admins can see all
-                    paymentStatus: 'paid', // Admin has permanent paid status
-                    paidUntil: null,
                     topicExamsTaken: 0,
                     mockTestsTaken: 0,
                 };

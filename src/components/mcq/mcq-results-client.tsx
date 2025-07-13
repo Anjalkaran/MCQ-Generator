@@ -19,8 +19,6 @@ interface MCQResultsClientProps {
   topicId: string;
 }
 
-const FREE_TOPIC_EXAM_LIMIT = 1;
-
 export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -53,9 +51,6 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
         setScore(correctCount);
   
         try {
-          // Check user status BEFORE saving history
-          const userDataBeforeSave = await getUserData(currentUser.uid);
-          
           // Save history to Firestore
           await saveMCQHistory({
               userId: currentUser.uid,
@@ -66,26 +61,13 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
               takenAt: new Date(),
           });
 
-          // If user was free before this exam, show remaining count
-          if (userDataBeforeSave?.paymentStatus === 'free') {
-            const newExamsTaken = (userDataBeforeSave.topicExamsTaken || 0) + 1;
-            const remainingExams = FREE_TOPIC_EXAM_LIMIT - newExamsTaken;
-            
-            if (remainingExams > 0) {
-                toast({
-                    title: "Exam Finished",
-                    description: `You have ${remainingExams} free exams remaining.`
-                });
-            } else {
-                 toast({
-                    title: "Free Exams Used",
-                    description: `You have used all your free exams. Please upgrade for unlimited access.`
-                });
-            }
-          }
-
         } catch (err) {
             console.error("Failed to save quiz history or fetch user data:", err);
+            toast({
+              title: "Error",
+              description: "Could not save your exam results.",
+              variant: "destructive"
+            })
         }
       }
     };

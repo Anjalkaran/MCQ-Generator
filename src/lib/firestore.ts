@@ -12,28 +12,11 @@ export const getUserData = async (userId: string): Promise<UserData | null> => {
 
     if (userSnap.exists()) {
         const data = userSnap.data();
-        let paymentStatus = data.paymentStatus || 'free';
-
-        // Check for subscription expiry
-        if (paymentStatus === 'paid' && data.paidUntil) {
-            const paidUntilDate = new Date(data.paidUntil);
-            if (paidUntilDate < new Date()) {
-                // Subscription has expired, reset to free
-                paymentStatus = 'free';
-                // Update in Firestore asynchronously
-                updateDoc(userRef, { paymentStatus: 'free' }).catch(err => {
-                    console.error("Failed to auto-revert user status to free:", err);
-                });
-            }
-        }
-
         return {
             uid: userSnap.id,
             ...data,
-            paymentStatus,
             topicExamsTaken: data.topicExamsTaken || 0,
             mockTestsTaken: data.mockTestsTaken || 0,
-            paidUntil: data.paidUntil || null,
         } as UserData;
     }
     return null;
@@ -52,45 +35,19 @@ export const createUserDocument = async (userData: Omit<UserData, 'id'>): Promis
     if (!db) throw new Error("Firestore is not initialized");
     const userRef = doc(db, 'users', userData.uid);
     
-    let paidUntil = null;
-    if (userData.paymentStatus === 'paid') {
-        const expiryDate = new Date();
-        expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-        paidUntil = expiryDate.toISOString();
-    }
-    
     await setDoc(userRef, {
       ...userData,
-      paymentStatus: userData.paymentStatus || 'free',
       topicExamsTaken: 0,
       mockTestsTaken: 0,
-      paidUntil: paidUntil,
     });
 };
 
-export const updateUserDocument = async (userId: string, data: Partial<Pick<UserData, 'name' | 'examCategory' | 'paymentStatus' | 'paidUntil'>>): Promise<void> => {
+export const updateUserDocument = async (userId: string, data: Partial<Pick<UserData, 'name' | 'examCategory'>>): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, data);
 };
-
-export const updateUserPaymentStatus = async (userId: string, orderId: string) => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    
-    const userRef = doc(db, "users", userId);
-    
-    const expiryDate = new Date();
-    expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-
-    await updateDoc(userRef, {
-        paymentStatus: "paid",
-        orderId: orderId,
-        paidUntil: expiryDate.toISOString(),
-    });
-};
-
 
 export const deleteUserDocument = async (userId: string): Promise<void> => {
   const db = getFirebaseDb();
@@ -184,13 +141,6 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
     if (!db) throw new Error("Firestore is not initialized");
 
     const userRef = doc(db, 'users', historyData.userId);
-    const userDoc = await getDoc(userRef);
-    const userData = userDoc.data();
-
-    if (!userData) {
-        // This can happen for the admin user, which is fine. Just don't increment counts.
-        console.log("User not found in DB, saving history without incrementing counts.");
-    }
 
     const batch = writeBatch(db);
     
@@ -198,12 +148,10 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
     const historyRef = doc(collection(db, 'mcqHistory'));
     batch.set(historyRef, historyData);
 
-    // Increment the user's exam count only if they are a free user
-    if (userData && userData.paymentStatus === 'free') {
-        batch.update(userRef, {
-            topicExamsTaken: increment(1)
-        });
-    }
+    // Increment the user's exam count
+    batch.update(userRef, {
+        topicExamsTaken: increment(1)
+    });
 
     await batch.commit();
 };

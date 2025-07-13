@@ -29,11 +29,8 @@ export interface UserData {
     name: string;
     email: string;
     examCategory: 'MTS' | 'POSTMAN' | 'PA';
-    paymentStatus: 'free' | 'paid';
-    paidUntil: string | null; // ISO string date
     topicExamsTaken: number;
     mockTestsTaken: number;
-    orderId?: string;
 }
 
 export interface MCQData {
