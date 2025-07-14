@@ -14,7 +14,6 @@ export async function POST(req: NextRequest) {
             throw new Error('Razorpay webhook secret is not set.');
         }
 
-        // Securely validate the webhook signature
         const isValid = razorpayInstance.webhooks.validateWebhookSignature(
             JSON.stringify(body),
             signature!,
@@ -27,7 +26,6 @@ export async function POST(req: NextRequest) {
 
         const { event, payload } = body;
 
-        // Process only successful payment events
         if (event === 'payment.captured' || event === 'order.paid') {
             const paymentEntity = payload?.payment?.entity || payload?.order?.entity;
             const userId = paymentEntity?.notes?.userId;
@@ -37,19 +35,15 @@ export async function POST(req: NextRequest) {
                 return NextResponse.json({ error: 'User ID is missing.' }, { status: 400 });
             }
 
-            // --- USER UPGRADE LOGIC ---
-            // This is where the user officially becomes a pro user.
             const proValidUntil = new Date();
-            proValidUntil.setFullYear(proValidUntil.getFullYear() + 1); // Set validity for 1 year
+            proValidUntil.setFullYear(proValidUntil.getFullYear() + 1);
 
             await adminDb().collection('users').doc(userId).update({
                 isPro: true,
                 proValidUntil: proValidUntil,
-                topicExamsTaken: 0 // Also reset the count
+                topicExamsTaken: 0 
             });
-            // --- END OF UPGRADE LOGIC ---
             
-            // Optionally, log the payment for your records
             await adminDb().collection('payments').add({
                 userId: userId,
                 razorpayPaymentId: paymentEntity?.id,
@@ -61,7 +55,6 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ status: 'success' });
         }
 
-        // Acknowledge other events without taking action
         return NextResponse.json({ status: 'ignored' });
 
     } catch (error: any) {

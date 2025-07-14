@@ -16,7 +16,7 @@ import { Loader2, AlertTriangle, Gem } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getMCQHistoryForTopic } from '@/lib/firestore';
 import type { Category, Topic } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, normalizeDate } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { FREE_TOPIC_EXAM_LIMIT } from '@/lib/constants';
 import Link from 'next/link';
@@ -60,7 +60,6 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
 
   useEffect(() => {
     if (user && userData) {
-        // All users see all categories for their exam type
         const userExamCategory = userData.examCategory;
         const userCategories = initialCategories.filter(c => 
           c.examCategories && c.examCategories.includes(userExamCategory)
@@ -166,14 +165,14 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
 
   const filteredTopics = selectedCategoryId ? topics.filter(topic => topic.categoryId === selectedCategoryId) : [];
   
-  const isPro = userData?.isPro && userData.proValidUntil && new Date(userData.proValidUntil) > new Date();
+  const proValidUntilDate = normalizeDate(userData?.proValidUntil);
+  const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date());
   
   const hasExceededFreeLimit = !isPro && userData && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
 
   const getCardDescription = () => {
     if (isLoading || !userData) return "Loading your details...";
     
-    // Show a different message for pro users.
     if (isPro) {
       return `Welcome, ${userData.name}! Enjoy your unlimited exam access.`;
     }

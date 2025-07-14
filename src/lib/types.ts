@@ -12,9 +12,9 @@ export interface Topic {
   id: string;
   title: string;
   description: string;
-  icon: string; // Storing icon name as string, mapping to component elsewhere
+  icon: string; 
   categoryId: string;
-  categoryName?: string; // Optional: To hold the category name
+  categoryName?: string; 
   material?: string;
 }
 
@@ -32,20 +32,20 @@ export interface UserData {
     topicExamsTaken: number;
     mockTestsTaken: number;
     isPro?: boolean;
-    proValidUntil?: any; // Using `any` to handle Firestore Timestamp objects gracefully
+    proValidUntil?: any; 
 }
 
 export interface MCQData {
   topic: Topic;
   mcqs: MCQ[];
-  timeLimit?: number; // Total time in seconds
+  timeLimit?: number; 
 }
 
 export interface MCQHistory {
     id: string;
     userId: string;
     topicId: string;
-    topicTitle?: string; // To hold the resolved topic title
+    topicTitle?: string; 
     score: number;
     totalQuestions: number;
     questions: string[];

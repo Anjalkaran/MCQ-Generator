@@ -5,6 +5,7 @@ import { useDashboard } from "@/app/dashboard/layout";
 import PaymentButton from "@/components/quiz/payment-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { normalizeDate } from "@/lib/utils";
 import { Gem, Loader2, PartyPopper } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -13,7 +14,8 @@ export default function UpgradePage() {
     const { toast } = useToast();
     const router = useRouter();
 
-    const isPro = userData?.isPro && userData.proValidUntil && new Date(userData.proValidUntil) > new Date();
+    const proValidUntilDate = normalizeDate(userData?.proValidUntil);
+    const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date());
 
     if (isLoading) {
         return (
@@ -56,7 +58,8 @@ export default function UpgradePage() {
 
     const onPaymentSuccess = () => {
         if (userData) {
-             // Optimistically update the UI. The webhook is the final source of truth.
+            localStorage.setItem('isProTransitioning', 'true');
+
             const proValidUntil = new Date();
             proValidUntil.setFullYear(proValidUntil.getFullYear() + 1);
             
@@ -74,7 +77,6 @@ export default function UpgradePage() {
             className: "bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-700",
         });
 
-        // Redirect to the dashboard to start a new exam.
         router.push('/dashboard');
     }
 
@@ -96,7 +98,7 @@ export default function UpgradePage() {
                      </div>
                     <CardTitle className="text-2xl pt-4">Free Limit Reached</CardTitle>
                     <CardDescription className="max-w-md mx-auto">
-                        You've used up your free topic exam allocation. To unlock unlimited practice, please complete the payment below.
+                        You've used up your free exam allocation. To unlock unlimited practice, please complete the payment below.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center space-y-4">

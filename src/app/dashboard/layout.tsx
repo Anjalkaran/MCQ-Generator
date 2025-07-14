@@ -14,6 +14,7 @@ import { Logo } from '@/components/logo';
 import { getDashboardData } from '@/lib/firestore';
 import type { UserData, Category, Topic } from "@/lib/types";
 import { ADMIN_EMAIL, FREE_TOPIC_EXAM_LIMIT } from '@/lib/constants';
+import { normalizeDate } from '@/lib/utils';
 
 interface DashboardContextType {
   user: User | null;
@@ -81,12 +82,11 @@ export default function DashboardLayout({
 
         try {
             if (userIsAdmin) {
-                // Admin doesn't need a DB record. Create a dummy object and fetch all content.
                 const adminUserData: UserData = {
                     uid: currentUser.uid,
                     name: currentUser.displayName || 'Admin',
                     email: currentUser.email!,
-                    examCategory: 'PA', // Admins can see all
+                    examCategory: 'PA', 
                     topicExamsTaken: 0,
                     mockTestsTaken: 0,
                     isPro: true,
@@ -97,7 +97,6 @@ export default function DashboardLayout({
                 setTopics(topics);
 
             } else {
-                 // For regular users, fetch all data including their specific userData
                 const { userData: fetchedUserData, categories, topics } = await getDashboardData(currentUser.uid);
                 if (!fetchedUserData) {
                      toast({ title: "Authentication Error", description: "Could not load user profile. Please log in again.", variant: "destructive" });
@@ -105,12 +104,25 @@ export default function DashboardLayout({
                      return;
                 }
 
+                const isOfficiallyPro = fetchedUserData.isPro && normalizeDate(fetchedUserData.proValidUntil) > new Date();
+                const proTransitionFlag = localStorage.getItem('isProTransitioning') === 'true';
+
+                if (isOfficiallyPro) {
+                    localStorage.removeItem('isProTransitioning');
+                } else if (proTransitionFlag && !isOfficiallyPro) {
+                    fetchedUserData.isPro = true;
+                    fetchedUserData.topicExamsTaken = 0; 
+                    
+                    const tempValidUntil = new Date();
+                    tempValidUntil.setFullYear(tempValidUntil.getFullYear() + 1);
+                    fetchedUserData.proValidUntil = tempValidUntil;
+                }
+
                 setUserData(fetchedUserData);
                 setCategories(categories);
                 setTopics(topics);
             }
 
-            // Route protection after data is loaded and role is confirmed
             if (pathname.startsWith('/dashboard/admin') && !userIsAdmin) {
               toast({ title: "Access Denied", description: "You do not have permission to view this page.", variant: "destructive" });
               router.push('/dashboard');
@@ -136,7 +148,8 @@ export default function DashboardLayout({
     
   }, [pathname]);
 
-  const isPro = userData?.isPro && userData.proValidUntil && new Date(userData.proValidUntil) > new Date();
+  const proValidUntilDate = normalizeDate(userData?.proValidUntil);
+  const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date());
 
   const showUpgradeButton = userData && !isPro && !isAdmin && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
 
