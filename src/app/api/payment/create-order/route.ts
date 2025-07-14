@@ -1,27 +1,11 @@
 
 'use server';
 import { NextRequest, NextResponse } from 'next/server';
-import Razorpay from 'razorpay';
+import { razorpayInstance } from '@/lib/razorpay';
 import crypto from 'crypto';
-
-function initializeRazorpay() {
-    const keyId = process.env.RAZORPAY_KEY_ID;
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
-
-    if (!keyId || !keySecret) {
-        console.error('Razorpay keys are not configured in environment variables.');
-        throw new Error('Razorpay keys are not configured in environment variables.');
-    }
-    return new Razorpay({
-        key_id: keyId,
-        key_secret: keySecret,
-    });
-}
-
 
 export async function POST(req: NextRequest) {
     try {
-        const razorpay = initializeRazorpay();
         const { userId, examCategory } = await req.json();
 
         if (!userId || !examCategory) {
@@ -47,7 +31,7 @@ export async function POST(req: NextRequest) {
             }
         };
 
-        const order = await razorpay.orders.create(options);
+        const order = await razorpayInstance.orders.create(options);
         
         return NextResponse.json(order);
 
