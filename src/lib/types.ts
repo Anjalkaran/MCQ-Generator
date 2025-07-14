@@ -31,6 +31,8 @@ export interface UserData {
     examCategory: 'MTS' | 'POSTMAN' | 'PA';
     topicExamsTaken: number;
     mockTestsTaken: number;
+    isPro?: boolean;
+    proValidUntil?: any; // Using `any` to handle Firestore Timestamp objects gracefully
 }
 
 export interface MCQData {

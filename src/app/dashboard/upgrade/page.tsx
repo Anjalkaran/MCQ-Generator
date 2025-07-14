@@ -7,12 +7,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Gem, Loader2, PartyPopper } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { FREE_TOPIC_EXAM_LIMIT } from "@/lib/constants";
+import type { Timestamp } from "firebase/firestore";
 
 export default function UpgradePage() {
     const { userData, setUserData, isLoading } = useDashboard();
     const { toast } = useToast();
     const router = useRouter();
+
+    const proValidUntilDate = userData?.proValidUntil ? (userData.proValidUntil as Timestamp).toDate() : null;
+    const isPro = userData?.isPro && proValidUntilDate && proValidUntilDate > new Date();
 
     if (isLoading) {
         return (
@@ -35,41 +38,46 @@ export default function UpgradePage() {
         );
     }
 
-    const onPaymentSuccess = () => {
-        if (userData) {
-             // Optimistically update the user's state on the client
-            setUserData({ ...userData, topicExamsTaken: 0 });
-            localStorage.setItem('isJustUpgraded', 'true');
-        }
-        
-        toast({
-            title: "Payment Successful!",
-            description: "You now have unlimited access to all exams. Congratulations!",
-            className: "bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-700",
-        });
-
-        // Redirect to the dashboard where they can now create an exam
-        router.push('/dashboard');
-    }
-
-    const hasReachedLimit = userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
-
-    if (!hasReachedLimit) {
+    if (isPro) {
         return (
-             <div className="space-y-6 max-w-2xl mx-auto">
-                 <Card>
+            <div className="space-y-6 max-w-2xl mx-auto">
+                <Card>
                     <CardHeader className="text-center">
-                        <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit">
-                            <PartyPopper className="h-8 w-8 text-primary" />
+                        <div className="mx-auto bg-green-100 dark:bg-green-900/50 p-4 rounded-full w-fit">
+                            <PartyPopper className="h-8 w-8 text-green-500" />
                         </div>
-                        <CardTitle className="text-2xl pt-4">You Have Free Exams Remaining!</CardTitle>
+                        <CardTitle className="text-2xl pt-4">You are a Pro User!</CardTitle>
                         <CardDescription className="max-w-md mx-auto">
-                            You can still take a few more exams for free. Feel free to upgrade anytime for unlimited access.
+                            You already have unlimited access to all exams. Happy practicing!
                         </CardDescription>
                     </CardHeader>
                 </Card>
             </div>
-        )
+        );
+    }
+
+    const onPaymentSuccess = () => {
+        if (userData) {
+             // Optimistically update the UI. The webhook is the final source of truth.
+            const proValidUntil = new Date();
+            proValidUntil.setFullYear(proValidUntil.getFullYear() + 1);
+            
+            setUserData({ 
+                ...userData, 
+                isPro: true,
+                proValidUntil,
+                topicExamsTaken: 0 
+            });
+        }
+        
+        toast({
+            title: "Payment Successful!",
+            description: "Congratulations! You now have unlimited access.",
+            className: "bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-700",
+        });
+
+        // Redirect to the dashboard to start a new exam.
+        router.push('/dashboard');
     }
 
     const price = userData.examCategory === 'PA' ? 749 : 499;
@@ -98,7 +106,7 @@ export default function UpgradePage() {
                         ₹{price}
                         <span className="text-lg font-normal text-muted-foreground"> / year</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">This will grant you unlimited exam access.</p>
+                    <p className="text-sm text-muted-foreground">This will grant you unlimited exam access for one year.</p>
                     <div className="w-full max-w-sm pt-4">
                          <PaymentButton
                             user={userData}

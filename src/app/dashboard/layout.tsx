@@ -14,6 +14,8 @@ import { Logo } from '@/components/logo';
 import { getDashboardData } from '@/lib/firestore';
 import type { UserData, Category, Topic } from "@/lib/types";
 import { ADMIN_EMAIL, FREE_TOPIC_EXAM_LIMIT } from '@/lib/constants';
+import { Timestamp } from 'firebase/firestore';
+
 
 interface DashboardContextType {
   user: User | null;
@@ -89,6 +91,7 @@ export default function DashboardLayout({
                     examCategory: 'PA', // Admins can see all
                     topicExamsTaken: 0,
                     mockTestsTaken: 0,
+                    isPro: true,
                 };
                 const { categories, topics } = await getDashboardData(currentUser.uid, true);
                 setUserData(adminUserData);
@@ -102,12 +105,6 @@ export default function DashboardLayout({
                      toast({ title: "Authentication Error", description: "Could not load user profile. Please log in again.", variant: "destructive" });
                      handleLogout(auth, false);
                      return;
-                }
-                
-                // This is the logic to handle the optimistic update after payment
-                if (localStorage.getItem('isJustUpgraded') === 'true') {
-                  fetchedUserData.topicExamsTaken = 0; // Simulate the upgrade
-                  localStorage.removeItem('isJustUpgraded');
                 }
 
                 setUserData(fetchedUserData);
@@ -141,7 +138,10 @@ export default function DashboardLayout({
     
   }, [pathname]);
 
-  const showUpgradeButton = userData && !isAdmin && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
+  const proValidUntilDate = userData?.proValidUntil ? (userData.proValidUntil as Timestamp).toDate() : null;
+  const isPro = userData?.isPro && proValidUntilDate && proValidUntilDate > new Date();
+
+  const showUpgradeButton = userData && !isPro && !isAdmin && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
 
   const contextValue = { user, userData, categories, topics, isLoading, setUserData };
 
