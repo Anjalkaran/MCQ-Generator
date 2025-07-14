@@ -8,6 +8,11 @@ export interface MCQ {
   solution?: string;
 }
 
+export interface Material {
+  name: string;
+  content: string;
+}
+
 export interface Topic {
   id: string;
   title: string;
@@ -15,7 +20,7 @@ export interface Topic {
   icon: string; 
   categoryId: string;
   categoryName?: string; 
-  material?: string;
+  materials?: Material[];
 }
 
 export interface Category {

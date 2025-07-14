@@ -13,9 +13,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { addCategory, addTopic, deleteTopic, deleteCategory, updateCategory, updateTopic } from '@/lib/firestore';
-import type { Topic, Category } from '@/lib/types';
-import { Loader2, PlusCircle, Trash2, Upload, Edit } from 'lucide-react';
+import { addCategory, addTopic, deleteTopic, deleteCategory, updateCategory, updateTopic, deleteMaterialFromTopic } from '@/lib/firestore';
+import type { Topic, Category, Material } from '@/lib/types';
+import { Loader2, PlusCircle, Trash2, Upload, Edit, Paperclip, FileText } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
   AlertDialog,
@@ -60,7 +60,7 @@ const topicSchema = z.object({
 
 const materialSchema = z.object({
     topicId: z.string().min(1, 'Please select a topic.'),
-    file: z.instanceof(FileList).refine(files => files?.length > 0, 'File is required.'),
+    files: z.instanceof(FileList).refine(files => files?.length > 0, 'At least one file is required.'),
 });
 
 interface TopicManagementProps {
@@ -99,7 +99,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     resolver: zodResolver(materialSchema),
     defaultValues: {
         topicId: '',
-        file: undefined,
+        files: undefined,
     }
   });
 
@@ -161,7 +161,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
             setEditingTopic(null);
             setIsTopicDialogOpen(false);
         } else {
-            const topicData = { ...values, description: values.description || '', icon: 'default' };
+            const topicData = { ...values, description: values.description || '', icon: 'default', materials: [] };
             const newTopicDoc = await addTopic(topicData);
             const newTopic = { id: newTopicDoc.id, ...topicData };
             setTopics(prev => [...prev, newTopic].sort((a,b) => a.title.localeCompare(b.title)));
@@ -177,15 +177,17 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
 
   const onMaterialSubmit = async (values: z.infer<typeof materialSchema>) => {
     setIsUploading(true);
-    const file = values.file[0];
-    if (!file) {
-        toast({ title: 'Error', description: 'No file selected.', variant: 'destructive' });
+    const files = values.files;
+    if (!files || files.length === 0) {
+        toast({ title: 'Error', description: 'No files selected.', variant: 'destructive' });
         setIsUploading(false);
         return;
     }
 
     const formData = new FormData();
-    formData.append('file', file);
+    for (let i = 0; i < files.length; i++) {
+        formData.append('file', files[i]);
+    }
     formData.append('topicId', values.topicId);
 
     try {
@@ -196,24 +198,45 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to upload file.');
+        throw new Error(errorData.error || 'Failed to upload files.');
       }
 
       const result = await response.json();
       
-      setTopics(prevTopics => prevTopics.map(t => t.id === values.topicId ? {...t, material: result.material} : t));
+      setTopics(prevTopics => prevTopics.map(t => {
+        if (t.id === values.topicId) {
+            const newMaterials = result.materials || [];
+            return {...t, materials: [...(t.materials || []), ...newMaterials]};
+        }
+        return t;
+      }));
 
-      toast({ title: 'Success', description: 'Material uploaded and saved.' });
+      toast({ title: 'Success', description: result.message || 'Materials uploaded successfully.' });
       materialForm.reset();
       setUploadCategoryId('');
 
     } catch (error: any) {
         console.error("Material upload error:", error);
-        toast({ title: 'Upload Failed', description: error.message || 'Could not process the file.', variant: 'destructive' });
+        toast({ title: 'Upload Failed', description: error.message || 'Could not process the files.', variant: 'destructive' });
     } finally {
         setIsUploading(false);
     }
   };
+
+  const handleDeleteMaterial = async (topicId: string, material: Material) => {
+    try {
+        await deleteMaterialFromTopic(topicId, material);
+        setTopics(prev => prev.map(t => {
+            if (t.id === topicId) {
+                return { ...t, materials: t.materials?.filter(m => m.name !== material.name) };
+            }
+            return t;
+        }));
+        toast({ title: 'Success', description: `Deleted material: ${material.name}`});
+    } catch (error) {
+        toast({ title: 'Error', description: 'Failed to delete material.', variant: 'destructive' });
+    }
+  }
 
 
   const handleDeleteTopic = async (topicId: string) => {
@@ -250,7 +273,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     setIsTopicDialogOpen(true);
   }
   
-  const fileRef = materialForm.register("file");
+  const fileRef = materialForm.register("files");
   const filteredUploadTopics = uploadCategoryId ? topics.filter(topic => topic.categoryId === uploadCategoryId) : [];
   
   const currentlySelectedCategory = categories.find(c => c.id === selectedCategoryId);
@@ -430,8 +453,8 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
             </Dialog>
              <Card>
                 <CardHeader>
-                    <CardTitle>Upload Material</CardTitle>
-                    <CardDescription>Upload PDF or DOCX material for a topic.</CardDescription>
+                    <CardTitle>Upload Materials</CardTitle>
+                    <CardDescription>Upload multiple PDF or DOCX materials for a topic.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...materialForm}>
@@ -478,14 +501,15 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                             />
                              <FormField
                                 control={materialForm.control}
-                                name="file"
+                                name="files"
                                 render={() => (
                                     <FormItem>
-                                        <FormLabel>Material File</FormLabel>
+                                        <FormLabel>Material Files</FormLabel>
                                         <FormControl>
                                             <Input 
                                                 type="file" 
                                                 accept=".pdf,.docx"
+                                                multiple
                                                 {...fileRef}
                                             />
                                         </FormControl>
@@ -495,7 +519,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                             />
                             <Button type="submit" disabled={isUploading || topics.length === 0}>
                                 {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                                Upload Material
+                                Upload Materials
                             </Button>
                         </form>
                     </Form>
@@ -615,11 +639,40 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-sm">{currentlySelectedTopic.description}</p>
-                                    <p className="text-sm mt-4">
-                                        <Badge variant={currentlySelectedTopic.material ? "default" : "secondary"}>
-                                            {currentlySelectedTopic.material ? 'Material Uploaded' : 'No Material'}
-                                        </Badge>
-                                    </p>
+                                    <div className="mt-4">
+                                        <h4 className="text-sm font-semibold mb-2 flex items-center"><Paperclip className="mr-2 h-4 w-4"/>Uploaded Materials ({currentlySelectedTopic.materials?.length || 0})</h4>
+                                        {currentlySelectedTopic.materials && currentlySelectedTopic.materials.length > 0 ? (
+                                            <ul className="space-y-2">
+                                                {currentlySelectedTopic.materials.map((material, index) => (
+                                                    <li key={index} className="flex items-center justify-between text-sm p-2 bg-background rounded-md border">
+                                                        <div className="flex items-center gap-2">
+                                                            <FileText className="h-4 w-4 text-muted-foreground" />
+                                                            <span className="truncate">{material.name}</span>
+                                                        </div>
+                                                        <AlertDialog>
+                                                            <AlertDialogTrigger asChild>
+                                                                <Button variant="ghost" size="icon" className="h-6 w-6">
+                                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                                </Button>
+                                                            </AlertDialogTrigger>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                    <AlertDialogTitle>Delete Material: {material.name}?</AlertDialogTitle>
+                                                                    <AlertDialogDescription>This is permanent and cannot be undone.</AlertDialogDescription>
+                                                                </AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                    <AlertDialogAction onClick={() => handleDeleteMaterial(currentlySelectedTopic.id, material)}>Delete</AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <p className="text-sm text-muted-foreground">No materials uploaded for this topic.</p>
+                                        )}
+                                    </div>
                                 </CardContent>
                             </Card>
                         )}

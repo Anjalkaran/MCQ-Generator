@@ -122,8 +122,9 @@ const prompt = ai.definePrompt({
       Generate direct questions based on the facts and information presented in the material.
     {{/ifEquals}}
 
-    Material:
+    ---MATERIAL START---
     {{{material}}}
+    ---MATERIAL END---
   {{/if}}
 
   {{#if previousQuestions}}

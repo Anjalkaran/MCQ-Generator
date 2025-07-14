@@ -110,6 +110,9 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     }
     
     const excludedCategories = ["Basic Arithmetics", "General Awareness"];
+    const combinedMaterial = selectedTopic.materials && selectedTopic.materials.length > 0
+        ? selectedTopic.materials.map(m => `Source: ${m.name}\n${m.content}`).join('\n\n---\n\n')
+        : undefined;
 
     try {
       const previousQuestions = await getMCQHistoryForTopic(user.uid, values.topicId);
@@ -119,7 +122,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
           category: selectedCategory.name,
           numberOfQuestions: values.numberOfQuestions,
           difficulty: values.difficulty,
-          material: (selectedTopic.material && !excludedCategories.includes(selectedCategory.name)) ? selectedTopic.material : undefined,
+          material: (combinedMaterial && !excludedCategories.includes(selectedCategory.name)) ? combinedMaterial : undefined,
           previousQuestions: previousQuestions,
           userId: user.uid,
       };
@@ -152,7 +155,6 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
           description: 'A custom generated quiz.',
           icon: selectedTopic.icon,
           categoryId: selectedTopic.categoryId,
-          material: selectedTopic.material,
         },
         mcqs: mcqs,
         timeLimit,

@@ -1,7 +1,7 @@
 
 import { getFirebaseDb } from './firebase';
-import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance } from './types';
+import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, arrayUnion, arrayRemove, FieldValue } from 'firebase/firestore';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, Material } from './types';
 
 // USER MANAGEMENT
 export const getUserData = async (userId: string): Promise<UserData | null> => {
@@ -128,6 +128,24 @@ export const updateTopic = async (topicId: string, data: Partial<Topic>): Promis
     await updateDoc(topicRef, data);
 };
 
+export const addMaterialsToTopic = async (topicId: string, materials: Material[]): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const topicRef = doc(db, 'topics', topicId);
+    await updateDoc(topicRef, {
+        materials: arrayUnion(...materials)
+    });
+};
+
+export const deleteMaterialFromTopic = async (topicId: string, material: Material): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const topicRef = doc(db, 'topics', topicId);
+    await updateDoc(topicRef, {
+        materials: arrayRemove(material)
+    });
+};
+
 
 export const deleteTopic = async (topicId: string): Promise<void> => {
     const db = getFirebaseDb();
@@ -148,10 +166,10 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
     const historyRef = doc(collection(db, 'mcqHistory'));
     batch.set(historyRef, historyData);
 
-    // Increment the user's exam count
-    batch.update(userRef, {
+    // Increment the user's exam count, creating the document if it doesn't exist.
+    batch.set(userRef, {
         topicExamsTaken: increment(1)
-    });
+    }, { merge: true });
 
     await batch.commit();
 };
