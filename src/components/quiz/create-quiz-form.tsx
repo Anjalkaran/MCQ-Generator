@@ -172,9 +172,10 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
 
   const getCardDescription = () => {
     if (isLoading || !userData) return "Loading your details...";
-
+    
+    // Show a different message for pro users.
     if (isPro) {
-        return `Welcome, ${userData.name}! Enjoy your unlimited exam access.`;
+      return `Welcome, ${userData.name}! Enjoy your unlimited exam access.`;
     }
     
     const examsRemaining = FREE_TOPIC_EXAM_LIMIT - userData.topicExamsTaken;
