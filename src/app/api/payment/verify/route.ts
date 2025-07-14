@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
                 }
                 
                 await adminDb().collection('users').doc(userId).update({
-                    isPremium: true,
+                    topicExamsTaken: 0,
                 });
                 
                 await adminDb().collection('payments').add({

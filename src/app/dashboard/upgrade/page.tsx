@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Gem, Loader2, PartyPopper } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { FREE_TOPIC_EXAM_LIMIT } from "@/lib/constants";
 
 export default function UpgradePage() {
     const { userData, setUserData, isLoading } = useDashboard();
@@ -36,7 +37,9 @@ export default function UpgradePage() {
 
     const onPaymentSuccess = () => {
         if (userData) {
-            setUserData({ ...userData, isPremium: true });
+             // Optimistically update the user's state on the client
+            setUserData({ ...userData, topicExamsTaken: 0 });
+            localStorage.setItem('isJustUpgraded', 'true');
         }
         
         toast({
@@ -49,7 +52,9 @@ export default function UpgradePage() {
         router.push('/dashboard');
     }
 
-    if (userData.isPremium) {
+    const hasReachedLimit = userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
+
+    if (!hasReachedLimit) {
         return (
              <div className="space-y-6 max-w-2xl mx-auto">
                  <Card>
@@ -57,9 +62,9 @@ export default function UpgradePage() {
                         <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit">
                             <PartyPopper className="h-8 w-8 text-primary" />
                         </div>
-                        <CardTitle className="text-2xl pt-4">You're Already a Premium Member!</CardTitle>
+                        <CardTitle className="text-2xl pt-4">You Have Free Exams Remaining!</CardTitle>
                         <CardDescription className="max-w-md mx-auto">
-                            You have unlimited access to all exams. Enjoy your practice!
+                            You can still take a few more exams for free. Feel free to upgrade anytime for unlimited access.
                         </CardDescription>
                     </CardHeader>
                 </Card>

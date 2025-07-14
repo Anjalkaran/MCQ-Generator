@@ -89,7 +89,6 @@ export default function DashboardLayout({
                     examCategory: 'PA', // Admins can see all
                     topicExamsTaken: 0,
                     mockTestsTaken: 0,
-                    isPremium: true,
                 };
                 const { categories, topics } = await getDashboardData(currentUser.uid, true);
                 setUserData(adminUserData);
@@ -104,6 +103,13 @@ export default function DashboardLayout({
                      handleLogout(auth, false);
                      return;
                 }
+                
+                // This is the logic to handle the optimistic update after payment
+                if (localStorage.getItem('isJustUpgraded') === 'true') {
+                  fetchedUserData.topicExamsTaken = 0; // Simulate the upgrade
+                  localStorage.removeItem('isJustUpgraded');
+                }
+
                 setUserData(fetchedUserData);
                 setCategories(categories);
                 setTopics(topics);
@@ -135,7 +141,7 @@ export default function DashboardLayout({
     
   }, [pathname]);
 
-  const showUpgradeButton = userData && !isAdmin && !userData.isPremium;
+  const showUpgradeButton = userData && !isAdmin && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
 
   const contextValue = { user, userData, categories, topics, isLoading, setUserData };
 

@@ -60,27 +60,16 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
 
   useEffect(() => {
     if (user && userData) {
-        if (userData.isPremium) {
-          // Premium users see all categories/topics for their exam type
-          const userExamCategory = userData.examCategory;
-          const userCategories = initialCategories.filter(c => 
-            c.examCategories && c.examCategories.includes(userExamCategory)
-          );
-          setCategories(userCategories);
-          const userCategoryIds = userCategories.map(c => c.id);
-          const userTopics = initialTopics.filter(t => userCategoryIds.includes(t.categoryId));
-          setTopics(userTopics);
-        } else {
-           const userExamCategory = userData.examCategory;
-           const userCategories = initialCategories.filter(c => 
-            c.examCategories && c.examCategories.includes(userExamCategory)
-          );
-          setCategories(userCategories);
+        // All users see all categories for their exam type
+        const userExamCategory = userData.examCategory;
+        const userCategories = initialCategories.filter(c => 
+          c.examCategories && c.examCategories.includes(userExamCategory)
+        );
+        setCategories(userCategories);
 
-          const userCategoryIds = userCategories.map(c => c.id);
-          const userTopics = initialTopics.filter(t => userCategoryIds.includes(t.categoryId));
-          setTopics(userTopics);
-        }
+        const userCategoryIds = userCategories.map(c => c.id);
+        const userTopics = initialTopics.filter(t => userCategoryIds.includes(t.categoryId));
+        setTopics(userTopics);
     } else {
         setCategories([]);
         setTopics([]);
@@ -179,11 +168,11 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
   
   const getCardDescription = () => {
     if (isLoading || !userData) return "Loading your details...";
-    if (userData.isPremium) return `Welcome back, Pro Member! You have unlimited access.`;
-    return `Welcome, ${userData.name}! You have ${FREE_TOPIC_EXAM_LIMIT - userData.topicExamsTaken} free exam(s) remaining.`;
+    const examsRemaining = FREE_TOPIC_EXAM_LIMIT - userData.topicExamsTaken;
+    return `Welcome, ${userData.name}! You have ${examsRemaining > 0 ? examsRemaining : 0} free exam(s) remaining.`;
   }
   
-  const hasExceededFreeLimit = userData && !userData.isPremium && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
+  const hasExceededFreeLimit = userData && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
 
   return (
     <Card>
