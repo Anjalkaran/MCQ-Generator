@@ -6,6 +6,8 @@ import mammoth from 'mammoth';
 import { updateTopic } from '@/lib/firestore';
 import formidable from 'formidable';
 
+export const dynamic = 'force-dynamic';
+
 export const config = {
   api: {
     bodyParser: false,
