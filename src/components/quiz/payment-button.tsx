@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Script from 'next/script';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
@@ -16,11 +15,11 @@ declare global {
 interface PaymentButtonProps {
   user: UserData;
   onPaymentSuccess: () => void;
+  isReady: boolean;
 }
 
-export default function PaymentButton({ user, onPaymentSuccess }: PaymentButtonProps) {
+export default function PaymentButton({ user, onPaymentSuccess, isReady }: PaymentButtonProps) {
     const [loading, setLoading] = useState(false);
-    const [isRazorpayReady, setIsRazorpayReady] = useState(false);
     const { toast } = useToast();
 
     const createOrder = async () => {
@@ -83,22 +82,13 @@ export default function PaymentButton({ user, onPaymentSuccess }: PaymentButtonP
     };
 
     return (
-        <>
-            <Script 
-                src="https://checkout.razorpay.com/v1/checkout.js" 
-                onLoad={() => setIsRazorpayReady(true)}
-                onError={() => {
-                    toast({ title: "Error", description: "Could not load payment provider. Please check your network or ad blocker.", variant: "destructive" });
-                }}
-            />
-            <Button
-                onClick={createOrder}
-                disabled={loading || !isRazorpayReady}
-                className="w-full"
-                size="lg"
-            >
-                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Pay Now'}
-            </Button>
-        </>
+        <Button
+            onClick={createOrder}
+            disabled={loading || !isReady}
+            className="w-full"
+            size="lg"
+        >
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Pay Now'}
+        </Button>
     );
 }

@@ -1,6 +1,8 @@
 
 "use client";
 
+import { useState } from 'react';
+import Script from 'next/script';
 import { useDashboard } from "@/app/dashboard/layout";
 import PaymentButton from "@/components/quiz/payment-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +15,7 @@ export default function UpgradePage() {
     const { userData, setUserData, isLoading } = useDashboard();
     const { toast } = useToast();
     const router = useRouter();
+    const [isRazorpayReady, setIsRazorpayReady] = useState(false);
 
     const proValidUntilDate = normalizeDate(userData?.proValidUntil);
     const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date());
@@ -83,38 +86,48 @@ export default function UpgradePage() {
     const price = userData.examCategory === 'PA' ? 749 : 499;
 
     return (
-        <div className="space-y-6 max-w-2xl mx-auto">
-            <div className="space-y-0.5">
-                <h1 className="text-2xl font-bold tracking-tight">Upgrade Your Plan</h1>
-                <p className="text-muted-foreground">
-                    Unlock unlimited exam access to continue practicing.
-                </p>
+        <>
+            <Script 
+                src="https://checkout.razorpay.com/v1/checkout.js" 
+                onLoad={() => setIsRazorpayReady(true)}
+                onError={() => {
+                    toast({ title: "Error", description: "Could not load payment provider. Please check your network or ad blocker.", variant: "destructive" });
+                }}
+            />
+            <div className="space-y-6 max-w-2xl mx-auto">
+                <div className="space-y-0.5">
+                    <h1 className="text-2xl font-bold tracking-tight">Upgrade Your Plan</h1>
+                    <p className="text-muted-foreground">
+                        Unlock unlimited exam access to continue practicing.
+                    </p>
+                </div>
+                
+                <Card>
+                    <CardHeader className="text-center">
+                         <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit">
+                            <Gem className="h-8 w-8 text-primary" />
+                         </div>
+                        <CardTitle className="text-2xl pt-4">Free Limit Reached</CardTitle>
+                        <CardDescription className="max-w-md mx-auto">
+                            You've used up your free exam allocation. To unlock unlimited practice, please complete the payment below.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col items-center space-y-4">
+                        <div className="text-4xl font-bold">
+                            ₹{price}
+                            <span className="text-lg font-normal text-muted-foreground"> / year</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">This will grant you unlimited exam access for one year.</p>
+                        <div className="w-full max-w-sm pt-4">
+                             <PaymentButton
+                                user={userData}
+                                onPaymentSuccess={onPaymentSuccess}
+                                isReady={isRazorpayReady}
+                             />
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
-            
-            <Card>
-                <CardHeader className="text-center">
-                     <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit">
-                        <Gem className="h-8 w-8 text-primary" />
-                     </div>
-                    <CardTitle className="text-2xl pt-4">Free Limit Reached</CardTitle>
-                    <CardDescription className="max-w-md mx-auto">
-                        You've used up your free exam allocation. To unlock unlimited practice, please complete the payment below.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col items-center space-y-4">
-                    <div className="text-4xl font-bold">
-                        ₹{price}
-                        <span className="text-lg font-normal text-muted-foreground"> / year</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">This will grant you unlimited exam access for one year.</p>
-                    <div className="w-full max-w-sm pt-4">
-                         <PaymentButton
-                            user={userData}
-                            onPaymentSuccess={onPaymentSuccess}
-                         />
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+        </>
     )
 }
