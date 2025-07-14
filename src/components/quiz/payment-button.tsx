@@ -20,6 +20,7 @@ interface PaymentButtonProps {
 
 export default function PaymentButton({ user, onPaymentSuccess }: PaymentButtonProps) {
     const [loading, setLoading] = useState(false);
+    const [isRazorpayReady, setIsRazorpayReady] = useState(false);
     const { toast } = useToast();
 
     const createOrder = async () => {
@@ -34,8 +35,8 @@ export default function PaymentButton({ user, onPaymentSuccess }: PaymentButtonP
             });
 
             if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Failed to create order: ${errorText}`);
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to create payment order.');
             }
 
             const order = await response.json();
@@ -70,13 +71,14 @@ export default function PaymentButton({ user, onPaymentSuccess }: PaymentButtonP
 
             paymentObject.on('payment.failed', function (response: any) {
                 toast({ title: "Payment Failed", description: response.error.description, variant: "destructive" });
+                setLoading(false);
             });
 
         } catch (error: any) {
             console.error(error);
-            toast({ title: "Error", description: 'Could not create payment order. See console for details.', variant: "destructive" });
+            toast({ title: "Error", description: error.message || 'Could not create payment order.', variant: "destructive" });
         } finally {
-            setLoading(false);
+            // Don't set loading to false here, as Razorpay's own UI is now active
         }
     };
 
@@ -112,14 +114,20 @@ export default function PaymentButton({ user, onPaymentSuccess }: PaymentButtonP
 
     return (
         <>
-            <Script src="https://checkout.razorpay.com/v1/checkout.js" />
+            <Script 
+                src="https://checkout.razorpay.com/v1/checkout.js" 
+                onLoad={() => setIsRazorpayReady(true)}
+                onError={() => {
+                    toast({ title: "Error", description: "Could not load payment provider. Please check your network or ad blocker.", variant: "destructive" });
+                }}
+            />
             <Button
                 onClick={createOrder}
-                disabled={loading}
+                disabled={loading || !isRazorpayReady}
                 className="w-full"
                 size="lg"
             >
-                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Pay Now'}
+                {loading || !isRazorpayReady ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Pay Now'}
             </Button>
         </>
     );
