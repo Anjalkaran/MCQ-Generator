@@ -46,8 +46,6 @@ export default function DashboardPage() {
           <CreateQuizForm 
             initialCategories={categories} 
             initialTopics={topics} 
-            user={user}
-            userData={userData}
           />
         </TabsContent>
         <TabsContent value="mock-test">

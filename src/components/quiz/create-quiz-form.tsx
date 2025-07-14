@@ -12,11 +12,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, AlertTriangle, ArrowRight, Gem } from 'lucide-react';
+import { Loader2, AlertTriangle, Gem } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getMCQHistoryForTopic } from '@/lib/firestore';
-import type { Category, Topic, UserData } from '@/lib/types';
-import type { User } from 'firebase/auth';
+import type { Category, Topic } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { FREE_TOPIC_EXAM_LIMIT } from '@/lib/constants';
@@ -39,21 +38,18 @@ const difficultyLevels: DifficultyLevel[] = ['Easy', 'Moderate', 'Difficult'];
 interface CreateQuizFormProps {
     initialCategories: Category[];
     initialTopics: Topic[];
-    user: User | null;
-    userData: UserData | null;
 }
 
 const ADMIN_EMAIL = "admin@anjalkaran.com";
 
-export function CreateQuizForm({ initialCategories, initialTopics, user, userData: initialUserData }: CreateQuizFormProps) {
+export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizFormProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const { user, userData } = useDashboard();
   const [isGenerating, setIsGenerating] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   
-  const { userData } = useDashboard();
-
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
