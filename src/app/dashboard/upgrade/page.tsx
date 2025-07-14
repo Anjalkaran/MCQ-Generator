@@ -7,15 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Gem, Loader2, PartyPopper } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { Timestamp } from "firebase/firestore";
 
 export default function UpgradePage() {
     const { userData, setUserData, isLoading } = useDashboard();
     const { toast } = useToast();
     const router = useRouter();
 
-    const proValidUntilDate = userData?.proValidUntil ? (userData.proValidUntil as Timestamp).toDate() : null;
-    const isPro = userData?.isPro && proValidUntilDate && proValidUntilDate > new Date();
+    const isPro = userData?.isPro && userData.proValidUntil && new Date(userData.proValidUntil) > new Date();
 
     if (isLoading) {
         return (

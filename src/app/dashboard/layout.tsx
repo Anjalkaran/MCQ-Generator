@@ -14,8 +14,6 @@ import { Logo } from '@/components/logo';
 import { getDashboardData } from '@/lib/firestore';
 import type { UserData, Category, Topic } from "@/lib/types";
 import { ADMIN_EMAIL, FREE_TOPIC_EXAM_LIMIT } from '@/lib/constants';
-import { Timestamp } from 'firebase/firestore';
-
 
 interface DashboardContextType {
   user: User | null;
@@ -138,8 +136,7 @@ export default function DashboardLayout({
     
   }, [pathname]);
 
-  const proValidUntilDate = userData?.proValidUntil ? (userData.proValidUntil as Timestamp).toDate() : null;
-  const isPro = userData?.isPro && proValidUntilDate && proValidUntilDate > new Date();
+  const isPro = userData?.isPro && userData.proValidUntil && new Date(userData.proValidUntil) > new Date();
 
   const showUpgradeButton = userData && !isPro && !isAdmin && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
 
