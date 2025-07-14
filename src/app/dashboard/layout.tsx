@@ -141,7 +141,11 @@ export default function DashboardLayout({
   const showUpgradeButton = userData && !isPro && !isAdmin && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
 
   const getWelcomeMessage = () => {
-    if (isLoading || !userData || isAdmin || isPro) return null;
+    if (isLoading || !userData) return null;
+    
+    if (isAdmin || isPro) {
+        return `Welcome, ${userData.name}!`;
+    }
 
     const examsRemaining = FREE_TOPIC_EXAM_LIMIT - userData.topicExamsTaken;
     return `Welcome, ${userData.name}! You have ${examsRemaining > 0 ? examsRemaining : 0} free exam(s) remaining.`;
