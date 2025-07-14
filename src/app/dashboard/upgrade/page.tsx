@@ -88,8 +88,12 @@ export default function UpgradePage() {
     return (
         <>
             <Script 
-                src="https://checkout.razorpay.com/v1/checkout.js" 
-                onLoad={() => setIsRazorpayReady(true)}
+                id="razorpay-checkout-js"
+                src="https://checkout.razorpay.com/v1/checkout.js"
+                strategy="lazyOnload"
+                onLoad={() => {
+                    setIsRazorpayReady(true)
+                }}
                 onError={() => {
                     toast({ title: "Error", description: "Could not load payment provider. Please check your network or ad blocker.", variant: "destructive" });
                 }}
