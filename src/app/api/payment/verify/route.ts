@@ -4,36 +4,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { adminDb } from '@/lib/firebase-admin';
-import { razorpayKeySecret } from '@/lib/razorpay';
+import { razorpayInstance } from '@/lib/razorpay';
 
 export async function POST(req: NextRequest) {
     try {
-        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, userId } = await req.json();
-        
-        if (!razorpayKeySecret) {
-            console.error('Razorpay key secret is not available from razorpay utility.');
-            throw new Error('Razorpay key secret is not configured.');
+        const body = await req.text();
+        const signature = req.headers.get('x-razorpay-signature');
+        const secret = process.env.RAZORPAY_KEY_SECRET;
+
+        if (!signature || !secret) {
+            console.error('Missing razorpay signature or secret');
+            return NextResponse.json({ error: 'Request is missing required headers.' }, { status: 400 });
         }
-
-        const body = razorpay_order_id + "|" + razorpay_payment_id;
-
-        const expectedSignature = crypto
-            .createHmac('sha256', razorpayKeySecret)
-            .update(body.toString())
-            .digest('hex');
-
-        const isVerified = expectedSignature === razorpay_signature;
+        
+        const isVerified = crypto.createHmac('sha256', secret)
+            .update(body)
+            .digest('hex') === signature;
 
         if (isVerified) {
+            const parsedBody = JSON.parse(body);
+            const { userId } = parsedBody;
+
+            if (!userId) {
+                return NextResponse.json({ error: 'User ID not found in webhook payload.' }, { status: 400 });
+            }
+            
             // Update user's exam count in Firestore
             await adminDb.collection('users').doc(userId).update({
                 topicExamsTaken: 0, 
             });
             
             // Record the successful payment
-            await adminDb.collection('payments').doc(razorpay_payment_id).set({
-                orderId: razorpay_order_id,
-                paymentId: razorpay_payment_id,
+            await adminDb.collection('payments').doc().set({
+                event: parsedBody.event,
+                payload: parsedBody.payload,
                 userId: userId,
                 status: 'successful',
                 verifiedAt: new Date(),

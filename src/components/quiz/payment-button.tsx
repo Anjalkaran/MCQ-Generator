@@ -55,7 +55,9 @@ export default function PaymentButton({ user, onPaymentSuccess }: PaymentButtonP
                 description: "Test Exam Plan",
                 order_id: order.id,
                 handler: async function (response: any) {
-                    await verifyPayment(response);
+                    // The new verification happens via webhook, so we can just call the success handler directly
+                    toast({ title: "Success", description: "Payment successful! Your limit has been reset." });
+                    onPaymentSuccess();
                 },
                 prefill: {
                     name: user.name,
@@ -78,37 +80,8 @@ export default function PaymentButton({ user, onPaymentSuccess }: PaymentButtonP
             console.error(error);
             toast({ title: "Error", description: error.message || 'Could not create payment order.', variant: "destructive" });
         } finally {
-            // Don't set loading to false here, as Razorpay's own UI is now active
-        }
-    };
-
-    const verifyPayment = async (paymentResponse: any) => {
-        setLoading(true);
-        try {
-            const response = await fetch('/api/payment/verify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    razorpay_order_id: paymentResponse.razorpay_order_id,
-                    razorpay_payment_id: paymentResponse.razorpay_payment_id,
-                    razorpay_signature: paymentResponse.razorpay_signature,
-                    userId: user.uid,
-                }),
-            });
-
-            const result = await response.json();
-
-            if (result.isVerified) {
-                toast({ title: "Success", description: "Payment successful and verified! Your limit has been reset." });
-                onPaymentSuccess();
-            } else {
-                toast({ title: "Verification Failed", description: "Payment verification failed. Please contact support.", variant: "destructive" });
-            }
-        } catch (error) {
-            console.error("Verification error:", error);
-            toast({ title: "Error", description: "Could not verify payment.", variant: "destructive" });
-        } finally {
-            setLoading(false);
+             // We can set loading to false here now as we don't await client-side verification
+             setLoading(false);
         }
     };
 
