@@ -1,8 +1,8 @@
 
 'use server';
-import 'dotenv/config';
 import { NextRequest, NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
+import crypto from 'crypto';
 
 function initializeRazorpay() {
     const keyId = process.env.RAZORPAY_KEY_ID;
@@ -33,11 +33,13 @@ export async function POST(req: NextRequest) {
         if (isNaN(amountInPaise) || amountInPaise < 100) {
             return NextResponse.json({ error: 'Invalid amount calculated.' }, { status: 400 });
         }
+        
+        const receiptId = `receipt_${crypto.randomBytes(8).toString('hex')}`;
 
         const options = {
             amount: amountInPaise,
             currency: 'INR',
-            receipt: `receipt_order_${userId}_${Date.now()}`,
+            receipt: receiptId,
             notes: {
                 userId: userId,
                 examCategory: examCategory,
