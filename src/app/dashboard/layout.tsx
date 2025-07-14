@@ -168,7 +168,7 @@ export default function DashboardLayout({
           <SidebarContent>
             <SidebarMenu>
               <div className="p-2 group-data-[collapsible=icon]:hidden">
-                <CardDescription className="text-center text-xs">
+                <CardDescription className="text-center text-sm">
                   {getWelcomeMessage()}
                 </CardDescription>
               </div>
