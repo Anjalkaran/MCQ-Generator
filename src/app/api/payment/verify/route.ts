@@ -1,3 +1,4 @@
+
 'use server';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -7,9 +8,11 @@ import { adminDb } from '@/lib/firebase-admin';
 export async function POST(req: NextRequest) {
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature, userId } = await req.json();
+        
         const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
         if (!keySecret) {
+            console.error('Razorpay key secret is not configured in environment variables.');
             throw new Error('Razorpay key secret is not configured.');
         }
 
@@ -23,11 +26,8 @@ export async function POST(req: NextRequest) {
         const isVerified = expectedSignature === razorpay_signature;
 
         if (isVerified) {
-            // Payment is legitimate. Update user's status in your database.
-            // Here we reset the exam count to 0, effectively granting them a new quota.
             await adminDb.collection('users').doc(userId).update({
                 topicExamsTaken: 0, 
-                // You could also add a 'paid' status or subscription expiry date here.
             });
             
             await adminDb.collection('payments').doc(razorpay_payment_id).set({

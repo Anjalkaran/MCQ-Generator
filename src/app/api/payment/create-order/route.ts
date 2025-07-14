@@ -9,6 +9,7 @@ function initializeRazorpay() {
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
     if (!keyId || !keySecret) {
+        console.error('Razorpay keys are not configured in environment variables.');
         throw new Error('Razorpay keys are not configured in environment variables.');
     }
     return new Razorpay({
@@ -28,13 +29,13 @@ export async function POST(req: NextRequest) {
         }
         
         const amountInRupees = examCategory === 'PA' ? 749 : 499;
-        const amountInPaise = Math.round(amountInRupees * 100); // Ensure it's an integer
+        const amountInPaise = Math.round(amountInRupees * 100);
 
         if (isNaN(amountInPaise) || amountInPaise < 100) {
             return NextResponse.json({ error: 'Invalid amount calculated.' }, { status: 400 });
         }
         
-        const receiptId = `receipt_${crypto.randomBytes(8).toString('hex')}`;
+        const receiptId = `receipt_${crypto.randomBytes(4).toString('hex')}`;
 
         const options = {
             amount: amountInPaise,
@@ -52,7 +53,6 @@ export async function POST(req: NextRequest) {
 
     } catch (error: any) {
         console.error('Razorpay order creation error:', error);
-        // Log the detailed error from Razorpay if available
         const errorMessage = error.error?.description || error.message || 'An unknown error occurred.';
         return NextResponse.json(
             { error: `Failed to create payment order: ${errorMessage}` },
