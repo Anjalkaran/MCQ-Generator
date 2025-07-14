@@ -5,7 +5,7 @@ import { useDashboard } from "@/app/dashboard/layout";
 import PaymentButton from "@/components/quiz/payment-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Gem, Loader2 } from "lucide-react";
+import { Gem, Loader2, PartyPopper } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function UpgradePage() {
@@ -35,12 +35,30 @@ export default function UpgradePage() {
     }
 
     const onPaymentSuccess = () => {
-        setUserData(prev => prev ? { ...prev, topicExamsTaken: 0 } : null);
+        setUserData(prev => prev ? { ...prev, isPremium: true, topicExamsTaken: 0 } : null);
         toast({
             title: "Payment Successful!",
-            description: "Your exam limit has been reset. You can now generate a new quiz.",
+            description: "You now have unlimited access to all exams. Congratulations!",
         });
         router.push('/dashboard');
+    }
+
+    if (userData.isPremium) {
+        return (
+             <div className="space-y-6 max-w-2xl mx-auto">
+                 <Card>
+                    <CardHeader className="text-center">
+                        <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit">
+                            <PartyPopper className="h-8 w-8 text-primary" />
+                        </div>
+                        <CardTitle className="text-2xl pt-4">You're Already a Premium Member!</CardTitle>
+                        <CardDescription className="max-w-md mx-auto">
+                            You have unlimited access to all exams. Enjoy your practice!
+                        </CardDescription>
+                    </CardHeader>
+                </Card>
+            </div>
+        )
     }
 
     const price = userData.examCategory === 'PA' ? 749 : 499;
@@ -50,7 +68,7 @@ export default function UpgradePage() {
             <div className="space-y-0.5">
                 <h1 className="text-2xl font-bold tracking-tight">Upgrade Your Plan</h1>
                 <p className="text-muted-foreground">
-                    Reset your exam limit to continue practicing.
+                    Unlock unlimited exam access to continue practicing.
                 </p>
             </div>
             
@@ -69,7 +87,7 @@ export default function UpgradePage() {
                         ₹{price}
                         <span className="text-lg font-normal text-muted-foreground"> / year</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">This will reset your topic exam counter.</p>
+                    <p className="text-sm text-muted-foreground">This will grant you unlimited exam access.</p>
                     <div className="w-full max-w-sm pt-4">
                          <PaymentButton
                             user={userData}

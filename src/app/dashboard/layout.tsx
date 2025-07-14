@@ -89,6 +89,7 @@ export default function DashboardLayout({
                     examCategory: 'PA', // Admins can see all
                     topicExamsTaken: 0,
                     mockTestsTaken: 0,
+                    isPremium: true,
                 };
                 const { categories, topics } = await getDashboardData(currentUser.uid, true);
                 setUserData(adminUserData);
@@ -134,7 +135,7 @@ export default function DashboardLayout({
     
   }, [pathname, router, toast]);
 
-  const hasExceededFreeLimit = userData && !isAdmin && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
+  const hasExceededFreeLimit = userData && !isAdmin && !userData.isPremium && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
 
   const contextValue = { user, userData, categories, topics, isLoading, setUserData };
 

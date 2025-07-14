@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Loader2, AlertTriangle, ArrowRight, Gem } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getMCQHistoryForTopic } from '@/lib/firestore';
 import type { Category, Topic, UserData } from '@/lib/types';
@@ -182,10 +182,11 @@ export function CreateQuizForm({ initialCategories, initialTopics, user, userDat
   const getCardDescription = () => {
     if (!userData) return "Log in to see your status.";
     if (userData.email === ADMIN_EMAIL) return "Admin has unlimited access.";
+    if (userData.isPremium) return `Welcome, ${userData.name}! You have unlimited access.`;
     return `Welcome, ${userData.name}! Select a topic to start practicing.`;
   }
   
-  const hasExceededFreeLimit = userData && userData.email !== ADMIN_EMAIL && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
+  const hasExceededFreeLimit = userData && userData.email !== ADMIN_EMAIL && !userData.isPremium && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
 
   return (
     <Card>
@@ -203,11 +204,11 @@ export function CreateQuizForm({ initialCategories, initialTopics, user, userDat
                         <AlertTriangle className="h-4 w-4" />
                         <AlertTitle>Free Limit Reached</AlertTitle>
                         <AlertDescription>
-                            You have used your free exam allocation. Please upgrade to reset your limit and continue practicing.
+                            You have used your free exam allocation. Please upgrade for unlimited access.
                         </AlertDescription>
                         <Button asChild className="mt-4">
                             <Link href="/dashboard/upgrade">
-                                Upgrade Now <ArrowRight className="ml-2 h-4 w-4" />
+                                Upgrade Now <Gem className="ml-2 h-4 w-4" />
                             </Link>
                         </Button>
                     </Alert>

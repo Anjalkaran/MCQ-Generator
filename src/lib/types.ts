@@ -31,6 +31,7 @@ export interface UserData {
     examCategory: 'MTS' | 'POSTMAN' | 'PA';
     topicExamsTaken: number;
     mockTestsTaken: number;
+    isPremium?: boolean;
 }
 
 export interface MCQData {
