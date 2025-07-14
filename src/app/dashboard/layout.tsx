@@ -104,20 +104,6 @@ export default function DashboardLayout({
                      return;
                 }
 
-                const isOfficiallyPro = fetchedUserData.isPro && normalizeDate(fetchedUserData.proValidUntil) > new Date();
-                const proTransitionFlag = localStorage.getItem('isProTransitioning') === 'true';
-
-                if (isOfficiallyPro) {
-                    localStorage.removeItem('isProTransitioning');
-                } else if (proTransitionFlag && !isOfficiallyPro) {
-                    fetchedUserData.isPro = true;
-                    fetchedUserData.topicExamsTaken = 0; 
-                    
-                    const tempValidUntil = new Date();
-                    tempValidUntil.setFullYear(tempValidUntil.getFullYear() + 1);
-                    fetchedUserData.proValidUntil = tempValidUntil;
-                }
-
                 setUserData(fetchedUserData);
                 setCategories(categories);
                 setTopics(topics);

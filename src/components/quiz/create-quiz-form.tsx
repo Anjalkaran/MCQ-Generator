@@ -18,7 +18,7 @@ import { getMCQHistoryForTopic } from '@/lib/firestore';
 import type { Category, Topic } from '@/lib/types';
 import { cn, normalizeDate } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { FREE_TOPIC_EXAM_LIMIT } from '@/lib/constants';
+import { FREE_TOPIC_EXAM_LIMIT, ADMIN_EMAIL } from '@/lib/constants';
 import Link from 'next/link';
 import { useDashboard } from '@/app/dashboard/layout';
 
@@ -60,15 +60,20 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
 
   useEffect(() => {
     if (user && userData) {
-        const userExamCategory = userData.examCategory;
-        const userCategories = initialCategories.filter(c => 
-          c.examCategories && c.examCategories.includes(userExamCategory)
-        );
-        setCategories(userCategories);
-
-        const userCategoryIds = userCategories.map(c => c.id);
-        const userTopics = initialTopics.filter(t => userCategoryIds.includes(t.categoryId));
-        setTopics(userTopics);
+        if (userData.email === ADMIN_EMAIL) {
+            setCategories(initialCategories);
+            setTopics(initialTopics);
+        } else {
+            const userExamCategory = userData.examCategory;
+            const userCategories = initialCategories.filter(c => 
+              c.examCategories && c.examCategories.includes(userExamCategory)
+            );
+            setCategories(userCategories);
+    
+            const userCategoryIds = userCategories.map(c => c.id);
+            const userTopics = initialTopics.filter(t => userCategoryIds.includes(t.categoryId));
+            setTopics(userTopics);
+        }
     } else {
         setCategories([]);
         setTopics([]);
@@ -172,7 +177,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
 
   const getCardDescription = () => {
     if (isLoading || !userData) return "Loading your details...";
-    
+    if (userData.email === ADMIN_EMAIL) return `Welcome, Admin! You have unlimited exam access.`;
     if (isPro) {
       return `Welcome, ${userData.name}! Enjoy your unlimited exam access.`;
     }
