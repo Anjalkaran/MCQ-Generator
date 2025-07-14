@@ -21,7 +21,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { FREE_TOPIC_EXAM_LIMIT } from '@/lib/constants';
 import Link from 'next/link';
 import { useDashboard } from '@/app/dashboard/layout';
-import type { Timestamp } from 'firebase/firestore';
 
 
 const formSchema = z.object({
@@ -167,8 +166,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
 
   const filteredTopics = selectedCategoryId ? topics.filter(topic => topic.categoryId === selectedCategoryId) : [];
   
-  const proValidUntilDate = userData?.proValidUntil ? (userData.proValidUntil as Timestamp).toDate() : null;
-  const isPro = userData?.isPro && proValidUntilDate && proValidUntilDate > new Date();
+  const isPro = userData?.isPro && userData.proValidUntil && new Date(userData.proValidUntil) > new Date();
   
   const hasExceededFreeLimit = !isPro && userData && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
 
