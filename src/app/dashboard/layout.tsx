@@ -98,13 +98,21 @@ export default function DashboardLayout({
 
             } else {
                  // For regular users, fetch all data including their specific userData
-                const { userData, categories, topics } = await getDashboardData(currentUser.uid);
-                if (!userData) {
+                const { userData: fetchedUserData, categories, topics } = await getDashboardData(currentUser.uid);
+                if (!fetchedUserData) {
                      toast({ title: "Authentication Error", description: "Could not load user profile. Please log in again.", variant: "destructive" });
                      handleLogout(auth, false);
                      return;
                 }
-                setUserData(userData);
+
+                // Check for the post-payment flag
+                const justUpgraded = localStorage.getItem('isJustUpgraded');
+                if (justUpgraded === 'true') {
+                    fetchedUserData.isPremium = true;
+                    localStorage.removeItem('isJustUpgraded');
+                }
+
+                setUserData(fetchedUserData);
                 setCategories(categories);
                 setTopics(topics);
             }

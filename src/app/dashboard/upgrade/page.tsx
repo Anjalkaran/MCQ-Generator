@@ -35,8 +35,9 @@ export default function UpgradePage() {
     }
 
     const onPaymentSuccess = () => {
-        // Optimistically update the user's state on the client
-        setUserData(prev => prev ? { ...prev, isPremium: true, topicExamsTaken: 0 } : null);
+        // Set a flag in localStorage to signal a successful upgrade.
+        // The dashboard layout will read this and update the state.
+        localStorage.setItem('isJustUpgraded', 'true');
         
         toast({
             title: "Payment Successful!",
