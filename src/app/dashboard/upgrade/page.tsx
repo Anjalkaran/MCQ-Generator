@@ -15,7 +15,6 @@ export default function UpgradePage() {
     const { userData, setUserData, isLoading } = useDashboard();
     const { toast } = useToast();
     const router = useRouter();
-    const [isRazorpayReady, setIsRazorpayReady] = useState(false);
 
     const proValidUntilDate = normalizeDate(userData?.proValidUntil);
     const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date());
@@ -91,12 +90,6 @@ export default function UpgradePage() {
                 id="razorpay-checkout-js"
                 src="https://checkout.razorpay.com/v1/checkout.js"
                 strategy="lazyOnload"
-                onLoad={() => {
-                    setIsRazorpayReady(true)
-                }}
-                onError={() => {
-                    toast({ title: "Error", description: "Could not load payment provider. Please check your network or ad blocker.", variant: "destructive" });
-                }}
             />
             <div className="space-y-6 max-w-2xl mx-auto">
                 <div className="space-y-0.5">
@@ -126,7 +119,6 @@ export default function UpgradePage() {
                              <PaymentButton
                                 user={userData}
                                 onPaymentSuccess={onPaymentSuccess}
-                                isReady={isRazorpayReady}
                              />
                         </div>
                     </CardContent>

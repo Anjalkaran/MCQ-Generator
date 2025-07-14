@@ -15,15 +15,26 @@ declare global {
 interface PaymentButtonProps {
   user: UserData;
   onPaymentSuccess: () => void;
-  isReady: boolean;
 }
 
-export default function PaymentButton({ user, onPaymentSuccess, isReady }: PaymentButtonProps) {
+export default function PaymentButton({ user, onPaymentSuccess }: PaymentButtonProps) {
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
 
     const createOrder = async () => {
         setLoading(true);
+
+        // Check if Razorpay script is loaded
+        if (!window.Razorpay) {
+            toast({
+                title: "Payment Gateway Not Ready",
+                description: "The payment gateway is still loading. Please try again in a moment.",
+                variant: "destructive",
+            });
+            setLoading(false);
+            return;
+        }
+
         try {
             const response = await fetch('/api/payment/create-order', {
                 method: 'POST',
@@ -39,12 +50,6 @@ export default function PaymentButton({ user, onPaymentSuccess, isReady }: Payme
             }
 
             const order = await response.json();
-
-            if (!window.Razorpay) {
-                toast({ title: "Error", description: "Razorpay SDK failed to load. Are you online?", variant: "destructive"});
-                setLoading(false);
-                return;
-            }
 
             const options = {
                 key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
@@ -72,19 +77,22 @@ export default function PaymentButton({ user, onPaymentSuccess, isReady }: Payme
                 toast({ title: "Payment Failed", description: response.error.description, variant: "destructive" });
                 setLoading(false);
             });
+            
+            // It's important to setLoading(false) here in case the user closes the Razorpay modal
+            // without paying or it failing.
+            setLoading(false);
 
         } catch (error: any) {
             console.error(error);
             toast({ title: "Error", description: error.message || 'Could not create payment order.', variant: "destructive" });
-        } finally {
-             setLoading(false);
+            setLoading(false);
         }
     };
 
     return (
         <Button
             onClick={createOrder}
-            disabled={loading || !isReady}
+            disabled={loading}
             className="w-full"
             size="lg"
         >
