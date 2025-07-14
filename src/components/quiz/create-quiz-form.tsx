@@ -201,7 +201,6 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
   return (
     <Card>
       <CardHeader className="text-center">
-        <CardTitle>Create Your Custom Exam</CardTitle>
         <CardDescription>
             {getCardDescription()}
         </CardDescription>
