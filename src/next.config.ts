@@ -37,6 +37,7 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
+  serverComponentsExternalPackages: ['pdf-parse'],
 };
 
 export default pwaConfig(nextConfig);
