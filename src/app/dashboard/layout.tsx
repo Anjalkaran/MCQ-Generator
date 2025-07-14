@@ -141,7 +141,7 @@ export default function DashboardLayout({
     });
     return () => unsubscribe();
     
-  }, [pathname, router, toast]);
+  }, [pathname]);
 
   const hasExceededFreeLimit = userData && !isAdmin && !userData.isPremium && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
 
