@@ -24,6 +24,7 @@ import { useDashboard } from '@/app/dashboard/layout';
 
 
 const formSchema = z.object({
+  part: z.string().min(1, 'Please select a part.'),
   categoryId: z.string().min(1, 'Please select a category.'),
   topicId: z.string().min(1, 'Please select a topic.'),
   numberOfQuestions: z.coerce.number().min(3).max(50),
@@ -33,7 +34,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 type DifficultyLevel = 'Easy' | 'Moderate' | 'Difficult';
 const difficultyLevels: DifficultyLevel[] = ['Easy', 'Moderate', 'Difficult'];
-
+const parts = ["Part A", "Part B"] as const;
 
 interface CreateQuizFormProps {
     initialCategories: Category[];
@@ -51,6 +52,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      part: '',
       categoryId: '',
       topicId: '',
       numberOfQuestions: 5,
@@ -80,6 +82,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     }
   }, [initialCategories, initialTopics, user, userData]);
 
+  const selectedPart = form.watch('part');
   const selectedCategoryId = form.watch('categoryId');
   const selectedDifficulty = form.watch('difficulty');
 
@@ -168,10 +171,11 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     }
   };
 
+  const filteredCategories = selectedPart ? categories.filter(c => c.part === selectedPart) : [];
   const filteredTopics = selectedCategoryId ? topics.filter(topic => topic.categoryId === selectedCategoryId) : [];
   
   const proValidUntilDate = normalizeDate(userData?.proValidUntil);
-  const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date());
+  const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || (userData?.email === ADMIN_EMAIL);
   
   const hasExceededFreeLimit = !isPro && userData && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
 
@@ -214,6 +218,34 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                 <fieldset disabled={isGenerating || isLoading} className="space-y-6">
                     <FormField
                     control={form.control}
+                    name="part"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Part</FormLabel>
+                        <Select onValueChange={(value) => {
+                            field.onChange(value);
+                            form.setValue('categoryId', '');
+                            form.setValue('topicId', '');
+                        }} value={field.value} disabled={!user}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder={!user ? "Login to see parts" : "Select a part"} />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            {parts.map((part) => (
+                                <SelectItem key={part} value={part}>
+                                {part}
+                                </SelectItem>
+                            ))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
                     name="categoryId"
                     render={({ field }) => (
                         <FormItem>
@@ -221,14 +253,14 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                         <Select onValueChange={(value) => {
                             field.onChange(value);
                             form.setValue('topicId', '');
-                        }} value={field.value} disabled={!user || categories.length === 0}>
+                        }} value={field.value} disabled={!selectedPart || filteredCategories.length === 0}>
                             <FormControl>
                             <SelectTrigger>
-                                <SelectValue placeholder={!user ? "Login to see categories" : (categories.length === 0 ? "No categories available for your exam type" : "Select a category")} />
+                                <SelectValue placeholder={!selectedPart ? "Select a part first" : (filteredCategories.length === 0 ? "No categories in this part" : "Select a category")} />
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                            {categories.map((category) => (
+                            {filteredCategories.map((category) => (
                                 <SelectItem key={category.id} value={category.id}>
                                 {category.name}
                                 </SelectItem>

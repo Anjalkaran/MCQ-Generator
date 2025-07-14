@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { addCategory, addTopic, deleteTopic, deleteCategory, updateCategory, updateTopic } from '@/lib/firestore';
 import type { Topic, Category } from '@/lib/types';
 import { Loader2, PlusCircle, Trash2, Upload, Edit } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,9 +42,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
+const parts = ["Part A", "Part B"] as const;
 
 const categorySchema = z.object({
   name: z.string().min(2, { message: 'Category name must be at least 2 characters.' }),
+  part: z.enum(parts, { required_error: 'You must select a part.'}),
   examCategories: z.array(z.string()).refine((value) => value.some((item) => item), {
     message: "You have to select at least one exam category.",
   }),
@@ -84,7 +87,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
 
   const categoryForm = useForm<z.infer<typeof categorySchema>>({
     resolver: zodResolver(categorySchema),
-    defaultValues: { name: '', examCategories: [] },
+    defaultValues: { name: '', part: 'Part A', examCategories: [] },
   });
 
   const topicForm = useForm<z.infer<typeof topicSchema>>({
@@ -104,7 +107,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     if (editingCategory) {
         categoryForm.reset(editingCategory);
     } else {
-        categoryForm.reset({ name: '', examCategories: [] });
+        categoryForm.reset({ name: '', part: 'Part A', examCategories: [] });
     }
   }, [editingCategory, categoryForm]);
 
@@ -136,7 +139,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
         const newCategory = { id: newCategoryDoc.id, ...values };
         setCategories(prev => [...prev, newCategory].sort((a,b) => a.name.localeCompare(b.name)));
         toast({ title: 'Success', description: 'New category added.' });
-        categoryForm.reset({ name: '', examCategories: [] });
+        categoryForm.reset({ name: '', part: 'Part A', examCategories: [] });
       }
     } catch (error) {
       toast({ title: 'Error', description: editingCategory ? 'Failed to update category.' : 'Failed to add category.', variant: 'destructive' });
@@ -279,6 +282,32 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                 <FormMessage />
                                 </FormItem>
                             )}
+                            />
+                            <FormField
+                                control={categoryForm.control}
+                                name="part"
+                                render={({ field }) => (
+                                    <FormItem className="space-y-3">
+                                    <FormLabel>Part</FormLabel>
+                                    <FormControl>
+                                        <RadioGroup
+                                        onValueChange={field.onChange}
+                                        defaultValue={field.value}
+                                        className="flex space-x-4"
+                                        >
+                                        <FormItem className="flex items-center space-x-2 space-y-0">
+                                            <FormControl><RadioGroupItem value="Part A" /></FormControl>
+                                            <FormLabel className="font-normal">Part A</FormLabel>
+                                        </FormItem>
+                                        <FormItem className="flex items-center space-x-2 space-y-0">
+                                            <FormControl><RadioGroupItem value="Part B" /></FormControl>
+                                            <FormLabel className="font-normal">Part B</FormLabel>
+                                        </FormItem>
+                                        </RadioGroup>
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
                             />
                             <FormField
                             control={categoryForm.control}
@@ -526,6 +555,9 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                             <Card className="bg-muted/50">
                                 <CardHeader>
                                     <CardTitle className="text-lg">{currentlySelectedCategory.name}</CardTitle>
+                                    <CardDescription>
+                                        Part: <Badge variant="secondary">{currentlySelectedCategory.part}</Badge>
+                                    </CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-sm font-medium">Associated Exam Types:</p>
