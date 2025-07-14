@@ -54,9 +54,7 @@ export default function PaymentButton({ user, onPaymentSuccess }: PaymentButtonP
                 name: "Anjalkaran",
                 description: "Test Exam Plan",
                 order_id: order.id,
-                handler: async function (response: any) {
-                    // The new verification happens via webhook, so we can just call the success handler directly
-                    toast({ title: "Success", description: "Payment successful! Your limit has been reset." });
+                handler: function (response: any) {
                     onPaymentSuccess();
                 },
                 prefill: {
@@ -80,7 +78,6 @@ export default function PaymentButton({ user, onPaymentSuccess }: PaymentButtonP
             console.error(error);
             toast({ title: "Error", description: error.message || 'Could not create payment order.', variant: "destructive" });
         } finally {
-             // We can set loading to false here now as we don't await client-side verification
              setLoading(false);
         }
     };
@@ -100,7 +97,7 @@ export default function PaymentButton({ user, onPaymentSuccess }: PaymentButtonP
                 className="w-full"
                 size="lg"
             >
-                {loading || !isRazorpayReady ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Pay Now'}
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Pay Now'}
             </Button>
         </>
     );

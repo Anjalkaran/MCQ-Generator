@@ -35,13 +35,14 @@ export default function UpgradePage() {
     }
 
     const onPaymentSuccess = () => {
-        // Set a flag in localStorage to signal a successful upgrade.
-        // The dashboard layout will read this and update the state.
-        localStorage.setItem('isJustUpgraded', 'true');
+        if (userData) {
+            setUserData({ ...userData, isPremium: true });
+        }
         
         toast({
             title: "Payment Successful!",
             description: "You now have unlimited access to all exams. Congratulations!",
+            className: "bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-700",
         });
 
         // Redirect to the dashboard where they can now create an exam

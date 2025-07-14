@@ -104,14 +104,6 @@ export default function DashboardLayout({
                      handleLogout(auth, false);
                      return;
                 }
-
-                // Check for the post-payment flag
-                const justUpgraded = localStorage.getItem('isJustUpgraded');
-                if (justUpgraded === 'true') {
-                    fetchedUserData.isPremium = true;
-                    localStorage.removeItem('isJustUpgraded');
-                }
-
                 setUserData(fetchedUserData);
                 setCategories(categories);
                 setTopics(topics);
@@ -143,7 +135,7 @@ export default function DashboardLayout({
     
   }, [pathname]);
 
-  const hasExceededFreeLimit = userData && !isAdmin && !userData.isPremium && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
+  const showUpgradeButton = userData && !isAdmin && !userData.isPremium;
 
   const contextValue = { user, userData, categories, topics, isLoading, setUserData };
 
@@ -203,7 +195,7 @@ export default function DashboardLayout({
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-               {hasExceededFreeLimit && (
+               {showUpgradeButton && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={pathname === '/dashboard/upgrade'} variant="outline" className="text-primary hover:bg-primary/10 hover:text-primary border-primary/50">
                     <Link href="/dashboard/upgrade">

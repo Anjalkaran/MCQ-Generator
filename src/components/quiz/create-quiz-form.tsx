@@ -40,12 +40,10 @@ interface CreateQuizFormProps {
     initialTopics: Topic[];
 }
 
-const ADMIN_EMAIL = "admin@anjalkaran.com";
-
 export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizFormProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const { user, userData } = useDashboard();
+  const { user, userData, isLoading } = useDashboard();
   const [isGenerating, setIsGenerating] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
@@ -62,12 +60,19 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
 
   useEffect(() => {
     if (user && userData) {
-        if (userData.email === ADMIN_EMAIL) {
-          setCategories(initialCategories);
-          setTopics(initialTopics);
-        } else {
+        if (userData.isPremium) {
+          // Premium users see all categories/topics for their exam type
           const userExamCategory = userData.examCategory;
           const userCategories = initialCategories.filter(c => 
+            c.examCategories && c.examCategories.includes(userExamCategory)
+          );
+          setCategories(userCategories);
+          const userCategoryIds = userCategories.map(c => c.id);
+          const userTopics = initialTopics.filter(t => userCategoryIds.includes(t.categoryId));
+          setTopics(userTopics);
+        } else {
+           const userExamCategory = userData.examCategory;
+           const userCategories = initialCategories.filter(c => 
             c.examCategories && c.examCategories.includes(userExamCategory)
           );
           setCategories(userCategories);
@@ -88,15 +93,12 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
 
-    if (!user) {
+    if (!user || !userData) {
         toast({ title: 'Not Authenticated', description: 'You must be logged in to create a quiz.', variant: 'destructive' });
         setIsGenerating(false);
         return;
     }
     
-    const isAdmin = user.email === ADMIN_EMAIL;
-    const effectiveUserId = isAdmin ? 'admin' : user.uid;
-
     const selectedTopic = topics.find(t => t.id === values.topicId);
     const selectedCategory = categories.find(c => c.id === values.categoryId);
 
@@ -122,7 +124,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
           difficulty: values.difficulty,
           material: (selectedTopic.material && !excludedCategories.includes(selectedCategory.name)) ? selectedTopic.material : undefined,
           previousQuestions: previousQuestions,
-          userId: effectiveUserId,
+          userId: user.uid,
       };
 
       const { mcqs } = await generateMCQs(generationInput);
@@ -176,13 +178,12 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
   const filteredTopics = selectedCategoryId ? topics.filter(topic => topic.categoryId === selectedCategoryId) : [];
   
   const getCardDescription = () => {
-    if (!userData) return "Log in to see your status.";
-    if (userData.email === ADMIN_EMAIL) return "Admin has unlimited access.";
-    if (userData.isPremium) return `Welcome, ${userData.name}! You have unlimited access.`;
-    return `Welcome, ${userData.name}! Select a topic to start practicing.`;
+    if (isLoading || !userData) return "Loading your details...";
+    if (userData.isPremium) return `Welcome back, Pro Member! You have unlimited access.`;
+    return `Welcome, ${userData.name}! You have ${FREE_TOPIC_EXAM_LIMIT - userData.topicExamsTaken} free exam(s) remaining.`;
   }
   
-  const hasExceededFreeLimit = userData && userData.email !== ADMIN_EMAIL && !userData.isPremium && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
+  const hasExceededFreeLimit = userData && !userData.isPremium && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
 
   return (
     <Card>
@@ -209,7 +210,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                         </Button>
                     </Alert>
                 ) : (
-                <fieldset disabled={isGenerating} className="space-y-6">
+                <fieldset disabled={isGenerating || isLoading} className="space-y-6">
                     <FormField
                     control={form.control}
                     name="categoryId"
@@ -307,7 +308,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
              </CardContent>
             {!hasExceededFreeLimit && (
                  <CardFooter>
-                    <Button type="submit" disabled={isGenerating || !form.formState.isValid} className="w-full">
+                    <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading} className="w-full">
                         {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Start Exam
                     </Button>
