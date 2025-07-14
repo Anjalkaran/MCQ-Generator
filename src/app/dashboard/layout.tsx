@@ -15,6 +15,7 @@ import { getDashboardData } from '@/lib/firestore';
 import type { UserData, Category, Topic } from "@/lib/types";
 import { ADMIN_EMAIL, FREE_TOPIC_EXAM_LIMIT } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
+import { CardDescription } from '@/components/ui/card';
 
 interface DashboardContextType {
   user: User | null;
@@ -135,9 +136,18 @@ export default function DashboardLayout({
   }, [pathname]);
 
   const proValidUntilDate = normalizeDate(userData?.proValidUntil);
-  const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date());
+  const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
 
   const showUpgradeButton = userData && !isPro && !isAdmin && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
+
+  const getWelcomeMessage = () => {
+    if (isLoading || !userData) return null;
+    if (isAdmin) return `Welcome, Admin! You have unlimited access.`;
+    if (isPro) return `Welcome, ${userData.name}! Enjoy your unlimited exam access.`;
+    
+    const examsRemaining = FREE_TOPIC_EXAM_LIMIT - userData.topicExamsTaken;
+    return `Welcome, ${userData.name}! You have ${examsRemaining > 0 ? examsRemaining : 0} free exam(s) remaining.`;
+  }
 
   const contextValue = { user, userData, categories, topics, isLoading, setUserData };
 
@@ -155,6 +165,11 @@ export default function DashboardLayout({
           </SidebarHeader>
           <SidebarContent>
             <SidebarMenu>
+              <div className="p-2 group-data-[collapsible=icon]:hidden">
+                <CardDescription className="text-center text-xs">
+                  {getWelcomeMessage()}
+                </CardDescription>
+              </div>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === '/dashboard'}>
                   <Link href="/dashboard">

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -45,10 +45,8 @@ interface CreateQuizFormProps {
 export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizFormProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const { user, userData, isLoading } = useDashboard();
+  const { user, userData, isLoading, categories, topics } = useDashboard();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
-  const [topics, setTopics] = useState<Topic[]>(initialTopics);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -77,7 +75,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     }
   }, [userData]);
 
-  useEffect(() => {
+  useMemo(() => {
     if (userData?.examCategory) {
         form.setValue('examType', userData.examCategory);
     }
@@ -176,38 +174,22 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
   
   const filteredCategoriesByExam = useMemo(() => {
     if (!selectedExamType) return [];
-    return initialCategories.filter(c => c.examCategories && c.examCategories.includes(selectedExamType));
-  }, [selectedExamType, initialCategories]);
+    return categories.filter(c => c.examCategories && c.examCategories.includes(selectedExamType));
+  }, [selectedExamType, categories]);
 
   const filteredCategoriesByPart = selectedPart ? filteredCategoriesByExam.filter(c => c.part === selectedPart) : [];
-  const filteredTopics = selectedCategoryId ? initialTopics.filter(topic => topic.categoryId === selectedCategoryId) : [];
+  const filteredTopics = selectedCategoryId ? topics.filter(topic => topic.categoryId === selectedCategoryId) : [];
   
   const proValidUntilDate = normalizeDate(userData?.proValidUntil);
   const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || (userData?.email === ADMIN_EMAIL);
   
   const hasExceededFreeLimit = !isPro && userData && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
-
-  const getCardDescription = () => {
-    if (isLoading || !userData) return "Loading your details...";
-    if (userData.email === ADMIN_EMAIL) return `Welcome, Admin! You have unlimited exam access.`;
-    if (isPro) {
-      return `Welcome, ${userData.name}! Enjoy your unlimited exam access.`;
-    }
-    
-    const examsRemaining = FREE_TOPIC_EXAM_LIMIT - userData.topicExamsTaken;
-    return `Welcome, ${userData.name}! You have ${examsRemaining > 0 ? examsRemaining : 0} free exam(s) remaining.`;
-  }
   
   return (
     <Card>
-      <CardHeader className="text-center">
-        <CardDescription>
-            {getCardDescription()}
-        </CardDescription>
-      </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <CardContent>
+            <CardContent className="pt-6">
                 {hasExceededFreeLimit ? (
                     <Alert variant="destructive">
                         <AlertTriangle className="h-4 w-4" />
