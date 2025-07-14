@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -22,8 +22,8 @@ import { FREE_TOPIC_EXAM_LIMIT, ADMIN_EMAIL } from '@/lib/constants';
 import Link from 'next/link';
 import { useDashboard } from '@/app/dashboard/layout';
 
-
 const formSchema = z.object({
+  examType: z.string().min(1, 'Please select an exam type.'),
   part: z.string().min(1, 'Please select a part.'),
   categoryId: z.string().min(1, 'Please select a category.'),
   topicId: z.string().min(1, 'Please select a topic.'),
@@ -35,6 +35,7 @@ type FormValues = z.infer<typeof formSchema>;
 type DifficultyLevel = 'Easy' | 'Moderate' | 'Difficult';
 const difficultyLevels: DifficultyLevel[] = ['Easy', 'Moderate', 'Difficult'];
 const parts = ["Part A", "Part B"] as const;
+const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 
 interface CreateQuizFormProps {
     initialCategories: Category[];
@@ -46,12 +47,13 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
   const { toast } = useToast();
   const { user, userData, isLoading } = useDashboard();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [topics, setTopics] = useState<Topic[]>([]);
+  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const [topics, setTopics] = useState<Topic[]>(initialTopics);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      examType: '',
       part: '',
       categoryId: '',
       topicId: '',
@@ -59,29 +61,30 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
       difficulty: 'Moderate',
     },
   });
+  
+  const availableExams = useMemo(() => {
+    if (!userData) return [];
+    if (userData.email === ADMIN_EMAIL) return examCategories;
+    switch (userData.examCategory) {
+        case 'PA':
+            return ['PA', 'POSTMAN', 'MTS'];
+        case 'POSTMAN':
+            return ['POSTMAN', 'MTS'];
+        case 'MTS':
+            return ['MTS'];
+        default:
+            return [];
+    }
+  }, [userData]);
 
   useEffect(() => {
-    if (user && userData) {
-        if (userData.email === ADMIN_EMAIL) {
-            setCategories(initialCategories);
-            setTopics(initialTopics);
-        } else {
-            const userExamCategory = userData.examCategory;
-            const userCategories = initialCategories.filter(c => 
-              c.examCategories && c.examCategories.includes(userExamCategory)
-            );
-            setCategories(userCategories);
-    
-            const userCategoryIds = userCategories.map(c => c.id);
-            const userTopics = initialTopics.filter(t => userCategoryIds.includes(t.categoryId));
-            setTopics(userTopics);
-        }
-    } else {
-        setCategories([]);
-        setTopics([]);
+    if (userData?.examCategory) {
+        form.setValue('examType', userData.examCategory);
     }
-  }, [initialCategories, initialTopics, user, userData]);
+  }, [userData, form]);
 
+
+  const selectedExamType = form.watch('examType');
   const selectedPart = form.watch('part');
   const selectedCategoryId = form.watch('categoryId');
   const selectedDifficulty = form.watch('difficulty');
@@ -170,9 +173,14 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
       setIsGenerating(false);
     }
   };
+  
+  const filteredCategoriesByExam = useMemo(() => {
+    if (!selectedExamType) return [];
+    return initialCategories.filter(c => c.examCategories && c.examCategories.includes(selectedExamType));
+  }, [selectedExamType, initialCategories]);
 
-  const filteredCategories = selectedPart ? categories.filter(c => c.part === selectedPart) : [];
-  const filteredTopics = selectedCategoryId ? topics.filter(topic => topic.categoryId === selectedCategoryId) : [];
+  const filteredCategoriesByPart = selectedPart ? filteredCategoriesByExam.filter(c => c.part === selectedPart) : [];
+  const filteredTopics = selectedCategoryId ? initialTopics.filter(topic => topic.categoryId === selectedCategoryId) : [];
   
   const proValidUntilDate = normalizeDate(userData?.proValidUntil);
   const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || (userData?.email === ADMIN_EMAIL);
@@ -217,6 +225,43 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                 ) : (
                 <fieldset disabled={isGenerating || isLoading} className="space-y-6">
                     <FormField
+                      control={form.control}
+                      name="examType"
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Select Exam</FormLabel>
+                          <Select 
+                            onValueChange={(value) => {
+                                field.onChange(value);
+                                form.reset({
+                                    ...form.getValues(),
+                                    examType: value,
+                                    part: '',
+                                    categoryId: '',
+                                    topicId: '',
+                                });
+                            }} 
+                            value={field.value} 
+                            disabled={!user || availableExams.length <= 1}
+                           >
+                              <FormControl>
+                              <SelectTrigger>
+                                  <SelectValue placeholder={!user ? "Login to see exams" : "Select an exam"} />
+                              </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                              {availableExams.map((exam) => (
+                                  <SelectItem key={exam} value={exam}>
+                                  {exam}
+                                  </SelectItem>
+                              ))}
+                              </SelectContent>
+                          </Select>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                    />
+                    <FormField
                     control={form.control}
                     name="part"
                     render={({ field }) => (
@@ -226,10 +271,10 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                             field.onChange(value);
                             form.setValue('categoryId', '');
                             form.setValue('topicId', '');
-                        }} value={field.value} disabled={!user}>
+                        }} value={field.value} disabled={!selectedExamType}>
                             <FormControl>
                             <SelectTrigger>
-                                <SelectValue placeholder={!user ? "Login to see parts" : "Select a part"} />
+                                <SelectValue placeholder={!selectedExamType ? "Select an exam first" : "Select a part"} />
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -253,14 +298,14 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                         <Select onValueChange={(value) => {
                             field.onChange(value);
                             form.setValue('topicId', '');
-                        }} value={field.value} disabled={!selectedPart || filteredCategories.length === 0}>
+                        }} value={field.value} disabled={!selectedPart || filteredCategoriesByPart.length === 0}>
                             <FormControl>
                             <SelectTrigger>
-                                <SelectValue placeholder={!selectedPart ? "Select a part first" : (filteredCategories.length === 0 ? "No categories in this part" : "Select a category")} />
+                                <SelectValue placeholder={!selectedPart ? "Select a part first" : (filteredCategoriesByPart.length === 0 ? "No categories in this part" : "Select a category")} />
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                            {filteredCategories.map((category) => (
+                            {filteredCategoriesByPart.map((category) => (
                                 <SelectItem key={category.id} value={category.id}>
                                 {category.name}
                                 </SelectItem>
