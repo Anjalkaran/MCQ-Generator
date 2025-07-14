@@ -35,11 +35,15 @@ export default function UpgradePage() {
     }
 
     const onPaymentSuccess = () => {
+        // Optimistically update the user's state on the client
         setUserData(prev => prev ? { ...prev, isPremium: true, topicExamsTaken: 0 } : null);
+        
         toast({
             title: "Payment Successful!",
             description: "You now have unlimited access to all exams. Congratulations!",
         });
+
+        // Redirect to the dashboard where they can now create an exam
         router.push('/dashboard');
     }
 
