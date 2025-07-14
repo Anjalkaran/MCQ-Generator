@@ -20,7 +20,7 @@ export interface Topic {
   icon: string; 
   categoryId: string;
   categoryName?: string; 
-  materials?: Material[];
+  material?: string;
 }
 
 export interface Category {
