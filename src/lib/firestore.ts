@@ -180,19 +180,27 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
     await batch.commit();
 };
 
-export const getMCQHistoryForTopic = async (userId: string, topicId: string): Promise<string[]> => {
+export const getAllUserQuestions = async (userId: string): Promise<string[]> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     const historyCollection = collection(db, 'mcqHistory');
-    const q = query(historyCollection, where('userId', '==', userId), where('topicId', '==', topicId));
+    const q = query(historyCollection, where('userId', '==', userId));
     
     const querySnapshot = await getDocs(q);
     if (querySnapshot.empty) {
         return [];
     }
 
-    const allQuestions = querySnapshot.docs.flatMap(doc => doc.data().questions || []);
-    return allQuestions;
+    // Use a Set to automatically handle duplicates from the database, then convert to array.
+    const allQuestions = new Set<string>();
+    querySnapshot.docs.forEach(doc => {
+        const questions = doc.data().questions;
+        if (Array.isArray(questions)) {
+            questions.forEach(q => allQuestions.add(q));
+        }
+    });
+
+    return Array.from(allQuestions);
 };
 
 

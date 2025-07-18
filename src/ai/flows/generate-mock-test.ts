@@ -13,6 +13,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-blueprints';
 import type { MCQ } from '@/lib/types';
+import { getAllUserQuestions } from '@/lib/firestore';
 
 const ArithmeticSolutionSchema = z.object({
     steps: z.array(z.string()).describe("An array of strings, where each string is a single step in the calculation using the LCM method."),
@@ -63,6 +64,7 @@ const generateQuestionsForSectionPrompt = ai.definePrompt({
             sectionName: z.string(),
             topics: z.string(),
             questionCount: z.number(),
+            previousQuestions: z.array(z.string()).optional().describe('A list of previously asked questions to avoid repetition.'),
         })
     },
     output: {
@@ -80,6 +82,13 @@ These questions must cover the following topics:
 
 For each generated question, you MUST specify its topic in the 'topic' field from the list above.
 For any arithmetic questions, the 'solution' field MUST be an empty string ("").
+
+{{#if previousQuestions}}
+  IMPORTANT: Do NOT repeat any of the following questions. Ensure the new questions are unique and different from this list:
+  {{#each previousQuestions}}
+  - "{{this}}"
+  {{/each}}
+{{/if}}
 
 Your final output MUST be a single, valid JSON object containing a 'questions' array with EXACTLY {{questionCount}} questions.
 `,
@@ -104,6 +113,8 @@ const generateMockTestFlow = ai.defineFlow(
     else if (input.examCategory === 'POSTMAN') blueprint = POSTMAN_BLUEPRINT;
     else if (input.examCategory === 'PA') blueprint = PA_BLUEPRINT;
     else throw new Error(`No blueprint found for exam category: ${input.examCategory}`);
+    
+    const previousQuestions = await getAllUserQuestions(input.userId);
 
     const allQuestions: MCQ[] = [];
     const generationPromises: Promise<{ questions: MCQ[] }>[] = [];
@@ -126,7 +137,8 @@ const generateMockTestFlow = ai.defineFlow(
                         examCategory: input.examCategory,
                         sectionName: section.sectionName,
                         topics: topicsString,
-                        questionCount: currentChunkSize
+                        questionCount: currentChunkSize,
+                        previousQuestions: previousQuestions,
                     });
                     return output || { questions: [] };
                 })()
@@ -144,7 +156,7 @@ const generateMockTestFlow = ai.defineFlow(
     });
     
     const totalExpectedQuestions = blueprint.parts.reduce((sum, part) => sum + part.totalQuestions, 0);
-    if (allQuestions.length !== totalExpectedQuestions) {
+    if (allQuestions.length < totalExpectedQuestions) { // Check if we got at least the expected number
         throw new Error(`Failed to generate the correct number of questions. Expected ${totalExpectedQuestions}, but got ${allQuestions.length}.`);
     }
 
@@ -170,5 +182,3 @@ const generateMockTestFlow = ai.defineFlow(
     return { mcqs: allQuestions };
   }
 );
-
-    

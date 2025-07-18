@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, AlertTriangle, Gem } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getMCQHistoryForTopic } from '@/lib/firestore';
+import { getAllUserQuestions } from '@/lib/firestore';
 import type { Category, Topic } from '@/lib/types';
 import { cn, normalizeDate } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -128,7 +128,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     }
 
     try {
-      const previousQuestions = await getMCQHistoryForTopic(user.uid, values.topicId);
+      const previousQuestions = await getAllUserQuestions(user.uid);
 
       const generationInput = {
           topic: selectedTopic.title,
