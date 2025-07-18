@@ -13,23 +13,25 @@ export const MTS_BLUEPRINT = {
           sectionName: "Post Office Guide Part I",
           questions: 23,
           topics: [
-            "Organization of the Department",
-            "Type of Post Offices",
-            "Business Hours",
-            "Payment of postage, stamps and stationery",
-            "General rules as to packing, sealing and posting, manner of affixing postage stamps",
-            "Methods of address",
-            "Post boxes and Post bags",
-            "Duties of Letter Box peon",
-            "Official postal articles",
-            "Prohibited postal articles",
-            "Products and Services: Mails, Banking & Remittances, Insurance, Stamps and Business (Reference: India Post website)",
+            { name: "Organization of the Department", questions: 2 },
+            { name: "Type of Post Offices", questions: 1 },
+            { name: "Business Hours", questions: 1 },
+            { name: "Payment of postage, stamps and stationery", questions: 2 },
+            { name: "General rules as to packing, sealing and posting, manner of affixing postage stamps", questions: 2 },
+            { name: "Methods of address", questions: 2 },
+            { name: "Post boxes and Post bags", questions: 1 },
+            { name: "Duties of Letter Box peon", questions: 1 },
+            { name: "Official postal articles", questions: 2 },
+            { name: "Prohibited postal articles", questions: 2 },
+            { name: "Products and Services: Mails, Banking & Remittances, Insurance, Stamps and Business (Reference: India Post website)", questions: 7 },
           ],
         },
         {
           sectionName: "Postal Manual Volume V",
           questions: 7,
-          topics: ["Definitions"],
+          topics: [
+            { name: "Definitions", questions: 7 }
+          ],
         },
       ],
     },
@@ -43,26 +45,26 @@ export const MTS_BLUEPRINT = {
           sectionName: "General Awareness/Knowledge",
           questions: 10,
           topics: [
-            "Indian Geography",
-            "Indian Civics",
-            "General knowledge",
-            "Indian culture & freedom struggle",
-            "Ethics and morale study",
-            "Current Affairs",
+            { name: "Indian Geography", questions: 2 },
+            { name: "Indian Civics", questions: 2 },
+            { name: "General knowledge", questions: 1 },
+            { name: "Indian culture & freedom struggle", questions: 2 },
+            { name: "Ethics and morale study", questions: 1 },
+            { name: "Current Affairs", questions: 2 },
           ],
         },
         {
           sectionName: "Basic Arithmetics",
           questions: 10,
           topics: [
-            "BODMAS",
-            "Percentage",
-            "Profit and loss",
-            "Simple interest",
-            "Average",
-            "Time and work",
-            "Time and distance",
-            "Unitary method",
+            { name: "BODMAS", questions: 2 },
+            { name: "Percentage", questions: 1 },
+            { name: "Profit and loss", questions: 1 },
+            { name: "Simple interest", questions: 1 },
+            { name: "Average", questions: 1 },
+            { name: "Time and work", questions: 1 },
+            { name: "Time and distance", questions: 1 },
+            { name: "Unitary method", questions: 2 },
           ],
         },
       ],
@@ -202,9 +204,9 @@ export const PA_BLUEPRINT = {
   parts: [
     {
       partName: "Part-A",
-      totalMarks: 50,
+      totalMarks: 100,
       totalQuestions: 50,
-      marksPerQuestion: 1,
+      marksPerQuestion: 2,
       sections: [
         {
           sectionName: "Post Office Guide Part I (except Telegraphic Money Order)",
@@ -245,8 +247,8 @@ export const PA_BLUEPRINT = {
     {
       partName: "Part-B",
       totalMarks: 50,
-      totalQuestions: 50,
-      marksPerQuestion: 1,
+      totalQuestions: 25,
+      marksPerQuestion: 2,
       sections: [
         {
           sectionName: "General Awareness/Knowledge",
@@ -262,7 +264,7 @@ export const PA_BLUEPRINT = {
         },
         {
           sectionName: "Basic Arithmetics",
-          questions: 20,
+          questions: 10,
           topics: [
             "BODMAS (brackets, orders, division, multiplication, addition, subtraction)",
             "Percentage",
@@ -276,12 +278,10 @@ export const PA_BLUEPRINT = {
         },
         {
           sectionName: "Reasoning and Analytical Ability (Non Verbal / Pictorial)",
-          questions: 20,
+          questions: 5,
           topics: ["Reasoning and Analytical Ability"],
         },
       ],
     },
   ],
 };
-
-    
