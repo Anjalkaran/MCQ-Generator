@@ -234,6 +234,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                               </SelectTrigger>
                               </FormControl>
                               <SelectContent>
+                              <SelectItem value="select" disabled>Select Exam</SelectItem>
                               {availableExams.map((exam) => (
                                   <SelectItem key={exam} value={exam}>
                                   {exam}
