@@ -11,7 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { getUserData, getQuestionBankByCategory } from '@/lib/firestore';
+import { getUserData, getQuestionBankByCategory, getAllUserQuestions } from '@/lib/firestore';
 
 const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
@@ -156,6 +156,10 @@ const generateMCQsFlow = ai.defineFlow(
     }
     
     let flowInput = { ...input };
+
+    // Fetch user's entire question history to avoid duplicates
+    const previousQuestions = await getAllUserQuestions(input.userId);
+    flowInput.previousQuestions = previousQuestions;
 
     const excludedCategories = ["Basic Arithmetics", "General Awareness"];
     if (flowInput.category && excludedCategories.includes(flowInput.category)) {

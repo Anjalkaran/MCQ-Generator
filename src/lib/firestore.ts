@@ -1,7 +1,7 @@
 
 
 import { getFirebaseDb } from './firebase';
-import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit } from 'firebase/firestore';
 import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion } from './types';
 import { ADMIN_EMAIL } from './constants';
 
@@ -184,14 +184,14 @@ export const getAllUserQuestions = async (userId: string): Promise<string[]> => 
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     const historyCollection = collection(db, 'mcqHistory');
-    const q = query(historyCollection, where('userId', '==', userId));
+    // Fetch only the most recent 15 exams to avoid overly large prompts.
+    const q = query(historyCollection, where('userId', '==', userId), orderBy('takenAt', 'desc'), limit(15));
     
     const querySnapshot = await getDocs(q);
     if (querySnapshot.empty) {
         return [];
     }
 
-    // Use a Set to automatically handle duplicates from the database, then convert to array.
     const allQuestions = new Set<string>();
     querySnapshot.docs.forEach(doc => {
         const questions = doc.data().questions;
