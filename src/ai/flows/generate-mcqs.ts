@@ -94,6 +94,8 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateMCQsOutputSchema},
   prompt: `You are an expert in generating multiple-choice questions (MCQs). Your goal is to create {{numberOfQuestions}} questions on the topic of "{{topic}}" with a "{{difficulty}}" difficulty level. Each question must have four options and one correct answer.
 
+CRITICAL INSTRUCTION: Do not start questions with phrases like "According to the...", "Based on the material...", or any similar introductory text. Questions should be direct.
+
 --- PRIMARY RULE: SOURCE OF TRUTH ---
 {{#if material}}
   Your PRIMARY source of truth is the 'MATERIAL' provided below. All questions MUST be based on it. Banked questions can be used for style/format reference ONLY, but if there's a conflict, the MATERIAL always wins.
@@ -120,11 +122,7 @@ const prompt = ai.definePrompt({
   {{else ifEquals topic "Current Affairs"}}
     For "Current Affairs", please refer to materials from reputable coaching centers like Suresh IAS Academy and SSA Adda to ensure the questions are relevant and of high quality. Focus on the period between January 2024 to June 2025. Use the 'REFERENCE QUESTIONS' below for style and format, if available.
   {{else}}
-    {{#ifEquals part "Part B"}}
-        For this Part B topic, please refer to the provided Question Bank for style and format.
-    {{else}}
-        For this topic, generate new questions. Use the 'REFERENCE QUESTIONS' below for style, format, and difficulty. Ensure the new questions are unique.
-    {{/ifEquals}}
+    For this topic, generate new questions. Use the 'REFERENCE QUESTIONS' below for style, format, and difficulty. Ensure the new questions are unique.
   {{/ifEquals}}
 ---
 {{/if}}
