@@ -72,11 +72,11 @@ const prompt = ai.definePrompt({
 
   Your task is to generate a mock test for the "{{examCategory}}" exam.
 
-  --- CRITICAL RULE: QUESTION COUNT & FORMATTING ---
-  You MUST generate EXACTLY {{numberOfQuestions}} multiple-choice questions in total. This is the absolute final number of questions required. Do not exceed or fall short of this number.
-  Every single object in the 'mcqs' array MUST have all required fields: 'question', 'options', 'correctAnswer', and 'topic'. Ensure every entry is a complete object.
+  --- HARD_STOP_RULE ---
+  The final output MUST contain EXACTLY {{numberOfQuestions}} questions in total. This is the most important rule. Do not generate more or less than this number. The blueprint below is for distributing topics, but the final count MUST be {{numberOfQuestions}}.
 
-  You MUST strictly follow the provided blueprint for the exam structure and topic distribution. Use the blueprint to guide the number of questions from each section, but ensure the grand total is precisely {{numberOfQuestions}}.
+  --- CRITICAL RULE: QUESTION FORMATTING ---
+  Every single object in the 'mcqs' array MUST have all required fields: 'question', 'options', 'correctAnswer', and 'topic'. Ensure every entry is a complete object.
 
   --- EXAM BLUEPRINT ({{examCategory}}) ---
   {{{blueprint}}}
