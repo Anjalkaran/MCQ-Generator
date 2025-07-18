@@ -44,7 +44,6 @@ export interface UserData {
 export interface MCQData {
   topic: Topic;
   mcqs: MCQ[];
-  timeLimit?: number; 
 }
 
 export interface MCQHistory {
