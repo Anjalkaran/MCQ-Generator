@@ -183,20 +183,16 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
 export const getAllUserQuestions = async (userId: string): Promise<string[]> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
-    const historyCollection = collection(db, 'mcqHistory');
-    // Fetch only the most recent 15 exams to avoid overly large prompts.
-    const q = query(historyCollection, where('userId', '==', userId), orderBy('takenAt', 'desc'), limit(15));
-    
-    const querySnapshot = await getDocs(q);
-    if (querySnapshot.empty) {
-        return [];
-    }
+
+    const history = await getExamHistoryForUser(userId);
+
+    // Limit to the most recent 15 exams to avoid overly large prompts.
+    const recentHistory = history.slice(0, 15);
 
     const allQuestions = new Set<string>();
-    querySnapshot.docs.forEach(doc => {
-        const questions = doc.data().questions;
-        if (Array.isArray(questions)) {
-            questions.forEach(q => allQuestions.add(q));
+    recentHistory.forEach(item => {
+        if (Array.isArray(item.questions)) {
+            item.questions.forEach(q => allQuestions.add(q));
         }
     });
 
@@ -209,21 +205,45 @@ export const getExamHistoryForUser = async (userId: string): Promise<MCQHistory[
     if (!db) throw new Error("Firestore is not initialized");
     
     const historyCollection = collection(db, 'mcqHistory');
-    const q = query(historyCollection, where('userId', '==', userId), orderBy('takenAt', 'desc'));
     
-    const querySnapshot = await getDocs(q);
+    // Create two separate queries that Firestore can handle without a custom index.
+    const mockTestQuery = query(
+        historyCollection, 
+        where('userId', '==', userId), 
+        where('isMockTest', '==', true)
+    );
+    const topicExamQuery = query(
+        historyCollection, 
+        where('userId', '==', userId),
+        where('isMockTest', '==', false)
+    );
+
+    const [mockTestSnapshot, topicExamSnapshot] = await Promise.all([
+        getDocs(mockTestQuery),
+        getDocs(topicExamQuery),
+    ]);
     
-    const history = querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        const takenAt = data.takenAt?.toDate ? data.takenAt.toDate() : new Date();
-        
-        return {
-            id: doc.id,
-            ...data,
-            topicTitle: data.topicTitle || 'Mock Test',
-            takenAt: takenAt,
-        } as MCQHistory;
-    });
+    const history: MCQHistory[] = [];
+
+    const processSnapshot = (snapshot: any) => {
+        snapshot.docs.forEach((doc: any) => {
+            const data = doc.data();
+            const takenAt = data.takenAt?.toDate ? data.takenAt.toDate() : new Date();
+            
+            history.push({
+                id: doc.id,
+                ...data,
+                topicTitle: data.topicTitle || 'Mock Test',
+                takenAt: takenAt,
+            } as MCQHistory);
+        });
+    };
+
+    processSnapshot(mockTestSnapshot);
+    processSnapshot(topicExamSnapshot);
+
+    // Sort the combined results in-memory
+    history.sort((a, b) => b.takenAt.getTime() - a.takenAt.getTime());
 
     return history;
 };

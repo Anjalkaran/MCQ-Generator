@@ -37,12 +37,7 @@ const difficultyLevels: DifficultyLevel[] = ['Easy', 'Moderate', 'Difficult'];
 const parts = ["Part A", "Part B"] as const;
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 
-interface CreateQuizFormProps {
-    initialCategories: Category[];
-    initialTopics: Topic[];
-}
-
-export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizFormProps) {
+export function CreateQuizForm() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, userData, isLoading, categories, topics } = useDashboard();

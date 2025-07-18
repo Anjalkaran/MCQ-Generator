@@ -156,16 +156,17 @@ const generateMockTestFlow = ai.defineFlow(
     });
     
     const totalExpectedQuestions = blueprint.parts.reduce((sum, part) => sum + part.totalQuestions, 0);
-    if (allQuestions.length < totalExpectedQuestions) { // Check if we got at least the expected number
-        throw new Error(`Failed to generate the correct number of questions. Expected ${totalExpectedQuestions}, but got ${allQuestions.length}.`);
+    if (allQuestions.length !== totalExpectedQuestions) { 
+        console.warn(`Generated question count mismatch. Expected ${totalExpectedQuestions}, but got ${allQuestions.length}.`);
     }
 
     const arithmeticSection = blueprint.parts.flatMap(p => p.sections).find(s => s.sectionName.includes('Arithmetic'));
     if (arithmeticSection) {
         const arithmeticTopicNames = arithmeticSection.topics.map((t: any) => (typeof t === 'string' ? t : t.name));
         
-        for (const mcq of allQuestions) {
-            if (mcq.topic && arithmeticTopicNames.includes(mcq.topic)) {
+        const solutionPromises = allQuestions
+            .filter(mcq => mcq.topic && arithmeticTopicNames.includes(mcq.topic))
+            .map(async (mcq) => {
                 try {
                     const solutionResponse = await arithmeticSolverPrompt({ problem: mcq.question });
                     if (solutionResponse.output) {
@@ -175,8 +176,9 @@ const generateMockTestFlow = ai.defineFlow(
                     console.error("Failed to generate a detailed solution for a mock test question:", e);
                     mcq.solution = "A detailed solution could not be generated for this problem.";
                 }
-            }
-        }
+            });
+        
+        await Promise.all(solutionPromises);
     }
     
     return { mcqs: allQuestions };

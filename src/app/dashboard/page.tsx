@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from 'lucide-react';
 
 export default function DashboardPage() {
-  const { user, userData, categories, topics, isLoading } = useDashboard();
+  const { user, userData, isLoading } = useDashboard();
 
   if (isLoading) {
     return (
@@ -43,10 +43,7 @@ export default function DashboardPage() {
           <TabsTrigger value="mock-test">Mock Test</TabsTrigger>
         </TabsList>
         <TabsContent value="topic-wise">
-          <CreateQuizForm 
-            initialCategories={categories} 
-            initialTopics={topics} 
-          />
+          <CreateQuizForm />
         </TabsContent>
         <TabsContent value="mock-test">
           <MockTestForm />

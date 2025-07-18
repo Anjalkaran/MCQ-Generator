@@ -158,8 +158,9 @@ const generateMCQsFlow = ai.defineFlow(
     let flowInput = { ...input };
 
     // Fetch user's entire question history to avoid duplicates
-    const previousQuestions = await getAllUserQuestions(input.userId);
-    flowInput.previousQuestions = previousQuestions;
+    // This is now handled by the calling component (create-quiz-form)
+    // const previousQuestions = await getAllUserQuestions(input.userId);
+    // flowInput.previousQuestions = previousQuestions;
 
     const excludedCategories = ["Basic Arithmetics", "General Awareness"];
     if (flowInput.category && excludedCategories.includes(flowInput.category)) {
