@@ -70,9 +70,12 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateMockTestOutputSchema},
   prompt: `You are an expert in creating mock tests for Indian Postal Department exams.
 
-  Your task is to generate a mock test with exactly {{numberOfQuestions}} multiple-choice questions for the "{{examCategory}}" exam.
+  Your task is to generate a mock test for the "{{examCategory}}" exam.
+
+  --- CRITICAL RULE: QUESTION COUNT ---
+  You MUST generate EXACTLY {{numberOfQuestions}} multiple-choice questions in total. This is the absolute final number of questions required. Do not exceed this number.
   
-  You MUST strictly follow the provided blueprint for the exam structure, topic distribution, and question count per topic.
+  You MUST strictly follow the provided blueprint for the exam structure and topic distribution. Use the blueprint to guide the number of questions from each section, but ensure the grand total is precisely {{numberOfQuestions}}.
 
   --- EXAM BLUEPRINT ({{examCategory}}) ---
   {{{blueprint}}}
