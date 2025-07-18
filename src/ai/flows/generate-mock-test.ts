@@ -68,32 +68,37 @@ const generateMockTestPrompt = ai.definePrompt({
     input: {
         schema: z.object({
             examCategory: z.string(),
-            blueprint: z.any(),
             totalQuestions: z.number(),
             partAQuestions: z.number(),
             partBQuestions: z.number(),
+            partATopics: z.string(),
+            partBTopics: z.string(),
         })
     },
     output: { schema: GenerateMockTestOutputSchema },
-    prompt: `You are an expert in creating mock tests for Indian Postal Department exams. Your task is to generate a complete mock test based on the provided blueprint.
+    prompt: `You are an expert in creating mock tests for the Indian Postal Department's {{examCategory}} exam.
 
 --- CRITICAL HARD STOP RULE ---
-You MUST generate EXACTLY {{totalQuestions}} questions in total. No more, no less. This is the most important rule.
+Your final output MUST contain EXACTLY {{totalQuestions}} questions in total. This is the most important rule.
 
---- PART-WISE GENERATION RULE ---
-1.  First, generate EXACTLY {{partAQuestions}} questions for Part-A.
-2.  Then, generate EXACTLY {{partBQuestions}} questions for Part-B.
-The final output must contain {{totalQuestions}} questions in the 'mcqs' array.
+--- GENERATION PLAN ---
+You will generate the test in two sequential parts to meet the exact counts.
 
---- EXAM BLUEPRINT ---
-Use the following blueprint as a guide for topics and structure:
-{{{json blueprint}}}
---- END BLUEPRINT ---
+1.  **PART-A GENERATION:**
+    -   Generate EXACTLY **{{partAQuestions}}** questions for Part-A.
+    -   These questions should cover the following topics:
+    {{{partATopics}}}
+    -   Distribute the {{partAQuestions}} questions among these topics appropriately.
 
-ADDITIONAL CRITICAL RULES:
--   For each question, you MUST specify which topic from the blueprint it belongs to in the 'topic' field of the output.
--   Every single object in the 'mcqs' array MUST have all required fields: 'question', 'options', 'correctAnswer', and 'topic'.
--   If a question is an arithmetic problem (e.g., from 'Basic Arithmetic'), the 'solution' field MUST BE an empty string (""). It will be generated later.
+2.  **PART-B GENERATION:**
+    -   After generating for Part-A, generate EXACTLY **{{partBQuestions}}** questions for Part-B.
+    -   These questions should cover the following topics:
+    {{{partBTopics}}}
+    -   Distribute the {{partBQuestions}} questions among these topics appropriately.
+
+--- OUTPUT RULES ---
+-   For each generated question, you MUST specify its topic in the 'topic' field.
+-   For any arithmetic questions, the 'solution' field MUST be an empty string ("").
 `,
 });
 
@@ -111,32 +116,45 @@ const generateMockTestFlow = ai.defineFlow(
     else if (input.examCategory === 'PA') blueprint = PA_BLUEPRINT;
     else throw new Error(`No blueprint found for exam category: ${input.examCategory}`);
 
-    const partAQuestions = blueprint.parts.find(p => p.partName === 'Part-A')?.totalQuestions || 0;
-    const partBQuestions = blueprint.parts.find(p => p.partName === 'Part-B')?.totalQuestions || 0;
+    const partA = blueprint.parts.find(p => p.partName === 'Part-A');
+    const partB = blueprint.parts.find(p => p.partName === 'Part-B');
+
+    if (!partA || !partB) {
+        throw new Error('Blueprint is missing Part-A or Part-B.');
+    }
+
+    const partAQuestions = partA.totalQuestions;
+    const partBQuestions = partB.totalQuestions;
     const totalQuestions = partAQuestions + partBQuestions;
 
+    const getTopicsAsString = (part: any) => {
+        return part.sections.flatMap((s: any) => s.topics).join('\n');
+    }
+
+    const partATopics = getTopicsAsString(partA);
+    const partBTopics = getTopicsAsString(partB);
+    
     const { output } = await generateMockTestPrompt({
         examCategory: input.examCategory,
-        blueprint: blueprint,
         totalQuestions,
         partAQuestions,
-        partBQuestions,
+        partBTopics,
+        partATopics,
     });
+
 
     if (!output || !output.mcqs) {
          throw new Error(`The AI could not generate a mock test.`);
     }
     
-    // Fallback check to ensure the count is correct, though the prompt should handle it.
     if (output.mcqs.length !== totalQuestions) {
-        console.warn(`AI generated ${output.mcqs.length} questions instead of the requested ${totalQuestions}. The output may be truncated or incorrect.`);
-        // Optionally, we could throw an error here to be stricter.
-        // throw new Error(`AI generation failed to adhere to question count. Expected ${totalQuestions}, got ${output.mcqs.length}.`);
+        throw new Error(`AI generation failed to adhere to question count. Expected ${totalQuestions}, got ${output.mcqs.length}. Please try again.`);
     }
 
     const arithmeticTopics = ["Basic Arithmetic", "Basic Arithmetics"];
     for (const mcq of output.mcqs) {
-        if (arithmeticTopics.includes(mcq.topic)) {
+        const isArithmetic = partB.sections.some(s => s.sectionName.includes('Arithmetic') && s.topics.includes(mcq.topic));
+        if (isArithmetic) {
              try {
                 const solutionResponse = await arithmeticSolverPrompt({ problem: mcq.question });
                 if (solutionResponse.output) {
@@ -148,7 +166,6 @@ const generateMockTestFlow = ai.defineFlow(
             }
         }
     }
-
 
     return { mcqs: output.mcqs };
   }

@@ -11,7 +11,6 @@ export const MTS_BLUEPRINT = {
       sections: [
         {
           sectionName: "Post Office Guide Part I",
-          questionCount: 23,
           topics: [
             "Organization of the Department",
             "Type of Post Offices",
@@ -28,7 +27,6 @@ export const MTS_BLUEPRINT = {
         },
         {
           sectionName: "Postal Manual Volume V",
-          questionCount: 7,
           topics: ["Definitions"],
         },
       ],
@@ -41,8 +39,6 @@ export const MTS_BLUEPRINT = {
       sections: [
         {
           sectionName: "General Awareness/Knowledge",
-          questionCount: 10,
-          notes: "1 to 3 questions from each topic",
           topics: [
             "Indian Geography",
             "Indian Civics",
@@ -54,8 +50,6 @@ export const MTS_BLUEPRINT = {
         },
         {
           sectionName: "Basic Arithmetic",
-          questionCount: 10,
-          notes: "1 to 2 questions from each topic",
           topics: [
             "BODMAS",
             "Percentage",
@@ -84,7 +78,6 @@ export const POSTMAN_BLUEPRINT = {
       sections: [
         {
           sectionName: "Post Office Guide Part I",
-          questionCount: 30,
           topics: [
             "Organization of the Department",
             "Type of Post Offices",
@@ -107,14 +100,12 @@ export const POSTMAN_BLUEPRINT = {
         },
         {
           sectionName: "Postal Manual Volume V",
-          questionCount: 10,
           topics: [
             "Definitions: Head, Sub and Branch Office, Mail Bag, Face and Facing, Beat, Camp Correspondence, Late letters and too late letters, Mis-sent and Mis-directed articles",
           ],
         },
         {
           sectionName: "Postal Manual Volume VI - Part III",
-          questionCount: 5,
           topics: [
             "Head Postman",
             "Knowledge of Postal Business",
@@ -138,7 +129,6 @@ export const POSTMAN_BLUEPRINT = {
         },
         {
           sectionName: "Postal Manual Vol. VII",
-          questionCount: 5,
           topics: [
             "Stamps and Seals",
             "Portfolio and its contents",
@@ -164,8 +154,6 @@ export const POSTMAN_BLUEPRINT = {
       sections: [
         {
           sectionName: "General Awareness/Knowledge",
-          questionCount: 10,
-          notes: "1 to 3 questions from each topic",
           topics: [
             "Indian Geography",
             "Indian Civics",
@@ -177,8 +165,6 @@ export const POSTMAN_BLUEPRINT = {
         },
         {
           sectionName: "Basic Arithmetic",
-          questionCount: 10,
-          notes: "1 to 2 questions from each topic",
           topics: [
             "BODMAS (brackets, orders, division, multiplication, addition, subtraction)",
             "Percentage",
@@ -192,8 +178,7 @@ export const POSTMAN_BLUEPRINT = {
         },
         {
           sectionName: "Reasoning and Analytical Ability (Non Verbal / Pictorial)",
-          questionCount: 5,
-          topics: [],
+          topics: ["Reasoning and Analytical Ability"],
         },
       ],
     },
@@ -212,36 +197,30 @@ export const PA_BLUEPRINT = {
       sections: [
         {
           sectionName: "Post Office Guide Part I (except Telegraphic Money Order)",
-          questionCount: 10,
-          topics: [],
+          topics: ["Post Office Guide Part I"],
         },
         {
           sectionName: "Post Office Guide Part II (except British and Irish Postal order)",
-          questionCount: 10,
-          topics: [],
+          topics: ["Post Office Guide Part II"],
         },
         {
           sectionName: "Basic terminologies related to IT Modernisation project of Department of Posts",
-          questionCount: 10,
-          topics: [],
+          topics: ["IT Modernisation"],
         },
         {
           sectionName: "Products and Services: Mails, Banking & Remittances, Insurance, Stamps and Business (Reference: India Post Website)",
-          questionCount: 10,
-          topics: [],
+          topics: ["Products and Services"],
         },
         {
           sectionName: "Combined Section: Postal Manuals and SB Orders",
-          questionCount: 5,
           topics: [
             "Postal Manual Volume VI – Part I",
             "Postal Manual Volume VI – Part III (chapter I and II)",
-            "Updated SB Orders issued by Directorate till 31st December of the preceding year in which exam is being conducted",
+            "Updated SB Orders",
           ],
         },
         {
           sectionName: "Combined Section: Postal and Foreign Manuals",
-          questionCount: 5,
           topics: ["Postal Manual Volume VII", "Foreign Post Manual"],
         },
       ],
@@ -254,8 +233,6 @@ export const PA_BLUEPRINT = {
       sections: [
         {
           sectionName: "General Awareness/Knowledge",
-          questionCount: 10,
-          notes: "2 questions from each topic",
           topics: [
             "Indian Geography",
             "Civics",
@@ -267,8 +244,6 @@ export const PA_BLUEPRINT = {
         },
         {
           sectionName: "Basic Arithmetic",
-          questionCount: 20,
-          notes: "2 to 3 questions from each topic",
           topics: [
             "BODMAS (brackets, orders, division, multiplication, addition, subtraction)",
             "Percentage",
@@ -282,8 +257,7 @@ export const PA_BLUEPRINT = {
         },
         {
           sectionName: "Reasoning and Analytical Ability (Non Verbal / Pictorial)",
-          questionCount: 20,
-          topics: [],
+          topics: ["Reasoning and Analytical Ability"],
         },
       ],
     },
