@@ -102,6 +102,8 @@ const generateMockTestFlow = ai.defineFlow(
     name: 'generateMockTestFlow',
     inputSchema: GenerateMockTestInputSchema,
     outputSchema: GenerateMockTestOutputSchema,
+    // Use a faster, more capable model specifically for this complex task.
+    model: 'googleai/gemini-1.5-flash-preview-0514',
   },
   async input => {
     let blueprint;
@@ -121,8 +123,7 @@ const generateMockTestFlow = ai.defineFlow(
     const partBQuestions = partB.totalQuestions;
     const totalQuestions = partAQuestions + partBQuestions;
 
-    // Pre-process the blueprint to extract ONLY the topic names as a simple list.
-    const getTopicsFromPart = (part: any) => 
+    const getTopicsFromPart = (part: any) =>
         part.sections.flatMap((s: any) => s.topics.map((t: any) => `- ${t.name}`)).join('\n');
 
     const partATopics = getTopicsFromPart(partA);
@@ -141,8 +142,7 @@ const generateMockTestFlow = ai.defineFlow(
          throw new Error(`The AI could not generate a mock test. Please try again.`);
     }
 
-    // Post-process solutions for arithmetic questions
-    const arithmeticSection = blueprint.parts.flatMap(p => p.sections).find(s => s.sectionName.includes('Arithmetic'));
+    const arithmeticSection = blueprint.parts.flatMap(p => p.sections).find(s => s.sectionName.includes('Basic Arithmetic'));
     if (arithmeticSection) {
         const arithmeticTopicNames = arithmeticSection.topics.map((t: any) => t.name);
         for (const mcq of output.mcqs) {
