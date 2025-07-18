@@ -55,30 +55,38 @@ const GenerateMockTestOutputSchema = z.object({
 });
 export type GenerateMockTestOutput = z.infer<typeof GenerateMockTestOutputSchema>;
 
-// A new, more focused prompt for generating questions for a specific section
-const generateQuestionsForSectionPrompt = ai.definePrompt({
-    name: 'generateQuestionsForSectionPrompt',
+const generateMockTestPrompt = ai.definePrompt({
+    name: 'generateMockTestPrompt',
     input: {
         schema: z.object({
             examCategory: z.string(),
-            sectionName: z.string(),
-            topics: z.string(),
-            questionCount: z.number(),
+            totalQuestions: z.number(),
+            partAQuestions: z.number(),
+            partBQuestions: z.number(),
+            partATopics: z.string(),
+            partBTopics: z.string(),
         })
     },
     output: { schema: GenerateMockTestOutputSchema },
+    model: 'googleai/gemini-1.5-flash-preview',
     prompt: `You are an expert in creating mock test questions for the Indian Postal Department's {{examCategory}} exam.
 
-Your task is to generate EXACTLY **{{questionCount}}** questions for the section titled **"{{sectionName}}"**.
+Your task is to generate a full mock test with a total of **{{totalQuestions}}** questions.
 
-The questions must cover the following topics. Distribute the questions among these topics appropriately:
-{{{topics}}}
+The test MUST be divided into two parts with the following structure:
+1.  **Part-A**: Generate EXACTLY **{{partAQuestions}}** questions covering these topics:
+{{{partATopics}}}
 
---- OUTPUT RULES ---
-- Your final output MUST be a single JSON object containing an 'mcqs' array with EXACTLY {{questionCount}} questions.
-- For each generated question, you MUST specify its topic in the 'topic' field from the list above.
+2.  **Part-B**: Generate EXACTLY **{{partBQuestions}}** questions covering these topics:
+{{{partBTopics}}}
+
+
+--- MOST IMPORTANT RULE ---
+- Your final output MUST be a single, valid JSON object containing an 'mcqs' array with EXACTLY {{totalQuestions}} questions in total.
+- For each generated question, you MUST specify its topic in the 'topic' field from the lists above.
 - For any arithmetic questions, the 'solution' field MUST be an empty string ("").
-`,
+
+Do not deviate from these counts. The total number of questions must be precise.`,
 });
 
 
@@ -91,7 +99,6 @@ const generateMockTestFlow = ai.defineFlow(
     name: 'generateMockTestFlow',
     inputSchema: GenerateMockTestInputSchema,
     outputSchema: GenerateMockTestOutputSchema,
-    model: 'googleai/gemini-1.5-flash-preview-0514',
   },
   async input => {
     let blueprint;
@@ -99,58 +106,56 @@ const generateMockTestFlow = ai.defineFlow(
     else if (input.examCategory === 'POSTMAN') blueprint = POSTMAN_BLUEPRINT;
     else if (input.examCategory === 'PA') blueprint = PA_BLUEPRINT;
     else throw new Error(`No blueprint found for exam category: ${input.examCategory}`);
-    
-    const allQuestions: MCQ[] = [];
-    const MAX_CHUNK_SIZE = 10;
-    const MAX_RETRIES = 3;
 
-    for (const part of blueprint.parts) {
-        for (const section of part.sections) {
-            let questionsToGenerate = section.questions;
-            let sectionQuestions: MCQ[] = [];
-            let retries = 0;
+    const partA = blueprint.parts.find(p => p.partName === 'Part-A');
+    const partB = blueprint.parts.find(p => p.partName === 'Part-B');
 
-            const topicList = section.topics.map((topic: any) => {
-                const topicName = (typeof topic === 'string') ? topic : topic.name;
-                return `- ${topicName}`;
-            }).join('\n');
-
-            while (sectionQuestions.length < questionsToGenerate && retries < MAX_RETRIES) {
-                const remaining = questionsToGenerate - sectionQuestions.length;
-                const chunkCount = Math.min(remaining, MAX_CHUNK_SIZE);
-
-                try {
-                    const { output } = await generateQuestionsForSectionPrompt({
-                        examCategory: input.examCategory,
-                        sectionName: section.sectionName,
-                        topics: topicList,
-                        questionCount: chunkCount,
-                    });
-
-                    if (output && output.mcqs) {
-                        sectionQuestions.push(...output.mcqs);
-                    } else {
-                        throw new Error("AI returned no output for section chunk.");
-                    }
-
-                } catch (e) {
-                    console.error(`Error generating questions for ${section.sectionName} (chunk). Retry ${retries + 1}/${MAX_RETRIES}`, e);
-                    retries++;
-                    if(retries >= MAX_RETRIES) {
-                         throw new Error(`Failed to generate questions for section: ${section.sectionName} after multiple retries.`);
-                    }
-                }
-            }
-            allQuestions.push(...sectionQuestions);
-        }
+    if (!partA || !partB) {
+        throw new Error('Blueprint is missing Part-A or Part-B.');
     }
 
-    const arithmeticSection = blueprint.parts.flatMap(p => p.sections).find(s => s.sectionName.includes('Basic Arithmetic'));
+    const partAQuestions = partA.totalQuestions;
+    const partBQuestions = partB.totalQuestions;
+    const totalQuestions = partAQuestions + partBQuestions;
+
+    const getTopicsFromPart = (part: any) => {
+        return part.sections.flatMap((section: any) => {
+            if (!section.topics || !Array.isArray(section.topics)) {
+                return []; 
+            }
+            return section.topics.map((topic: any) => {
+                const topicName = (typeof topic === 'string') ? topic : topic.name;
+                return `- ${topicName}`;
+            });
+        }).join('\n');
+    };
+
+    const partATopics = getTopicsFromPart(partA);
+    const partBTopics = getTopicsFromPart(partB);
+
+    const { output } = await generateMockTestPrompt({
+        examCategory: input.examCategory,
+        totalQuestions,
+        partAQuestions,
+        partBQuestions,
+        partATopics,
+        partBTopics,
+    });
+
+    if (!output || !output.mcqs || output.mcqs.length === 0) {
+         throw new Error(`The AI could not generate a mock test. Please try again.`);
+    }
+
+    if (Math.abs(output.mcqs.length - totalQuestions) > 5) { // Allow a small tolerance
+        throw new Error(`AI generation failed to adhere to question count. Expected around ${totalQuestions}, but got ${output.mcqs.length}. Please try again.`);
+    }
+
+    const arithmeticSection = blueprint.parts.flatMap(p => p.sections).find(s => s.sectionName.includes('Arithmetic'));
     if (arithmeticSection) {
         const arithmeticTopicNames = arithmeticSection.topics.map((t: any) => (typeof t === 'string' ? t : t.name));
         
-        for (const mcq of allQuestions) {
-            if (arithmeticTopicNames.includes(mcq.topic)) {
+        for (const mcq of output.mcqs) {
+            if (mcq.topic && arithmeticTopicNames.includes(mcq.topic)) {
                 try {
                     const solutionResponse = await arithmeticSolverPrompt({ problem: mcq.question });
                     if (solutionResponse.output) {
@@ -164,6 +169,6 @@ const generateMockTestFlow = ai.defineFlow(
         }
     }
     
-    return { mcqs: allQuestions };
+    return { mcqs: output.mcqs };
   }
 );
