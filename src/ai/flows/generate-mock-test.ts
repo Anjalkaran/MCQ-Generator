@@ -11,7 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { MTS_BLUEPRINT } from '@/lib/exam-blueprints';
+import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT } from '@/lib/exam-blueprints';
 
 const GenerateMockTestInputSchema = z.object({
   examCategory: z.string().describe('The exam category (e.g., MTS, POSTMAN, PA).'),
@@ -37,7 +37,7 @@ export async function generateMockTest(input: GenerateMockTestInput): Promise<Ge
 
 const prompt = ai.definePrompt({
   name: 'generateMockTestPrompt',
-  input: {schema: GenerateMockTestInputSchema},
+  input: {schema: GenerateMockTestInputSchema.extend({ blueprint: z.string() })},
   output: {schema: GenerateMockTestOutputSchema},
   prompt: `You are an expert in creating mock tests for Indian Postal Department exams.
 
@@ -62,9 +62,11 @@ const generateMockTestFlow = ai.defineFlow(
   },
   async input => {
     let blueprint = '';
-    // In the future, we can add more blueprints and select them here.
+    
     if (input.examCategory === 'MTS') {
       blueprint = JSON.stringify(MTS_BLUEPRINT, null, 2);
+    } else if (input.examCategory === 'POSTMAN') {
+      blueprint = JSON.stringify(POSTMAN_BLUEPRINT, null, 2);
     } else {
         throw new Error(`No blueprint found for exam category: ${input.examCategory}`);
     }
