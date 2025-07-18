@@ -56,7 +56,9 @@ const topicSchema = z.object({
   description: z.string().optional(),
   categoryId: z.string({ required_error: 'Please select a category.' }),
   part: z.enum(parts, { required_error: 'You must select a part.'}),
-  examCategory: z.enum(examCategories, { required_error: 'You must select an exam category.'}),
+  examCategories: z.array(z.string()).refine((value) => value.some((item) => item), {
+    message: "You have to select at least one exam category.",
+  }),
 });
 
 const materialSchema = z.object({
@@ -93,7 +95,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
 
   const topicForm = useForm<z.infer<typeof topicSchema>>({
     resolver: zodResolver(topicSchema),
-    defaultValues: { title: '', description: '', categoryId: '', part: 'Part A', examCategory: undefined },
+    defaultValues: { title: '', description: '', categoryId: '', part: 'Part A', examCategories: [] },
   });
 
   const materialForm = useForm<z.infer<typeof materialSchema>>({
@@ -115,10 +117,10 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
             description: editingTopic.description,
             categoryId: editingTopic.categoryId,
             part: editingTopic.part,
-            examCategory: editingTopic.examCategory,
+            examCategories: editingTopic.examCategories,
         });
     } else {
-        topicForm.reset({ title: '', description: '', categoryId: '', part: 'Part A', examCategory: undefined });
+        topicForm.reset({ title: '', description: '', categoryId: '', part: 'Part A', examCategories: [] });
     }
   }, [editingTopic, topicForm]);
 
@@ -163,7 +165,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
             const newTopic = { id: newTopicDoc.id, ...topicData };
             setTopics(prev => [...prev, newTopic].sort((a,b) => a.title.localeCompare(b.title)));
             toast({ title: 'Success', description: 'New topic added.' });
-            topicForm.reset({ title: '', description: '', categoryId: values.categoryId, part: 'Part A', examCategory: undefined });
+            topicForm.reset({ title: '', description: '', categoryId: values.categoryId, part: 'Part A', examCategories: [] });
         }
     } catch (error) {
       toast({ title: 'Error', description: editingTopic ? 'Failed to update topic.' : 'Failed to add topic.', variant: 'destructive' });
@@ -392,20 +394,51 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                             />
                             <FormField
                                 control={topicForm.control}
-                                name="examCategory"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Exam Category</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select an exam category" /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        {examCategories.map(cat => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))}
-                                    </SelectContent>
-                                    </Select>
+                                name="examCategories"
+                                render={() => (
+                                    <FormItem>
+                                    <div className="mb-4">
+                                        <FormLabel className="text-base">Exam Categories</FormLabel>
+                                    </div>
+                                    <div className="space-y-2">
+                                    {examCategories.map((item) => (
+                                        <FormField
+                                        key={item}
+                                        control={topicForm.control}
+                                        name="examCategories"
+                                        render={({ field }) => {
+                                            return (
+                                            <FormItem
+                                                key={item}
+                                                className="flex flex-row items-start space-x-3 space-y-0"
+                                            >
+                                                <FormControl>
+                                                <Checkbox
+                                                    checked={field.value?.includes(item)}
+                                                    onCheckedChange={(checked) => {
+                                                    return checked
+                                                        ? field.onChange([...(field.value || []), item])
+                                                        : field.onChange(
+                                                            field.value?.filter(
+                                                            (value) => value !== item
+                                                            )
+                                                        )
+                                                    }}
+                                                />
+                                                </FormControl>
+                                                <FormLabel className="font-normal">
+                                                {item}
+                                                </FormLabel>
+                                            </FormItem>
+                                            )
+                                        }}
+                                        />
+                                    ))}
+                                    </div>
                                     <FormMessage />
-                                </FormItem>
+                                    </FormItem>
                                 )}
-                            />
+                                />
                             <FormField
                                 control={topicForm.control}
                                 name="title"
@@ -539,7 +572,11 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                         <TableCell>{getCategoryName(topic.categoryId)}</TableCell>
                                         <TableCell className="font-medium">{topic.title}</TableCell>
                                         <TableCell><Badge variant="outline">{topic.part}</Badge></TableCell>
-                                        <TableCell><Badge variant="secondary">{topic.examCategory}</Badge></TableCell>
+                                        <TableCell>
+                                            <div className="flex gap-1">
+                                                {topic.examCategories.map(ec => <Badge key={ec} variant="secondary">{ec}</Badge>)}
+                                            </div>
+                                        </TableCell>
                                         <TableCell>
                                             {topic.material ? (
                                                 <Badge>Uploaded</Badge>
