@@ -64,3 +64,11 @@ export interface TopicPerformance {
     attempts: number;
     averageScore: number;
 }
+
+export interface BankedQuestion {
+    id: string;
+    examCategory: 'MTS' | 'POSTMAN' | 'PA';
+    fileName: string;
+    content: string;
+    uploadedAt: Date;
+}

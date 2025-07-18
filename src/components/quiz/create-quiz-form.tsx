@@ -122,6 +122,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
           category: selectedCategory.name,
           numberOfQuestions: values.numberOfQuestions,
           difficulty: values.difficulty,
+          examCategory: values.examType,
           material: (combinedMaterial && !excludedCategories.includes(selectedCategory.name)) ? combinedMaterial : undefined,
           previousQuestions: previousQuestions,
           userId: user.uid,

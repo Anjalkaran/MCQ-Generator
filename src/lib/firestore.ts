@@ -1,7 +1,7 @@
 
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion } from './types';
 
 // USER MANAGEMENT
 export const getUserData = async (userId: string): Promise<UserData | null> => {
@@ -247,6 +247,29 @@ export const getPerformanceByTopic = async (userId: string): Promise<TopicPerfor
     });
 
     return performanceData.sort((a, b) => a.topicTitle.localeCompare(b.topicTitle));
+};
+
+// QUESTION BANK MANAGEMENT
+export const addQuestionBankDocument = async (data: Omit<BankedQuestion, 'id'>): Promise<DocumentReference> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    return await addDoc(collection(db, 'questionBank'), data);
+};
+
+export const getQuestionBankByCategory = async (examCategory: string): Promise<string> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const bankCollection = collection(db, 'questionBank');
+    const q = query(bankCollection, where('examCategory', '==', examCategory));
+    
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) {
+        return "";
+    }
+
+    // Combine content from all matching documents
+    const allContent = querySnapshot.docs.map(doc => doc.data().content).join('\n\n---\n\n');
+    return allContent;
 };
 
 

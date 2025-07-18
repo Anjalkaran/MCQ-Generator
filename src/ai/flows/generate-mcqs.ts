@@ -11,15 +11,17 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { getUserData } from '@/lib/firestore';
+import { getUserData, getQuestionBankByCategory } from '@/lib/firestore';
 
 const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
   category: z.string().optional().describe('The parent category of the topic.'),
   numberOfQuestions: z.number().describe('The number of MCQs to generate.'),
   difficulty: z.string().describe('The difficulty level of the questions (e.g., Easy, Moderate, Difficult).'),
+  examCategory: z.string().optional().describe('The target exam category (e.g., MTS, POSTMAN, PA).'),
   material: z.string().optional().describe('The study material for the topic, if available.'),
   previousQuestions: z.array(z.string()).optional().describe('A list of previously asked questions to avoid repetition.'),
+  bankedQuestions: z.string().optional().describe('Content from previously uploaded exam questions to use as a reference.'),
   userId: z.string().describe('The ID of the user requesting the quiz.'),
 });
 export type GenerateMCQsInput = z.infer<typeof GenerateMCQsInputSchema>;
@@ -127,6 +129,13 @@ const prompt = ai.definePrompt({
     ---MATERIAL END---
   {{/if}}
 
+  {{#if bankedQuestions}}
+  Use the following PREVIOUS YEARS' EXAM QUESTIONS as a reference for style, format, and difficulty. Generate NEW questions inspired by these, but DO NOT copy them directly.
+  ---REFERENCE QUESTIONS START---
+  {{{bankedQuestions}}}
+  ---REFERENCE QUESTIONS END---
+  {{/if}}
+
   {{#if previousQuestions}}
   IMPORTANT: Do NOT repeat any of the following questions. Ensure the new questions are unique and different from this list:
   {{#each previousQuestions}}
@@ -142,12 +151,21 @@ const generateMCQsFlow = ai.defineFlow(
     inputSchema: GenerateMCQsInputSchema,
     outputSchema: GenerateMCQsOutputSchema,
   },
-  async input => {
+  async (input) => {
     if (!input.userId) {
       throw new Error("A user ID must be provided to generate a quiz.");
     }
+    
+    let flowInput = { ...input };
 
-    const {output: initialOutput} = await prompt(input);
+    if (input.examCategory) {
+        const bankedQuestions = await getQuestionBankByCategory(input.examCategory);
+        if (bankedQuestions) {
+            flowInput.bankedQuestions = bankedQuestions;
+        }
+    }
+
+    const {output: initialOutput} = await prompt(flowInput);
     if (!initialOutput || !initialOutput.mcqs || initialOutput.mcqs.length === 0) {
         throw new Error('The AI could not generate questions for the selected topic.');
     }
