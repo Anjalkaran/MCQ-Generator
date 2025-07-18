@@ -14,19 +14,23 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, AlertTriangle, Gem } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { normalizeDate } from '@/lib/utils';
+import { normalizeDate, cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { FREE_TOPIC_EXAM_LIMIT, ADMIN_EMAIL } from '@/lib/constants';
 import Link from 'next/link';
 import { useDashboard } from '@/app/dashboard/layout';
+import { CardTitle } from '../ui/card';
 
 const formSchema = z.object({
   examType: z.string().min(1, 'Please select an exam type.'),
   part: z.string().min(1, 'Please select a part.'),
   numberOfQuestions: z.coerce.number().min(5).max(100),
+  difficulty: z.string().min(1, 'Please select a difficulty level.'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
+type DifficultyLevel = 'Easy' | 'Moderate' | 'Difficult';
+const difficultyLevels: DifficultyLevel[] = ['Easy', 'Moderate', 'Difficult'];
 const parts = ["Part A", "Part B"] as const;
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 
@@ -42,6 +46,7 @@ export function PartWiseQuizForm() {
       examType: '',
       part: '',
       numberOfQuestions: 10,
+      difficulty: 'Moderate',
     },
   });
   
@@ -68,6 +73,8 @@ export function PartWiseQuizForm() {
     }
   }, [userData?.examCategory, form]);
 
+  const selectedDifficulty = form.watch('difficulty');
+
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
 
@@ -82,6 +89,7 @@ export function PartWiseQuizForm() {
           examCategory: values.examType,
           part: values.part,
           numberOfQuestions: values.numberOfQuestions,
+          difficulty: values.difficulty,
           userId: user.uid,
       };
 
@@ -97,25 +105,31 @@ export function PartWiseQuizForm() {
         return;
       }
       
-      const timeLimit = values.numberOfQuestions * 45; // 45 seconds per question on average
+      const timePerQuestion: Record<DifficultyLevel, number> = {
+        Easy: 30,
+        Moderate: 45,
+        Difficult: 60,
+      };
+      const timeLimit = values.numberOfQuestions * timePerQuestion[values.difficulty as DifficultyLevel];
 
-      const testId = `part-wise-${values.examType}-${values.part}-${Date.now()}`;
+      const quizId = `part-wise-${values.examType}-${values.part}-${Date.now()}`;
+
       const quizData = {
+        mcqs: mcqs,
+        timeLimit: timeLimit,
         topic: {
-          id: testId,
-          title: `${values.examType} - ${values.part}`,
-          description: 'A part-wise generated test.',
-          icon: 'test',
-          categoryId: 'part-wise',
+          id: quizId,
+          title: `Part ${values.part} Test (${values.examType})`,
+          description: `A custom generated quiz covering all topics in Part ${values.part}.`,
+          icon: 'scroll-text',
+          categoryId: `part-wise-${values.part}`,
           part: values.part as 'Part A' | 'Part B',
           examCategories: [values.examType as 'MTS' | 'POSTMAN' | 'PA'],
         },
-        mcqs: mcqs,
-        timeLimit,
       };
 
-      localStorage.setItem(`quiz-${testId}`, JSON.stringify(quizData));
-      router.push(`/quiz/${testId}`);
+      localStorage.setItem(`quiz-${quizId}`, JSON.stringify(quizData));
+      router.push(`/quiz/${quizId}`);
 
     } catch (error: any) {
       console.error('Error generating part-wise test:', error);
@@ -202,6 +216,34 @@ export function PartWiseQuizForm() {
                             ))}
                             </SelectContent>
                         </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="difficulty"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Difficulty Level</FormLabel>
+                        <FormControl>
+                            <div className="grid grid-cols-3 gap-2">
+                            {difficultyLevels.map((level) => (
+                                <Card
+                                key={level}
+                                onClick={() => form.setValue('difficulty', level, { shouldValidate: true })}
+                                className={cn(
+                                    'cursor-pointer p-2 text-center transition-all',
+                                    selectedDifficulty === level
+                                    ? 'border-primary ring-2 ring-primary bg-accent'
+                                    : 'hover:bg-muted/50'
+                                )}
+                                >
+                                <CardTitle className="text-base font-medium">{level}</CardTitle>
+                                </Card>
+                            ))}
+                            </div>
+                        </FormControl>
                         <FormMessage />
                         </FormItem>
                     )}

@@ -1,4 +1,5 @@
 
+
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment } from 'firebase/firestore';
 import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion } from './types';
@@ -116,6 +117,19 @@ export const getTopics = async (): Promise<Topic[]> => {
     })).sort((a,b) => a.title.localeCompare(b.title));
 };
 
+export const getTopicsByPartAndExam = async (part: string, examCategory: string): Promise<Topic[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const topicsCollection = collection(db, 'topics');
+    const q = query(
+        topicsCollection, 
+        where('part', '==', part), 
+        where('examCategories', 'array-contains', examCategory)
+    );
+    const topicSnapshot = await getDocs(q);
+    return topicSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Topic));
+};
+
 export const addTopic = async (topic: Omit<Topic, 'id'>): Promise<DocumentReference> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
@@ -195,11 +209,19 @@ export const getExamHistoryForUser = async (userId: string): Promise<MCQHistory[
         const topic = topicMap.get(data.topicId);
         
         const takenAt = data.takenAt?.toDate ? data.takenAt.toDate() : new Date();
+        
+        let topicTitle = 'Unknown Topic';
+        if (topic) {
+            topicTitle = topic.title;
+        } else if (data.topicId?.startsWith('part-wise')) {
+            // Handle synthetic topic titles from part-wise tests
+            topicTitle = data.topicTitle || `Part-wise Test`;
+        }
 
         return {
             id: doc.id,
             ...data,
-            topicTitle: topic?.title || 'Unknown Topic',
+            topicTitle: topicTitle,
             takenAt: takenAt,
         } as MCQHistory;
     });
