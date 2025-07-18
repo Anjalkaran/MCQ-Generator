@@ -3,12 +3,13 @@
 
 /**
  * @fileOverview Generates a part-wise test with MCQs from multiple topics.
+ * This flow now has its own dedicated input schema to ensure type safety.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { getTopicsByPartAndExam, getQuestionBankByCategory } from '@/lib/firestore';
-import type { GenerateMCQsOutput as GenerateMCQsOutputType } from './generate-mcqs'; 
+import type { GenerateMCQsOutputType } from './generate-mcqs'; 
 
 const GenerateMCQsOutputSchema = z.object({
   mcqs: z.array(
