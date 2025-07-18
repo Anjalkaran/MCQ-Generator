@@ -112,9 +112,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     }
     
     const excludedCategories = ["Basic Arithmetics", "General Awareness"];
-    const combinedMaterial = selectedTopic.materials && selectedTopic.materials.length > 0
-        ? selectedTopic.materials.map(m => `Source: ${m.name}\n${m.content}`).join('\n\n---\n\n')
-        : undefined;
+    const combinedMaterial = selectedTopic.material ? selectedTopic.material : undefined;
 
     try {
       const previousQuestions = await getMCQHistoryForTopic(user.uid, values.topicId);
@@ -125,6 +123,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
           numberOfQuestions: values.numberOfQuestions,
           difficulty: values.difficulty,
           examCategory: values.examType,
+          part: selectedTopic.part,
           material: (combinedMaterial && !excludedCategories.includes(selectedCategory.name)) ? combinedMaterial : undefined,
           previousQuestions: previousQuestions,
           userId: user.uid,
@@ -181,9 +180,27 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     if (!selectedExamType) return [];
     return categories.filter(c => c.examCategories && c.examCategories.includes(selectedExamType));
   }, [selectedExamType, categories]);
+  
+  const filteredTopics = useMemo(() => {
+    if (!selectedCategoryId || !selectedPart || !selectedExamType) return [];
+    return topics.filter(topic => 
+        topic.categoryId === selectedCategoryId && 
+        topic.part === selectedPart &&
+        topic.examCategories.includes(selectedExamType)
+    );
+  }, [selectedCategoryId, selectedPart, selectedExamType, topics]);
+  
+  const filteredCategoriesByPart = useMemo(() => {
+    if (!selectedPart || !selectedExamType) return [];
+    
+    // Get all topics for the selected exam type and part
+    const relevantTopics = topics.filter(t => t.part === selectedPart && t.examCategories.includes(selectedExamType));
+    const relevantCategoryIds = new Set(relevantTopics.map(t => t.categoryId));
 
-  const filteredCategoriesByPart = selectedPart ? filteredCategoriesByExam.filter(c => c.part === selectedPart) : [];
-  const filteredTopics = selectedCategoryId ? topics.filter(topic => topic.categoryId === selectedCategoryId) : [];
+    return filteredCategoriesByExam.filter(c => relevantCategoryIds.has(c.id));
+    
+  }, [selectedPart, selectedExamType, filteredCategoriesByExam, topics]);
+
   
   const proValidUntilDate = normalizeDate(userData?.proValidUntil);
   const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || (userData?.email === ADMIN_EMAIL);

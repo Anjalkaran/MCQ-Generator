@@ -95,7 +95,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
 
   const topicForm = useForm<z.infer<typeof topicSchema>>({
     resolver: zodResolver(topicSchema),
-    defaultValues: { title: '', description: '', categoryId: '', part: 'Part A', examCategories: [] },
+    defaultValues: { title: '', description: '', categoryId: '', part: undefined, examCategories: [] },
   });
 
   const materialForm = useForm<z.infer<typeof materialSchema>>({
@@ -120,7 +120,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
             examCategories: editingTopic.examCategories,
         });
     } else {
-        topicForm.reset({ title: '', description: '', categoryId: '', part: 'Part A', examCategories: [] });
+        topicForm.reset({ title: '', description: '', categoryId: '', part: undefined, examCategories: [] });
     }
   }, [editingTopic, topicForm]);
 

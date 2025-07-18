@@ -19,6 +19,7 @@ const GenerateMCQsInputSchema = z.object({
   numberOfQuestions: z.number().describe('The number of MCQs to generate.'),
   difficulty: z.string().describe('The difficulty level of the questions (e.g., Easy, Moderate, Difficult).'),
   examCategory: z.string().optional().describe('The target exam category (e.g., MTS, POSTMAN, PA).'),
+  part: z.string().optional().describe('The part of the syllabus this topic belongs to (e.g., Part A, Part B).'),
   material: z.string().optional().describe('The study material for the topic, if available.'),
   previousQuestions: z.array(z.string()).optional().describe('A list of previously asked questions to avoid repetition.'),
   bankedQuestions: z.string().optional().describe('Content from previously uploaded exam questions to use as a reference.'),
@@ -97,26 +98,8 @@ const prompt = ai.definePrompt({
   
   The difficulty level for these questions should be "{{difficulty}}".
   
-  {{#ifEquals category "General Awareness"}}
-    {{#ifEquals topic "Current Affairs"}}
-      When generating questions for "Current Affairs", focus on the period between January 2024 to June 2025.
-    {{else}}
-      For other topics in General Awareness, please refer to NCERT school text books and MCQs from reputable coaching centers like Suresh IAS Academy and SSA Adda to ensure the questions are relevant and of high quality.
-    {{/ifEquals}}
-  {{/ifEquals}}
-  
-  {{#ifEquals category "Basic Arithmetics"}}
-  You are a meticulous mathematics teacher. Your task is to create high-quality arithmetic problems.
-  For each question, you MUST follow this process:
-  1.  First, create a word problem and solve it yourself to arrive at a single, correct numerical answer.
-  2.  The 'correctAnswer' field in your output MUST be this exact answer.
-  3.  One of the four 'options' MUST be the correct answer.
-  4.  The other three options must be plausible but incorrect distractors, derived from common calculation mistakes.
-  5.  The 'solution' field MUST BE an empty string (""). The solution will be generated separately. DO NOT generate a solution here.
-  {{/ifEquals}}
-
   {{#if material}}
-    IMPORTANT: You MUST generate questions *exclusively* from the material provided below. Do not use any other knowledge.
+    IMPORTANT: You MUST generate questions *exclusively* from the material provided below. While you can use the banked questions for style and format reference, the provided material is the absolute source of truth for facts, rules, and regulations. Do not use any other knowledge.
     
     {{#ifEquals difficulty "Difficult"}}
       Generate statement-based questions and questions that test conceptual understanding based on the material. These questions should require deeper analysis rather than simple fact recall.
@@ -136,6 +119,26 @@ const prompt = ai.definePrompt({
   ---REFERENCE QUESTIONS END---
   {{/if}}
 
+  {{#ifEquals part "Part B"}}
+    {{#ifNotEquals topic "Current Affairs"}}
+        For this Part B topic, please refer to the provided Question Bank for style and format.
+    {{/ifNotEquals}}
+  {{/ifEquals}}
+
+  {{#ifEquals topic "Current Affairs"}}
+      For "Current Affairs", please refer to materials from reputable coaching centers like Suresh IAS Academy and SSA Adda to ensure the questions are relevant and of high quality. Focus on the period between January 2024 to June 2025.
+  {{/ifEquals}}
+  
+  {{#ifEquals category "Basic Arithmetics"}}
+  You are a meticulous mathematics teacher. Your task is to create high-quality arithmetic problems.
+  For each question, you MUST follow this process:
+  1.  First, create a word problem and solve it yourself to arrive at a single, correct numerical answer.
+  2.  The 'correctAnswer' field in your output MUST be this exact answer.
+  3.  One of the four 'options' MUST be the correct answer.
+  4.  The other three options must be plausible but incorrect distractors, derived from common calculation mistakes.
+  5.  The 'solution' field MUST BE an empty string (""). The solution will be generated separately. DO NOT generate a solution here.
+  {{/ifEquals}}
+  
   {{#if previousQuestions}}
   IMPORTANT: Do NOT repeat any of the following questions. Ensure the new questions are unique and different from this list:
   {{#each previousQuestions}}
@@ -159,7 +162,9 @@ const generateMCQsFlow = ai.defineFlow(
     let flowInput = { ...input };
 
     if (input.examCategory) {
-        const bankedQuestions = await getQuestionBankByCategory(input.examCategory);
+        // For Postman exam, use MTS question bank.
+        const categoryForBank = input.examCategory === 'POSTMAN' ? 'MTS' : input.examCategory;
+        const bankedQuestions = await getQuestionBankByCategory(categoryForBank);
         if (bankedQuestions) {
             flowInput.bankedQuestions = bankedQuestions;
         }
