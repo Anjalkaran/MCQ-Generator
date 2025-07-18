@@ -170,7 +170,11 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
     batch.set(historyRef, historyData);
 
     if (userDoc.exists() && userDoc.data()?.email !== ADMIN_EMAIL) {
-        batch.update(userRef, { topicExamsTaken: increment(1) });
+        if (historyData.isMockTest) {
+            batch.update(userRef, { mockTestsTaken: increment(1) });
+        } else {
+            batch.update(userRef, { topicExamsTaken: increment(1) });
+        }
     }
 
     await batch.commit();
@@ -197,41 +201,28 @@ export const getExamHistoryForUser = async (userId: string): Promise<MCQHistory[
     if (!db) throw new Error("Firestore is not initialized");
     
     const historyCollection = collection(db, 'mcqHistory');
-    const q = query(historyCollection, where('userId', '==', userId));
+    const q = query(historyCollection, where('userId', '==', userId), orderBy('takenAt', 'desc'));
     
     const querySnapshot = await getDocs(q);
     
-    const topics = await getTopics();
-    const topicMap = new Map(topics.map(t => [t.id, t]));
-
     const history = querySnapshot.docs.map(doc => {
         const data = doc.data();
-        const topic = topicMap.get(data.topicId);
-        
         const takenAt = data.takenAt?.toDate ? data.takenAt.toDate() : new Date();
         
-        let topicTitle = 'Unknown Topic';
-        if (topic) {
-            topicTitle = topic.title;
-        } else if (data.topicId?.startsWith('part-wise')) {
-            // Handle synthetic topic titles from part-wise tests
-            topicTitle = data.topicTitle || `Part-wise Test`;
-        }
-
         return {
             id: doc.id,
             ...data,
-            topicTitle: topicTitle,
+            topicTitle: data.topicTitle || 'Mock Test',
             takenAt: takenAt,
         } as MCQHistory;
     });
 
-    return history.sort((a, b) => b.takenAt.getTime() - a.takenAt.getTime());
+    return history;
 };
 
 // PERFORMANCE ANALYSIS
 export const getPerformanceByTopic = async (userId: string): Promise<TopicPerformance[]> => {
-    const allHistory = await getExamHistoryForUser(userId);
+    const allHistory = await getExamHistoryForUser(userId).then(h => h.filter(item => !item.isMockTest));
 
     if (allHistory.length === 0) {
         return [];

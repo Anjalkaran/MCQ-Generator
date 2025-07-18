@@ -6,6 +6,7 @@ export interface MCQ {
   options: string[];
   correctAnswer: string;
   solution?: string;
+  topic?: string;
 }
 
 export interface Material {
@@ -45,6 +46,7 @@ export interface UserData {
 export interface MCQData {
   topic: Topic;
   mcqs: MCQ[];
+  timeLimit?: number;
 }
 
 export interface MCQHistory {
@@ -56,6 +58,7 @@ export interface MCQHistory {
     totalQuestions: number;
     questions: string[];
     takenAt: Date;
+    isMockTest?: boolean;
 }
 
 export interface TopicPerformance {

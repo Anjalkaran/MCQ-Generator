@@ -5,18 +5,26 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, XCircle, Award, Repeat, Home, BrainCircuit } from "lucide-react";
-import type { MCQ, MCQData, UserData } from "@/lib/types";
+import type { MCQ, MCQData, Topic } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { getFirebaseAuth } from "@/lib/firebase";
-import { getUserData, saveMCQHistory } from "@/lib/firestore";
+import { saveMCQHistory } from "@/lib/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 interface MCQResultsClientProps {
   topicId: string;
+}
+
+interface StoredQuizData {
+  answers: { [key: number]: string };
+  numberOfQuestions: number;
+  mcqs: MCQ[];
+  topic: Topic;
+  isMockTest?: boolean;
 }
 
 export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
@@ -26,8 +34,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
   const [userAnswers, setUserAnswers] = useState<{ [key: number]: string }>({});
   const [quizLength, setQuizLength] = useState(0);
   const [isClient, setIsClient] = useState(false);
-  const [quizData, setQuizData] = useState<MCQData | null>(null);
-
+  const [quizData, setQuizData] = useState<Omit<StoredQuizData, 'answers' | 'numberOfQuestions'> | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -37,10 +44,10 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
 
     const processResults = async () => {
       if (savedState && currentUser) {
-        const { answers, numberOfQuestions, mcqs, topic } = JSON.parse(savedState);
+        const { answers, numberOfQuestions, mcqs, topic, isMockTest } = JSON.parse(savedState) as StoredQuizData;
         setUserAnswers(answers);
         setQuizLength(numberOfQuestions);
-        setQuizData({ mcqs, topic });
+        setQuizData({ mcqs, topic, isMockTest });
   
         let correctCount = 0;
         mcqs.forEach((mcq: MCQ, index: number) => {
@@ -55,10 +62,12 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
           await saveMCQHistory({
               userId: currentUser.uid,
               topicId: topic.id,
+              topicTitle: topic.title,
               score: correctCount,
               totalQuestions: numberOfQuestions,
               questions: mcqs.map((mcq: MCQ) => mcq.question),
               takenAt: new Date(),
+              isMockTest: isMockTest || false,
           });
 
         } catch (err) {
@@ -107,7 +116,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
           <div className="flex justify-center gap-4 mt-8">
             <Button onClick={handleRetake}>
                 <Repeat className="mr-2 h-4 w-4" />
-                New Quiz on Topic
+                New Quiz
             </Button>
             <Button variant="outline" asChild>
               <Link href="/dashboard">
@@ -133,6 +142,9 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
                   <p className="font-semibold mb-2">
                     {index + 1}. {mcq.question}
                   </p>
+                   {quizData.isMockTest && mcq.topic && (
+                       <Badge variant="outline" className="mb-2">Topic: {mcq.topic}</Badge>
+                   )}
                   <div className="space-y-2">
                     {mcq.options.map((option) => {
                       const isUserChoice = userAnswer === option;
