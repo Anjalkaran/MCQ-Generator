@@ -574,7 +574,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                         <TableCell><Badge variant="outline">{topic.part}</Badge></TableCell>
                                         <TableCell>
                                             <div className="flex gap-1">
-                                                {topic.examCategories.map(ec => <Badge key={ec} variant="secondary">{ec}</Badge>)}
+                                                {topic.examCategories?.map(ec => <Badge key={ec} variant="secondary">{ec}</Badge>)}
                                             </div>
                                         </TableCell>
                                         <TableCell>
