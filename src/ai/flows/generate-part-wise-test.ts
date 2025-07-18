@@ -56,20 +56,24 @@ const generatePartWiseTestPrompt = ai.definePrompt({
   `,
 });
 
-export async function generatePartWiseTest(input: z.infer<typeof GenerateMCQsInputSchema>): Promise<GenerateMCQsOutput> {
+export const PartWiseTestInputSchema = z.object({
+    examCategory: z.string(),
+    part: z.string(),
+    numberOfQuestions: z.number(),
+    difficulty: z.string(),
+    userId: z.string(),
+});
+export type PartWiseTestInput = z.infer<typeof PartWiseTestInputSchema>;
+
+
+export async function generatePartWiseTest(input: PartWiseTestInput): Promise<GenerateMCQsOutput> {
   return generatePartWiseTestFlow(input);
 }
 
 export const generatePartWiseTestFlow = ai.defineFlow(
   {
     name: 'generatePartWiseTestFlow',
-    inputSchema: z.object({
-        examCategory: z.string(),
-        part: z.string(),
-        numberOfQuestions: z.number(),
-        difficulty: z.string(),
-        userId: z.string(),
-    }),
+    inputSchema: PartWiseTestInputSchema,
     outputSchema: GenerateMCQsOutput,
   },
   async (input) => {
