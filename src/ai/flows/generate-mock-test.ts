@@ -68,7 +68,7 @@ const generateMockTestPrompt = ai.definePrompt({
         })
     },
     output: { schema: GenerateMockTestOutputSchema },
-    model: 'googleai/gemini-1.5-flash-preview',
+    model: 'googleai/gemini-1.5-flash',
     prompt: `You are an expert in creating mock test questions for the Indian Postal Department's {{examCategory}} exam.
 
 Your task is to generate a full mock test with a total of **{{totalQuestions}}** questions.
