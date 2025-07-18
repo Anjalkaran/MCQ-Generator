@@ -199,3 +199,93 @@ export const POSTMAN_BLUEPRINT = {
     },
   ],
 };
+
+export const PA_BLUEPRINT = {
+  examName: "PA Exam",
+  totalDurationMinutes: 120,
+  parts: [
+    {
+      partName: "Part-A",
+      totalMarks: 50,
+      totalQuestions: 50,
+      marksPerQuestion: 1,
+      sections: [
+        {
+          sectionName: "Post Office Guide Part I (except Telegraphic Money Order)",
+          questionCount: 10,
+          topics: [],
+        },
+        {
+          sectionName: "Post Office Guide Part II (except British and Irish Postal order)",
+          questionCount: 10,
+          topics: [],
+        },
+        {
+          sectionName: "Basic terminologies related to IT Modernisation project of Department of Posts",
+          questionCount: 10,
+          topics: [],
+        },
+        {
+          sectionName: "Products and Services: Mails, Banking & Remittances, Insurance, Stamps and Business (Reference: India Post Website)",
+          questionCount: 10,
+          topics: [],
+        },
+        {
+          sectionName: "Combined Section: Postal Manuals and SB Orders",
+          questionCount: 5,
+          topics: [
+            "Postal Manual Volume VI – Part I",
+            "Postal Manual Volume VI – Part III (chapter I and II)",
+            "Updated SB Orders issued by Directorate till 31st December of the preceding year in which exam is being conducted",
+          ],
+        },
+        {
+          sectionName: "Combined Section: Postal and Foreign Manuals",
+          questionCount: 5,
+          topics: ["Postal Manual Volume VII", "Foreign Post Manual"],
+        },
+      ],
+    },
+    {
+      partName: "Part-B",
+      totalMarks: 50,
+      totalQuestions: 50,
+      marksPerQuestion: 1,
+      sections: [
+        {
+          sectionName: "General Awareness/Knowledge",
+          questionCount: 10,
+          notes: "2 questions from each topic",
+          topics: [
+            "Indian Geography",
+            "Civics",
+            "General knowledge",
+            "Indian culture & freedom struggle",
+            "Ethics and morale study",
+            "current affairs",
+          ],
+        },
+        {
+          sectionName: "Basic Arithmetic",
+          questionCount: 20,
+          notes: "2 to 3 questions from each topic",
+          topics: [
+            "BODMAS (brackets, orders, division, multiplication, addition, subtraction)",
+            "Percentage",
+            "Profit and loss",
+            "Simple interest",
+            "Average",
+            "Time and work",
+            "Time and distance",
+            "Unitary method",
+          ],
+        },
+        {
+          sectionName: "Reasoning and Analytical Ability (Non Verbal / Pictorial)",
+          questionCount: 20,
+          topics: [],
+        },
+      ],
+    },
+  ],
+};

@@ -11,7 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT } from '@/lib/exam-blueprints';
+import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-blueprints';
 
 const GenerateMockTestInputSchema = z.object({
   examCategory: z.string().describe('The exam category (e.g., MTS, POSTMAN, PA).'),
@@ -67,6 +67,8 @@ const generateMockTestFlow = ai.defineFlow(
       blueprint = JSON.stringify(MTS_BLUEPRINT, null, 2);
     } else if (input.examCategory === 'POSTMAN') {
       blueprint = JSON.stringify(POSTMAN_BLUEPRINT, null, 2);
+    } else if (input.examCategory === 'PA') {
+      blueprint = JSON.stringify(PA_BLUEPRINT, null, 2);
     } else {
         throw new Error(`No blueprint found for exam category: ${input.examCategory}`);
     }
