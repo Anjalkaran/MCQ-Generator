@@ -230,7 +230,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                            >
                               <FormControl>
                               <SelectTrigger>
-                                  <SelectValue placeholder={!user ? "Login to see exams" : "Select an exam"} />
+                                  <SelectValue placeholder={!user ? "Login to see exams" : "Select"} />
                               </SelectTrigger>
                               </FormControl>
                               <SelectContent>
