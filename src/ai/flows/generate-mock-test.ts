@@ -62,13 +62,13 @@ const generateQuestionsForSectionPrompt = ai.definePrompt({
         schema: z.object({
             examCategory: z.string(),
             sectionName: z.string(),
-            totalSectionQuestions: z.number(),
+            questionsToGenerate: z.number(),
             topicsList: z.string(),
         })
     },
     output: { schema: GenerateMockTestOutputSchema },
     prompt: `You are an expert in creating mock tests for the Indian Postal Department's {{examCategory}} exam.
-Your task is to generate EXACTLY {{totalSectionQuestions}} multiple-choice question(s) for the section "{{sectionName}}".
+Your task is to generate EXACTLY {{questionsToGenerate}} multiple-choice question(s) for the section "{{sectionName}}".
 
 --- DISTRIBUTION ---
 You must generate questions based on the following topic breakdown:
@@ -78,7 +78,7 @@ You must generate questions based on the following topic breakdown:
 - Each question must have four options and one correct answer.
 - For each question, you MUST assign the correct topic to its 'topic' field from the list provided.
 - For any arithmetic questions, the 'solution' field MUST be an empty string ("").
-- Your response MUST be a single, valid JSON object containing an 'mcqs' array with exactly {{totalSectionQuestions}} items.
+- Your response MUST be a single, valid JSON object containing an 'mcqs' array with exactly {{questionsToGenerate}} items.
 `,
 });
 
@@ -101,39 +101,49 @@ const generateMockTestFlow = ai.defineFlow(
     else throw new Error(`No blueprint found for exam category: ${input.examCategory}`);
     
     const allMcqs: z.infer<typeof MCQSchema>[] = [];
+    const MAX_ATTEMPTS = 3;
+    const CHUNK_SIZE = 10; // Generate questions in smaller chunks to avoid timeouts
 
     // Programmatically iterate through the blueprint to ensure exact counts.
     for (const part of blueprint.parts) {
       for (const section of part.sections) {
         let questionsForSection: z.infer<typeof MCQSchema>[] = [];
-        let attempts = 0;
-        const MAX_ATTEMPTS = 3;
+        let totalQuestionsNeeded = section.questions;
 
-        // Create a formatted string of topics and their question counts for the prompt
         const topicsList = section.topics.map(t => `- ${t.name}: ${t.questions} question(s)`).join('\n');
 
-        while (questionsForSection.length < section.questions && attempts < MAX_ATTEMPTS) {
-          attempts++;
-          try {
-              const { output } = await generateQuestionsForSectionPrompt({
-                  examCategory: input.examCategory,
-                  sectionName: section.sectionName,
-                  totalSectionQuestions: section.questions,
-                  topicsList: topicsList,
-              });
-              
-              if (output && output.mcqs) {
-                  // We'll take what the AI gives and add it. We are not re-trying for partial success.
-                  // The main loop condition will handle if more are needed.
-                  // This is a simplification to avoid complex logic for retrying deficits.
-                  questionsForSection = output.mcqs;
-              }
-          } catch (e) {
-              console.error(`Attempt ${attempts} failed for section "${section.sectionName}":`, e);
-              if (attempts >= MAX_ATTEMPTS) {
-                 console.error(`Could not generate questions for section "${section.sectionName}" after ${MAX_ATTEMPTS} attempts.`);
-              }
+        while (questionsForSection.length < totalQuestionsNeeded) {
+          let attempts = 0;
+          const questionsInThisChunk = Math.min(CHUNK_SIZE, totalQuestionsNeeded - questionsForSection.length);
+
+          // We will retry the chunk generation a few times if it fails
+          while (attempts < MAX_ATTEMPTS) {
+            attempts++;
+            try {
+                const { output } = await generateQuestionsForSectionPrompt({
+                    examCategory: input.examCategory,
+                    sectionName: section.sectionName,
+                    questionsToGenerate: questionsInThisChunk,
+                    topicsList: topicsList,
+                });
+                
+                if (output && output.mcqs) {
+                    questionsForSection.push(...output.mcqs);
+                    // Break the attempt loop if we got some questions
+                    break;
+                }
+            } catch (e) {
+                console.error(`Attempt ${attempts} failed for chunk in section "${section.sectionName}":`, e);
+                if (attempts >= MAX_ATTEMPTS) {
+                   console.error(`Could not generate questions for section "${section.sectionName}" after ${MAX_ATTEMPTS} attempts.`);
+                }
+            }
           }
+           // If after all attempts we still haven't moved forward, break outer loop to prevent infinite loops.
+           if (questionsInThisChunk > 0 && questionsForSection.length < totalQuestionsNeeded && attempts >= MAX_ATTEMPTS) {
+              console.warn(`Breaking generation for section "${section.sectionName}" due to repeated failures.`);
+              break; // break the while(questionsForSection.length < totalQuestionsNeeded)
+           }
         }
         allMcqs.push(...questionsForSection);
       }
