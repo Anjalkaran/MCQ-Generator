@@ -22,6 +22,7 @@ export interface Topic {
   categoryName?: string; 
   material?: string;
   part: 'Part A' | 'Part B';
+  examCategory: 'MTS' | 'POSTMAN' | 'PA';
 }
 
 export interface Category {

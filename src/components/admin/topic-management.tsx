@@ -38,8 +38,8 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 const parts = ["Part A", "Part B"] as const;
@@ -56,6 +56,7 @@ const topicSchema = z.object({
   description: z.string().optional(),
   categoryId: z.string({ required_error: 'Please select a category.' }),
   part: z.enum(parts, { required_error: 'You must select a part.'}),
+  examCategory: z.enum(examCategories, { required_error: 'You must select an exam category.'}),
 });
 
 const materialSchema = z.object({
@@ -82,10 +83,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingTopic, setEditingTopic] = useState<Topic | null>(null);
   const [uploadCategoryId, setUploadCategoryId] = useState<string>('');
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
-  const [selectedTopicId, setSelectedTopicId] = useState<string>('');
-
-
+  
   const { toast } = useToast();
 
   const categoryForm = useForm<z.infer<typeof categorySchema>>({
@@ -95,7 +93,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
 
   const topicForm = useForm<z.infer<typeof topicSchema>>({
     resolver: zodResolver(topicSchema),
-    defaultValues: { title: '', description: '', categoryId: '', part: 'Part A' },
+    defaultValues: { title: '', description: '', categoryId: '', part: 'Part A', examCategory: undefined },
   });
 
   const materialForm = useForm<z.infer<typeof materialSchema>>({
@@ -117,9 +115,10 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
             description: editingTopic.description,
             categoryId: editingTopic.categoryId,
             part: editingTopic.part,
+            examCategory: editingTopic.examCategory,
         });
     } else {
-        topicForm.reset({ title: '', description: '', categoryId: '', part: 'Part A' });
+        topicForm.reset({ title: '', description: '', categoryId: '', part: 'Part A', examCategory: undefined });
     }
   }, [editingTopic, topicForm]);
 
@@ -130,7 +129,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
         await updateCategory(editingCategory.id, values);
         const updatedCategories = prev => prev.map(c => c.id === editingCategory.id ? { ...c, ...values } : c).sort((a,b) => a.name.localeCompare(b.name));
         setCategories(updatedCategories);
-        setSelectedCategoryId(editingCategory.id);
         toast({ title: 'Success', description: 'Category updated.' });
         setEditingCategory(null);
         setIsCategoryDialogOpen(false); 
@@ -156,7 +154,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
             await updateTopic(editingTopic.id, topicData);
             const updatedTopics = prev => prev.map(t => t.id === editingTopic.id ? { ...t, ...topicData } : t).sort((a,b) => a.title.localeCompare(b.title));
             setTopics(updatedTopics);
-            setSelectedTopicId(editingTopic.id);
             toast({ title: 'Success', description: 'Topic updated.' });
             setEditingTopic(null);
             setIsTopicDialogOpen(false);
@@ -166,7 +163,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
             const newTopic = { id: newTopicDoc.id, ...topicData };
             setTopics(prev => [...prev, newTopic].sort((a,b) => a.title.localeCompare(b.title)));
             toast({ title: 'Success', description: 'New topic added.' });
-            topicForm.reset({ title: '', description: '', categoryId: values.categoryId, part: 'Part A' });
+            topicForm.reset({ title: '', description: '', categoryId: values.categoryId, part: 'Part A', examCategory: undefined });
         }
     } catch (error) {
       toast({ title: 'Error', description: editingTopic ? 'Failed to update topic.' : 'Failed to add topic.', variant: 'destructive' });
@@ -203,6 +200,8 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
 
       toast({ title: 'Success', description: 'Material uploaded successfully.' });
       materialForm.reset();
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
       setUploadCategoryId('');
 
     } catch (error: any) {
@@ -217,7 +216,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     try {
         await deleteTopic(topicId);
         setTopics(prev => prev.filter(t => t.id !== topicId));
-        setSelectedTopicId('');
         toast({ title: 'Success', description: 'Topic deleted.' });
     } catch (error) {
         toast({ title: 'Error', description: 'Failed to delete topic.', variant: 'destructive' });
@@ -230,7 +228,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
         await deleteCategory(categoryId, topicsToDelete);
         setCategories(prev => prev.filter(c => c.id !== categoryId));
         setTopics(prev => prev.filter(t => t.categoryId !== categoryId));
-        setSelectedCategoryId('');
         toast({ title: 'Success', description: 'Category and its topics have been deleted.' });
     } catch (error) {
         toast({ title: 'Error', description: 'Failed to delete category.', variant: 'destructive' });
@@ -247,11 +244,11 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     setIsTopicDialogOpen(true);
   }
   
-  const fileRef = materialForm.register("file");
   const filteredUploadTopics = uploadCategoryId ? topics.filter(topic => topic.categoryId === uploadCategoryId) : [];
   
-  const currentlySelectedCategory = categories.find(c => c.id === selectedCategoryId);
-  const currentlySelectedTopic = topics.find(t => t.id === selectedTopicId);
+  const getCategoryName = (categoryId: string) => {
+    return categories.find(c => c.id === categoryId)?.name || 'N/A';
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -395,6 +392,22 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                             />
                             <FormField
                                 control={topicForm.control}
+                                name="examCategory"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Exam Category</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select an exam category" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        {examCategories.map(cat => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))}
+                                    </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={topicForm.control}
                                 name="title"
                                 render={({ field }) => (
                                 <FormItem>
@@ -425,6 +438,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                     </Form>
                 </DialogContent>
             </Dialog>
+
              <Card>
                 <CardHeader>
                     <CardTitle>Upload Material</CardTitle>
@@ -476,14 +490,14 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                              <FormField
                                 control={materialForm.control}
                                 name="file"
-                                render={({ field }) => (
+                                render={({ field: { onChange, ...field } }) => (
                                     <FormItem>
                                         <FormLabel>Material File</FormLabel>
                                         <FormControl>
                                             <Input 
                                                 type="file" 
                                                 accept=".pdf,.docx"
-                                                onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)}
+                                                onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -506,123 +520,63 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                 <CardDescription>View, edit, or delete existing categories and topics.</CardDescription>
             </CardHeader>
             <CardContent>
-                <Tabs defaultValue="categories">
-                    <TabsList className="grid w-full grid-cols-2 mb-4">
-                        <TabsTrigger value="categories">Categories</TabsTrigger>
-                        <TabsTrigger value="topics">Topics</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="categories" className="space-y-4">
-                        <div className="flex items-end gap-2">
-                           <div className="flex-1">
-                                <Label>Select Category</Label>
-                                <Select onValueChange={setSelectedCategoryId} value={selectedCategoryId} disabled={categories.length === 0}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={categories.length > 0 ? "Select a category..." : "No categories found"} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {categories.map(cat => (
-                                            <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            {currentlySelectedCategory && (
-                                <>
-                                 <Button variant="ghost" size="icon" onClick={() => handleOpenCategoryDialog(currentlySelectedCategory)}><Edit className="h-4 w-4" /></Button>
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Delete Category: {currentlySelectedCategory.name}?</AlertDialogTitle>
-                                            <AlertDialogDescription>This will permanently delete the category and all its topics. This action cannot be undone.</AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDeleteCategory(currentlySelectedCategory.id)}>Delete</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </>
+                 <div className="border rounded-md">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Category</TableHead>
+                                <TableHead>Topic</TableHead>
+                                <TableHead>Part</TableHead>
+                                <TableHead>Exam</TableHead>
+                                <TableHead>Material</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {topics.length > 0 ? (
+                                topics.map((topic) => (
+                                    <TableRow key={topic.id}>
+                                        <TableCell>{getCategoryName(topic.categoryId)}</TableCell>
+                                        <TableCell className="font-medium">{topic.title}</TableCell>
+                                        <TableCell><Badge variant="outline">{topic.part}</Badge></TableCell>
+                                        <TableCell><Badge variant="secondary">{topic.examCategory}</Badge></TableCell>
+                                        <TableCell>
+                                            {topic.material ? (
+                                                <Badge>Uploaded</Badge>
+                                            ) : (
+                                                <Badge variant="destructive">None</Badge>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="text-right space-x-1">
+                                            <Button variant="ghost" size="icon" onClick={() => handleOpenTopicDialog(topic)}><Edit className="h-4 w-4" /></Button>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Delete Topic: {topic.title}?</AlertDialogTitle>
+                                                        <AlertDialogDescription>This action is permanent and cannot be undone.</AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDeleteTopic(topic.id)}>Delete</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-24 text-center">
+                                        No topics created yet.
+                                    </TableCell>
+                                </TableRow>
                             )}
-                        </div>
-                        {currentlySelectedCategory && (
-                            <Card className="bg-muted/50">
-                                <CardHeader>
-                                    <CardTitle className="text-lg">{currentlySelectedCategory.name}</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-sm font-medium">Associated Exam Types:</p>
-                                     <div className="flex gap-1 flex-wrap mt-2">
-                                        {currentlySelectedCategory.examCategories && currentlySelectedCategory.examCategories.map(ec => <Badge key={ec} variant="secondary">{ec}</Badge>)}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </TabsContent>
-
-                    <TabsContent value="topics" className="space-y-4">
-                        <div className="flex items-end gap-2">
-                             <div className="flex-1">
-                                <Label>Select Topic</Label>
-                                <Select onValueChange={setSelectedTopicId} value={selectedTopicId} disabled={topics.length === 0}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={topics.length > 0 ? "Select a topic..." : "No topics found"} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {topics.map(topic => (
-                                            <SelectItem key={topic.id} value={topic.id}>{topic.title}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            {currentlySelectedTopic && (
-                                <>
-                                <Button variant="ghost" size="icon" onClick={() => handleOpenTopicDialog(currentlySelectedTopic)}><Edit className="h-4 w-4" /></Button>
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Delete Topic: {currentlySelectedTopic.title}?</AlertDialogTitle>
-                                            <AlertDialogDescription>This action is permanent and cannot be undone.</AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDeleteTopic(currentlySelectedTopic.id)}>Delete</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </>
-                            )}
-                        </div>
-                        {currentlySelectedTopic && (
-                             <Card className="bg-muted/50">
-                                <CardHeader>
-                                    <CardTitle className="text-lg">{currentlySelectedTopic.title}</CardTitle>
-                                     <CardDescription>
-                                        Category: {categories.find(c => c.id === currentlySelectedTopic.categoryId)?.name || 'N/A'}
-                                         <Badge variant="secondary" className="ml-2">{currentlySelectedTopic.part}</Badge>
-                                     </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-sm">{currentlySelectedTopic.description}</p>
-                                    <div className="mt-4">
-                                        <h4 className="text-sm font-semibold mb-2 flex items-center"><Paperclip className="mr-2 h-4 w-4"/>Uploaded Material</h4>
-                                        {currentlySelectedTopic.material ? (
-                                            <p className="text-sm text-muted-foreground italic">A material has been uploaded.</p>
-                                        ) : (
-                                            <p className="text-sm text-muted-foreground">No material uploaded for this topic.</p>
-                                        )}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </TabsContent>
-                </Tabs>
+                        </TableBody>
+                    </Table>
+                 </div>
             </CardContent>
         </Card>
     </div>
