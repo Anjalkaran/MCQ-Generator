@@ -21,12 +21,12 @@ export interface Topic {
   categoryId: string;
   categoryName?: string; 
   material?: string;
+  part: 'Part A' | 'Part B';
 }
 
 export interface Category {
     id: string;
     name: string;
-    part: 'Part A' | 'Part B';
     examCategories: ('MTS' | 'POSTMAN' | 'PA')[];
 }
 

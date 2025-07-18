@@ -46,7 +46,6 @@ const parts = ["Part A", "Part B"] as const;
 
 const categorySchema = z.object({
   name: z.string().min(2, { message: 'Category name must be at least 2 characters.' }),
-  part: z.enum(parts, { required_error: 'You must select a part.'}),
   examCategories: z.array(z.string()).refine((value) => value.some((item) => item), {
     message: "You have to select at least one exam category.",
   }),
@@ -56,6 +55,7 @@ const topicSchema = z.object({
   title: z.string().min(3, { message: 'Topic title is required.' }),
   description: z.string().optional(),
   categoryId: z.string({ required_error: 'Please select a category.' }),
+  part: z.enum(parts, { required_error: 'You must select a part.'}),
 });
 
 const materialSchema = z.object({
@@ -90,12 +90,12 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
 
   const categoryForm = useForm<z.infer<typeof categorySchema>>({
     resolver: zodResolver(categorySchema),
-    defaultValues: { name: '', part: 'Part A', examCategories: [] },
+    defaultValues: { name: '', examCategories: [] },
   });
 
   const topicForm = useForm<z.infer<typeof topicSchema>>({
     resolver: zodResolver(topicSchema),
-    defaultValues: { title: '', description: '', categoryId: '' },
+    defaultValues: { title: '', description: '', categoryId: '', part: 'Part A' },
   });
 
   const materialForm = useForm<z.infer<typeof materialSchema>>({
@@ -106,7 +106,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     if (editingCategory) {
         categoryForm.reset(editingCategory);
     } else {
-        categoryForm.reset({ name: '', part: 'Part A', examCategories: [] });
+        categoryForm.reset({ name: '', examCategories: [] });
     }
   }, [editingCategory, categoryForm]);
 
@@ -116,9 +116,10 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
             title: editingTopic.title,
             description: editingTopic.description,
             categoryId: editingTopic.categoryId,
+            part: editingTopic.part,
         });
     } else {
-        topicForm.reset({ title: '', description: '', categoryId: '' });
+        topicForm.reset({ title: '', description: '', categoryId: '', part: 'Part A' });
     }
   }, [editingTopic, topicForm]);
 
@@ -138,7 +139,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
         const newCategory = { id: newCategoryDoc.id, ...values };
         setCategories(prev => [...prev, newCategory].sort((a,b) => a.name.localeCompare(b.name)));
         toast({ title: 'Success', description: 'New category added.' });
-        categoryForm.reset({ name: '', part: 'Part A', examCategories: [] });
+        categoryForm.reset({ name: '', examCategories: [] });
       }
     } catch (error) {
       toast({ title: 'Error', description: editingCategory ? 'Failed to update category.' : 'Failed to add category.', variant: 'destructive' });
@@ -165,7 +166,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
             const newTopic = { id: newTopicDoc.id, ...topicData };
             setTopics(prev => [...prev, newTopic].sort((a,b) => a.title.localeCompare(b.title)));
             toast({ title: 'Success', description: 'New topic added.' });
-            topicForm.reset({ title: '', description: '', categoryId: values.categoryId });
+            topicForm.reset({ title: '', description: '', categoryId: values.categoryId, part: 'Part A' });
         }
     } catch (error) {
       toast({ title: 'Error', description: editingTopic ? 'Failed to update topic.' : 'Failed to add topic.', variant: 'destructive' });
@@ -280,32 +281,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                             )}
                             />
                             <FormField
-                                control={categoryForm.control}
-                                name="part"
-                                render={({ field }) => (
-                                    <FormItem className="space-y-3">
-                                    <FormLabel>Part</FormLabel>
-                                    <FormControl>
-                                        <RadioGroup
-                                        onValueChange={field.onChange}
-                                        defaultValue={field.value}
-                                        className="flex space-x-4"
-                                        >
-                                        <FormItem className="flex items-center space-x-2 space-y-0">
-                                            <FormControl><RadioGroupItem value="Part A" /></FormControl>
-                                            <FormLabel className="font-normal">Part A</FormLabel>
-                                        </FormItem>
-                                        <FormItem className="flex items-center space-x-2 space-y-0">
-                                            <FormControl><RadioGroupItem value="Part B" /></FormControl>
-                                            <FormLabel className="font-normal">Part B</FormLabel>
-                                        </FormItem>
-                                        </RadioGroup>
-                                    </FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
                             control={categoryForm.control}
                             name="examCategories"
                             render={() => (
@@ -390,6 +365,32 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                     </Select>
                                     <FormMessage />
                                 </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={topicForm.control}
+                                name="part"
+                                render={({ field }) => (
+                                    <FormItem className="space-y-3">
+                                    <FormLabel>Part</FormLabel>
+                                    <FormControl>
+                                        <RadioGroup
+                                        onValueChange={field.onChange}
+                                        defaultValue={field.value}
+                                        className="flex space-x-4"
+                                        >
+                                        <FormItem className="flex items-center space-x-2 space-y-0">
+                                            <FormControl><RadioGroupItem value="Part A" /></FormControl>
+                                            <FormLabel className="font-normal">Part A</FormLabel>
+                                        </FormItem>
+                                        <FormItem className="flex items-center space-x-2 space-y-0">
+                                            <FormControl><RadioGroupItem value="Part B" /></FormControl>
+                                            <FormLabel className="font-normal">Part B</FormLabel>
+                                        </FormItem>
+                                        </RadioGroup>
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
                                 )}
                             />
                             <FormField
@@ -551,9 +552,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                             <Card className="bg-muted/50">
                                 <CardHeader>
                                     <CardTitle className="text-lg">{currentlySelectedCategory.name}</CardTitle>
-                                    <CardDescription>
-                                        Part: <Badge variant="secondary">{currentlySelectedCategory.part}</Badge>
-                                    </CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-sm font-medium">Associated Exam Types:</p>
@@ -607,6 +605,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                     <CardTitle className="text-lg">{currentlySelectedTopic.title}</CardTitle>
                                      <CardDescription>
                                         Category: {categories.find(c => c.id === currentlySelectedTopic.categoryId)?.name || 'N/A'}
+                                         <Badge variant="secondary" className="ml-2">{currentlySelectedTopic.part}</Badge>
                                      </CardDescription>
                                 </CardHeader>
                                 <CardContent>
