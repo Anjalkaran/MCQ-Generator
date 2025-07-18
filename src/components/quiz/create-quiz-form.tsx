@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -75,9 +75,11 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     }
   }, [userData]);
 
-  useMemo(() => {
-    if (userData?.examCategory) {
-        form.setValue('examType', userData.examCategory);
+  useEffect(() => {
+    if (userData?.examCategory === 'MTS') {
+        form.setValue('examType', 'MTS');
+    } else {
+        form.setValue('examType', '');
     }
   }, [userData, form]);
 
@@ -226,11 +228,11 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                                 });
                             }} 
                             value={field.value} 
-                            disabled={!user || availableExams.length <= 1}
+                            disabled={!user}
                            >
                               <FormControl>
                               <SelectTrigger>
-                                  <SelectValue placeholder={!user ? "Login to see exams" : "Select Exam"} />
+                                  <SelectValue placeholder="Select Exam" />
                               </SelectTrigger>
                               </FormControl>
                               <SelectContent>
