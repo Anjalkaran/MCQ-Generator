@@ -9,9 +9,52 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { getTopicsByPartAndExam, getQuestionBankByCategory } from '@/lib/firestore';
 import type { GenerateMCQsOutput } from './generate-mcqs'; 
-import { arithmeticSolverPrompt } from './generate-mcqs';
 
-const PartWiseInputSchema = z.object({
+const ArithmeticSolutionSchema = z.object({
+    steps: z.array(z.string()).describe("An array of strings, where each string is a single step in the calculation using the LCM method."),
+    final_answer: z.string().describe("A string containing only the final, mathematically exact answer."),
+});
+
+const arithmeticSolverPrompt = ai.definePrompt({
+    name: 'arithmeticSolverPromptPartWise', // Give it a unique name to avoid conflicts
+    input: { schema: z.object({ problem: z.string() }) },
+    output: { schema: ArithmeticSolutionSchema },
+    prompt: `You are a precise mathematical solver AI. Your sole purpose is to solve the given word problem and provide a step-by-step solution and an exact final answer.
+
+Your output MUST be a valid JSON object. Do not include any text, apologies, or explanations outside of the JSON structure itself.
+
+The JSON object must have two keys:
+1.  "steps": An array of strings. Each string must be a single, clear step in the calculation. For work-rate problems like this, use the LCM (Least Common Multiple) method.
+2.  "final_answer": A string containing only the final, mathematically exact answer. Express it as a fraction or a decimal (e.g., "18.75 days" or "75/4 days").
+
+CRITICAL INSTRUCTIONS:
+-   Do NOT mention or analyze any multiple-choice options that might be in the problem description. Ignore them completely.
+-   Do NOT guess or select the "closest" answer. Calculate and provide only the true mathematical result.
+-   Do NOT use conversational language. Stick to formal, mathematical steps.
+
+---
+Here is a perfect example of the required output format.
+
+Problem: "A can do a piece of work in 10 days and B can do it in 15 days. If they work together, in how many days will the work be completed?"
+
+Expected JSON Output:
+{
+  "steps": [
+    "Step 1: Define the total work using the LCM of the days. The LCM of 10 and 15 is 30. Let the total work be 30 units.",
+    "Step 2: Calculate the individual daily work rates (efficiency). A's rate = 30 units / 10 days = 3 units/day. B's rate = 30 units / 15 days = 2 units/day.",
+    "Step 3: Calculate the combined work rate when they work together. Combined rate = A's rate + B's rate = 3 units/day + 2 units/day = 5 units/day.",
+    "Step 4: Calculate the total time required to complete the work together. Time = Total Work / Combined Rate = 30 units / 5 units/day = 6 days."
+  ],
+  "final_answer": "6 days"
+}
+---
+
+Now, solve the following problem according to all the rules above:
+
+Problem: "{{problem}}"`,
+});
+
+const PartWiseGenInputSchema = z.object({
   examCategory: z.string().describe('The target exam category (e.g., MTS, POSTMAN, PA).'),
   part: z.string().describe('The part of the syllabus (e.g., Part A, Part B).'),
   numberOfQuestions: z.number().describe('The number of MCQs to generate.'),
@@ -24,7 +67,7 @@ const PartWiseInputSchema = z.object({
 
 const generatePartWiseTestPrompt = ai.definePrompt({
   name: 'generatePartWiseTestPrompt',
-  input: { schema: PartWiseInputSchema },
+  input: { schema: PartWiseGenInputSchema },
   output: { schema: GenerateMCQsOutput }, // Re-using the same output schema
   prompt: `You are an expert in generating a comprehensive test that covers an entire part of a syllabus.
 
@@ -56,7 +99,7 @@ const generatePartWiseTestPrompt = ai.definePrompt({
   `,
 });
 
-export const PartWiseTestInputSchema = z.object({
+const PartWiseTestInputSchema = z.object({
     examCategory: z.string(),
     part: z.string(),
     numberOfQuestions: z.number(),
@@ -70,7 +113,7 @@ export async function generatePartWiseTest(input: PartWiseTestInput): Promise<Ge
   return generatePartWiseTestFlow(input);
 }
 
-export const generatePartWiseTestFlow = ai.defineFlow(
+const generatePartWiseTestFlow = ai.defineFlow(
   {
     name: 'generatePartWiseTestFlow',
     inputSchema: PartWiseTestInputSchema,
@@ -95,7 +138,7 @@ export const generatePartWiseTestFlow = ai.defineFlow(
     const bankedQuestions = await getQuestionBankByCategory(categoryForBank);
 
     // 3. Prepare input for the AI prompt
-    const flowInput: z.infer<typeof PartWiseInputSchema> = {
+    const flowInput: z.infer<typeof PartWiseGenInputSchema> = {
       ...input,
       topicTitles,
       material: combinedMaterial || undefined,
@@ -104,7 +147,7 @@ export const generatePartWiseTestFlow = ai.defineFlow(
 
     // 4. Generate the initial set of questions
     const { output: initialOutput } = await generatePartWiseTestPrompt(flowInput);
-    if (!initialOutput || !initialOutput.mcqs || initialOutput.mcqs.length === 0) {
+    if (!initialOutput || !initialOutput.mcqs || !initialOutput.mcqs.length === 0) {
       throw new Error('The AI could not generate questions for the selected part.');
     }
 

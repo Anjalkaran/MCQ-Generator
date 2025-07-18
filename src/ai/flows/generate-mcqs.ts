@@ -13,7 +13,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { getUserData, getQuestionBankByCategory } from '@/lib/firestore';
 
-export const GenerateMCQsInputSchema = z.object({
+const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
   category: z.string().optional().describe('The parent category of the topic.'),
   numberOfQuestions: z.number().describe('The number of MCQs to generate.'),
@@ -27,7 +27,7 @@ export const GenerateMCQsInputSchema = z.object({
 });
 export type GenerateMCQsInput = z.infer<typeof GenerateMCQsInputSchema>;
 
-export const GenerateMCQsOutputSchema = z.object({
+const GenerateMCQsOutputSchema = z.object({
   mcqs: z.array(
     z.object({
       question: z.string().describe('The multiple-choice question.'),
@@ -48,7 +48,7 @@ export async function generateMCQs(input: GenerateMCQsInput): Promise<GenerateMC
   return generateMCQsFlow(input);
 }
 
-export const arithmeticSolverPrompt = ai.definePrompt({
+const arithmeticSolverPrompt = ai.definePrompt({
     name: 'arithmeticSolverPrompt',
     input: { schema: z.object({ problem: z.string() }) },
     output: { schema: ArithmeticSolutionSchema },
