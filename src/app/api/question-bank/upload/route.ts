@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
 import { addQuestionBankDocument } from '@/lib/firestore';
+import type { BankedQuestion } from '@/lib/types';
 
 export const config = {
   api: {
@@ -40,15 +41,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Could not extract any text from the file.' }, { status: 400 });
     }
     
-    await addQuestionBankDocument({
+    const newDocData: Omit<BankedQuestion, 'id'> = {
         examCategory: examCategory as any,
         fileName: file.name,
         content: textContent,
         uploadedAt: new Date(),
-    });
+    }
+    
+    const newDocRef = await addQuestionBankDocument(newDocData);
 
     return NextResponse.json({ 
         message: 'Question Bank updated successfully.', 
+        newQuestionBankDoc: { id: newDocRef.id, ...newDocData }
     });
 
   } catch (error: any) {

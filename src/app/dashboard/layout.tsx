@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { getDashboardData } from '@/lib/firestore';
-import type { UserData, Category, Topic } from "@/lib/types";
+import type { UserData, Category, Topic, BankedQuestion } from "@/lib/types";
 import { ADMIN_EMAIL, FREE_TOPIC_EXAM_LIMIT } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
@@ -22,6 +22,7 @@ interface DashboardContextType {
   userData: UserData | null;
   categories: Category[];
   topics: Topic[];
+  bankedQuestions: BankedQuestion[];
   isLoading: boolean;
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>;
 }
@@ -48,6 +49,7 @@ export default function DashboardLayout({
   const [userData, setUserData] = useState<UserData | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
+  const [bankedQuestions, setBankedQuestions] = useState<BankedQuestion[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -92,13 +94,14 @@ export default function DashboardLayout({
                     mockTestsTaken: 0,
                     isPro: true,
                 };
-                const { categories, topics } = await getDashboardData(currentUser.uid, true);
+                const { categories, topics, bankedQuestions } = await getDashboardData(currentUser.uid, true);
                 setUserData(adminUserData);
                 setCategories(categories);
                 setTopics(topics);
+                setBankedQuestions(bankedQuestions);
 
             } else {
-                const { userData: fetchedUserData, categories, topics } = await getDashboardData(currentUser.uid);
+                const { userData: fetchedUserData, categories, topics, bankedQuestions } = await getDashboardData(currentUser.uid);
                 if (!fetchedUserData) {
                      toast({ title: "Authentication Error", description: "Could not load user profile. Please log in again.", variant: "destructive" });
                      handleLogout(auth, false);
@@ -108,6 +111,7 @@ export default function DashboardLayout({
                 setUserData(fetchedUserData);
                 setCategories(categories);
                 setTopics(topics);
+                setBankedQuestions(bankedQuestions);
             }
 
             if (pathname.startsWith('/dashboard/admin') && !userIsAdmin) {
@@ -125,6 +129,7 @@ export default function DashboardLayout({
         setUserData(null);
         setCategories([]);
         setTopics([]);
+        setBankedQuestions([]);
         if (!pathname.startsWith('/auth')) {
             router.push('/auth/login');
         }
@@ -143,7 +148,10 @@ export default function DashboardLayout({
   const getWelcomeMessage = () => {
     if (isLoading || !userData) return null;
     
-    if (isAdmin || isPro) {
+    if (isAdmin) {
+        return "Welcome, Admin! Enjoy unlimited access.";
+    }
+    if(isPro) {
         return `Welcome, ${userData.name}!`;
     }
 
@@ -151,7 +159,7 @@ export default function DashboardLayout({
     return `Welcome, ${userData.name}! You have ${examsRemaining > 0 ? examsRemaining : 0} free exam(s) remaining.`;
   }
 
-  const contextValue = { user, userData, categories, topics, isLoading, setUserData };
+  const contextValue = { user, userData, categories, topics, bankedQuestions, isLoading, setUserData };
 
   return (
     <DashboardContext.Provider value={contextValue}>

@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Loader2 } from "lucide-react";
 
 export default function AdminPage() {
-  const { user, userData, categories, topics, isLoading } = useDashboard();
+  const { user, userData, categories, topics, bankedQuestions, isLoading } = useDashboard();
 
   if (isLoading) {
     return (
@@ -54,7 +54,7 @@ export default function AdminPage() {
           <TopicManagement initialCategories={categories} initialTopics={topics} />
         </TabsContent>
         <TabsContent value="question-bank">
-            <QuestionBankManagement />
+            <QuestionBankManagement initialBankedQuestions={bankedQuestions} />
         </TabsContent>
       </Tabs>
     </div>

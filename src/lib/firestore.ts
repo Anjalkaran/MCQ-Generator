@@ -2,6 +2,7 @@
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment } from 'firebase/firestore';
 import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion } from './types';
+import { ADMIN_EMAIL } from './constants';
 
 // USER MANAGEMENT
 export const getUserData = async (userId: string): Promise<UserData | null> => {
@@ -146,19 +147,17 @@ export const deleteTopic = async (topicId: string): Promise<void> => {
 export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
-
     const userRef = doc(db, 'users', historyData.userId);
+    const userDoc = await getDoc(userRef);
 
     const batch = writeBatch(db);
     
-    // Add the history document
     const historyRef = doc(collection(db, 'mcqHistory'));
     batch.set(historyRef, historyData);
 
-    // Increment the user's exam count, creating the document if it doesn't exist.
-    batch.set(userRef, {
-        topicExamsTaken: increment(1)
-    }, { merge: true });
+    if (userDoc.exists() && userDoc.data()?.email !== ADMIN_EMAIL) {
+        batch.update(userRef, { topicExamsTaken: increment(1) });
+    }
 
     await batch.commit();
 };
@@ -250,10 +249,32 @@ export const getPerformanceByTopic = async (userId: string): Promise<TopicPerfor
 };
 
 // QUESTION BANK MANAGEMENT
+export const getQuestionBankDocuments = async (): Promise<BankedQuestion[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const bankCollection = collection(db, 'questionBank');
+    const q = query(bankCollection, orderBy('uploadedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            ...data,
+            uploadedAt: data.uploadedAt.toDate(), // Convert Firestore Timestamp to JS Date
+        } as BankedQuestion
+    });
+};
+
 export const addQuestionBankDocument = async (data: Omit<BankedQuestion, 'id'>): Promise<DocumentReference> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     return await addDoc(collection(db, 'questionBank'), data);
+};
+
+export const deleteQuestionBankDocument = async (docId: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    await deleteDoc(doc(db, 'questionBank', docId));
 };
 
 export const getQuestionBankByCategory = async (examCategory: string): Promise<string> => {
@@ -275,28 +296,20 @@ export const getQuestionBankByCategory = async (examCategory: string): Promise<s
 
 // CONSOLIDATED DASHBOARD DATA FETCHING
 export const getDashboardData = async (userId: string, isAdmin: boolean = false) => {
-    // For admin, we don't need userData, just the content
-    if (isAdmin) {
-        const [categories, topics] = await Promise.all([
-            getCategories(),
-            getTopics()
-        ]);
-        return { userData: null, categories, topics };
-    }
-
-    // For regular users, fetch everything
-    const userDataPromise = getUserData(userId);
-    const [userData, categories, topics] = await Promise.all([
-        userDataPromise,
+    const [categories, topics, bankedQuestions] = await Promise.all([
         getCategories(),
-        getTopics()
+        getTopics(),
+        isAdmin ? getQuestionBankDocuments() : [],
     ]);
-
-    // A regular user MUST have a user data document.
-    if (!userData) {
-         // Instead of throwing an error, return null. The layout will handle this.
-        return { userData: null, categories: [], topics: [] };
+    
+    if (isAdmin) {
+        return { userData: null, categories, topics, bankedQuestions };
     }
 
-    return { userData, categories, topics };
+    const userData = await getUserData(userId);
+    if (!userData) {
+        return { userData: null, categories: [], topics: [], bankedQuestions: [] };
+    }
+
+    return { userData, categories, topics, bankedQuestions };
 }
