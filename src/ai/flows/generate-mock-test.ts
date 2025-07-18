@@ -2,7 +2,8 @@
 'use server';
 
 /**
- * @fileOverview Generates a mock test based on exam category using a single, robust prompt.
+ * @fileOverview Generates a mock test based on a detailed exam blueprint.
+ * This flow iterates through the blueprint programmatically to ensure exact question counts.
  *
  * - generateMockTest - A function that handles the mock test generation process.
  * - GenerateMockTestInput - The input type for the generateMockTest function.
@@ -23,23 +24,17 @@ const arithmeticSolverPrompt = ai.definePrompt({
     input: { schema: z.object({ problem: z.string() }) },
     output: { schema: ArithmeticSolutionSchema },
     prompt: `You are a precise mathematical solver AI. Your sole purpose is to solve the given word problem and provide a step-by-step solution and an exact final answer.
-
 Your output MUST be a valid JSON object. Do not include any text, apologies, or explanations outside of the JSON structure itself.
-
 The JSON object must have two keys:
 1.  "steps": An array of strings. Each string must be a single, clear step in the calculation. For work-rate problems like this, use the LCM (Least Common Multiple) method.
 2.  "final_answer": A string containing only the final, mathematically exact answer. Express it as a fraction or a decimal (e.g., "18.75 days" or "75/4 days").
-
 CRITICAL INSTRUCTIONS:
 -   Do NOT mention or analyze any multiple-choice options that might be in the problem description. Ignore them completely.
 -   Do NOT guess or select the "closest" answer. Calculate and provide only the true mathematical result.
 -   Do NOT use conversational language. Stick to formal, mathematical steps.
-
 Now, solve the following problem according to all the rules above:
-
 Problem: "{{problem}}"`,
 });
-
 
 const GenerateMockTestInputSchema = z.object({
   examCategory: z.string().describe('The exam category (e.g., MTS, POSTMAN, PA).'),
@@ -60,29 +55,25 @@ const GenerateMockTestOutputSchema = z.object({
 });
 export type GenerateMockTestOutput = z.infer<typeof GenerateMockTestOutputSchema>;
 
-
-const generateMockTestPrompt = ai.definePrompt({
-    name: 'generateMockTestPrompt',
-    input: { schema: z.object({
-        examCategory: z.string(),
-        blueprint: z.any(),
-        totalQuestions: z.number(),
-    })},
+// New, simpler prompt for generating a specific number of questions for a single topic.
+const generateQuestionsForTopicPrompt = ai.definePrompt({
+    name: 'generateQuestionsForTopicPrompt',
+    input: {
+        schema: z.object({
+            examCategory: z.string(),
+            topicName: z.string(),
+            numberOfQuestions: z.number(),
+        })
+    },
     output: { schema: GenerateMockTestOutputSchema },
     prompt: `You are an expert in creating mock tests for the Indian Postal Department's {{examCategory}} exam.
+Your task is to generate EXACTLY {{numberOfQuestions}} multiple-choice question(s) on the specific topic of "{{topicName}}".
 
---- MOST IMPORTANT RULE ---
-Your final response MUST be a single, valid JSON object. The 'mcqs' array in this JSON object MUST contain EXACTLY {{totalQuestions}} questions. Do not generate more or fewer than this number.
-
---- EXAM BLUEPRINT ---
-Generate the questions according to the following blueprint. Ensure the questions are distributed across the parts and topics as specified.
-
-{{{json blueprint}}}
-
---- OUTPUT RULES ---
-- For each generated question, you MUST assign its specific topic (e.g., "Percentage", "Delivery of mails") to the 'topic' field.
-- For any arithmetic problems, the 'solution' field MUST be an empty string (""). The solution will be generated separately.
-- Ensure each question has 4 options and one correct answer.
+--- RULES ---
+- Each question must have four options and one correct answer.
+- Assign the topic "{{topicName}}" to the 'topic' field for each question.
+- For any arithmetic questions, the 'solution' field MUST be an empty string ("").
+- Your response MUST be a single, valid JSON object containing an 'mcqs' array with exactly {{numberOfQuestions}} items.
 `,
 });
 
@@ -103,33 +94,56 @@ const generateMockTestFlow = ai.defineFlow(
     else if (input.examCategory === 'POSTMAN') blueprint = POSTMAN_BLUEPRINT;
     else if (input.examCategory === 'PA') blueprint = PA_BLUEPRINT;
     else throw new Error(`No blueprint found for exam category: ${input.examCategory}`);
-
-    const totalQuestions = blueprint.parts.reduce((sum, part) => sum + part.totalQuestions, 0);
-
-    const { output } = await generateMockTestPrompt({
-        examCategory: input.examCategory,
-        blueprint: blueprint,
-        totalQuestions: totalQuestions,
-    });
     
-    if (!output || !output.mcqs) {
-         throw new Error(`The AI could not generate any questions for the mock test.`);
+    const allMcqs: z.infer<typeof MCQSchema>[] = [];
+
+    // Programmatically iterate through the blueprint to ensure exact counts.
+    for (const part of blueprint.parts) {
+      for (const section of part.sections) {
+        for (const topic of section.topics) {
+          let questionsForTopic: z.infer<typeof MCQSchema>[] = [];
+          let attempts = 0;
+          const MAX_ATTEMPTS = 3;
+
+          // Loop to ensure we get the exact number of questions for the topic.
+          while (questionsForTopic.length < topic.questions && attempts < MAX_ATTEMPTS) {
+            attempts++;
+            const remainingQuestions = topic.questions - questionsForTopic.length;
+
+            try {
+                const { output } = await generateQuestionsForTopicPrompt({
+                    examCategory: input.examCategory,
+                    topicName: topic.name,
+                    numberOfQuestions: remainingQuestions,
+                });
+                
+                if (output && output.mcqs) {
+                    questionsForTopic.push(...output.mcqs);
+                }
+            } catch (e) {
+                console.error(`Attempt ${attempts} failed for topic "${topic.name}":`, e);
+                // If it's the last attempt and we still fail, we might want to throw or continue.
+                if (attempts >= MAX_ATTEMPTS) {
+                   console.error(`Could not generate questions for topic "${topic.name}" after ${MAX_ATTEMPTS} attempts.`);
+                }
+            }
+          }
+          allMcqs.push(...questionsForTopic);
+        }
+      }
     }
-    
-    // Check if the AI generated the correct number of questions.
-    // If not, it's better to log it and continue than to fail the entire request for the user.
-    if (output.mcqs.length !== totalQuestions) {
-        console.warn(`AI did not generate the exact number of questions. Expected ${totalQuestions}, got ${output.mcqs.length}.`);
+
+    if (allMcqs.length === 0) {
+        throw new Error(`The AI could not generate any questions for the mock test.`);
     }
 
-    const partB = blueprint.parts.find(p => p.partName === 'Part-B');
-    const arithmeticSection = partB?.sections.find(s => s.sectionName.includes('Arithmetic'));
-    const arithmeticTopics = arithmeticSection?.topics || [];
-    
-    if (arithmeticTopics.length > 0) {
-        for (const mcq of output.mcqs) {
-            if (arithmeticTopics.includes(mcq.topic)) {
-                 try {
+    // Post-process solutions for arithmetic questions
+    const arithmeticSection = blueprint.parts.flatMap(p => p.sections).find(s => s.sectionName.includes('Arithmetic'));
+    if (arithmeticSection) {
+        const arithmeticTopicNames = arithmeticSection.topics.map(t => t.name);
+        for (const mcq of allMcqs) {
+            if (arithmeticTopicNames.includes(mcq.topic)) {
+                try {
                     const solutionResponse = await arithmeticSolverPrompt({ problem: mcq.question });
                     if (solutionResponse.output) {
                         mcq.solution = solutionResponse.output.steps.join('\n');
@@ -141,7 +155,7 @@ const generateMockTestFlow = ai.defineFlow(
             }
         }
     }
-
-    return { mcqs: output.mcqs };
+    
+    return { mcqs: allMcqs };
   }
 );
