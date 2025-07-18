@@ -11,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { MTS_BLUEPRINT } from '@/lib/exam-blueprints';
 
 const GenerateMockTestInputSchema = z.object({
   examCategory: z.string().describe('The exam category (e.g., MTS, POSTMAN, PA).'),
@@ -38,11 +39,18 @@ const prompt = ai.definePrompt({
   name: 'generateMockTestPrompt',
   input: {schema: GenerateMockTestInputSchema},
   output: {schema: GenerateMockTestOutputSchema},
-  prompt: `You are an expert in creating mock tests for exams.
+  prompt: `You are an expert in creating mock tests for Indian Postal Department exams.
 
-  Please generate a mock test with exactly {{numberOfQuestions}} multiple-choice questions for the "{{examCategory}}" exam.
+  Your task is to generate a mock test with exactly {{numberOfQuestions}} multiple-choice questions for the "{{examCategory}}" exam.
   
-  The questions should cover a variety of topics relevant to the {{examCategory}} syllabus. Each question must have four options, one correct answer, and specify the topic it belongs to.
+  You MUST strictly follow the provided blueprint for the exam structure, topic distribution, and question count per topic.
+
+  --- EXAM BLUEPRINT ({{examCategory}}) ---
+  {{{blueprint}}}
+  --- END BLUEPRINT ---
+
+  For each question generated, you must specify which topic from the blueprint it belongs to in the 'topic' field of the output.
+  Ensure the questions are relevant and accurately reflect the style and difficulty of the actual exam.
   `,
 });
 
@@ -53,7 +61,15 @@ const generateMockTestFlow = ai.defineFlow(
     outputSchema: GenerateMockTestOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    let blueprint = '';
+    // In the future, we can add more blueprints and select them here.
+    if (input.examCategory === 'MTS') {
+      blueprint = JSON.stringify(MTS_BLUEPRINT, null, 2);
+    } else {
+        throw new Error(`No blueprint found for exam category: ${input.examCategory}`);
+    }
+
+    const {output} = await prompt({ ...input, blueprint });
     if (!output || !output.mcqs || output.mcqs.length === 0) {
         throw new Error('The AI could not generate a mock test for the selected exam type.');
     }
