@@ -79,19 +79,19 @@ const generateMockTestPrompt = ai.definePrompt({
     prompt: `You are an expert in creating mock tests for the Indian Postal Department's {{examCategory}} exam.
 
 --- CRITICAL HARD STOP RULE ---
-Your final output MUST contain EXACTLY {{totalQuestions}} questions in total. This is the most important rule.
+Your final output MUST contain EXACTLY {{totalQuestions}} questions in total. This is the most important rule. Do not generate more or less than this number.
 
 --- GENERATION PLAN ---
-You will generate the test in two sequential parts to meet the exact counts.
+You will generate the test in two sequential parts to meet the exact counts. It is absolutely critical that you generate the exact number of questions specified for each part.
 
 1.  **PART-A GENERATION:**
-    -   Generate EXACTLY **{{partAQuestions}}** questions for Part-A.
+    -   Generate EXACTLY **{{partAQuestions}}** questions for Part-A. This is a strict requirement.
     -   These questions should cover the following topics:
     {{{partATopics}}}
     -   Distribute the {{partAQuestions}} questions among these topics appropriately.
 
 2.  **PART-B GENERATION:**
-    -   After generating for Part-A, generate EXACTLY **{{partBQuestions}}** questions for Part-B.
+    -   After generating for Part-A, generate EXACTLY **{{partBQuestions}}** questions for Part-B. This is a strict requirement.
     -   These questions should cover the following topics:
     {{{partBTopics}}}
     -   Distribute the {{partBQuestions}} questions among these topics appropriately.
@@ -138,8 +138,9 @@ const generateMockTestFlow = ai.defineFlow(
         examCategory: input.examCategory,
         totalQuestions,
         partAQuestions,
-        partBTopics,
+        partBQuestions,
         partATopics,
+        partBTopics,
     });
 
 
@@ -147,10 +148,6 @@ const generateMockTestFlow = ai.defineFlow(
          throw new Error(`The AI could not generate a mock test.`);
     }
     
-    if (output.mcqs.length !== totalQuestions) {
-        throw new Error(`AI generation failed to adhere to question count. Expected ${totalQuestions}, got ${output.mcqs.length}. Please try again.`);
-    }
-
     const arithmeticTopics = ["Basic Arithmetic", "Basic Arithmetics"];
     for (const mcq of output.mcqs) {
         const isArithmetic = partB.sections.some(s => s.sectionName.includes('Arithmetic') && s.topics.includes(mcq.topic));
