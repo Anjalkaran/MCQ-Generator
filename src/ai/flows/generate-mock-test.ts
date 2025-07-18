@@ -110,7 +110,7 @@ const generateMockTestFlow = ai.defineFlow(
         for (const section of part.sections) {
             let sectionMCQs: z.infer<typeof MCQSchema>[] = [];
             let attempts = 0;
-            const maxAttempts = 5; // To prevent infinite loops
+            const maxAttempts = 5;
 
             while (sectionMCQs.length < section.questions && attempts < maxAttempts) {
                 attempts++;
@@ -133,7 +133,6 @@ const generateMockTestFlow = ai.defineFlow(
                 }
             }
             
-            // Add the generated questions (even if fewer than required after max attempts)
             allGeneratedMCQs.push(...sectionMCQs.slice(0, section.questions));
         }
     }
@@ -142,24 +141,25 @@ const generateMockTestFlow = ai.defineFlow(
          throw new Error(`The AI could not generate any questions for the mock test.`);
     }
     
-    // Final check for any arithmetic questions that need a solution
-    const arithmeticTopics = ["Basic Arithmetic", "Basic Arithmetics"];
-    const arithmeticSections = blueprint.parts.find(p => p.partName === 'Part-B')?.sections.filter(s => s.sectionName.includes('Arithmetic')) || [];
-    const allArithmeticTopics = arithmeticSections.flatMap(s => s.topics);
+    const partB = blueprint.parts.find(p => p.partName === 'Part-B');
+    const arithmeticSection = partB?.sections.find(s => s.sectionName.includes('Arithmetic'));
 
-    for (const mcq of allGeneratedMCQs) {
-        if (allArithmeticTopics.includes(mcq.topic)) {
-             try {
-                const solutionResponse = await arithmeticSolverPrompt({ problem: mcq.question });
-                if (solutionResponse.output) {
-                    mcq.solution = solutionResponse.output.steps.join('\n');
+    if (arithmeticSection) {
+        for (const mcq of allGeneratedMCQs) {
+            if (arithmeticSection.topics.includes(mcq.topic)) {
+                 try {
+                    const solutionResponse = await arithmeticSolverPrompt({ problem: mcq.question });
+                    if (solutionResponse.output) {
+                        mcq.solution = solutionResponse.output.steps.join('\n');
+                    }
+                } catch (e) {
+                    console.error("Failed to generate a detailed solution for a mock test question:", e);
+                    mcq.solution = "A detailed solution could not be generated for this problem.";
                 }
-            } catch (e) {
-                console.error("Failed to generate a detailed solution for a mock test question:", e);
-                mcq.solution = "A detailed solution could not be generated for this problem.";
             }
         }
     }
+
 
     return { mcqs: allGeneratedMCQs };
   }
