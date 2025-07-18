@@ -8,7 +8,18 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { getTopicsByPartAndExam, getQuestionBankByCategory } from '@/lib/firestore';
-import type { GenerateMCQsOutput } from './generate-mcqs'; 
+import type { GenerateMCQsOutput as GenerateMCQsOutputType } from './generate-mcqs'; 
+
+const GenerateMCQsOutputSchema = z.object({
+  mcqs: z.array(
+    z.object({
+      question: z.string().describe('The multiple-choice question.'),
+      options: z.array(z.string()).describe('Four possible answers.'),
+      correctAnswer: z.string().describe('The correct answer to the question.'),
+      solution: z.string().optional().describe('A step-by-step solution, especially for arithmetic problems.'),
+    })
+  ).describe('The generated multiple-choice questions.'),
+});
 
 const ArithmeticSolutionSchema = z.object({
     steps: z.array(z.string()).describe("An array of strings, where each string is a single step in the calculation using the LCM method."),
@@ -68,7 +79,7 @@ const PartWiseGenInputSchema = z.object({
 const generatePartWiseTestPrompt = ai.definePrompt({
   name: 'generatePartWiseTestPrompt',
   input: { schema: PartWiseGenInputSchema },
-  output: { schema: GenerateMCQsOutput }, // Re-using the same output schema
+  output: { schema: GenerateMCQsOutputSchema }, // Re-using the same output schema
   prompt: `You are an expert in generating a comprehensive test that covers an entire part of a syllabus.
 
   Generate exactly {{numberOfQuestions}} multiple-choice questions for {{examCategory}} - {{part}}. The questions should be of "{{difficulty}}" difficulty.
@@ -109,7 +120,7 @@ const PartWiseTestInputSchema = z.object({
 export type PartWiseTestInput = z.infer<typeof PartWiseTestInputSchema>;
 
 
-export async function generatePartWiseTest(input: PartWiseTestInput): Promise<GenerateMCQsOutput> {
+export async function generatePartWiseTest(input: PartWiseTestInput): Promise<GenerateMCQsOutputType> {
   return generatePartWiseTestFlow(input);
 }
 
@@ -117,7 +128,7 @@ const generatePartWiseTestFlow = ai.defineFlow(
   {
     name: 'generatePartWiseTestFlow',
     inputSchema: PartWiseTestInputSchema,
-    outputSchema: GenerateMCQsOutput,
+    outputSchema: GenerateMCQsOutputSchema,
   },
   async (input) => {
     if (!input.userId || !input.examCategory || !input.part) {
