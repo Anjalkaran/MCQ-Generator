@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, AlertTriangle, Gem } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { cn, normalizeDate } from '@/lib/utils';
+import { normalizeDate } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
 import { useDashboard } from '@/app/dashboard/layout';
@@ -60,17 +60,16 @@ export function MockTestForm() {
     }
     
     const blueprint = blueprintMap[values.examType];
-    const numberOfQuestions = blueprint.parts.reduce((sum, part) => sum + part.totalQuestions, 0);
-
+    
     try {
       const { mcqs } = await generateMockTest({
           examCategory: values.examType,
-          numberOfQuestions: numberOfQuestions,
           userId: user.uid,
       });
 
       if (!mcqs || mcqs.length === 0) {
         toast({ title: 'Generation Failed', description: 'The AI could not generate a mock test.', variant: 'destructive' });
+        setIsGenerating(false);
         return;
       }
 
@@ -79,14 +78,13 @@ export function MockTestForm() {
       const quizData = {
         mcqs: mcqs,
         timeLimit: blueprint.totalDurationMinutes * 60,
+        isMockTest: true,
         topic: {
           id: quizId,
           title: `${blueprint.examName} Mock Test`,
           description: `A full-length mock test based on the official ${values.examType} blueprint.`,
           icon: 'scroll-text',
           categoryId: 'mock-test',
-          part: 'Part A', // Placeholder, not directly relevant for mock tests
-          examCategories: [values.examType],
         },
       };
 
@@ -96,8 +94,7 @@ export function MockTestForm() {
     } catch (error: any) {
       console.error('Error generating mock test:', error);
       toast({ title: 'Error', description: error.message || 'An unexpected error occurred.', variant: 'destructive' });
-    } finally {
-      setIsGenerating(isGenerating);
+      setIsGenerating(false);
     }
   };
   
