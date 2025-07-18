@@ -42,21 +42,20 @@ Problem: "{{problem}}"`,
 
 const GenerateMockTestInputSchema = z.object({
   examCategory: z.string().describe('The exam category (e.g., MTS, POSTMAN, PA).'),
-  numberOfQuestions: z.number().describe('The total number of questions for the mock test.'),
   userId: z.string().describe('The ID of the user requesting the quiz.'),
 });
 export type GenerateMockTestInput = z.infer<typeof GenerateMockTestInputSchema>;
 
+const MCQSchema = z.object({
+  question: z.string().describe('The multiple-choice question.'),
+  options: z.array(z.string()).describe('Four possible answers.'),
+  correctAnswer: z.string().describe('The correct answer to the question.'),
+  topic: z.string().describe('The topic the question belongs to.'),
+  solution: z.string().optional().describe('A step-by-step solution, especially for arithmetic problems.'),
+});
+
 const GenerateMockTestOutputSchema = z.object({
-  mcqs: z.array(
-    z.object({
-      question: z.string().describe('The multiple-choice question.'),
-      options: z.array(z.string()).describe('Four possible answers.'),
-      correctAnswer: z.string().describe('The correct answer to the question.'),
-      topic: z.string().describe('The topic the question belongs to.'),
-      solution: z.string().optional().describe('A step-by-step solution, especially for arithmetic problems.'),
-    })
-  ).describe('The generated mock test questions.'),
+  mcqs: z.array(MCQSchema).describe('The generated mock test questions.'),
 });
 export type GenerateMockTestOutput = z.infer<typeof GenerateMockTestOutputSchema>;
 
@@ -64,34 +63,30 @@ export async function generateMockTest(input: GenerateMockTestInput): Promise<Ge
   return generateMockTestFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'generateMockTestPrompt',
-  input: {schema: GenerateMockTestInputSchema.extend({ blueprint: z.string() })},
-  output: {schema: GenerateMockTestOutputSchema},
+const generateSinglePartPrompt = ai.definePrompt({
+  name: 'generateSinglePartPrompt',
+  input: {schema: z.object({
+    examCategory: z.string(),
+    partBlueprint: z.string(),
+    questionCount: z.number(),
+  })},
+  output: {schema: z.object({ mcqs: z.array(MCQSchema) })},
   prompt: `You are an expert in creating mock tests for Indian Postal Department exams.
 
-  Your task is to generate a mock test for the "{{examCategory}}" exam.
+  Your task is to generate EXACTLY {{questionCount}} questions for the {{examCategory}} exam, based ONLY on the following part blueprint.
 
-  --- HARD_STOP_RULE ---
-  The final output MUST contain EXACTLY {{numberOfQuestions}} questions in total. This is the most important rule. Do not generate more or less than this number.
-
-  --- PART-WISE GENERATION ---
-  Generate the questions sequentially. First, generate ALL questions for Part-A according to its blueprint. After that, generate ALL questions for Part-B. The total number of questions must still equal {{numberOfQuestions}}.
-
-  --- CRITICAL RULE: QUESTION FORMATTING ---
-  Every single object in the 'mcqs' array MUST have all required fields: 'question', 'options', 'correctAnswer', and 'topic'. Ensure every entry is a complete object.
-
-  --- EXAM BLUEPRINT ({{examCategory}}) ---
-  {{{blueprint}}}
+  --- PART BLUEPRINT ---
+  {{{partBlueprint}}}
   --- END BLUEPRINT ---
 
-  For each question generated, you must specify which topic from the blueprint it belongs to in the 'topic' field of the output.
-  Ensure the questions are relevant and accurately reflect the style and difficulty of the actual exam.
-  
-  --- ARITHMETIC INSTRUCTION ---
-  If you generate an arithmetic problem from the 'Basic Arithmetic' section, the 'solution' field MUST BE an empty string (""). The solution will be generated separately. DO NOT generate a solution here.
+  CRITICAL RULES:
+  1.  Generate EXACTLY {{questionCount}} questions. No more, no less.
+  2.  For each question, you MUST specify which topic from the blueprint it belongs to in the 'topic' field of the output.
+  3.  Every single object in the 'mcqs' array MUST have all required fields: 'question', 'options', 'correctAnswer', and 'topic'.
+  4.  If a question is an arithmetic problem from 'Basic Arithmetic', the 'solution' field MUST BE an empty string (""). It will be generated later.
   `,
 });
+
 
 const generateMockTestFlow = ai.defineFlow(
   {
@@ -100,25 +95,34 @@ const generateMockTestFlow = ai.defineFlow(
     outputSchema: GenerateMockTestOutputSchema,
   },
   async input => {
-    let blueprint = '';
-    
-    if (input.examCategory === 'MTS') {
-      blueprint = JSON.stringify(MTS_BLUEPRINT, null, 2);
-    } else if (input.examCategory === 'POSTMAN') {
-      blueprint = JSON.stringify(POSTMAN_BLUEPRINT, null, 2);
-    } else if (input.examCategory === 'PA') {
-      blueprint = JSON.stringify(PA_BLUEPRINT, null, 2);
-    } else {
-        throw new Error(`No blueprint found for exam category: ${input.examCategory}`);
-    }
+    let blueprint;
+    if (input.examCategory === 'MTS') blueprint = MTS_BLUEPRINT;
+    else if (input.examCategory === 'POSTMAN') blueprint = POSTMAN_BLUEPRINT;
+    else if (input.examCategory === 'PA') blueprint = PA_BLUEPRINT;
+    else throw new Error(`No blueprint found for exam category: ${input.examCategory}`);
 
-    const {output} = await prompt({ ...input, blueprint });
-    if (!output || !output.mcqs || output.mcqs.length === 0) {
+    const allMcqs: z.infer<typeof MCQSchema>[] = [];
+
+    for (const part of blueprint.parts) {
+        const { output } = await generateSinglePartPrompt({
+            examCategory: input.examCategory,
+            partBlueprint: JSON.stringify(part, null, 2),
+            questionCount: part.totalQuestions,
+        });
+
+        if (output && output.mcqs) {
+            allMcqs.push(...output.mcqs);
+        } else {
+             throw new Error(`The AI could not generate questions for ${part.partName}.`);
+        }
+    }
+    
+    if (allMcqs.length === 0) {
         throw new Error('The AI could not generate a mock test for the selected exam type.');
     }
 
     const arithmeticTopics = ["Basic Arithmetic", "Basic Arithmetics"];
-    for (const mcq of output.mcqs) {
+    for (const mcq of allMcqs) {
         if (arithmeticTopics.includes(mcq.topic)) {
              try {
                 const solutionResponse = await arithmeticSolverPrompt({ problem: mcq.question });
@@ -133,6 +137,6 @@ const generateMockTestFlow = ai.defineFlow(
     }
 
 
-    return output;
+    return { mcqs: allMcqs };
   }
 );
