@@ -3,6 +3,7 @@
 
 import { useDashboard } from "@/app/dashboard/layout";
 import { CreateQuizForm } from "@/components/quiz/create-quiz-form";
+import { PartWiseQuizForm } from "@/components/quiz/part-wise-quiz-form";
 import { MockTestForm } from "@/components/quiz/mock-test-form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,8 +39,9 @@ export default function DashboardPage() {
         <h1 className="text-3xl font-bold tracking-tight">Create Your Own Exam</h1>
       </div>
       <Tabs defaultValue="topic-wise" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="topic-wise">Topic-wise MCQ</TabsTrigger>
+          <TabsTrigger value="part-wise">Part-wise Test</TabsTrigger>
           <TabsTrigger value="mock-test">Mock Test</TabsTrigger>
         </TabsList>
         <TabsContent value="topic-wise">
@@ -47,6 +49,9 @@ export default function DashboardPage() {
             initialCategories={categories} 
             initialTopics={topics} 
           />
+        </TabsContent>
+        <TabsContent value="part-wise">
+          <PartWiseQuizForm />
         </TabsContent>
         <TabsContent value="mock-test">
           <MockTestForm />
