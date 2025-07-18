@@ -26,10 +26,13 @@ const questionBankSchema = z.object({
   examCategory: z.enum(examCategories, {
     required_error: 'You must select an exam category.',
   }),
-  file: z
-    .instanceof(File)
-    .refine((file) => file.size > 0, 'Please upload a file.')
-    .refine((file) => file.size <= 4 * 1024 * 1024, `File size must be less than 4MB.`),
+  files: z
+    .array(z.instanceof(File))
+    .min(1, 'Please upload at least one file.')
+    .refine(
+        (files) => files.every((file) => file.size <= 4 * 1024 * 1024),
+        `File size must be less than 4MB.`
+    ),
 });
 
 interface QuestionBankManagementProps {
@@ -45,15 +48,17 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
     resolver: zodResolver(questionBankSchema),
     defaultValues: {
         examCategory: undefined,
-        file: undefined,
+        files: [],
     }
   });
 
   const onSubmit = async (values: z.infer<typeof questionBankSchema>) => {
     setIsUploading(true);
     const formData = new FormData();
-    formData.append('file', values.file);
     formData.append('examCategory', values.examCategory);
+    values.files.forEach(file => {
+        formData.append('files', file);
+    })
 
     try {
       const response = await fetch('/api/question-bank/upload', {
@@ -63,21 +68,20 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to upload file.');
+        throw new Error(errorData.error || 'Failed to upload files.');
       }
 
-      const { newQuestionBankDoc } = await response.json();
-      setBankedQuestions(prev => [newQuestionBankDoc, ...prev]);
+      const { newDocuments } = await response.json();
+      setBankedQuestions(prev => [...newDocuments, ...prev]);
 
       toast({ title: 'Success', description: 'Question bank updated successfully.' });
       form.reset();
-      // This is to clear the file input visually
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
 
     } catch (error: any) {
       console.error("Question bank upload error:", error);
-      toast({ title: 'Upload Failed', description: error.message || 'Could not process the file.', variant: 'destructive' });
+      toast({ title: 'Upload Failed', description: error.message || 'Could not process the files.', variant: 'destructive' });
     } finally {
       setIsUploading(false);
     }
@@ -98,8 +102,8 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
     <div className="space-y-6">
         <Card>
         <CardHeader>
-            <CardTitle>Upload Question Paper</CardTitle>
-            <CardDescription>Upload PDF or DOCX files containing previous years' questions. These will be used as a reference to generate new MCQs.</CardDescription>
+            <CardTitle>Upload Question Papers</CardTitle>
+            <CardDescription>Upload multiple PDF or DOCX files containing previous years' questions. These will be used as a reference to generate new MCQs.</CardDescription>
         </CardHeader>
         <CardContent>
             <Form {...form}>
@@ -126,15 +130,16 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                 />
                 <FormField
                 control={form.control}
-                name="file"
+                name="files"
                 render={({ field: { onChange, value, ...rest } }) => (
                     <FormItem>
-                    <FormLabel>Previous Questions File</FormLabel>
+                    <FormLabel>Previous Questions Files</FormLabel>
                     <FormControl>
                         <Input 
                         type="file" 
                         accept=".pdf,.docx"
-                        onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
+                        multiple
+                        onChange={(e) => onChange(e.target.files ? Array.from(e.target.files) : [])}
                         {...rest}
                         />
                     </FormControl>

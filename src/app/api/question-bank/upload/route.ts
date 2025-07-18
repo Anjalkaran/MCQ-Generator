@@ -14,49 +14,61 @@ export const config = {
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-    const file = formData.get('file') as File | null;
+    const files = formData.getAll('files') as File[];
     const examCategory = formData.get('examCategory') as string | null;
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file uploaded.' }, { status: 400 });
+    if (!files || files.length === 0) {
+      return NextResponse.json({ error: 'No files uploaded.' }, { status: 400 });
     }
     if (!examCategory) {
       return NextResponse.json({ error: 'Exam Category is missing.' }, { status: 400 });
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    let textContent: string;
+    const newDocuments = [];
 
-    if (file.type === 'application/pdf') {
-      const data = await pdf(buffer);
-      textContent = data.text;
-    } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      const result = await mammoth.extractRawText({ buffer });
-      textContent = result.value;
-    } else {
-      return NextResponse.json({ error: 'Unsupported file type. Please upload a PDF or DOCX file.' }, { status: 415 });
-    }
+    for (const file of files) {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        let textContent: string;
 
-    if (!textContent.trim()) {
-      return NextResponse.json({ error: 'Could not extract any text from the file.' }, { status: 400 });
+        if (file.type === 'application/pdf') {
+            const data = await pdf(buffer);
+            textContent = data.text;
+        } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+            const result = await mammoth.extractRawText({ buffer });
+            textContent = result.value;
+        } else {
+            // Skip unsupported file types or return an error for the batch
+             console.warn(`Skipping unsupported file type: ${file.name} (${file.type})`);
+             continue;
+        }
+
+        if (!textContent.trim()) {
+            console.warn(`Could not extract any text from the file: ${file.name}`);
+            continue;
+        }
+        
+        const newDocData: Omit<BankedQuestion, 'id'> = {
+            examCategory: examCategory as any,
+            fileName: file.name,
+            content: textContent,
+            uploadedAt: new Date(),
+        }
+        
+        const newDocRef = await addQuestionBankDocument(newDocData);
+        newDocuments.push({ id: newDocRef.id, ...newDocData });
     }
     
-    const newDocData: Omit<BankedQuestion, 'id'> = {
-        examCategory: examCategory as any,
-        fileName: file.name,
-        content: textContent,
-        uploadedAt: new Date(),
+    if (newDocuments.length === 0) {
+        return NextResponse.json({ error: 'No valid files were processed.' }, { status: 400 });
     }
-    
-    const newDocRef = await addQuestionBankDocument(newDocData);
 
     return NextResponse.json({ 
         message: 'Question Bank updated successfully.', 
-        newQuestionBankDoc: { id: newDocRef.id, ...newDocData }
+        newDocuments
     });
 
   } catch (error: any) {
     console.error('Error processing question bank file:', error);
-    return NextResponse.json({ error: 'Error processing file: ' + error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Error processing files: ' + error.message }, { status: 500 });
   }
 }
