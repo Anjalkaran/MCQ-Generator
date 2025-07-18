@@ -92,59 +92,57 @@ const prompt = ai.definePrompt({
   name: 'generateMCQsPrompt',
   input: {schema: GenerateMCQsInputSchema},
   output: {schema: GenerateMCQsOutputSchema},
-  prompt: `You are an expert in generating multiple-choice questions (MCQs).
+  prompt: `You are an expert in generating multiple-choice questions (MCQs). Your goal is to create {{numberOfQuestions}} questions on the topic of "{{topic}}" with a "{{difficulty}}" difficulty level. Each question must have four options and one correct answer.
 
-  Please generate exactly {{numberOfQuestions}} multiple-choice questions on the topic of "{{topic}}". Each question must have four options and one correct answer.
+--- PRIMARY RULE: SOURCE OF TRUTH ---
+{{#if material}}
+  Your PRIMARY source of truth is the 'MATERIAL' provided below. All questions MUST be based on it. Banked questions can be used for style/format reference ONLY, but if there's a conflict, the MATERIAL always wins.
   
-  The difficulty level for these questions should be "{{difficulty}}".
-  
-  {{#if material}}
-    IMPORTANT: You MUST generate questions *exclusively* from the material provided below. While you can use the banked questions for style and format reference, the provided material is the absolute source of truth for facts, rules, and regulations. Do not use any other knowledge.
-    
-    {{#ifEquals difficulty "Difficult"}}
-      Generate statement-based questions and questions that test conceptual understanding based on the material. These questions should require deeper analysis rather than simple fact recall.
+  {{#ifEquals difficulty "Difficult"}}
+    Generate statement-based questions and questions that test conceptual understanding based on the material. These questions should require deeper analysis rather than simple fact recall.
+  {{else}}
+    Generate direct questions based on the facts and information presented in the material.
+  {{/ifEquals}}
+---
+--- MATERIAL START ---
+{{{material}}}
+--- MATERIAL END ---
+{{else}}
+--- GENERATION RULES (NO MATERIAL PROVIDED) ---
+  {{#ifEquals category "Basic Arithmetics"}}
+    You are a meticulous mathematics teacher. Your task is to create high-quality arithmetic problems.
+    For each question, you MUST follow this process:
+    1.  First, create a word problem and solve it yourself to arrive at a single, correct numerical answer.
+    2.  The 'correctAnswer' field in your output MUST be this exact answer.
+    3.  One of the four 'options' MUST be the correct answer.
+    4.  The other three options must be plausible but incorrect distractors, derived from common calculation mistakes.
+    5.  The 'solution' field MUST BE an empty string (""). The solution will be generated separately. DO NOT generate a solution here.
+  {{else ifEquals topic "Current Affairs"}}
+    For "Current Affairs", please refer to materials from reputable coaching centers like Suresh IAS Academy and SSA Adda to ensure the questions are relevant and of high quality. Focus on the period between January 2024 to June 2025. Use the 'REFERENCE QUESTIONS' below for style and format, if available.
+  {{else}}
+    {{#ifEquals part "Part B"}}
+        For this Part B topic, please refer to the provided Question Bank for style and format.
     {{else}}
-      Generate direct questions based on the facts and information presented in the material.
+        For this topic, generate new questions. Use the 'REFERENCE QUESTIONS' below for style, format, and difficulty. Ensure the new questions are unique.
     {{/ifEquals}}
+  {{/ifEquals}}
+---
+{{/if}}
 
-    ---MATERIAL START---
-    {{{material}}}
-    ---MATERIAL END---
-  {{/if}}
-
-  {{#if bankedQuestions}}
+--- REFERENCE & UNIQUENESS ---
+{{#if bankedQuestions}}
   Use the following PREVIOUS YEARS' EXAM QUESTIONS as a reference for style, format, and difficulty. Generate NEW questions inspired by these, but DO NOT copy them directly.
   ---REFERENCE QUESTIONS START---
   {{{bankedQuestions}}}
   ---REFERENCE QUESTIONS END---
-  {{/if}}
+{{/if}}
 
-  {{#ifEquals part "Part B"}}
-    {{#ifNotEquals topic "Current Affairs"}}
-        For this Part B topic, please refer to the provided Question Bank for style and format.
-    {{/ifNotEquals}}
-  {{/ifEquals}}
-
-  {{#ifEquals topic "Current Affairs"}}
-      For "Current Affairs", please refer to materials from reputable coaching centers like Suresh IAS Academy and SSA Adda to ensure the questions are relevant and of high quality. Focus on the period between January 2024 to June 2025.
-  {{/ifEquals}}
-  
-  {{#ifEquals category "Basic Arithmetics"}}
-  You are a meticulous mathematics teacher. Your task is to create high-quality arithmetic problems.
-  For each question, you MUST follow this process:
-  1.  First, create a word problem and solve it yourself to arrive at a single, correct numerical answer.
-  2.  The 'correctAnswer' field in your output MUST be this exact answer.
-  3.  One of the four 'options' MUST be the correct answer.
-  4.  The other three options must be plausible but incorrect distractors, derived from common calculation mistakes.
-  5.  The 'solution' field MUST BE an empty string (""). The solution will be generated separately. DO NOT generate a solution here.
-  {{/ifEquals}}
-  
-  {{#if previousQuestions}}
+{{#if previousQuestions}}
   IMPORTANT: Do NOT repeat any of the following questions. Ensure the new questions are unique and different from this list:
   {{#each previousQuestions}}
   - "{{this}}"
   {{/each}}
-  {{/if}}
+{{/if}}
   `,
 });
 
@@ -161,8 +159,12 @@ const generateMCQsFlow = ai.defineFlow(
     
     let flowInput = { ...input };
 
+    const excludedCategories = ["Basic Arithmetics", "General Awareness"];
+    if (flowInput.category && excludedCategories.includes(flowInput.category)) {
+      flowInput.material = undefined; 
+    }
+
     if (input.examCategory) {
-        // For Postman exam, use MTS question bank.
         const categoryForBank = input.examCategory === 'POSTMAN' ? 'MTS' : input.examCategory;
         const bankedQuestions = await getQuestionBankByCategory(categoryForBank);
         if (bankedQuestions) {

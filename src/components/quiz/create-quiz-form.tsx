@@ -81,13 +81,29 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
     } else {
         form.setValue('examType', '');
     }
-  }, [userData, form]);
+  }, [userData?.examCategory, form]);
 
 
   const selectedExamType = form.watch('examType');
   const selectedPart = form.watch('part');
   const selectedCategoryId = form.watch('categoryId');
   const selectedDifficulty = form.watch('difficulty');
+
+  // Effect to reset dependent fields when a parent selection changes
+  useEffect(() => {
+    form.resetField('part', { defaultValue: '' });
+    form.resetField('categoryId', { defaultValue: '' });
+    form.resetField('topicId', { defaultValue: '' });
+  }, [selectedExamType, form]);
+  
+  useEffect(() => {
+    form.resetField('categoryId', { defaultValue: '' });
+    form.resetField('topicId', { defaultValue: '' });
+  }, [selectedPart, form]);
+
+  useEffect(() => {
+    form.resetField('topicId', { defaultValue: '' });
+  }, [selectedCategoryId, form]);
 
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
@@ -110,9 +126,6 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
         setIsGenerating(false);
         return;
     }
-    
-    const excludedCategories = ["Basic Arithmetics", "General Awareness"];
-    const combinedMaterial = selectedTopic.material ? selectedTopic.material : undefined;
 
     try {
       const previousQuestions = await getMCQHistoryForTopic(user.uid, values.topicId);
@@ -124,7 +137,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
           difficulty: values.difficulty,
           examCategory: values.examType,
           part: selectedTopic.part,
-          material: (combinedMaterial && !excludedCategories.includes(selectedCategory.name)) ? combinedMaterial : undefined,
+          material: selectedTopic.material,
           previousQuestions: previousQuestions,
           userId: user.uid,
       };
@@ -234,16 +247,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                           <FormItem>
                           <FormLabel>Select Exam</FormLabel>
                           <Select 
-                            onValueChange={(value) => {
-                                field.onChange(value);
-                                form.reset({
-                                    ...form.getValues(),
-                                    examType: value,
-                                    part: '',
-                                    categoryId: '',
-                                    topicId: '',
-                                });
-                            }} 
+                            onValueChange={field.onChange} 
                             value={field.value} 
                             disabled={!user}
                            >
@@ -271,11 +275,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Part</FormLabel>
-                        <Select onValueChange={(value) => {
-                            field.onChange(value);
-                            form.setValue('categoryId', '');
-                            form.setValue('topicId', '');
-                        }} value={field.value} disabled={!selectedExamType}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!selectedExamType}>
                             <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder={!selectedExamType ? "Select an exam first" : "Select a part"} />
@@ -299,10 +299,7 @@ export function CreateQuizForm({ initialCategories, initialTopics }: CreateQuizF
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Category</FormLabel>
-                        <Select onValueChange={(value) => {
-                            field.onChange(value);
-                            form.setValue('topicId', '');
-                        }} value={field.value} disabled={!selectedPart || filteredCategoriesByPart.length === 0}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!selectedPart || filteredCategoriesByPart.length === 0}>
                             <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder={!selectedPart ? "Select a part first" : (filteredCategoriesByPart.length === 0 ? "No categories in this part" : "Select a category")} />
