@@ -3,7 +3,6 @@
 
 /**
  * @fileOverview Generates a mock test based on a detailed exam blueprint.
- * This flow iterates through the blueprint programmatically to ensure exact question counts.
  *
  * - generateMockTest - A function that handles the mock test generation process.
  * - GenerateMockTestInput - The input type for the generateMockTest function.
@@ -56,29 +55,40 @@ const GenerateMockTestOutputSchema = z.object({
 export type GenerateMockTestOutput = z.infer<typeof GenerateMockTestOutputSchema>;
 
 
-const generateQuestionsForSectionPrompt = ai.definePrompt({
-    name: 'generateQuestionsForSectionPrompt',
+const generateMockTestPrompt = ai.definePrompt({
+    name: 'generateMockTestPrompt',
     input: {
         schema: z.object({
             examCategory: z.string(),
-            sectionName: z.string(),
-            questionsToGenerate: z.number(),
-            topicsList: z.string(),
+            totalQuestions: z.number(),
+            partAQuestions: z.number(),
+            partBQuestions: z.number(),
+            partATopics: z.string(),
+            partBTopics: z.string(),
         })
     },
     output: { schema: GenerateMockTestOutputSchema },
     prompt: `You are an expert in creating mock tests for the Indian Postal Department's {{examCategory}} exam.
-Your task is to generate EXACTLY {{questionsToGenerate}} multiple-choice question(s) for the section "{{sectionName}}".
 
---- DISTRIBUTION ---
-You must generate questions based on the following topic breakdown:
-{{{topicsList}}}
+--- CRITICAL HARD STOP RULE ---
+Your final output MUST be a single JSON object containing an 'mcqs' array with EXACTLY {{totalQuestions}} questions in total. This is the most important rule. Do not generate more or less.
 
---- RULES ---
-- Each question must have four options and one correct answer.
-- For each question, you MUST assign the correct topic to its 'topic' field from the list provided.
-- For any arithmetic questions, the 'solution' field MUST be an empty string ("").
-- Your response MUST be a single, valid JSON object containing an 'mcqs' array with exactly {{questionsToGenerate}} items.
+--- GENERATION PLAN ---
+You will generate the test in two sequential parts to meet the exact counts.
+
+1.  **PART-A GENERATION:**
+    -   Generate EXACTLY **{{partAQuestions}}** questions for Part-A.
+    -   These questions should cover the following topics appropriately:
+{{{partATopics}}}
+
+2.  **PART-B GENERATION:**
+    -   After generating all questions for Part-A, generate EXACTLY **{{partBQuestions}}** questions for Part-B.
+    -   These questions should cover the following topics appropriately:
+{{{partBTopics}}}
+
+--- OUTPUT RULES ---
+-   For each generated question, you MUST specify its topic in the 'topic' field from the lists above.
+-   For any arithmetic questions, the 'solution' field MUST be an empty string ("").
 `,
 });
 
@@ -99,65 +109,43 @@ const generateMockTestFlow = ai.defineFlow(
     else if (input.examCategory === 'POSTMAN') blueprint = POSTMAN_BLUEPRINT;
     else if (input.examCategory === 'PA') blueprint = PA_BLUEPRINT;
     else throw new Error(`No blueprint found for exam category: ${input.examCategory}`);
-    
-    const allMcqs: z.infer<typeof MCQSchema>[] = [];
-    const MAX_ATTEMPTS = 3;
-    const CHUNK_SIZE = 10; // Generate questions in smaller chunks to avoid timeouts
 
-    // Programmatically iterate through the blueprint to ensure exact counts.
-    for (const part of blueprint.parts) {
-      for (const section of part.sections) {
-        let questionsForSection: z.infer<typeof MCQSchema>[] = [];
-        let totalQuestionsNeeded = section.questions;
+    const partA = blueprint.parts.find(p => p.partName === 'Part-A');
+    const partB = blueprint.parts.find(p => p.partName === 'Part-B');
 
-        const topicsList = section.topics.map(t => `- ${t.name}: ${t.questions} question(s)`).join('\n');
-
-        while (questionsForSection.length < totalQuestionsNeeded) {
-          let attempts = 0;
-          const questionsInThisChunk = Math.min(CHUNK_SIZE, totalQuestionsNeeded - questionsForSection.length);
-
-          // We will retry the chunk generation a few times if it fails
-          while (attempts < MAX_ATTEMPTS) {
-            attempts++;
-            try {
-                const { output } = await generateQuestionsForSectionPrompt({
-                    examCategory: input.examCategory,
-                    sectionName: section.sectionName,
-                    questionsToGenerate: questionsInThisChunk,
-                    topicsList: topicsList,
-                });
-                
-                if (output && output.mcqs) {
-                    questionsForSection.push(...output.mcqs);
-                    // Break the attempt loop if we got some questions
-                    break;
-                }
-            } catch (e) {
-                console.error(`Attempt ${attempts} failed for chunk in section "${section.sectionName}":`, e);
-                if (attempts >= MAX_ATTEMPTS) {
-                   console.error(`Could not generate questions for section "${section.sectionName}" after ${MAX_ATTEMPTS} attempts.`);
-                }
-            }
-          }
-           // If after all attempts we still haven't moved forward, break outer loop to prevent infinite loops.
-           if (questionsInThisChunk > 0 && questionsForSection.length < totalQuestionsNeeded && attempts >= MAX_ATTEMPTS) {
-              console.warn(`Breaking generation for section "${section.sectionName}" due to repeated failures.`);
-              break; // break the while(questionsForSection.length < totalQuestionsNeeded)
-           }
-        }
-        allMcqs.push(...questionsForSection);
-      }
+    if (!partA || !partB) {
+        throw new Error('Blueprint is missing Part-A or Part-B.');
     }
 
-    if (allMcqs.length === 0) {
-        throw new Error(`The AI could not generate any questions for the mock test.`);
+    const partAQuestions = partA.totalQuestions;
+    const partBQuestions = partB.totalQuestions;
+    const totalQuestions = partAQuestions + partBQuestions;
+
+    // Pre-process the blueprint to extract ONLY the topic names as a simple list.
+    const getTopicsFromPart = (part: any) => 
+        part.sections.flatMap((s: any) => s.topics.map((t: any) => `- ${t.name}`)).join('\n');
+
+    const partATopics = getTopicsFromPart(partA);
+    const partBTopics = getTopicsFromPart(partB);
+
+    const { output } = await generateMockTestPrompt({
+        examCategory: input.examCategory,
+        totalQuestions,
+        partAQuestions,
+        partBQuestions,
+        partATopics,
+        partBTopics,
+    });
+
+    if (!output || !output.mcqs) {
+         throw new Error(`The AI could not generate a mock test. Please try again.`);
     }
 
     // Post-process solutions for arithmetic questions
     const arithmeticSection = blueprint.parts.flatMap(p => p.sections).find(s => s.sectionName.includes('Arithmetic'));
     if (arithmeticSection) {
-        const arithmeticTopicNames = arithmeticSection.topics.map(t => t.name);
-        for (const mcq of allMcqs) {
+        const arithmeticTopicNames = arithmeticSection.topics.map((t: any) => t.name);
+        for (const mcq of output.mcqs) {
             if (arithmeticTopicNames.includes(mcq.topic)) {
                 try {
                     const solutionResponse = await arithmeticSolverPrompt({ problem: mcq.question });
@@ -172,6 +160,6 @@ const generateMockTestFlow = ai.defineFlow(
         }
     }
     
-    return { mcqs: allMcqs };
+    return { mcqs: output.mcqs };
   }
 );
