@@ -102,7 +102,6 @@ const generateMockTestFlow = ai.defineFlow(
     name: 'generateMockTestFlow',
     inputSchema: GenerateMockTestInputSchema,
     outputSchema: GenerateMockTestOutputSchema,
-    // Use a faster, more capable model specifically for this complex task.
     model: 'googleai/gemini-1.5-flash-preview-0514',
   },
   async input => {
@@ -123,8 +122,17 @@ const generateMockTestFlow = ai.defineFlow(
     const partBQuestions = partB.totalQuestions;
     const totalQuestions = partAQuestions + partBQuestions;
 
-    const getTopicsFromPart = (part: any) =>
-        part.sections.flatMap((s: any) => s.topics.map((t: any) => `- ${t.name}`)).join('\n');
+    const getTopicsFromPart = (part: any) => {
+        return part.sections.flatMap((section: any) => {
+            if (!section.topics || !Array.isArray(section.topics)) {
+                return []; 
+            }
+            return section.topics.map((topic: any) => {
+                const topicName = (typeof topic === 'string') ? topic : topic.name;
+                return `- ${topicName}`;
+            });
+        }).join('\n');
+    };
 
     const partATopics = getTopicsFromPart(partA);
     const partBTopics = getTopicsFromPart(partB);
@@ -142,9 +150,14 @@ const generateMockTestFlow = ai.defineFlow(
          throw new Error(`The AI could not generate a mock test. Please try again.`);
     }
 
+    if (output.mcqs.length !== totalQuestions) {
+        throw new Error(`AI generation failed to adhere to question count. Expected ${totalQuestions}, got ${output.mcqs.length}.`);
+    }
+
     const arithmeticSection = blueprint.parts.flatMap(p => p.sections).find(s => s.sectionName.includes('Basic Arithmetic'));
     if (arithmeticSection) {
-        const arithmeticTopicNames = arithmeticSection.topics.map((t: any) => t.name);
+        const arithmeticTopicNames = arithmeticSection.topics.map((t: any) => (typeof t === 'string' ? t : t.name));
+        
         for (const mcq of output.mcqs) {
             if (arithmeticTopicNames.includes(mcq.topic)) {
                 try {
