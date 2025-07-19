@@ -13,9 +13,8 @@ import { useRouter } from "next/navigation";
 import { ADMIN_EMAIL, RAZORPAY_KEY_ID } from '@/lib/constants';
 
 export default function UpgradePage() {
-    const { userData, setUserData, isLoading } = useDashboard();
+    const { userData, isLoading } = useDashboard();
     const { toast } = useToast();
-    const router = useRouter();
     const [isClient, setIsClient] = useState(false);
     
     useEffect(() => {
@@ -65,25 +64,14 @@ export default function UpgradePage() {
     }
 
     const onPaymentSuccess = () => {
-        if (userData) {
-            const proValidUntil = new Date();
-            proValidUntil.setFullYear(proValidUntil.getFullYear() + 1);
-            
-            setUserData({ 
-                ...userData, 
-                isPro: true,
-                proValidUntil,
-                topicExamsTaken: 0 
-            });
-        }
-        
         toast({
             title: "Payment Successful!",
             description: "Congratulations! You now have unlimited access.",
             className: "bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-700",
         });
-
-        router.push('/dashboard');
+        
+        // Force a full page reload to clear all caches and fetch new user data
+        window.location.href = '/dashboard';
     }
 
     const price = userData.examCategory === 'PA' ? 749 : 499;

@@ -50,7 +50,6 @@ export default function DashboardLayout({
   const [categories, setCategories] = useState<Category[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [bankedQuestions, setBankedQuestions] = useState<BankedQuestion[]>([]);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const handleLogout = useCallback(async (authInstance = getFirebaseAuth(), showToast = true) => {
@@ -81,7 +80,6 @@ export default function DashboardLayout({
         setUser(currentUser);
         
         const userIsAdmin = currentUser.email === ADMIN_EMAIL;
-        setIsAdmin(userIsAdmin);
 
         try {
             if (userIsAdmin) {
@@ -125,7 +123,6 @@ export default function DashboardLayout({
         }
       } else {
         setUser(null);
-        setIsAdmin(false);
         setUserData(null);
         setCategories([]);
         setTopics([]);
@@ -138,11 +135,16 @@ export default function DashboardLayout({
     });
     return () => unsubscribe();
     
-  }, [pathname, router, toast, handleLogout]);
+  }, [router, toast, handleLogout]);
 
+  // Direct computation of pro status from userData.
   const proValidUntilDate = normalizeDate(userData?.proValidUntil);
-  const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
-
+  const isPro = !!(userData && (
+      (userData.isPro && proValidUntilDate && proValidUntilDate > new Date()) ||
+      userData.email === ADMIN_EMAIL
+  ));
+  const isAdmin = userData?.email === ADMIN_EMAIL;
+  
   const showUpgradeButton = userData && !isPro && !isAdmin;
 
   const getWelcomeMessage = () => {
