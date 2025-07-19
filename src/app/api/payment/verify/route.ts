@@ -13,8 +13,8 @@ export async function POST(req: NextRequest) {
         const signature = req.headers.get('x-razorpay-signature');
 
         if (!RAZORPAY_WEBHOOK_SECRET) {
-            console.error('Razorpay webhook secret is not set.');
-            throw new Error('Razorpay webhook secret is not set.');
+            console.error('Razorpay webhook secret is not set in environment variables.');
+            return NextResponse.json({ error: 'Webhook secret not configured.' }, { status: 500 });
         }
 
         const shasum = crypto.createHmac('sha256', RAZORPAY_WEBHOOK_SECRET);
@@ -30,31 +30,46 @@ export async function POST(req: NextRequest) {
         const { event, payload } = body;
 
         if (event === 'payment.captured' || event === 'order.paid') {
-            const paymentEntity = payload.payment?.entity || payload.order?.entity;
-            const userId = paymentEntity?.notes?.userId;
+            const orderEntity = payload.order?.entity;
+            const paymentEntity = payload.payment?.entity;
+            
+            // The userId is reliably in the notes of the order entity.
+            const userId = orderEntity?.notes?.userId;
 
             if (!userId) {
-                console.error('User ID not found in webhook payload.', JSON.stringify(payload, null, 2));
+                console.error('User ID not found in webhook payload notes.', JSON.stringify(payload, null, 2));
                 return NextResponse.json({ error: 'User ID is missing from payment notes.' }, { status: 400 });
             }
 
             const proValidUntil = new Date();
             proValidUntil.setFullYear(proValidUntil.getFullYear() + 1);
 
-            await adminDb().collection('users').doc(userId).update({
+            const userRef = adminDb().collection('users').doc(userId);
+
+            // Check if user exists before updating
+            const userDoc = await userRef.get();
+            if (!userDoc.exists) {
+                console.error(`Attempted to upgrade non-existent user with ID: ${userId}`);
+                return NextResponse.json({ error: 'User not found.' }, { status: 404 });
+            }
+
+            await userRef.update({
                 isPro: true,
                 proValidUntil: proValidUntil,
                 topicExamsTaken: 0 
             });
             
+            // Use the most complete entity available for logging the payment
+            const logEntity = paymentEntity || orderEntity;
             await adminDb().collection('payments').add({
                 userId: userId,
-                orderId: paymentEntity?.order_id,
+                orderId: logEntity?.order_id || orderEntity?.id,
                 razorpayPaymentId: paymentEntity?.id,
                 status: 'successful',
-                amount: paymentEntity?.amount / 100,
-                currency: paymentEntity?.currency,
+                amount: logEntity?.amount / 100,
+                currency: logEntity?.currency,
                 verifiedAt: new Date(),
+                webhookEvent: event,
             });
 
             return NextResponse.json({ status: 'success', message: 'User upgraded to Pro.' });
