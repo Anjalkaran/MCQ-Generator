@@ -138,7 +138,7 @@ export default function DashboardLayout({
     });
     return () => unsubscribe();
     
-  }, [pathname, toast, router, handleLogout]);
+  }, [pathname, router, toast, handleLogout]);
 
   const proValidUntilDate = normalizeDate(userData?.proValidUntil);
   const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
