@@ -4,6 +4,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { razorpayInstance } from '@/lib/razorpay';
 import crypto from 'crypto';
 
+// Explicitly load environment variables at the start of the route handler.
+require('dotenv').config();
+
 export async function POST(req: NextRequest) {
     try {
         const { userId, amount } = await req.json();
