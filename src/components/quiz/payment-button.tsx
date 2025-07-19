@@ -89,7 +89,6 @@ export default function PaymentButton({ user, amount, onPaymentSuccess }: Paymen
                 setLoading(false);
             });
             paymentObject.open();
-            // Don't setLoading(false) here, it will be handled by the success/failure/dismiss handlers.
             
         } catch (error: any) {
             console.error("Order creation error:", error);
