@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, Trash2, Edit, Eye, PlusCircle, Gem } from 'lucide-react';
