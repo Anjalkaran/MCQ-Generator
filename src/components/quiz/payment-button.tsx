@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
@@ -22,6 +23,7 @@ interface PaymentButtonProps {
 export default function PaymentButton({ user, amount, onPaymentSuccess }: PaymentButtonProps) {
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
+    const router = useRouter();
 
     const createOrder = async () => {
         setLoading(true);
@@ -64,6 +66,9 @@ export default function PaymentButton({ user, amount, onPaymentSuccess }: Paymen
                 order_id: order.id,
                 handler: function (response: any) {
                     onPaymentSuccess();
+                    // Force a reload to fetch new user status
+                    router.push('/dashboard');
+                    router.refresh();
                 },
                 prefill: {
                     name: user.name,
