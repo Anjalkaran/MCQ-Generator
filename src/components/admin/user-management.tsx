@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Trash2, Edit, Eye, PlusCircle } from 'lucide-react';
+import { Loader2, Trash2, Edit, Eye, PlusCircle, Gem } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { deleteUserDocument, updateUserDocument } from '@/lib/firestore';
 import type { UserData } from '@/lib/types';
@@ -29,10 +29,13 @@ import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import Link from 'next/link';
 import { Badge } from '../ui/badge';
+import { Checkbox } from '../ui/checkbox';
+import { cn } from '@/lib/utils';
 
 const userUpdateSchema = z.object({
   name: z.string().min(1, { message: 'Username is required.' }),
   examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA'>,
+  isPro: z.boolean().default(false).optional(),
 });
 
 const userCreateSchema = z.object({
@@ -40,6 +43,7 @@ const userCreateSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
   examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA'>,
+  isPro: z.boolean().default(false).optional(),
 });
 
 interface UserManagementProps {
@@ -65,6 +69,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
         email: '',
         password: '',
         examCategory: 'MTS',
+        isPro: false,
     }
   });
 
@@ -73,6 +78,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     updateUserForm.reset({
       name: user.name,
       examCategory: user.examCategory,
+      isPro: user.isPro || false,
     });
     setIsUpdateDialogOpen(true);
   };
@@ -84,6 +90,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
       const dataToUpdate: Partial<UserData> = {
         name: values.name,
         examCategory: values.examCategory,
+        isPro: values.isPro,
       };
 
       await updateUserDocument(selectedUser.uid, dataToUpdate);
@@ -223,6 +230,26 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                                 </FormItem>
                             )}
                         />
+                        <FormField
+                          control={createUserForm.control}
+                          name="isPro"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                              <div className="space-y-0.5">
+                                <FormLabel>Pro User</FormLabel>
+                                <DialogDescription>
+                                  Pro users have unlimited access to all features.
+                                </DialogDescription>
+                              </div>
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
                             <Button type="submit" disabled={isLoading}>
@@ -241,7 +268,8 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                 <TableRow>
                 <TableHead>Username</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Exam Category</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
             </TableHeader>
@@ -252,6 +280,16 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.examCategory}</TableCell>
+                    <TableCell>
+                      {user.isPro ? (
+                        <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+                          <Gem className="mr-1 h-3 w-3" />
+                          Pro
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">Free</Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                         <Button asChild variant="ghost" size="icon" disabled={user.email === 'admin@anjalkaran.com'}>
                           <Link href={`/dashboard/admin/history/${user.uid}`}>
@@ -267,7 +305,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                         <AlertDialog>
                         <AlertDialogTrigger asChild>
                             <Button variant="ghost" size="icon" disabled={user.email === 'admin@anjalkaran.com' || isLoading}>
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4 text-destructive" />
                             <span className="sr-only">Delete</span>
                             </Button>
                         </AlertDialogTrigger>
@@ -281,8 +319,10 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteUser(user.uid)}>
-                                Continue
+                            <AlertDialogAction
+                                className={cn(buttonVariants({ variant: "destructive" }))}
+                                onClick={() => handleDeleteUser(user.uid)}>
+                                Delete User
                             </AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
@@ -338,6 +378,23 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                                     <FormMessage />
                                     </FormItem>
                                 )}
+                            />
+                            <FormField
+                              control={updateUserForm.control}
+                              name="isPro"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                  <div className="space-y-0.5">
+                                    <FormLabel>Pro User</FormLabel>
+                                  </div>
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
                             />
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setIsUpdateDialogOpen(false)}>Cancel</Button>

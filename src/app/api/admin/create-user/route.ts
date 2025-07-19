@@ -5,7 +5,7 @@ import type { UserData } from '@/lib/types';
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, password, examCategory } = await req.json();
+    const { name, email, password, examCategory, isPro } = await req.json();
 
     if (!name || !email || !password || !examCategory) {
         return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
@@ -20,19 +20,25 @@ export async function POST(req: NextRequest) {
 
     const uid = userRecord.uid;
 
-    // Create user document in Firestore
-    const newUser: UserData = {
-      uid,
+    const newUser: Omit<UserData, 'uid'> & { isPro: boolean, proValidUntil?: Date } = {
       name,
       email,
       examCategory,
       topicExamsTaken: 0,
       mockTestsTaken: 0,
+      isPro: isPro || false,
     };
+    
+    if (newUser.isPro) {
+        const proValidUntil = new Date();
+        proValidUntil.setFullYear(proValidUntil.getFullYear() + 1);
+        newUser.proValidUntil = proValidUntil;
+    }
+
 
     await adminDb.collection('users').doc(uid).set(newUser);
 
-    return NextResponse.json({ message: 'User created successfully', newUser: { id: uid, ...newUser} }, { status: 201 });
+    return NextResponse.json({ message: 'User created successfully', newUser: { uid, ...newUser} }, { status: 201 });
 
   } catch (error: any) {
     console.error('Error creating user:', error);
