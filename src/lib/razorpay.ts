@@ -1,16 +1,12 @@
 
 import Razorpay from 'razorpay';
+import { RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET } from './constants';
 
-const keyId = process.env.RAZORPAY_KEY_ID;
-const keySecret = process.env.RAZORPAY_KEY_SECRET;
-
-if (!keyId || !keySecret) {
-    throw new Error('Razorpay keys are not configured in environment variables. Cannot initialize Razorpay instance.');
+if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+    throw new Error('Razorpay keys are not configured properly. Cannot initialize Razorpay instance.');
 }
 
 export const razorpayInstance = new Razorpay({
-    key_id: keyId,
-    key_secret: keySecret,
+    key_id: RAZORPAY_KEY_ID,
+    key_secret: RAZORPAY_KEY_SECRET,
 });
-
-export const razorpayKeySecret = keySecret;

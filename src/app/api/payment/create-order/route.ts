@@ -6,20 +6,19 @@ import crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
     try {
-        const { userId, examCategory } = await req.json();
+        const { userId, amount } = await req.json();
 
-        if (!userId || !examCategory) {
-            return NextResponse.json({ error: 'User ID and Exam Category are required.' }, { status: 400 });
+        if (!userId || !amount) {
+            return NextResponse.json({ error: 'User ID and amount are required.' }, { status: 400 });
         }
         
-        const amountInRupees = examCategory === 'PA' ? 749 : 499;
-        const amountInPaise = Math.round(amountInRupees * 100);
+        const amountInPaise = Math.round(amount * 100);
 
         if (isNaN(amountInPaise) || amountInPaise < 100) {
-            return NextResponse.json({ error: 'Invalid amount calculated.' }, { status: 400 });
+            return NextResponse.json({ error: 'Invalid amount.' }, { status: 400 });
         }
         
-        const receiptId = `receipt_${crypto.randomBytes(4).toString('hex')}`;
+        const receiptId = `receipt_${userId.slice(0,4)}_${crypto.randomBytes(4).toString('hex')}`;
 
         const options = {
             amount: amountInPaise,
@@ -27,7 +26,6 @@ export async function POST(req: NextRequest) {
             receipt: receiptId,
             notes: {
                 userId: userId,
-                examCategory: examCategory,
             }
         };
 

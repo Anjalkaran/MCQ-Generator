@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Script from 'next/script';
 import { useDashboard } from "@/app/dashboard/layout";
 import PaymentButton from "@/components/quiz/payment-button";
@@ -10,16 +10,22 @@ import { useToast } from "@/hooks/use-toast";
 import { normalizeDate } from "@/lib/utils";
 import { Gem, Loader2, PartyPopper } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ADMIN_EMAIL, RAZORPAY_KEY_ID } from '@/lib/constants';
 
 export default function UpgradePage() {
     const { userData, setUserData, isLoading } = useDashboard();
     const { toast } = useToast();
     const router = useRouter();
+    const [isClient, setIsClient] = useState(false);
+    
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     const proValidUntilDate = normalizeDate(userData?.proValidUntil);
-    const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date());
+    const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || userData?.email === ADMIN_EMAIL;
 
-    if (isLoading) {
+    if (isLoading || !isClient) {
         return (
             <div className="flex h-[50vh] w-full items-center justify-center">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -50,7 +56,7 @@ export default function UpgradePage() {
                         </div>
                         <CardTitle className="text-2xl pt-4">You are a Pro User!</CardTitle>
                         <CardDescription className="max-w-md mx-auto">
-                            You already have unlimited access to all exams. Happy practicing!
+                            You already have unlimited access to all exams. Your subscription is valid until {proValidUntilDate?.toLocaleDateString()}.
                         </CardDescription>
                     </CardHeader>
                 </Card>
@@ -60,8 +66,6 @@ export default function UpgradePage() {
 
     const onPaymentSuccess = () => {
         if (userData) {
-            localStorage.setItem('isProTransitioning', 'true');
-
             const proValidUntil = new Date();
             proValidUntil.setFullYear(proValidUntil.getFullYear() + 1);
             
@@ -119,6 +123,7 @@ export default function UpgradePage() {
                              <PaymentButton
                                 user={userData}
                                 onPaymentSuccess={onPaymentSuccess}
+                                amount={price}
                              />
                         </div>
                     </CardContent>

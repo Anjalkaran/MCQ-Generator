@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from '@/components/ui/sidebar';
 import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem } from 'lucide-react';
@@ -53,7 +53,7 @@ export default function DashboardLayout({
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const handleLogout = async (authInstance = getFirebaseAuth(), showToast = true) => {
+  const handleLogout = useCallback(async (authInstance = getFirebaseAuth(), showToast = true) => {
     if (!authInstance) {
       if (showToast) toast({ title: "Authentication Error", description: "Could not connect to service.", variant: "destructive" });
       return;
@@ -65,7 +65,7 @@ export default function DashboardLayout({
     } catch (error: any) {
       if (showToast) toast({ title: 'Logout Failed', description: error.message || 'An unexpected error occurred.', variant: 'destructive' });
     }
-  };
+  }, [router, toast]);
 
   useEffect(() => {
     const auth = getFirebaseAuth();
@@ -138,12 +138,12 @@ export default function DashboardLayout({
     });
     return () => unsubscribe();
     
-  }, [pathname, toast, router]);
+  }, [pathname, toast, router, handleLogout]);
 
   const proValidUntilDate = normalizeDate(userData?.proValidUntil);
   const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
 
-  const showUpgradeButton = userData && !isPro && !isAdmin && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
+  const showUpgradeButton = userData && !isPro && !isAdmin;
 
   const getWelcomeMessage = () => {
     if (isLoading || !userData) return null;
@@ -152,7 +152,8 @@ export default function DashboardLayout({
         return "Welcome, Admin! Enjoy unlimited access.";
     }
     if(isPro) {
-        return `Welcome, ${userData.name}!`;
+        const dateString = proValidUntilDate ? ` until ${proValidUntilDate.toLocaleDateString()}` : '';
+        return `Welcome, Pro User! Access is unlimited${dateString}.`;
     }
 
     const examsRemaining = FREE_TOPIC_EXAM_LIMIT - userData.topicExamsTaken;
@@ -227,7 +228,7 @@ export default function DashboardLayout({
                   <SidebarMenuButton asChild isActive={pathname === '/dashboard/upgrade'} variant="outline" className="text-primary hover:bg-primary/10 hover:text-primary border-primary/50">
                     <Link href="/dashboard/upgrade">
                       <Gem />
-                      <span>Upgrade</span>
+                      <span>Upgrade to Pro</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -257,5 +258,3 @@ export default function DashboardLayout({
     </DashboardContext.Provider>
   );
 }
-
-    

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import type { UserData } from '@/lib/types';
+import { RAZORPAY_KEY_ID } from '@/lib/constants';
 
 declare global {
     interface Window {
@@ -14,17 +15,17 @@ declare global {
 
 interface PaymentButtonProps {
   user: UserData;
+  amount: number;
   onPaymentSuccess: () => void;
 }
 
-export default function PaymentButton({ user, onPaymentSuccess }: PaymentButtonProps) {
+export default function PaymentButton({ user, amount, onPaymentSuccess }: PaymentButtonProps) {
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
 
     const createOrder = async () => {
         setLoading(true);
 
-        // Check if Razorpay script is loaded
         if (!window.Razorpay) {
             toast({
                 title: "Payment Gateway Not Ready",
@@ -41,7 +42,10 @@ export default function PaymentButton({ user, onPaymentSuccess }: PaymentButtonP
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ userId: user.uid, examCategory: user.examCategory }),
+                body: JSON.stringify({ 
+                    userId: user.uid, 
+                    amount: amount 
+                }),
             });
 
             if (!response.ok) {
@@ -52,11 +56,11 @@ export default function PaymentButton({ user, onPaymentSuccess }: PaymentButtonP
             const order = await response.json();
 
             const options = {
-                key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+                key: RAZORPAY_KEY_ID,
                 amount: order.amount,
                 currency: order.currency,
-                name: "Anjalkaran",
-                description: "Test Exam Plan",
+                name: "Anjalkaran Pro",
+                description: "1-Year Unlimited Exam Access",
                 order_id: order.id,
                 handler: function (response: any) {
                     onPaymentSuccess();
@@ -65,26 +69,26 @@ export default function PaymentButton({ user, onPaymentSuccess }: PaymentButtonP
                     name: user.name,
                     email: user.email,
                 },
+                notes: {
+                    userId: user.uid,
+                },
                 theme: {
                     color: "#D62927" 
                 }
             };
 
             const paymentObject = new window.Razorpay(options);
-            paymentObject.open();
-
             paymentObject.on('payment.failed', function (response: any) {
-                toast({ title: "Payment Failed", description: response.error.description, variant: "destructive" });
+                console.error("Payment Failed", response.error);
+                toast({ title: "Payment Failed", description: response.error.description || "An unknown error occurred.", variant: "destructive" });
                 setLoading(false);
             });
+            paymentObject.open();
+            // Don't setLoading(false) here, it will be handled by the success/failure handlers or when the modal is closed by the user.
             
-            // It's important to setLoading(false) here in case the user closes the Razorpay modal
-            // without paying or it failing.
-            setLoading(false);
-
         } catch (error: any) {
-            console.error(error);
-            toast({ title: "Error", description: error.message || 'Could not create payment order.', variant: "destructive" });
+            console.error("Order creation error:", error);
+            toast({ title: "Error", description: error.message || 'Could not initiate the payment process.', variant: "destructive" });
             setLoading(false);
         }
     };
