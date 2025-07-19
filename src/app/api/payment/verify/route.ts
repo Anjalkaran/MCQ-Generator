@@ -3,9 +3,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
-import { razorpayInstance } from '@/lib/razorpay';
 import { RAZORPAY_WEBHOOK_SECRET } from '@/lib/constants';
 import crypto from 'crypto';
+import type { Order } from 'razorpay/dist/types/orders';
+import type { Payment } from 'razorpay/dist/types/payments';
 
 export async function POST(req: NextRequest) {
     try {
@@ -16,13 +17,18 @@ export async function POST(req: NextRequest) {
             console.error('Razorpay webhook secret is not set in environment variables.');
             return NextResponse.json({ error: 'Webhook secret not configured.' }, { status: 500 });
         }
+        
+        if (!signature) {
+             console.error('Signature is missing from webhook request.');
+             return NextResponse.json({ error: 'Signature is missing.' }, { status: 400 });
+        }
 
         const shasum = crypto.createHmac('sha256', RAZORPAY_WEBHOOK_SECRET);
         shasum.update(rawBody);
         const digest = shasum.digest('hex');
 
         if (digest !== signature) {
-            console.warn('Invalid Razorpay webhook signature received.');
+            console.warn(`Invalid Razorpay webhook signature. Digest: ${digest}, Signature: ${signature}`);
             return NextResponse.json({ status: 'error', message: 'Payment verification failed: Invalid signature.' }, { status: 400 });
         }
         
@@ -30,14 +36,13 @@ export async function POST(req: NextRequest) {
         const { event, payload } = body;
 
         if (event === 'payment.captured' || event === 'order.paid') {
-            const orderEntity = payload.order?.entity;
-            const paymentEntity = payload.payment?.entity;
+            const orderEntity = payload.order?.entity as Order;
+            const paymentEntity = payload.payment?.entity as Payment.Entity;
             
-            // The userId is reliably in the notes of the order entity.
-            const userId = orderEntity?.notes?.userId;
+            const userId = orderEntity?.notes?.userId || paymentEntity?.notes?.userId;
 
             if (!userId) {
-                console.error('User ID not found in webhook payload notes.', JSON.stringify(payload, null, 2));
+                console.error('User ID not found in webhook payload notes for event:', event, JSON.stringify(payload, null, 2));
                 return NextResponse.json({ error: 'User ID is missing from payment notes.' }, { status: 400 });
             }
 
@@ -46,7 +51,6 @@ export async function POST(req: NextRequest) {
 
             const userRef = adminDb().collection('users').doc(userId);
 
-            // Check if user exists before updating
             const userDoc = await userRef.get();
             if (!userDoc.exists) {
                 console.error(`Attempted to upgrade non-existent user with ID: ${userId}`);
@@ -56,22 +60,22 @@ export async function POST(req: NextRequest) {
             await userRef.update({
                 isPro: true,
                 proValidUntil: proValidUntil,
-                topicExamsTaken: 0 
+                topicExamsTaken: 0,
             });
             
-            // Use the most complete entity available for logging the payment
             const logEntity = paymentEntity || orderEntity;
             await adminDb().collection('payments').add({
                 userId: userId,
                 orderId: logEntity?.order_id || orderEntity?.id,
                 razorpayPaymentId: paymentEntity?.id,
                 status: 'successful',
-                amount: logEntity?.amount / 100,
-                currency: logEntity?.currency,
+                amount: logEntity.amount / 100,
+                currency: logEntity.currency,
                 verifiedAt: new Date(),
                 webhookEvent: event,
             });
 
+            console.log(`Successfully upgraded user ${userId} to Pro.`);
             return NextResponse.json({ status: 'success', message: 'User upgraded to Pro.' });
         }
 
