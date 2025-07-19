@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState, useEffect } from "react";
 import { useDashboard } from "@/app/dashboard/layout";
 import { UserManagement } from '@/components/admin/user-management';
 import { TopicManagement } from '@/components/admin/topic-management';
@@ -8,11 +9,43 @@ import { QuestionBankManagement } from '@/components/admin/question-bank-managem
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { getAllUsers } from "@/lib/firestore";
+import type { UserData } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminPage() {
-  const { user, userData, categories, topics, bankedQuestions, isLoading } = useDashboard();
+  const { user, userData, categories, topics, bankedQuestions, isLoading: isDashboardLoading } = useDashboard();
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  const { toast } = useToast();
 
-  if (isLoading) {
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const fetchedUsers = await getAllUsers();
+        // Filter out the admin user from the list to prevent self-modification issues
+        const regularUsers = fetchedUsers.filter(u => u.email !== "admin@anjalkaran.com");
+        setUsers(regularUsers);
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+        toast({
+          title: "Error",
+          description: "Could not fetch the user list.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoadingUsers(false);
+      }
+    };
+
+    if (userData?.email === "admin@anjalkaran.com") {
+        fetchUsers();
+    } else {
+        setIsLoadingUsers(false);
+    }
+  }, [userData, toast]);
+
+  if (isDashboardLoading || isLoadingUsers) {
     return (
        <div className="flex h-[50vh] w-full items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -48,7 +81,7 @@ export default function AdminPage() {
           <TabsTrigger value="question-bank">Question Bank</TabsTrigger>
         </TabsList>
         <TabsContent value="users">
-          <UserManagement initialUsers={[]} /> 
+          <UserManagement initialUsers={users} /> 
         </TabsContent>
         <TabsContent value="topics">
           <TopicManagement initialCategories={categories} initialTopics={topics} />
