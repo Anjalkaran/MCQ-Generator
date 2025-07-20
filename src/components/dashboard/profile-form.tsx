@@ -1,80 +1,104 @@
 
 "use client";
 
-import { useRef, useEffect, useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import type { User } from 'firebase/auth';
+import { updateProfile } from 'firebase/auth';
+import { updateUserDocument } from '@/lib/firestore';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import type { UserData } from "@/lib/types";
-import { updateUserProfile } from '@/actions/update-user-profile';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
 interface ProfileFormProps {
-  user: UserData;
+  user: User;
+  userData: UserData;
 }
 
-const initialState = {
-  message: '',
-  success: false,
-};
+const formSchema = z.object({
+  name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
+});
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-      Save Changes
-    </Button>
-  );
-}
-
-export function ProfileForm({ user }: ProfileFormProps) {
+export function ProfileForm({ user, userData }: ProfileFormProps) {
     const { toast } = useToast();
-    const formRef = useRef<HTMLFormElement>(null);
+    const [isLoading, setIsLoading] = useState(false);
     
-    // Bind the user ID to the server action
-    const updateUserProfileWithId = updateUserProfile.bind(null, user.uid);
-    const [state, formAction] = useActionState(updateUserProfileWithId, initialState);
-    
-    useEffect(() => {
-        if (state.message) {
-            if (state.success) {
-                toast({ title: "Success", description: state.message });
-            } else {
-                toast({ title: "Error", description: state.message, variant: "destructive" });
-            }
-        }
-    }, [state, toast]);
+    const form = useForm<z.infer<typeof formSchema>>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            name: userData.name || '',
+        },
+    });
 
+    const onSubmit = async (values: z.infer<typeof formSchema>) => {
+        setIsLoading(true);
+        try {
+            const dataToUpdate: { name: string } = {
+                name: values.name
+            };
+
+            await updateUserDocument(user.uid, { name: dataToUpdate.name });
+
+            if (user.displayName !== values.name) {
+                await updateProfile(user, { displayName: values.name });
+            }
+            
+            toast({ title: "Success", description: "Profile updated successfully!" });
+
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            toast({ title: "Error", description: "An unexpected error occurred while updating your profile.", variant: "destructive" });
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
   return (
-    <form ref={formRef} action={formAction} className="space-y-6">
-        <Card>
+    <Card>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-0">
             <CardHeader>
                 <CardTitle>Personal & Course Details</CardTitle>
                 <CardDescription>Manage your personal information. Your exam category cannot be changed here.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" name="name" defaultValue={user.name} required />
-                </div>
+                <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Full Name</FormLabel>
+                            <FormControl>
+                                <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
                 <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" name="email" type="email" defaultValue={user.email} disabled />
+                    <Input id="email" name="email" type="email" defaultValue={userData.email} disabled />
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="examCategory">Preferred Exam Category</Label>
-                     <Input id="examCategory" name="examCategory" defaultValue={user.examCategory} disabled />
+                     <Input id="examCategory" name="examCategory" defaultValue={userData.examCategory} disabled />
                 </div>
             </CardContent>
             <CardFooter className="border-t px-6 py-4">
-                <SubmitButton />
+                <Button type="submit" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Save Changes
+                </Button>
             </CardFooter>
-        </Card>
-    </form>
+        </form>
+       </Form>
+    </Card>
   );
 }

@@ -9,7 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, User } from 'lucide-react';
 
 export default function ProfilePage() {
-    const { userData, isLoading } = useDashboard();
+    const { user, userData, isLoading } = useDashboard();
 
     if (isLoading) {
         return (
@@ -19,7 +19,7 @@ export default function ProfilePage() {
         );
     }
 
-    if (!userData) {
+    if (!userData || !user) {
         return (
             <div className="space-y-6">
               <div className="space-y-0.5">
@@ -64,7 +64,7 @@ export default function ProfilePage() {
           </p>
       </div>
       <Separator />
-      <ProfileForm user={userData} />
+      <ProfileForm user={user} userData={userData} />
       <ChangePasswordForm />
     </div>
   );
