@@ -24,6 +24,32 @@ export default function PaymentButton({ user, amount, onPaymentSuccess }: Paymen
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
 
+    const handleSuccessfulPayment = async () => {
+        try {
+            const response = await fetch('/api/user/upgrade-to-pro', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.uid }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to update user status.');
+            }
+            // Call the parent component's success handler
+            onPaymentSuccess();
+        } catch (error: any) {
+            console.error("Error upgrading user:", error);
+            toast({
+                title: "Upgrade Failed",
+                description: "Your payment was successful, but we couldn't update your account. Please contact support.",
+                variant: "destructive"
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const createOrder = async () => {
         setLoading(true);
 
@@ -64,7 +90,8 @@ export default function PaymentButton({ user, amount, onPaymentSuccess }: Paymen
                 description: "1-Year Unlimited Exam Access",
                 order_id: order.id,
                 handler: function (response: any) {
-                    onPaymentSuccess();
+                    // Payment was successful, now update the user status
+                    handleSuccessfulPayment();
                 },
                 prefill: {
                     name: user.name,
