@@ -4,7 +4,6 @@ import { promises as fs } from 'fs';
 import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
 import { addMaterialToTopic } from '@/lib/firestore';
-import formidable from 'formidable';
 
 export const config = {
   api: {

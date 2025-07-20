@@ -1,12 +1,12 @@
 import type {NextConfig} from 'next';
-import withPWA from '@ducanh2912/next-pwa';
+// import withPWA from '@ducanh2912/next-pwa';
 
-const pwaConfig = withPWA({
-  dest: 'public',
-  register: true,
-  skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development',
-});
+// const pwaConfig = withPWA({
+//   dest: 'public',
+//   register: true,
+//   skipWaiting: true,
+//   disable: process.env.NODE_ENV === 'development',
+// });
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -26,7 +26,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  serverExternalPackages: ['pdf-parse'],
+  serverExternalPackages: ['pdf-parse', 'mammoth'],
 };
 
-export default pwaConfig(nextConfig);
+export default nextConfig;
+// export default pwaConfig(nextConfig);
