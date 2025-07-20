@@ -15,9 +15,14 @@ export async function POST(req: NextRequest) {
   try {
     const { name, email, password, examCategory, isPro } = await req.json();
 
+    // --- Robust Server-Side Validation ---
     if (!name || !email || !password || !examCategory) {
-        return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
+        return NextResponse.json({ error: 'Missing required fields: name, email, password, and examCategory are all required.' }, { status: 400 });
     }
+    if (typeof password !== 'string' || password.length < 6) {
+        return NextResponse.json({ error: 'Password must be a string with at least 6 characters.' }, { status: 400 });
+    }
+    // --- End Validation ---
 
     // 1. Create user in Firebase Authentication
     const userRecord = await adminAuth.createUser({
@@ -65,9 +70,15 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Error creating user:', error);
+
+    // Provide specific feedback for common Firebase Auth errors
     if (error.code === 'auth/email-already-exists') {
         return NextResponse.json({ error: 'The email address is already in use by another account.' }, { status: 409 });
     }
+    if (error.code === 'auth/invalid-password') {
+        return NextResponse.json({ error: 'The password is not valid. It must be a string of at least 6 characters.' }, { status: 400 });
+    }
+
     return NextResponse.json({ error: 'An unexpected error occurred while creating the user.' }, { status: 500 });
   }
 }
