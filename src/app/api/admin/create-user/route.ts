@@ -4,7 +4,6 @@ import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import type { UserData } from '@/lib/types';
 
 export async function POST(req: NextRequest) {
-  // Add a check to ensure admin services are available
   if (!adminAuth || !adminDb) {
     console.error("Firebase Admin SDK not initialized. API cannot function.");
     return NextResponse.json(
@@ -20,7 +19,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
     }
 
-    // Create user in Firebase Authentication
+    // 1. Create user in Firebase Authentication
     const userRecord = await adminAuth.createUser({
       email,
       password,
@@ -29,7 +28,8 @@ export async function POST(req: NextRequest) {
 
     const uid = userRecord.uid;
 
-    const newUser: Omit<UserData, 'uid'> & { isPro: boolean, proValidUntil?: Date } = {
+    // 2. Prepare user data for Firestore
+    const newUserForDb: Omit<UserData, 'uid'> = {
       name,
       email,
       examCategory,
@@ -38,26 +38,29 @@ export async function POST(req: NextRequest) {
       isPro: isPro || false,
     };
     
-    if (newUser.isPro) {
+    if (newUserForDb.isPro) {
         const proValidUntil = new Date();
         proValidUntil.setFullYear(proValidUntil.getFullYear() + 1);
-        newUser.proValidUntil = proValidUntil;
+        newUserForDb.proValidUntil = proValidUntil;
     }
 
+    // 3. Save user data to Firestore
+    await adminDb.collection('users').doc(uid).set(newUserForDb);
 
-    await adminDb.collection('users').doc(uid).set(newUser);
-
-    const safeNewUser = {
+    // 4. Prepare a clean, serializable object for the JSON response
+    const safeNewUser: UserData = {
         uid,
-        name: newUser.name,
-        email: newUser.email,
-        examCategory: newUser.examCategory,
-        topicExamsTaken: newUser.topicExamsTaken,
-        mockTestsTaken: newUser.mockTestsTaken,
-        isPro: newUser.isPro,
-        proValidUntil: newUser.proValidUntil
+        name: newUserForDb.name,
+        email: newUserForDb.email,
+        examCategory: newUserForDb.examCategory,
+        topicExamsTaken: newUserForDb.topicExamsTaken,
+        mockTestsTaken: newUserForDb.mockTestsTaken,
+        isPro: newUserForDb.isPro,
+        // Convert date to ISO string for safe JSON serialization if it exists
+        proValidUntil: newUserForDb.proValidUntil ? newUserForDb.proValidUntil.toISOString() : undefined,
     };
 
+    // 5. Return the successful response
     return NextResponse.json({ message: 'User created successfully', newUser: safeNewUser }, { status: 201 });
 
   } catch (error: any) {
