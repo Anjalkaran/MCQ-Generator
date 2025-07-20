@@ -99,6 +99,7 @@ export async function POST(req: NextRequest) {
                 isPro: true,
                 proValidUntil: proValidUntil,
                 topicExamsTaken: 0,
+                mockTestsTaken: 0,
             });
             await addLog({ level: 'info', message: `SUCCESS: Upgraded user '${userId}' to Pro.`, step: 'dbUpdate' });
             

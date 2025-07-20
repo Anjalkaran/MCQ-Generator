@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     const uid = userRecord.uid;
 
     // 2. Prepare user data for Firestore
-    const newUserForDb: Omit<UserData, 'uid'> = {
+    const newUserForDb: Partial<UserData> = {
       name,
       email,
       examCategory,
@@ -47,6 +47,8 @@ export async function POST(req: NextRequest) {
         const proValidUntil = new Date();
         proValidUntil.setFullYear(proValidUntil.getFullYear() + 1);
         newUserForDb.proValidUntil = proValidUntil;
+    } else {
+        newUserForDb.proValidUntil = null;
     }
 
     // 3. Save user data to Firestore
@@ -55,11 +57,11 @@ export async function POST(req: NextRequest) {
     // 4. Prepare a clean, serializable object for the JSON response
     const safeNewUser: UserData = {
         uid,
-        name: newUserForDb.name,
-        email: newUserForDb.email,
-        examCategory: newUserForDb.examCategory,
-        topicExamsTaken: newUserForDb.topicExamsTaken,
-        mockTestsTaken: newUserForDb.mockTestsTaken,
+        name: newUserForDb.name!,
+        email: newUserForDb.email!,
+        examCategory: newUserForDb.examCategory!,
+        topicExamsTaken: newUserForDb.topicExamsTaken!,
+        mockTestsTaken: newUserForDb.mockTestsTaken!,
         isPro: newUserForDb.isPro,
         // Convert date to ISO string for safe JSON serialization if it exists
         proValidUntil: newUserForDb.proValidUntil ? newUserForDb.proValidUntil.toISOString() : undefined,

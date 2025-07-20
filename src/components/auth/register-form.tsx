@@ -72,6 +72,8 @@ export function RegisterForm() {
         examCategory: values.examCategory,
         topicExamsTaken: 0,
         mockTestsTaken: 0,
+        isPro: false,
+        proValidUntil: null,
       });
 
       toast({

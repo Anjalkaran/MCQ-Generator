@@ -41,14 +41,27 @@ export const createUserDocument = async (userData: Omit<UserData, 'id'>): Promis
       ...userData,
       topicExamsTaken: 0,
       mockTestsTaken: 0,
+      isPro: false,
+      proValidUntil: null,
     });
 };
 
-export const updateUserDocument = async (userId: string, data: Partial<Pick<UserData, 'name' | 'examCategory' | 'isPro'>>): Promise<void> => {
+export const updateUserDocument = async (userId: string, data: Partial<UserData>): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, data);
+    
+    const updateData: Partial<UserData> = { ...data };
+
+    if (data.isPro && !data.proValidUntil) {
+        const proValidUntil = new Date();
+        proValidUntil.setFullYear(proValidUntil.getFullYear() + 1);
+        updateData.proValidUntil = proValidUntil;
+    } else if (!data.isPro) {
+        updateData.proValidUntil = null;
+    }
+    
+    await updateDoc(userRef, updateData);
 };
 
 export const deleteUserDocument = async (userId: string): Promise<void> => {

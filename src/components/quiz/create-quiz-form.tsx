@@ -213,7 +213,7 @@ export function CreateQuizForm() {
   const proValidUntilDate = normalizeDate(userData?.proValidUntil);
   const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || (userData?.email === ADMIN_EMAIL);
   
-  const hasExceededFreeLimit = !isPro && userData && userData.topicExamsTaken >= FREE_TOPIC_EXAM_LIMIT;
+  const hasExceededFreeLimit = !isPro && userData && (userData.topicExamsTaken || 0) >= FREE_TOPIC_EXAM_LIMIT;
   
   return (
     <Card>

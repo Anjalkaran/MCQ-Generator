@@ -135,7 +135,7 @@ export default function DashboardLayout({
     });
     return () => unsubscribe();
     
-  }, [router, toast, handleLogout]);
+  }, [router, toast, handleLogout, pathname]);
 
   // Direct computation of pro status from userData.
   const proValidUntilDate = normalizeDate(userData?.proValidUntil);
@@ -158,7 +158,7 @@ export default function DashboardLayout({
         return `Welcome, Pro User! Access is unlimited${dateString}.`;
     }
 
-    const examsRemaining = FREE_TOPIC_EXAM_LIMIT - userData.topicExamsTaken;
+    const examsRemaining = FREE_TOPIC_EXAM_LIMIT - (userData.topicExamsTaken || 0);
     return `Welcome, ${userData.name}! You have ${examsRemaining > 0 ? examsRemaining : 0} free exam(s) remaining.`;
   }
 
