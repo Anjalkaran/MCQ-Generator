@@ -38,7 +38,18 @@ export async function POST(req: NextRequest) {
 
     await adminDb.collection('users').doc(uid).set(newUser);
 
-    return NextResponse.json({ message: 'User created successfully', newUser: { uid, ...newUser} }, { status: 201 });
+    const safeNewUser = {
+        uid,
+        name: newUser.name,
+        email: newUser.email,
+        examCategory: newUser.examCategory,
+        topicExamsTaken: newUser.topicExamsTaken,
+        mockTestsTaken: newUser.mockTestsTaken,
+        isPro: newUser.isPro,
+        proValidUntil: newUser.proValidUntil
+    };
+
+    return NextResponse.json({ message: 'User created successfully', newUser: safeNewUser }, { status: 201 });
 
   } catch (error: any) {
     console.error('Error creating user:', error);
