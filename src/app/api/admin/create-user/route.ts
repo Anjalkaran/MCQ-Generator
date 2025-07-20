@@ -4,6 +4,15 @@ import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import type { UserData } from '@/lib/types';
 
 export async function POST(req: NextRequest) {
+  // Add a check to ensure admin services are available
+  if (!adminAuth || !adminDb) {
+    console.error("Firebase Admin SDK not initialized. API cannot function.");
+    return NextResponse.json(
+      { error: "Server configuration error. Please contact support." },
+      { status: 500 }
+    );
+  }
+
   try {
     const { name, email, password, examCategory, isPro } = await req.json();
 
