@@ -9,20 +9,20 @@ import type { Order } from 'razorpay/dist/types/orders';
 import type { Payment } from 'razorpay/dist/types/payments';
 
 export async function POST(req: NextRequest) {
-    console.log('[Webhook] STEP 1: Received request from Razorpay.');
+    console.log("--- RAZORPAY WEBHOOK: STEP 1: INCOMING REQUEST ---");
     const rawBody = await req.text();
     const signature = req.headers.get('x-razorpay-signature');
 
     if (!RAZORPAY_WEBHOOK_SECRET) {
-        console.error('[Webhook] FATAL ERROR: Razorpay webhook secret is not set in environment variables.');
+        console.error('--- RAZORPAY WEBHOOK: FATAL ERROR: Webhook secret is not set in environment variables.');
         return NextResponse.json({ error: 'Webhook secret not configured.' }, { status: 500 });
     }
     
     if (!signature) {
-         console.error('[Webhook] ERROR: Signature is missing from webhook request.');
+         console.error('--- RAZORPAY WEBHOOK: ERROR: Signature is missing from request.');
          return NextResponse.json({ error: 'Signature is missing.' }, { status: 400 });
     }
-    console.log('[Webhook] STEP 2: Signature found in header. Proceeding to verification.');
+    console.log("--- RAZORPAY WEBHOOK: STEP 2: SIGNATURE FOUND ---");
 
     try {
         const shasum = crypto.createHmac('sha256', RAZORPAY_WEBHOOK_SECRET);
@@ -30,26 +30,29 @@ export async function POST(req: NextRequest) {
         const digest = shasum.digest('hex');
 
         if (digest !== signature) {
-            console.warn(`[Webhook] ERROR: Invalid Razorpay webhook signature. Verification failed. Digest: ${digest}, Signature: ${signature}`);
+            console.warn(`--- RAZORPAY WEBHOOK: ERROR: SIGNATURE MISMATCH ---`);
+            console.warn(`Generated Digest: ${digest}`);
+            console.warn(`Received Signature: ${signature}`);
             return NextResponse.json({ status: 'error', message: 'Payment verification failed: Invalid signature.' }, { status: 400 });
         }
         
-        console.log('[Webhook] STEP 3: Signature verified successfully.');
+        console.log("--- RAZORPAY WEBHOOK: STEP 3: SIGNATURE VERIFIED SUCCESSFULLY ---");
         const body = JSON.parse(rawBody);
         const { event, payload } = body;
 
         if (event === 'payment.captured' || event === 'order.paid') {
-            console.log(`[Webhook] STEP 4: Processing relevant event: '${event}'.`);
+            console.log(`--- RAZORPAY WEBHOOK: STEP 4: Processing event: '${event}' ---`);
             const orderEntity = payload.order?.entity as Order;
             const paymentEntity = payload.payment?.entity as Payment.Entity;
             
             const userId = orderEntity?.notes?.userId || paymentEntity?.notes?.userId;
 
             if (!userId) {
-                console.error('[Webhook] ERROR: User ID not found in webhook payload notes.', JSON.stringify(payload, null, 2));
+                console.error('--- RAZORPAY WEBHOOK: ERROR: USER ID NOT FOUND IN PAYLOAD ---');
+                console.error('Payload for debugging:', JSON.stringify(payload, null, 2));
                 return NextResponse.json({ error: 'User ID is missing from payment notes.' }, { status: 400 });
             }
-            console.log(`[Webhook] STEP 5: Successfully extracted userId: '${userId}'.`);
+            console.log(`--- RAZORPAY WEBHOOK: STEP 5: User ID Extracted Successfully: '${userId}' ---`);
 
             const proValidUntil = new Date();
             proValidUntil.setFullYear(proValidUntil.getFullYear() + 1);
@@ -58,17 +61,17 @@ export async function POST(req: NextRequest) {
 
             const userDoc = await userRef.get();
             if (!userDoc.exists) {
-                console.error(`[Webhook] ERROR: Attempted to upgrade non-existent user with ID: ${userId}`);
+                console.error(`--- RAZORPAY WEBHOOK: ERROR: User with ID '${userId}' not found in database.`);
                 return NextResponse.json({ error: 'User not found.' }, { status: 404 });
             }
 
-            console.log(`[Webhook] STEP 6: User found. Attempting to update user '${userId}' to Pro in Firestore.`);
+            console.log(`--- RAZORPAY WEBHOOK: STEP 6: User found. Attempting to update user '${userId}' to Pro...`);
             await userRef.update({
                 isPro: true,
                 proValidUntil: proValidUntil,
                 topicExamsTaken: 0,
             });
-            console.log(`[Webhook] STEP 7: Successfully upgraded user '${userId}' to Pro in Firestore.`);
+            console.log(`--- RAZORPAY WEBHOOK: STEP 7: SUCCESSFULLY UPGRADED USER '${userId}' TO PRO ---`);
             
             const logEntity = paymentEntity || orderEntity;
             await adminDb().collection('payments').add({
@@ -81,16 +84,18 @@ export async function POST(req: NextRequest) {
                 verifiedAt: new Date(),
                 webhookEvent: event,
             });
-            console.log(`[Webhook] STEP 8: Payment log created for user '${userId}'.`);
+            console.log(`--- RAZORPAY WEBHOOK: STEP 8: Payment log created for user '${userId}'. ---`);
 
             return NextResponse.json({ status: 'success', message: 'User upgraded to Pro.' });
         }
 
-        console.log(`[Webhook] Ignored event: '${event}'. No action taken.`);
+        console.log(`--- RAZORPAY WEBHOOK: Ignored event: '${event}'. No action taken. ---`);
         return NextResponse.json({ status: 'ignored', message: `Event ${event} not handled.` });
 
     } catch (error: any) {
-        console.error('[Webhook] A critical error occurred:', error.message, error.stack);
+        console.error('--- RAZORPAY WEBHOOK: A CRITICAL ERROR OCCURRED ---');
+        console.error('Error Message:', error.message);
+        console.error('Error Stack:', error.stack);
         return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });
     }
 }
