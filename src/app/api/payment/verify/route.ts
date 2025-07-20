@@ -8,13 +8,16 @@ import type { Order } from 'razorpay/dist/types/orders';
 import type { Payment } from 'razorpay/dist/types/payments';
 
 async function addLog(logData: Record<string, any>) {
+    const logString = `[Payment Webhook] step: ${logData.step} | message: ${logData.message}`;
+    console.log(logString); // Add console logging for visibility in server logs
+
     try {
         await adminDb.collection('paymentLogs').add({
             ...logData,
             timestamp: new Date(),
         });
     } catch (e) {
-        console.error("CRITICAL: Failed to write to paymentLogs. Check Firebase Admin SDK credentials.", e);
+        console.error("CRITICAL: Failed to write to paymentLogs. Check Firebase Admin SDK credentials in your hosting environment.", e);
     }
 }
 
@@ -22,9 +25,8 @@ export async function POST(req: NextRequest) {
     const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
 
     if (!RAZORPAY_WEBHOOK_SECRET) {
-        const errorMsg = 'FATAL: Webhook secret not configured in the server environment. This must be set in your hosting provider (e.g., Vercel).';
-        console.error(errorMsg);
-        // We attempt to log this critical configuration error.
+        const errorMsg = 'FATAL: RAZORPAY_WEBHOOK_SECRET not configured in the server environment. This must be set in your hosting provider (e.g., Vercel, Netlify).';
+        // Use addLog to ensure this critical configuration error is logged.
         await addLog({ level: 'error', message: errorMsg, step: 'initialization' });
         return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
     }
@@ -108,7 +110,6 @@ export async function POST(req: NextRequest) {
 
     } catch (error: any) {
         const errorMsg = 'A critical error occurred in the webhook.';
-        console.error(errorMsg, error);
         await addLog({
             level: 'error',
             message: errorMsg,
