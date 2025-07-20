@@ -14,35 +14,31 @@ async function addLog(logData: Record<string, any>) {
             timestamp: new Date(),
         });
     } catch (e) {
-        console.error("Failed to write to paymentLogs:", e);
+        console.error("CRITICAL: Failed to write to paymentLogs. Check Firebase Admin SDK credentials.", e);
     }
 }
 
 export async function POST(req: NextRequest) {
-    const rawBody = await req.text();
-    const signature = req.headers.get('x-razorpay-signature');
     const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
-    
-    await addLog({
-        level: 'info',
-        message: `Webhook invoked. Secret loaded: ${RAZORPAY_WEBHOOK_SECRET ? 'Yes' : 'NO (This is the problem!)'}`,
-        step: 'initialization'
-    });
 
     if (!RAZORPAY_WEBHOOK_SECRET) {
-        const errorMsg = 'Webhook secret not configured on the server.';
-        console.error(`FATAL ERROR: ${errorMsg}`);
+        const errorMsg = 'FATAL: Webhook secret not configured in the server environment. This must be set in your hosting provider (e.g., Vercel).';
+        console.error(errorMsg);
+        // We attempt to log this critical configuration error.
         await addLog({ level: 'error', message: errorMsg, step: 'initialization' });
-        return NextResponse.json({ error: errorMsg }, { status: 500 });
+        return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
     }
     
-    if (!signature) {
-         const errorMsg = 'Signature is missing from request.';
-         await addLog({ level: 'error', message: errorMsg, step: 'signatureCheck' });
-         return NextResponse.json({ error: errorMsg }, { status: 400 });
-    }
-
     try {
+        const rawBody = await req.text();
+        const signature = req.headers.get('x-razorpay-signature');
+
+        if (!signature) {
+             const errorMsg = 'Signature is missing from request.';
+             await addLog({ level: 'error', message: errorMsg, step: 'signatureCheck' });
+             return NextResponse.json({ error: errorMsg }, { status: 400 });
+        }
+
         const shasum = crypto.createHmac('sha256', RAZORPAY_WEBHOOK_SECRET);
         shasum.update(rawBody);
         const digest = shasum.digest('hex');
