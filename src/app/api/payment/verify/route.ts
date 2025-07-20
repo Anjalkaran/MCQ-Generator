@@ -3,7 +3,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
-import { RAZORPAY_WEBHOOK_SECRET } from '@/lib/constants';
 import crypto from 'crypto';
 import type { Order } from 'razorpay/dist/types/orders';
 import type { Payment } from 'razorpay/dist/types/payments';
@@ -22,9 +21,16 @@ async function addLog(logData: Record<string, any>) {
 export async function POST(req: NextRequest) {
     const rawBody = await req.text();
     const signature = req.headers.get('x-razorpay-signature');
+    const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
+    
+    await addLog({
+        level: 'info',
+        message: `Webhook invoked. Secret loaded: ${RAZORPAY_WEBHOOK_SECRET ? 'Yes' : 'NO (This is the problem!)'}`,
+        step: 'initialization'
+    });
 
     if (!RAZORPAY_WEBHOOK_SECRET) {
-        const errorMsg = 'Webhook secret not configured.';
+        const errorMsg = 'Webhook secret not configured on the server.';
         console.error(`FATAL ERROR: ${errorMsg}`);
         await addLog({ level: 'error', message: errorMsg, step: 'initialization' });
         return NextResponse.json({ error: errorMsg }, { status: 500 });
