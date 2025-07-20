@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 import withPWA from '@ducanh2912/next-pwa';
 
@@ -26,20 +27,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-        config.resolve.fallback = {
-            ...config.resolve.fallback,
-            fs: false,
-            path: false,
-            os: false,
-        };
-    }
-    return config;
-  },
-  experimental: {
-    serverComponentsExternalPackages: ['pdf-parse'],
-  },
+  serverExternalPackages: ['pdf-parse'],
 };
 
 export default pwaConfig(nextConfig);
