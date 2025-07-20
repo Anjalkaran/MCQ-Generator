@@ -1,11 +1,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
-import { getAuth } from 'firebase-admin/auth';
 
 export async function POST(req: NextRequest) {
     if (!adminDb) {
-        return NextResponse.json({ error: "Server configuration error." }, { status: 500 });
+        console.error("Firebase Admin SDK not initialized. API cannot function.");
+        return NextResponse.json(
+            { error: "Server configuration error. Please contact support." },
+            { status: 500 }
+        );
     }
 
     try {
@@ -27,10 +30,10 @@ export async function POST(req: NextRequest) {
             mockTestsTaken: 0,
         });
 
-        return NextResponse.json({ status: 'success', message: 'User upgraded to Pro.' });
+        return NextResponse.json({ status: 'success', message: 'User upgraded to Pro successfully.' });
 
     } catch (error: any) {
         console.error("Error upgrading user to pro:", error);
-        return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });
+        return NextResponse.json({ error: 'An internal server error occurred while upgrading the user.' }, { status: 500 });
     }
 }
