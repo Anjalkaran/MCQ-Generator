@@ -6,18 +6,22 @@ import crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
     try {
-        const { userId, amount } = await req.json();
+        const body = await req.json();
+        const { userId, amount } = body;
 
+        // --- Robust Server-Side Validation ---
         if (!userId || !amount) {
             return NextResponse.json({ error: 'User ID and amount are required.' }, { status: 400 });
         }
         
         const amountInPaise = Math.round(amount * 100);
 
-        if (isNaN(amountInPaise) || amountInPaise < 100) {
-            return NextResponse.json({ error: 'Invalid amount.' }, { status: 400 });
+        if (isNaN(amountInPaise) || amountInPaise < 100) { // Assuming minimum payment of 1 INR
+            return NextResponse.json({ error: 'Invalid amount. Amount must be at least 1 INR.' }, { status: 400 });
         }
+        // --- End Validation ---
         
+        // Use a more robust random receipt ID
         const receiptId = `receipt_${userId.slice(0,4)}_${crypto.randomBytes(4).toString('hex')}`;
 
         const options = {
@@ -35,7 +39,10 @@ export async function POST(req: NextRequest) {
 
     } catch (error: any) {
         console.error('Razorpay order creation error:', error);
-        const errorMessage = error.error?.description || error.message || 'An unknown error occurred.';
+
+        // Extract a more specific error message if available from Razorpay's response
+        const errorMessage = error.error?.description || error.message || 'An unknown error occurred while creating the payment order.';
+        
         return NextResponse.json(
             { error: `Failed to create payment order: ${errorMessage}` },
             { status: 500 }
