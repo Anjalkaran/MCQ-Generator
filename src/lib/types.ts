@@ -75,3 +75,12 @@ export interface BankedQuestion {
     content: string;
     uploadedAt: Date;
 }
+
+export interface LeaderboardEntry {
+    rank: number;
+    userId: string;
+    userName: string;
+    examCategory: 'MTS' | 'POSTMAN' | 'PA';
+    averageScore: number;
+    totalExams: number;
+}

@@ -2,7 +2,7 @@
 
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry } from './types';
 import { ADMIN_EMAIL } from './constants';
 
 // USER MANAGEMENT
@@ -345,6 +345,63 @@ export const getQuestionBankByCategory = async (examCategory: string): Promise<s
     // Combine content from all matching documents
     const allContent = querySnapshot.docs.map(doc => doc.data().content).join('\n\n---\n\n');
     return allContent;
+};
+
+
+// LEADERBOARD MANAGEMENT
+export const getLeaderboardData = async (examType: 'topic' | 'mock'): Promise<LeaderboardEntry[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+
+    const isMockTest = examType === 'mock';
+    
+    // 1. Fetch all relevant history
+    const historyCollection = collection(db, 'mcqHistory');
+    const historyQuery = query(historyCollection, where('isMockTest', '==', isMockTest));
+    const historySnapshot = await getDocs(historyQuery);
+    const histories = historySnapshot.docs.map(doc => doc.data() as MCQHistory);
+
+    // 2. Fetch all users
+    const users = await getAllUsers();
+    const userMap = new Map(users.map(u => [u.uid, u]));
+
+    // 3. Aggregate scores per user
+    const userPerformance = new Map<string, { totalScore: number; totalQuestions: number; totalExams: number }>();
+    
+    histories.forEach(h => {
+        if (h.userId === ADMIN_EMAIL) return; // Exclude admin
+
+        const current = userPerformance.get(h.userId) || { totalScore: 0, totalQuestions: 0, totalExams: 0 };
+        current.totalScore += h.score;
+        current.totalQuestions += h.totalQuestions;
+        current.totalExams += 1;
+        userPerformance.set(h.userId, current);
+    });
+
+    // 4. Create leaderboard entries
+    const leaderboard: Omit<LeaderboardEntry, 'rank'>[] = [];
+    userPerformance.forEach((perf, userId) => {
+        const user = userMap.get(userId);
+        if (user && perf.totalExams > 0) { // Only include users with at least one exam
+            leaderboard.push({
+                userId: userId,
+                userName: user.name,
+                examCategory: user.examCategory,
+                averageScore: (perf.totalQuestions > 0) ? (perf.totalScore / perf.totalQuestions) * 100 : 0,
+                totalExams: perf.totalExams
+            });
+        }
+    });
+
+    // 5. Sort and rank
+    const sortedLeaderboard = leaderboard
+        .sort((a, b) => b.averageScore - a.averageScore)
+        .map((entry, index) => ({
+            ...entry,
+            rank: index + 1,
+        }));
+
+    return sortedLeaderboard;
 };
 
 

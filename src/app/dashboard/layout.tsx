@@ -4,7 +4,7 @@
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
@@ -263,6 +263,14 @@ export default function DashboardLayout({
                       <Link href="/dashboard/performance">
                         <TrendingUp />
                         <span>Performance</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/leaderboard')} tooltip="Leaderboard">
+                      <Link href="/dashboard/leaderboard">
+                        <Trophy />
+                        <span>Leaderboard</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
