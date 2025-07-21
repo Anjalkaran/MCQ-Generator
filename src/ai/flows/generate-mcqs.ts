@@ -160,22 +160,23 @@ const generateMCQsFlow = ai.defineFlow(
     
     let flowInput = { ...input };
 
-    // Fetch user's entire question history to avoid duplicates
-    // This is now handled by the calling component (create-quiz-form)
-    // const previousQuestions = await getAllUserQuestions(input.userId);
-    // flowInput.previousQuestions = previousQuestions;
-    
+    // FIX: Check for excluded categories BEFORE processing material.
+    const excludedCategories = ["Basic Arithmetics", "General Awareness"];
+    if (flowInput.category && excludedCategories.includes(flowInput.category)) {
+      flowInput.material = undefined; 
+    }
+
     // --- Material Progress Logic ---
-    if (input.material && input.topicId) {
+    if (flowInput.material && input.topicId) {
         const userProgress = await getUserTopicProgress(input.userId, input.topicId);
         const startIndex = userProgress?.lastCharacterIndexUsed || 0;
         
-        let materialChunk = input.material.substring(startIndex, startIndex + MATERIAL_CHUNK_SIZE);
+        let materialChunk = flowInput.material.substring(startIndex, startIndex + MATERIAL_CHUNK_SIZE);
         
         let nextIndex = startIndex + materialChunk.length;
 
         // If we've reached the end of the material, reset for next time
-        if (nextIndex >= input.material.length) {
+        if (nextIndex >= flowInput.material.length) {
             nextIndex = 0;
         }
 
@@ -188,12 +189,6 @@ const generateMCQsFlow = ai.defineFlow(
         defer(updateProgress); // A simple defer utility
     }
     // --- End Material Progress Logic ---
-
-
-    const excludedCategories = ["Basic Arithmetics", "General Awareness"];
-    if (flowInput.category && excludedCategories.includes(flowInput.category)) {
-      flowInput.material = undefined; 
-    }
 
     if (input.examCategory) {
         const categoryForBank = input.examCategory === 'POSTMAN' ? 'MTS' : input.examCategory;
