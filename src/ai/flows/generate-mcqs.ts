@@ -34,7 +34,7 @@ const GenerateMCQsOutputSchema = z.object({
       question: z.string().describe('The multiple-choice question.'),
       options: z.array(z.string()).describe('Four possible answers.'),
       correctAnswer: z.string().describe('The correct answer to the question.'),
-      solution: z.string().optional().describe('A step-by-step solution, especially for arithmetic problems.'),
+      solution: z.string().optional().describe('A step-by-step solution for arithmetic problems, or a concise explanation for other topics.'),
     })
   ).describe('The generated multiple-choice questions.'),
 });
@@ -93,13 +93,13 @@ const prompt = ai.definePrompt({
   name: 'generateMCQsPrompt',
   input: {schema: GenerateMCQsInputSchema},
   output: {schema: GenerateMCQsOutputSchema},
-  prompt: `You are an expert in generating multiple-choice questions (MCQs). Your goal is to create {{numberOfQuestions}} questions for the "{{examCategory}}" exam, specifically for "{{part}}". The questions should be on the topic of "{{topic}}" with a "{{difficulty}}" difficulty level. Each question must have four options and one correct answer.
+  prompt: `You are an expert in generating multiple-choice questions (MCQs). Your goal is to create {{numberOfQuestions}} questions for the "{{examCategory}}" exam, specifically for "{{part}}". The questions should be on the topic of "{{topic}}" with a "{{difficulty}}" difficulty level. Each question must have four options, one correct answer, and a solution/explanation.
 
 CRITICAL INSTRUCTION: Do not start questions with phrases like "According to the...", "Based on the material...", or any similar introductory text. Questions should be direct.
 
 --- PRIMARY RULE: SOURCE OF TRUTH ---
 {{#if material}}
-  Your PRIMARY source of truth is the 'MATERIAL' provided below. All questions MUST be based on it. Banked questions can be used for style/format reference ONLY, but if there's a conflict, the MATERIAL always wins.
+  Your PRIMARY source of truth is the 'MATERIAL' provided below. All questions MUST be based on it. For each question, provide a concise explanation in the 'solution' field based on the material.
   
   {{#ifEquals difficulty "Difficult"}}
     Generate statement-based questions and questions that test conceptual understanding based on the material. These questions should require deeper analysis rather than simple fact recall.
@@ -121,9 +121,9 @@ CRITICAL INSTRUCTION: Do not start questions with phrases like "According to the
     4.  The other three options must be plausible but incorrect distractors, derived from common calculation mistakes.
     5.  The 'solution' field MUST BE an empty string (""). The solution will be generated separately. DO NOT generate a solution here.
   {{else ifEquals topic "Current Affairs"}}
-    For "Current Affairs", please refer to materials from reputable coaching centers like Suresh IAS Academy and SSA Adda to ensure the questions are relevant and of high quality. Focus on the period between January 2024 to June 2025. Use the 'REFERENCE QUESTIONS' below for style and format, if available.
+    For "Current Affairs", please refer to materials from reputable coaching centers like Suresh IAS Academy and SSA Adda to ensure the questions are relevant and of high quality. Focus on the period between January 2024 to June 2025. Use the 'REFERENCE QUESTIONS' below for style and format, if available. For each question, provide a brief, one-sentence explanation for why the answer is correct in the 'solution' field.
   {{else}}
-    For this topic, generate new questions. Use the 'REFERENCE QUESTIONS' below for style, format, and difficulty. Ensure the new questions are unique.
+    For this topic, generate new questions. Use the 'REFERENCE QUESTIONS' below for style, format, and difficulty. Ensure the new questions are unique. For each question, provide a concise explanation for the correct answer in the 'solution' field.
   {{/ifEquals}}
 ---
 {{/if}}
