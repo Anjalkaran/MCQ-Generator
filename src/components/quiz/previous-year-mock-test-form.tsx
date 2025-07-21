@@ -157,15 +157,6 @@ export function PreviousYearMockTestForm() {
                           </FormItem>
                       )}
                     />
-                    {selectedExamType && (
-                        <Alert>
-                            <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle>{blueprintMap[selectedExamType].examName}</AlertTitle>
-                            <AlertDescription>
-                                This test will extract {blueprintMap[selectedExamType].parts.reduce((sum, p) => sum + p.totalQuestions, 0)} questions from the question bank with a time limit of {blueprintMap[selectedExamType].totalDurationMinutes} minutes. For MTS and Postman, it uses the MTS question bank. For PA, it uses the PA question bank.
-                            </AlertDescription>
-                        </Alert>
-                    )}
                 </fieldset>
              </CardContent>
              <CardFooter>
