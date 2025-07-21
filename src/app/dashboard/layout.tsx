@@ -154,8 +154,7 @@ export default function DashboardLayout({
         return "Welcome, Admin! Enjoy unlimited access.";
     }
     if(isPro) {
-        const dateString = proValidUntilDate ? ` until ${proValidUntilDate.toLocaleDateString()}` : '';
-        return `Welcome, Pro User! Access is unlimited${dateString}.`;
+        return `Welcome, ${userData.name}!`;
     }
 
     const examsRemaining = FREE_TOPIC_EXAM_LIMIT - (userData.topicExamsTaken || 0);

@@ -6,7 +6,9 @@ import { ProfileForm } from '@/components/dashboard/profile-form';
 import { ChangePasswordForm } from '@/components/dashboard/change-password-form';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, User } from 'lucide-react';
+import { Loader2, User, Gem } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { normalizeDate } from '@/lib/utils';
 
 export default function ProfilePage() {
     const { user, userData, isLoading } = useDashboard();
@@ -33,7 +35,6 @@ export default function ProfilePage() {
           );
     }
     
-    // Check for admin email from userData, which is reliable from the context
     if (userData.email === "admin@anjalkaran.com") {
          return (
             <div className="space-y-6">
@@ -55,6 +56,9 @@ export default function ProfilePage() {
          )
     }
 
+    const proValidUntilDate = normalizeDate(userData?.proValidUntil);
+    const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date());
+
   return (
     <div className="space-y-6">
       <div className="space-y-0.5">
@@ -64,6 +68,24 @@ export default function ProfilePage() {
           </p>
       </div>
       <Separator />
+      
+      {isPro && (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Gem className="h-5 w-5 text-primary" />
+                    Pro Subscription
+                </CardTitle>
+                <CardDescription>
+                    You have unlimited access to all features.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <p>Your subscription is valid until: <span className="font-semibold">{proValidUntilDate?.toLocaleDateString()}</span></p>
+            </CardContent>
+        </Card>
+      )}
+
       <ProfileForm user={user} userData={userData} />
       <ChangePasswordForm />
     </div>
