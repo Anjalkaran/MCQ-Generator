@@ -1,6 +1,5 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
 import { addQuestionBankDocument } from '@/lib/firestore';
 import type { BankedQuestion } from '@/lib/types';
@@ -26,15 +25,12 @@ export async function POST(req: NextRequest) {
         const buffer = Buffer.from(await file.arrayBuffer());
         let textContent: string;
 
-        if (file.type === 'application/pdf') {
-            const data = await pdf(buffer);
-            textContent = data.text;
-        } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
             const result = await mammoth.extractRawText({ buffer });
             textContent = result.value;
         } else {
             // Skip unsupported file types or return an error for the batch
-             console.warn(`Skipping unsupported file type: ${file.name} (${file.type})`);
+             console.warn(`Skipping unsupported file type: ${file.name} (${file.type}). Only .docx is supported.`);
              continue;
         }
 

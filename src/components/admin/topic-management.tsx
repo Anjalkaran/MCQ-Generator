@@ -475,7 +475,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
              <Card>
                 <CardHeader>
                     <CardTitle>Upload Material</CardTitle>
-                    <CardDescription>Upload a single PDF or DOCX file for a topic. Re-uploading will replace the existing material.</CardDescription>
+                    <CardDescription>Upload a single DOCX file for a topic. Re-uploading will replace the existing material.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...materialForm}>
@@ -529,7 +529,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                         <FormControl>
                                             <Input 
                                                 type="file" 
-                                                accept=".pdf,.docx"
+                                                accept=".docx"
                                                 onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
                                             />
                                         </FormControl>

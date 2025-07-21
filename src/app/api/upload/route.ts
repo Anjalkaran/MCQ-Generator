@@ -1,6 +1,5 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
 import { addMaterialToTopic } from '@/lib/firestore';
 
@@ -22,14 +21,11 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     let textContent: string;
 
-    if (file.type === 'application/pdf') {
-      const data = await pdf(buffer);
-      textContent = data.text;
-    } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
       const result = await mammoth.extractRawText({ buffer });
       textContent = result.value;
     } else {
-      return NextResponse.json({ error: 'Unsupported file type. Please upload a PDF or DOCX file.' }, { status: 415 });
+      return NextResponse.json({ error: 'Unsupported file type. Please upload a DOCX file.' }, { status: 415 });
     }
 
     if (!textContent.trim()) {

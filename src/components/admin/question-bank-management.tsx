@@ -103,7 +103,7 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
         <Card>
         <CardHeader>
             <CardTitle>Upload Question Papers</CardTitle>
-            <CardDescription>Upload multiple PDF or DOCX files containing previous years' questions. These will be used as a reference to generate new MCQs.</CardDescription>
+            <CardDescription>Upload DOCX files containing previous years' questions. These will be used as a reference to generate new MCQs.</CardDescription>
         </CardHeader>
         <CardContent>
             <Form {...form}>
@@ -137,7 +137,7 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                     <FormControl>
                         <Input 
                         type="file" 
-                        accept=".pdf,.docx"
+                        accept=".docx"
                         multiple
                         onChange={(e) => onChange(e.target.files ? Array.from(e.target.files) : [])}
                         {...rest}
