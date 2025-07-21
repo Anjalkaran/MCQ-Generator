@@ -135,7 +135,7 @@ export default function QAPage() {
       <div className="space-y-2 text-center">
         <h1 className="text-3xl font-bold tracking-tight">Ask Your Doubt</h1>
         <p className="text-muted-foreground">
-          Ask a question about a specific topic and get an answer based on the uploaded study material or the AI's knowledge.
+          Ask a question about a specific topic and get an answer based on the study material or the AI's knowledge.
         </p>
       </div>
       <Card>
@@ -312,5 +312,7 @@ export default function QAPage() {
     </div>
   );
 }
+
+    
 
     
