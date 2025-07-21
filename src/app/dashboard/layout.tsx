@@ -60,6 +60,170 @@ function MainContent({ children }: { children: React.ReactNode }) {
   );
 }
 
+function AppSidebar() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { toast } = useToast();
+  const { user, userData, isLoading } = useDashboard();
+  const { setOpenMobile } = useSidebar();
+
+  const handleLogout = useCallback(async (authInstance = getFirebaseAuth(), showToast = true) => {
+    if (!authInstance) {
+      if (showToast) toast({ title: "Authentication Error", description: "Could not connect to service.", variant: "destructive" });
+      return;
+    }
+    try {
+      await signOut(authInstance);
+      if (showToast) toast({ title: "Logged Out", description: "You have been successfully logged out." });
+      router.push('/');
+    } catch (error: any) {
+      if (showToast) toast({ title: 'Logout Failed', description: error.message || 'An unexpected error occurred.', variant: 'destructive' });
+    }
+  }, [router, toast]);
+
+  const onLinkClick = () => {
+    setOpenMobile(false);
+  }
+
+  const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
+  const proValidUntilDate = normalizeDate(userData?.proValidUntil);
+  const isPro = !!(userData && (
+      (userData.isPro && proValidUntilDate && proValidUntilDate > new Date()) ||
+      isAdmin
+  ));
+  
+  const showUpgradeButton = userData && !isPro && !isAdmin;
+
+  const getWelcomeMessage = () => {
+    if (isLoading || !userData) return null;
+    
+    if(isPro) {
+        return `Welcome, ${userData.name}!`;
+    }
+
+    const examsRemaining = FREE_TOPIC_EXAM_LIMIT - (userData.topicExamsTaken || 0);
+    return `Welcome, ${userData.name}! You have ${examsRemaining > 0 ? examsRemaining : 0} free exam(s) remaining.`;
+  }
+
+  return (
+    <Sidebar collapsible="icon">
+      <SidebarHeader>
+        <div className="flex items-center gap-2 p-2 group-data-[collapsible=icon]:hidden">
+          <Link href="/" onClick={onLinkClick}>
+            <Logo className="h-12 w-auto text-primary" />
+          </Link>
+        </div>
+          <div className="hidden items-center gap-2 p-2 group-data-[collapsible=icon]:flex">
+          </div>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarMenu>
+          <div className="p-2 group-data-[collapsible=icon]:hidden">
+            <CardDescription className="text-center text-sm">
+              {getWelcomeMessage()}
+            </CardDescription>
+          </div>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname === '/dashboard'} tooltip="Dashboard">
+              <Link href="/dashboard" onClick={onLinkClick}>
+                <LayoutDashboard />
+                <span>Dashboard</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          {isAdmin && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin">
+                <Link href="/dashboard/admin" onClick={onLinkClick}>
+                  <Shield />
+                  <span>Admin</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/topic-wise-mcq')} tooltip="Practice Quiz">
+                <Link href="/dashboard/topic-wise-mcq" onClick={onLinkClick}>
+                  <BookCopy />
+                  <span>Practice Quiz</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+              <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/mock-test')} tooltip="Mock Test">
+                <Link href="/dashboard/mock-test" onClick={onLinkClick}>
+                  <FileText />
+                  <span>Mock Test</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/q-and-a')} tooltip="Ask Your Doubt">
+                <Link href="/dashboard/q-and-a" onClick={onLinkClick}>
+                  <HelpCircle />
+                  <span>Ask Your Doubt</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname === '/dashboard/profile'} tooltip="Profile">
+              <Link href="/dashboard/profile" onClick={onLinkClick}>
+                <UserIcon />
+                <span>Profile</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname === '/dashboard/history'} tooltip="Exam History">
+              <Link href="/dashboard/history" onClick={onLinkClick}>
+                <History />
+                <span>Exam History</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/performance')} tooltip="Performance">
+              <Link href="/dashboard/performance" onClick={onLinkClick}>
+                <TrendingUp />
+                <span>Performance</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/leaderboard')} tooltip="Leaderboard">
+              <Link href="/dashboard/leaderboard" onClick={onLinkClick}>
+                <Trophy />
+                <span>Leaderboard</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+            {showUpgradeButton && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname === '/dashboard/upgrade'} variant="outline" className="text-primary hover:bg-primary/10 hover:text-primary border-primary/50" tooltip="Upgrade to Pro">
+                <Link href="/dashboard/upgrade" onClick={onLinkClick}>
+                  <Gem />
+                  <span>Upgrade to Pro</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
+        </SidebarMenu>
+      </SidebarContent>
+      <SidebarFooter>
+        <div className="p-2">
+          <Button onClick={() => handleLogout()} variant="ghost" className="w-full justify-start">
+            <LogOut className="mr-2 h-4 w-4" />
+            <span className="group-data-[collapsible=icon]:hidden">Logout</span>
+          </Button>
+        </div>
+        <div className='p-4 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden'>
+          <p>&copy; {new Date().getFullYear()} Anjalkaran</p>
+        </div>
+      </SidebarFooter>
+    </Sidebar>
+  )
+}
+
 
 export default function DashboardLayout({
   children,
@@ -160,149 +324,14 @@ export default function DashboardLayout({
     return () => unsubscribe();
     
   }, [router, toast, handleLogout, pathname]);
-
-  // Direct computation of pro status from userData.
-  const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
-  const proValidUntilDate = normalizeDate(userData?.proValidUntil);
-  const isPro = !!(userData && (
-      (userData.isPro && proValidUntilDate && proValidUntilDate > new Date()) ||
-      isAdmin
-  ));
   
-  const showUpgradeButton = userData && !isPro && !isAdmin;
-
-  const getWelcomeMessage = () => {
-    if (isLoading || !userData) return null;
-    
-    if(isPro) {
-        return `Welcome, ${userData.name}!`;
-    }
-
-    const examsRemaining = FREE_TOPIC_EXAM_LIMIT - (userData.topicExamsTaken || 0);
-    return `Welcome, ${userData.name}! You have ${examsRemaining > 0 ? examsRemaining : 0} free exam(s) remaining.`;
-  }
-
   const contextValue = { user, userData, categories, topics, bankedQuestions, isLoading, setUserData };
 
   return (
     <DashboardContext.Provider value={contextValue}>
       <SidebarProvider>
         <div className="relative z-20">
-            <Sidebar collapsible="icon">
-              <SidebarHeader>
-                <div className="flex items-center gap-2 p-2 group-data-[collapsible=icon]:hidden">
-                  <Link href="/" className="flex items-center gap-2">
-                    <Logo className="h-12 w-auto text-primary" />
-                  </Link>
-                </div>
-                 <div className="hidden items-center gap-2 p-2 group-data-[collapsible=icon]:flex">
-                 </div>
-              </SidebarHeader>
-              <SidebarContent>
-                <SidebarMenu>
-                  <div className="p-2 group-data-[collapsible=icon]:hidden">
-                    <CardDescription className="text-center text-sm">
-                      {getWelcomeMessage()}
-                    </CardDescription>
-                  </div>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === '/dashboard'} tooltip="Dashboard">
-                      <Link href="/dashboard">
-                        <LayoutDashboard />
-                        <span>Dashboard</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  {isAdmin && (
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin">
-                        <Link href="/dashboard/admin">
-                          <Shield />
-                          <span>Admin</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )}
-                   <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/topic-wise-mcq')} tooltip="Practice Quiz">
-                        <Link href="/dashboard/topic-wise-mcq">
-                          <BookCopy />
-                          <span>Practice Quiz</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/mock-test')} tooltip="Mock Test">
-                        <Link href="/dashboard/mock-test">
-                          <FileText />
-                          <span>Mock Test</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                   <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/q-and-a')} tooltip="Ask Your Doubt">
-                        <Link href="/dashboard/q-and-a">
-                          <HelpCircle />
-                          <span>Ask Your Doubt</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/profile'} tooltip="Profile">
-                      <Link href="/dashboard/profile">
-                        <UserIcon />
-                        <span>Profile</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/history'} tooltip="Exam History">
-                      <Link href="/dashboard/history">
-                        <History />
-                        <span>Exam History</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/performance')} tooltip="Performance">
-                      <Link href="/dashboard/performance">
-                        <TrendingUp />
-                        <span>Performance</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/leaderboard')} tooltip="Leaderboard">
-                      <Link href="/dashboard/leaderboard">
-                        <Trophy />
-                        <span>Leaderboard</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                   {showUpgradeButton && (
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={pathname === '/dashboard/upgrade'} variant="outline" className="text-primary hover:bg-primary/10 hover:text-primary border-primary/50" tooltip="Upgrade to Pro">
-                        <Link href="/dashboard/upgrade">
-                          <Gem />
-                          <span>Upgrade to Pro</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )}
-                </SidebarMenu>
-              </SidebarContent>
-              <SidebarFooter>
-                <div className="p-2">
-                  <Button onClick={() => handleLogout()} variant="ghost" className="w-full justify-start">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span className="group-data-[collapsible=icon]:hidden">Logout</span>
-                  </Button>
-                </div>
-                <div className='p-4 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden'>
-                  <p>&copy; {new Date().getFullYear()} Anjalkaran</p>
-                </div>
-              </SidebarFooter>
-            </Sidebar>
+            <AppSidebar />
         </div>
          <MainContent>
             {isLoading ? (
@@ -315,5 +344,3 @@ export default function DashboardLayout({
     </DashboardContext.Provider>
   );
 }
-
-    
