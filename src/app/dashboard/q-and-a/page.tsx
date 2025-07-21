@@ -1,0 +1,194 @@
+
+"use client";
+
+import { useState, useMemo } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useDashboard } from '@/app/dashboard/layout';
+import { answerQuestion } from '@/ai/flows/answer-question';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, Sparkles, AlertTriangle } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+
+const formSchema = z.object({
+  categoryId: z.string().min(1, 'Please select a category.'),
+  topicId: z.string().min(1, 'Please select a topic.'),
+  question: z.string().min(10, 'Your question must be at least 10 characters long.'),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+export default function QAPage() {
+  const { toast } = useToast();
+  const { user, categories, topics, isLoading: isDashboardLoading } = useDashboard();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [answer, setAnswer] = useState('');
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      categoryId: '',
+      topicId: '',
+      question: '',
+    },
+  });
+
+  const selectedCategoryId = form.watch('categoryId');
+
+  const filteredTopics = useMemo(() => {
+    return topics.filter(topic => topic.categoryId === selectedCategoryId && topic.material);
+  }, [selectedCategoryId, topics]);
+
+  const onSubmit = async (values: FormValues) => {
+    setIsGenerating(true);
+    setAnswer('');
+
+    if (!user) {
+      toast({ title: 'Not Authenticated', description: 'You must be logged in.', variant: 'destructive' });
+      setIsGenerating(false);
+      return;
+    }
+
+    const selectedTopic = topics.find(t => t.id === values.topicId);
+    if (!selectedTopic || !selectedTopic.material) {
+      toast({ title: 'Error', description: 'Selected topic does not have study material.', variant: 'destructive' });
+      setIsGenerating(false);
+      return;
+    }
+
+    try {
+      const { answer } = await answerQuestion({
+        material: selectedTopic.material,
+        question: values.question,
+      });
+      setAnswer(answer);
+    } catch (error: any) {
+      console.error('Error getting answer:', error);
+      toast({ title: 'Error', description: error.message || 'Failed to get an answer.', variant: 'destructive' });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 max-w-2xl mx-auto">
+      <div className="space-y-2 text-center">
+        <h1 className="text-3xl font-bold tracking-tight">Q & A</h1>
+        <p className="text-muted-foreground">
+          Ask a question about a specific topic and get an answer based on the uploaded study material.
+        </p>
+      </div>
+      <Card>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <CardContent className="pt-6 space-y-4">
+              <fieldset disabled={isGenerating || isDashboardLoading} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="categoryId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category</FormLabel>
+                      <Select onValueChange={(value) => {
+                        field.onChange(value);
+                        form.setValue('topicId', '');
+                      }} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="topicId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Topic with Material</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCategoryId || filteredTopics.length === 0}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={!selectedCategoryId ? "Select a category first" : (filteredTopics.length > 0 ? "Select a topic" : "No topics with material in this category")} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {filteredTopics.map((topic) => (
+                            <SelectItem key={topic.id} value={topic.id}>{topic.title}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="question"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Your Question</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="e.g., What are the business hours for post offices on Saturdays?" rows={4} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </fieldset>
+            </CardContent>
+            <CardFooter>
+              <Button type="submit" disabled={isGenerating || isDashboardLoading}>
+                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                Get Answer
+              </Button>
+            </CardFooter>
+          </form>
+        </Form>
+      </Card>
+
+      {isGenerating && (
+         <Card>
+            <CardContent className="pt-6 flex items-center justify-center">
+                 <Loader2 className="mr-4 h-6 w-6 animate-spin" />
+                 <p className="text-muted-foreground">Finding the answer in the material...</p>
+            </CardContent>
+        </Card>
+      )}
+
+      {answer && !isGenerating && (
+        <Card>
+            <CardHeader>
+                <CardTitle>Answer</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                 <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Disclaimer</AlertTitle>
+                    <AlertDescription>
+                        This answer is generated by an AI based on the provided material. Always verify with official sources.
+                    </AlertDescription>
+                </Alert>
+                <div className="p-4 bg-muted/50 rounded-lg border prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
+                    {answer}
+                </div>
+            </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}

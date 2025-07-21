@@ -4,7 +4,7 @@
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
@@ -236,6 +236,14 @@ export default function DashboardLayout({
                         <Link href="/dashboard/mock-test">
                           <FileText />
                           <span>Mock Test</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                   <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/q-and-a')} tooltip="Q & A">
+                        <Link href="/dashboard/q-and-a">
+                          <HelpCircle />
+                          <span>Q & A</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
