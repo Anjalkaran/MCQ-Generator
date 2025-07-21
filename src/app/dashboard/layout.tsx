@@ -45,12 +45,12 @@ function MainContent({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 sm:py-4">
         <SidebarTrigger className="sm:hidden" />
         <div className="relative flex-1 flex items-center gap-2">
+          <SidebarTrigger className="hidden sm:inline-flex" />
            {!isMobile && state === 'collapsed' && (
               <Link href="/" className="flex items-center gap-2">
                 <Logo className="h-10 w-auto text-primary" />
               </Link>
             )}
-          <SidebarTrigger className="hidden sm:inline-flex" />
         </div>
       </header>
       <div className="p-4 md:p-6 flex-1">
@@ -198,7 +198,6 @@ export default function DashboardLayout({
               </Link>
             </div>
              <div className="hidden items-center gap-2 p-2 group-data-[collapsible=icon]:flex">
-                 <Logo className="h-10 w-auto text-primary" />
              </div>
           </SidebarHeader>
           <SidebarContent>
