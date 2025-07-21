@@ -3,7 +3,7 @@ import { MainHeader } from "@/components/main-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
-import { BookCopy, FileText, TrendingUp, Trophy, BrainCircuit } from 'lucide-react';
+import { BookCopy, FileText, TrendingUp, Trophy, BrainCircuit, HelpCircle } from 'lucide-react';
 
 const features = [
   {
@@ -26,6 +26,11 @@ const features = [
     title: "Competitive Leaderboard",
     description: "See how you measure up against other users with separate leaderboards for topic quizzes and mock tests.",
   },
+  {
+    icon: <HelpCircle className="h-8 w-8 text-primary" />,
+    title: "Ask Your Doubt",
+    description: "Get instant, material-based answers from our AI tutor to clarify your doubts on any topic, ensuring you're always prepared.",
+  }
 ];
 
 
@@ -54,7 +59,7 @@ export default function Home() {
 
         <section className="w-full pb-12 md:pb-24 lg:pb-32">
           <div className="container px-4 md:px-6">
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {features.map((feature) => (
                 <Card key={feature.title} className="flex flex-col text-center items-center p-6">
                   <div className="mb-4 bg-primary/10 p-3 rounded-full">
