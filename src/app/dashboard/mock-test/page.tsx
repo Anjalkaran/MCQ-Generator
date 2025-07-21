@@ -15,15 +15,15 @@ export default function MockTestPage() {
                     Generate a full-length mock test based on the official exam blueprint, either with new questions or from the question bank.
                 </p>
             </div>
-             <Tabs defaultValue="generated-test" className="w-full">
+             <Tabs defaultValue="standard-test" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="generated-test">Generated Test</TabsTrigger>
-                    <TabsTrigger value="from-question-bank">From Question Bank</TabsTrigger>
+                    <TabsTrigger value="standard-test">Standard Mock Test</TabsTrigger>
+                    <TabsTrigger value="previous-year-test">From Previous Year Questions</TabsTrigger>
                 </TabsList>
-                <TabsContent value="generated-test">
+                <TabsContent value="standard-test">
                     <MockTestForm />
                 </TabsContent>
-                <TabsContent value="from-question-bank">
+                <TabsContent value="previous-year-test">
                     <PreviousYearMockTestForm />
                 </TabsContent>
             </Tabs>
