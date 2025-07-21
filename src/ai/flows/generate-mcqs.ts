@@ -92,7 +92,7 @@ const prompt = ai.definePrompt({
   name: 'generateMCQsPrompt',
   input: {schema: GenerateMCQsInputSchema},
   output: {schema: GenerateMCQsOutputSchema},
-  prompt: `You are an expert in generating multiple-choice questions (MCQs). Your goal is to create {{numberOfQuestions}} questions on the topic of "{{topic}}" with a "{{difficulty}}" difficulty level. Each question must have four options and one correct answer.
+  prompt: `You are an expert in generating multiple-choice questions (MCQs). Your goal is to create {{numberOfQuestions}} questions for the "{{examCategory}}" exam, specifically for "{{part}}". The questions should be on the topic of "{{topic}}" with a "{{difficulty}}" difficulty level. Each question must have four options and one correct answer.
 
 CRITICAL INSTRUCTION: Do not start questions with phrases like "According to the...", "Based on the material...", or any similar introductory text. Questions should be direct.
 
