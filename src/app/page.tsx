@@ -1,3 +1,4 @@
+
 import { MainHeader } from "@/components/main-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -7,8 +8,8 @@ import { BookCopy, FileText, TrendingUp, Trophy, BrainCircuit } from 'lucide-rea
 const features = [
   {
     icon: <BrainCircuit className="h-8 w-8 text-primary" />,
-    title: "AI-Powered Quizzes",
-    description: "Generate unique, high-quality questions for any topic with our advanced AI, tailored to different difficulty levels.",
+    title: "Smartly Generated Quizzes",
+    description: "Generate unique, high-quality questions for any topic with our advanced system, tailored to different difficulty levels.",
   },
   {
     icon: <FileText className="h-8 w-8 text-primary" />,
@@ -40,7 +41,7 @@ export default function Home() {
                 Your Ultimate Postal Exam Prep Tool
               </h1>
               <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl">
-                Elevate your preparation with AI-generated quizzes, realistic mock tests, and detailed performance tracking.
+                Elevate your preparation with smartly generated quizzes, realistic mock tests, and detailed performance tracking.
               </p>
               <Button asChild size="lg">
                 <Link href="/auth/login">
