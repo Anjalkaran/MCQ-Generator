@@ -26,7 +26,7 @@ const MCQSchema = z.object({
   options: z.array(z.string()).describe('Four possible answers.'),
   correctAnswer: z.string().describe('The correct answer to the question.'),
   topic: z.string().describe('The topic the question belongs to.'),
-  solution: z.string().optional().describe('A step-by-step solution, if available in the source.'),
+  solution: z.string().optional().describe('A step-by-step solution, if available in the source or from verification.'),
 });
 
 const GenerateMockTestFromBankOutputSchema = z.object({
@@ -35,8 +35,8 @@ const GenerateMockTestFromBankOutputSchema = z.object({
 export type GenerateMockTestFromBankOutput = z.infer<typeof GenerateMockTestFromBankOutputSchema>;
 
 
-const extractCandidateQuestionsPrompt = ai.definePrompt({
-    name: 'extractCandidateQuestionsPrompt',
+const extractAndVerifyQuestionsPrompt = ai.definePrompt({
+    name: 'extractAndVerifyQuestionsPrompt',
     input: {
         schema: z.object({
             examCategory: z.string(),
@@ -44,6 +44,7 @@ const extractCandidateQuestionsPrompt = ai.definePrompt({
             topics: z.string(),
             questionCount: z.number(),
             questionBank: z.string(),
+            studyMaterial: z.string(),
         })
     },
     output: {
@@ -52,72 +53,40 @@ const extractCandidateQuestionsPrompt = ai.definePrompt({
         })
     },
     model: 'googleai/gemini-1.5-flash',
-    prompt: `You are an expert Question Extractor for the Indian Postal Department's {{examCategory}} exam.
+    prompt: `You are an expert Question Curator for the Indian Postal Department's {{examCategory}} exam.
 
-Your task is to extract EXACTLY **{{questionCount}}** questions for the section named **"{{sectionName}}"** from the provided 'QUESTION BANK'.
+Your task is to create a set of EXACTLY **{{questionCount}}** questions for the section named **"{{sectionName}}"**.
 
-The questions you extract must be relevant to the following topics:
-{{{topics}}}
+**Process:**
 
-- For each extracted question, you MUST identify its topic from the list above and specify it in the 'topic' field.
-- If the question bank provides a solution or explanation, include it in the 'solution' field. Otherwise, leave it empty.
-- Ensure the questions, options, and correct answers are extracted precisely as they appear in the source material.
-- If the question bank doesn't have enough relevant questions for a section, do your best to find the closest matches. DO NOT invent new questions.
+1.  **Extract:** Find questions from the 'QUESTION BANK' that are relevant to the provided list of 'TOPICS'.
+2.  **Verify & Correct:**
+    *   For each extracted question, you MUST verify its answer using the 'STUDY MATERIAL' as the primary source of truth.
+    *   If the answer in the question bank is correct according to the study material, keep it.
+    *   If the answer is INCORRECT, you MUST correct it based on the study material and provide a brief explanation in the 'solution' field.
+    *   If you cannot verify or correct the answer using the study material or your general knowledge, SKIP the question and find another one.
+3.  **Assign Topic:** For each final question, you MUST identify its topic from the list and specify it in the 'topic' field.
 
---- QUESTION BANK START ---
-{{{questionBank}}}
---- QUESTION BANK END ---
-
-Your final output MUST be a single, valid JSON object containing a 'questions' array with EXACTLY {{questionCount}} questions.
-`,
-});
-
-const verifyQuestionAnswerPrompt = ai.definePrompt({
-    name: 'verifyQuestionAnswerPrompt',
-    input: {
-        schema: z.object({
-            question: z.string(),
-            options: z.array(z.string()),
-            proposedAnswer: z.string(),
-            studyMaterial: z.string(),
-        })
-    },
-    output: {
-        schema: z.object({
-            verificationStatus: z.enum(['Verified', 'Corrected', 'Unverifiable']),
-            finalAnswer: z.string().optional(),
-            explanation: z.string().optional(),
-        })
-    },
-    prompt: `You are an expert Fact-Checker for Indian Postal Department exams. Your task is to verify the answer to a given multiple-choice question.
-
-You will receive a question, its options, a proposed answer from an old question paper, and a comprehensive study material.
-
-**Verification Process:**
-1.  **Primary Source of Truth:** Your first and most important source is the provided 'STUDY MATERIAL'.
-2.  **Check the Proposed Answer:** Compare the 'Proposed Answer' against the information in the 'STUDY MATERIAL'.
-    - If the 'Proposed Answer' is correct according to the material, set 'verificationStatus' to "Verified".
-    - If the 'Proposed Answer' is INCORRECT according to the material, find the correct answer from the material, set 'verificationStatus' to "Corrected", put the correct answer in 'finalAnswer', and provide a brief 'explanation'.
-3.  **Use General Knowledge (if needed):** If the answer cannot be found in the 'STUDY MATERIAL', use your general knowledge to verify or correct the answer. Follow the same logic as step 2.
-4.  **Mark as Unverifiable:** If you cannot confidently determine the correct answer from either the study material or your general knowledge, set 'verificationStatus' to "Unverifiable".
-
-**Output Rules:**
-- Your output must be a valid JSON object with the keys: \`verificationStatus\`, \`finalAnswer\` (optional), and \`explanation\` (optional).
-- Do not invent information. If the material is inconclusive and you are unsure, it's better to mark it as "Unverifiable".
-
----
-
-**Question:** {{question}}
-**Options:** {{#each options}}- {{this}} {{/each}}
-**Proposed Answer:** {{proposedAnswer}}
+**Content Sources:**
 
 --- STUDY MATERIAL (Primary Source of Truth) ---
 {{{studyMaterial}}}
 --- END STUDY MATERIAL ---
 
-Now, provide your verification result as a JSON object.
+--- QUESTION BANK (Source of Questions) ---
+{{{questionBank}}}
+--- END QUESTION BANK ---
+
+**Topic List for this section:**
+{{{topics}}}
+
+**CRITICAL INSTRUCTIONS:**
+*   Your final output MUST be a single, valid JSON object containing a 'questions' array.
+*   The 'questions' array MUST contain EXACTLY {{questionCount}} verified and corrected questions.
+*   Do NOT invent new questions. All questions must originate from the 'QUESTION BANK'.
 `,
-})
+});
+
 
 export async function generateMockTestFromBank(input: GenerateMockTestFromBankInput): Promise<GenerateMockTestFromBankOutput> {
   return generateMockTestFromBankFlow(input);
@@ -156,60 +125,36 @@ const generateMockTestFromBankFlow = ai.defineFlow(
     }
 
     // Combine all study material from all topics into one string
-    const allStudyMaterial = allTopics.map(t => t.material || '').join('\n\n');
+    const allStudyMaterial = allTopics.map(t => `Topic: ${t.title}\nMaterial: ${t.material || 'N/A'}`).join('\n\n---\n\n');
     
-    const allVerifiedQuestions: MCQ[] = [];
+    const allGeneratedQuestions: MCQ[] = [];
     
     for (const part of blueprint.parts) {
       for (const section of part.sections) {
         const topicsString = section.topics.map((topic: any) => `- ${(typeof topic === 'string') ? topic : topic.name}`).join('\n');
         
-        // Fetch more candidates than needed to allow for skipping unverifiable ones
-        const candidateCount = Math.ceil(section.questions * 1.5); 
-
-        const { output: candidateOutput } = await extractCandidateQuestionsPrompt({
-            examCategory: input.examCategory,
-            sectionName: section.sectionName,
-            topics: topicsString,
-            questionCount: candidateCount,
-            questionBank: questionBankContent,
-        });
-        
-        const candidates = candidateOutput?.questions || [];
-        const verifiedSectionQuestions: MCQ[] = [];
-
-        for (const candidate of candidates) {
-            if (verifiedSectionQuestions.length >= section.questions) {
-                break; // We have enough questions for this section
-            }
-
-            const { output: verificationResult } = await verifyQuestionAnswerPrompt({
-                question: candidate.question,
-                options: candidate.options,
-                proposedAnswer: candidate.correctAnswer,
+        try {
+            const { output } = await extractAndVerifyQuestionsPrompt({
+                examCategory: input.examCategory,
+                sectionName: section.sectionName,
+                topics: topicsString,
+                questionCount: section.questions,
+                questionBank: questionBankContent,
                 studyMaterial: allStudyMaterial,
             });
 
-            if (verificationResult?.verificationStatus === 'Verified') {
-                verifiedSectionQuestions.push(candidate);
-            } else if (verificationResult?.verificationStatus === 'Corrected' && verificationResult.finalAnswer) {
-                 verifiedSectionQuestions.push({
-                    ...candidate,
-                    correctAnswer: verificationResult.finalAnswer,
-                    solution: verificationResult.explanation ? `${candidate.solution || ''}\nCorrection: ${verificationResult.explanation}`.trim() : candidate.solution,
-                 });
+            if (output && output.questions) {
+                allGeneratedQuestions.push(...output.questions);
+            } else {
+                 console.warn(`Could not generate questions for section: ${section.sectionName}`);
             }
-            // If 'Unverifiable', we skip the question.
+        } catch(e) {
+            console.error(`Error generating questions for section ${section.sectionName}`, e);
+            // Continue to the next section even if one fails
         }
-        allVerifiedQuestions.push(...verifiedSectionQuestions);
       }
     }
-
-    const totalExpectedQuestions = blueprint.parts.reduce((sum, part) => sum + part.totalQuestions, 0);
-    if (allVerifiedQuestions.length < totalExpectedQuestions) { 
-        console.warn(`Could only verify ${allVerifiedQuestions.length} out of ${totalExpectedQuestions} expected questions. The test might be shorter than expected.`);
-    }
     
-    return { mcqs: allVerifiedQuestions };
+    return { mcqs: allGeneratedQuestions };
   }
 );
