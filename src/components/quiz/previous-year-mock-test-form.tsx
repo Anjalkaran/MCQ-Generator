@@ -41,7 +41,7 @@ const blueprintMap = {
 export function PreviousYearMockTestForm() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user, userData, isLoading } = useDashboard();
+  const { user, userData, isLoading, bankedQuestions: allBankedQuestions } = useDashboard();
   const [isGenerating, setIsGenerating] = useState(false);
   const [questionBank, setQuestionBank] = useState<BankedQuestion[]>([]);
   const [isBankLoading, setIsBankLoading] = useState(false);
@@ -56,24 +56,17 @@ export function PreviousYearMockTestForm() {
   const selectedExamType = form.watch('examType');
 
   useEffect(() => {
-    const fetchBank = async () => {
-        if (selectedExamType) {
-            setIsBankLoading(true);
-            try {
-                const docs = await getQuestionBankDocumentsByCategory(selectedExamType);
-                setQuestionBank(docs);
-            } catch (error) {
-                console.error("Failed to fetch question bank", error);
-                setQuestionBank([]);
-            } finally {
-                setIsBankLoading(false);
-            }
-        } else {
-            setQuestionBank([]);
-        }
+    if (selectedExamType) {
+        setIsBankLoading(true);
+        // Filter the globally available banked questions
+        const filtered = allBankedQuestions.filter(bq => bq.examCategory === selectedExamType);
+        setQuestionBank(filtered);
+        setIsBankLoading(false);
+    } else {
+        setQuestionBank([]);
     }
-    fetchBank();
-  }, [selectedExamType]);
+  }, [selectedExamType, allBankedQuestions]);
+
 
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);

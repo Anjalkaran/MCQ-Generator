@@ -358,11 +358,13 @@ export const deleteQuestionBankDocument = async (docId: string): Promise<void> =
     await deleteDoc(doc(db, 'questionBank', docId));
 };
 
-export const getQuestionBankDocumentsByCategory = async (examCategory: 'MTS' | 'POSTMAN' | 'PA'): Promise<BankedQuestion[]> => {
+export const getQuestionBankByCategory = async (examCategory: 'MTS' | 'POSTMAN' | 'PA'): Promise<string | null> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     const bankCollection = collection(db, 'questionBank');
     let q;
+    // For Postman exams, it's beneficial to also draw from the MTS question bank
+    // as there's syllabus overlap.
     if (examCategory === 'POSTMAN') {
         q = query(bankCollection, where('examCategory', '==', 'MTS'));
     } else {
@@ -371,17 +373,12 @@ export const getQuestionBankDocumentsByCategory = async (examCategory: 'MTS' | '
     
     const querySnapshot = await getDocs(q);
     if (querySnapshot.empty) {
-        return [];
+        return null;
     }
 
-    return querySnapshot.docs.map(doc => {
-         const data = doc.data();
-        return {
-            id: doc.id,
-            ...data,
-            uploadedAt: data.uploadedAt.toDate(),
-        } as BankedQuestion
-    });
+    // Combine content from all found documents into a single string
+    const combinedContent = querySnapshot.docs.map(doc => doc.data().content).join('\n\n---\n\n');
+    return combinedContent;
 };
 
 

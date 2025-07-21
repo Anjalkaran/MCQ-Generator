@@ -11,7 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { getAllUserQuestions, getQuestionBankByCategory, getUserTopicProgress, updateUserTopicProgress } from '@/lib/firestore';
+import { getQuestionBankByCategory, getUserTopicProgress, updateUserTopicProgress } from '@/lib/firestore';
 
 const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
@@ -197,7 +197,7 @@ const generateMCQsFlow = ai.defineFlow(
 
     if (input.examCategory) {
         const categoryForBank = input.examCategory === 'POSTMAN' ? 'MTS' : input.examCategory;
-        const bankedQuestions = await getQuestionBankByCategory(categoryForBank);
+        const bankedQuestions = await getQuestionBankByCategory(categoryForBank as 'MTS' | 'POSTMAN' | 'PA');
         if (bankedQuestions) {
             flowInput.bankedQuestions = bankedQuestions;
         }
