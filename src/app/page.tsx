@@ -1,49 +1,8 @@
 
 import { MainHeader } from "@/components/main-header";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import Link from "next/link";
-import { BookCopy, FileText, TrendingUp, Trophy, BrainCircuit, HelpCircle } from 'lucide-react';
-
-const features = [
-  {
-    icon: <BrainCircuit className="h-8 w-8 text-primary" />,
-    title: "Smartly Generated Quizzes",
-    description: "Generate unique, high-quality questions for any topic with our advanced system, tailored to different difficulty levels.",
-    href: "/dashboard"
-  },
-  {
-    icon: <FileText className="h-8 w-8 text-primary" />,
-    title: "Realistic Mock Tests",
-    description: "Simulate the real exam experience with full-length mock tests based on official blueprints or questions from previous years.",
-    href: "/dashboard/mock-test"
-  },
-  {
-    icon: <BookCopy className="h-8 w-8 text-primary" />,
-    title: "Topic-wise Practice",
-    description: "Create a custom quiz by selecting a specific topic, difficulty, and number of questions. Ideal for focused practice.",
-    href: "/dashboard/topic-wise-mcq"
-  },
-  {
-    icon: <TrendingUp className="h-8 w-8 text-primary" />,
-    title: "Performance Analysis",
-    description: "Track your progress with detailed, topic-wise performance analysis to identify your strengths and areas for improvement.",
-    href: "/dashboard/performance"
-  },
-  {
-    icon: <Trophy className="h-8 w-8 text-primary" />,
-    title: "Competitive Leaderboard",
-    description: "See how you measure up against other users with separate leaderboards for topic quizzes and mock tests.",
-    href: "/dashboard/leaderboard"
-  },
-  {
-    icon: <HelpCircle className="h-8 w-8 text-primary" />,
-    title: "Ask Your Doubt",
-    description: "Get instant, material-based answers from our AI tutor to clarify your doubts on any topic, ensuring you're always prepared.",
-    href: "/dashboard/q-and-a"
-  }
-];
-
+import { FeatureCards } from "@/components/home/feature-cards";
 
 export default function Home() {
   return (
@@ -70,21 +29,7 @@ export default function Home() {
 
         <section className="w-full pb-12 md:pb-24 lg:pb-32">
           <div className="container px-4 md:px-6">
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {features.map((feature) => (
-                <Link href={feature.href} key={feature.title} className="flex">
-                  <Card className="flex flex-col text-center items-center p-6 hover:shadow-lg transition-shadow w-full">
-                    <div className="mb-4 bg-primary/10 p-3 rounded-full">
-                      {feature.icon}
-                    </div>
-                    <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-                    <p className="text-sm text-muted-foreground flex-grow">
-                      {feature.description}
-                    </p>
-                  </Card>
-                </Link>
-              ))}
-            </div>
+            <FeatureCards />
           </div>
         </section>
       </main>
