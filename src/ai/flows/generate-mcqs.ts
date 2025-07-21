@@ -129,7 +129,7 @@ CRITICAL INSTRUCTION: Do not start questions with phrases like "According to the
 
 --- REFERENCE & UNIQUENESS ---
 {{#if bankedQuestions}}
-  Use the following PREVIOUS YEARS' EXAM QUESTIONS as a reference for style, format, and difficulty. Generate NEW questions inspired by these, but DO NOT copy them directly.
+  Use the following PREVIOUS YEARS' EXAM QUESTIONS as a reference for phrasing, style, format, and difficulty. Generate NEW questions inspired by these, but DO NOT copy them directly.
   ---REFERENCE QUESTIONS START---
   {{{bankedQuestions}}}
   ---REFERENCE QUESTIONS END---
