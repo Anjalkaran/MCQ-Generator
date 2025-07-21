@@ -16,6 +16,7 @@ import type { UserData, Category, Topic, BankedQuestion } from "@/lib/types";
 import { ADMIN_EMAILS, FREE_TOPIC_EXAM_LIMIT } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
+import packageJson from '../../../package.json';
 
 interface DashboardContextType {
   user: User | null;
@@ -217,7 +218,7 @@ function AppSidebar() {
           </Button>
         </div>
         <div className='p-4 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden'>
-          <p>&copy; {new Date().getFullYear()} Anjalkaran</p>
+          <p>&copy; {new Date().getFullYear()} Anjalkaran | v{packageJson.version}</p>
         </div>
       </SidebarFooter>
     </Sidebar>
