@@ -115,9 +115,7 @@ const generateMockTestFlow = ai.defineFlow(
     else throw new Error(`No blueprint found for exam category: ${input.examCategory}`);
     
     const previousQuestions = await getAllUserQuestions(input.userId);
-
     const allQuestions: MCQ[] = [];
-    const generationPromises: Promise<{ questions: MCQ[] }>[] = [];
 
     for (const part of blueprint.parts) {
       for (const section of part.sections) {
@@ -128,32 +126,25 @@ const generateMockTestFlow = ai.defineFlow(
         
         let questionsToGenerate = section.questions;
         
+        // Process requests sequentially for each section to avoid overwhelming the API
         while(questionsToGenerate > 0) {
             const currentChunkSize = Math.min(questionsToGenerate, CHUNK_SIZE);
             
-            generationPromises.push(
-                (async () => {
-                    const { output } = await generateQuestionsForSectionPrompt({
-                        examCategory: input.examCategory,
-                        sectionName: section.sectionName,
-                        topics: topicsString,
-                        questionCount: currentChunkSize,
-                        previousQuestions: previousQuestions,
-                    });
-                    return output || { questions: [] };
-                })()
-            );
+            const { output } = await generateQuestionsForSectionPrompt({
+                examCategory: input.examCategory,
+                sectionName: section.sectionName,
+                topics: topicsString,
+                questionCount: currentChunkSize,
+                previousQuestions: [...previousQuestions, ...allQuestions.map(q => q.question)], // Include already generated questions
+            });
+
+            if (output && output.questions) {
+                allQuestions.push(...output.questions);
+            }
             questionsToGenerate -= currentChunkSize;
         }
       }
     }
-
-    const results = await Promise.all(generationPromises);
-    results.forEach(result => {
-        if (result && result.questions) {
-            allQuestions.push(...result.questions);
-        }
-    });
     
     const totalExpectedQuestions = blueprint.parts.reduce((sum, part) => sum + part.totalQuestions, 0);
     if (allQuestions.length !== totalExpectedQuestions) { 
