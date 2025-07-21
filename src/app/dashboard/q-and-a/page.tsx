@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,13 +16,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Sparkles, AlertTriangle, Check, ChevronsUpDown } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import type { Topic } from '@/lib/types';
+import type { Topic, Category } from '@/lib/types';
+
+const parts = ["Part A", "Part B"] as const;
 
 const formSchema = z.object({
-  topicId: z.string({
-    required_error: 'Please select a topic.',
-  }),
+  part: z.enum(parts, { required_error: 'Please select a syllabus part.'}),
+  contextId: z.string({ required_error: 'Please select a topic or category.' }),
   question: z.string().min(10, 'Your question must be at least 10 characters long.'),
 });
 
@@ -29,7 +32,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 export default function QAPage() {
   const { toast } = useToast();
-  const { user, userData, topics, isLoading: isDashboardLoading } = useDashboard();
+  const { user, userData, topics, categories, isLoading: isDashboardLoading } = useDashboard();
   const [isGenerating, setIsGenerating] = useState(false);
   const [answer, setAnswer] = useState('');
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -37,15 +40,46 @@ export default function QAPage() {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      topicId: '',
+      part: undefined,
+      contextId: '',
       question: '',
     },
   });
 
-  const availableTopics = useMemo(() => {
-    if (!userData) return [];
-    return topics.filter(topic => topic.examCategories.includes(userData.examCategory));
-  }, [topics, userData]);
+  const selectedPart = form.watch('part');
+
+  useEffect(() => {
+    form.resetField('contextId');
+  }, [selectedPart, form]);
+
+  const partA_Topics = useMemo(() => {
+    if (!userData || selectedPart !== 'Part A') return [];
+    return topics.filter(topic => 
+        topic.part === 'Part A' &&
+        topic.examCategories.includes(userData.examCategory)
+    );
+  }, [topics, userData, selectedPart]);
+  
+  const partB_Categories = useMemo(() => {
+    if (!userData || selectedPart !== 'Part B') return [];
+    
+    // Get all topic IDs for the user in Part B
+    const partBTopicIds = new Set(
+        topics
+            .filter(t => t.part === 'Part B' && t.examCategories.includes(userData.examCategory))
+            .map(t => t.id)
+    );
+    
+    // Find all categories that contain at least one of these topics
+    const relevantCategoryIds = new Set(
+        topics
+            .filter(t => partBTopicIds.has(t.id))
+            .map(t => t.categoryId)
+    );
+
+    return categories.filter(c => relevantCategoryIds.has(c.id));
+  }, [topics, categories, userData, selectedPart]);
+
 
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
@@ -57,18 +91,35 @@ export default function QAPage() {
       return;
     }
 
-    const selectedTopic = topics.find(t => t.id === values.topicId);
-    if (!selectedTopic) {
-      toast({ title: 'Error', description: 'Selected topic not found.', variant: 'destructive' });
-      setIsGenerating(false);
-      return;
+    let material: string | undefined;
+    let topicTitle: string;
+
+    if (values.part === 'Part A') {
+        const selectedTopic = topics.find(t => t.id === values.contextId);
+        if (!selectedTopic) {
+            toast({ title: 'Error', description: 'Selected topic not found.', variant: 'destructive' });
+            setIsGenerating(false);
+            return;
+        }
+        material = selectedTopic.material;
+        topicTitle = selectedTopic.title;
+    } else { // Part B
+        const selectedCategory = categories.find(c => c.id === values.contextId);
+         if (!selectedCategory) {
+            toast({ title: 'Error', description: 'Selected category not found.', variant: 'destructive' });
+            setIsGenerating(false);
+            return;
+        }
+        material = undefined; // No material for Part B categories
+        topicTitle = selectedCategory.name;
     }
+
 
     try {
       const { answer } = await answerQuestion({
-        material: selectedTopic.material,
+        material: material,
         question: values.question,
-        topic: selectedTopic.title,
+        topic: topicTitle,
       });
       setAnswer(answer);
     } catch (error: any) {
@@ -94,65 +145,116 @@ export default function QAPage() {
               <fieldset disabled={isGenerating || isDashboardLoading} className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="topicId"
+                  name="part"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Topic</FormLabel>
-                      <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                        <PopoverTrigger asChild>
+                      <FormItem>
+                      <FormLabel>Syllabus Part</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className={cn(
-                                "w-full justify-between",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value
-                                ? availableTopics.find(
-                                    (topic) => topic.id === field.value
-                                  )?.title
-                                : "Select topic"}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
+                          <SelectTrigger>
+                              <SelectValue placeholder="Select a syllabus part" />
+                          </SelectTrigger>
                           </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-full p-0" style={{minWidth: "var(--radix-popover-trigger-width)"}}>
-                          <Command>
-                            <CommandInput placeholder="Search topic..." />
-                            <CommandList>
-                                <CommandEmpty>No topic found.</CommandEmpty>
-                                <CommandGroup>
-                                {availableTopics.map((topic) => (
-                                    <CommandItem
-                                    value={topic.title}
-                                    key={topic.id}
-                                    onSelect={() => {
-                                        form.setValue("topicId", topic.id)
-                                        setPopoverOpen(false)
-                                    }}
-                                    >
-                                    <Check
-                                        className={cn(
-                                        "mr-2 h-4 w-4",
-                                        topic.id === field.value
-                                            ? "opacity-100"
-                                            : "opacity-0"
-                                        )}
-                                    />
-                                    {topic.title}
-                                    </CommandItem>
-                                ))}
-                                </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
+                          <SelectContent>
+                          {parts.map((part) => (
+                              <SelectItem key={part} value={part}>{part}</SelectItem>
+                          ))}
+                          </SelectContent>
+                      </Select>
                       <FormMessage />
-                    </FormItem>
+                      </FormItem>
                   )}
                 />
+
+                {selectedPart === 'Part A' && (
+                    <FormField
+                    control={form.control}
+                    name="contextId"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                        <FormLabel>Topic</FormLabel>
+                        <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                            <PopoverTrigger asChild>
+                            <FormControl>
+                                <Button
+                                variant="outline"
+                                role="combobox"
+                                disabled={!selectedPart}
+                                className={cn(
+                                    "w-full justify-between",
+                                    !field.value && "text-muted-foreground"
+                                )}
+                                >
+                                {field.value
+                                    ? partA_Topics.find(
+                                        (topic) => topic.id === field.value
+                                    )?.title
+                                    : "Select a topic"}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-full p-0" style={{minWidth: "var(--radix-popover-trigger-width)"}}>
+                            <Command>
+                                <CommandInput placeholder="Search topic..." />
+                                <CommandList>
+                                    <CommandEmpty>No topic found.</CommandEmpty>
+                                    <CommandGroup>
+                                    {partA_Topics.map((topic) => (
+                                        <CommandItem
+                                        value={topic.title}
+                                        key={topic.id}
+                                        onSelect={() => {
+                                            form.setValue("contextId", topic.id)
+                                            setPopoverOpen(false)
+                                        }}
+                                        >
+                                        <Check
+                                            className={cn(
+                                            "mr-2 h-4 w-4",
+                                            topic.id === field.value
+                                                ? "opacity-100"
+                                                : "opacity-0"
+                                            )}
+                                        />
+                                        {topic.title}
+                                        </CommandItem>
+                                    ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                            </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                )}
+                
+                {selectedPart === 'Part B' && (
+                     <FormField
+                        control={form.control}
+                        name="contextId"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Category</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value} disabled={!selectedPart || partB_Categories.length === 0}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder={partB_Categories.length === 0 ? "No categories in this part" : "Select a category"} />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                {partB_Categories.map((cat) => (
+                                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                                ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
 
                 <FormField
                   control={form.control}
@@ -170,7 +272,7 @@ export default function QAPage() {
               </fieldset>
             </CardContent>
             <CardFooter>
-              <Button type="submit" disabled={isGenerating || isDashboardLoading}>
+              <Button type="submit" disabled={isGenerating || isDashboardLoading || !form.formState.isValid}>
                 {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                 Get Answer
               </Button>
@@ -200,9 +302,9 @@ export default function QAPage() {
                     <AlertDescription>
                         This answer is generated by an AI. Always verify with official sources.
                     </AlertDescription>
-                </Alert>
+                 </Alert>
                 <div className="p-4 bg-muted/50 rounded-lg border prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
-                    {answer}
+                   {answer}
                 </div>
             </CardContent>
         </Card>
