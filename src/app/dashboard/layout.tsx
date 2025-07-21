@@ -240,10 +240,10 @@ export default function DashboardLayout({
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/q-and-a')} tooltip="Q & A">
+                      <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/q-and-a')} tooltip="Ask Your Doubt">
                         <Link href="/dashboard/q-and-a">
                           <HelpCircle />
-                          <span>Q & A</span>
+                          <span>Ask Your Doubt</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -315,3 +315,5 @@ export default function DashboardLayout({
     </DashboardContext.Provider>
   );
 }
+
+    
