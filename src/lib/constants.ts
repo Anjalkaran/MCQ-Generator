@@ -1,6 +1,6 @@
 
 export const ADMIN_EMAIL = "admin@anjalkaran.com";
-export const FREE_TOPIC_EXAM_LIMIT = 1;
+export const FREE_TOPIC_EXAM_LIMIT = 5;
 
 // This key is safe to expose on the client-side
 export const RAZORPAY_KEY_ID = "rzp_test_H9BcFtFwY7XIZb";
