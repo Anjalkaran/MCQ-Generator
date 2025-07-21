@@ -190,89 +190,91 @@ export default function DashboardLayout({
   return (
     <DashboardContext.Provider value={contextValue}>
       <SidebarProvider>
-        <Sidebar collapsible="icon">
-          <SidebarHeader>
-            <div className="flex items-center gap-2 p-2 group-data-[collapsible=icon]:hidden">
-              <Link href="/" className="flex items-center gap-2">
-                <Logo className="h-12 w-auto text-primary" />
-              </Link>
-            </div>
-             <div className="hidden items-center gap-2 p-2 group-data-[collapsible=icon]:flex">
-             </div>
-          </SidebarHeader>
-          <SidebarContent>
-            <SidebarMenu>
-              <div className="p-2 group-data-[collapsible=icon]:hidden">
-                <CardDescription className="text-center text-sm">
-                  {getWelcomeMessage()}
-                </CardDescription>
-              </div>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === '/dashboard'} tooltip="Dashboard">
-                  <Link href="/dashboard">
-                    <LayoutDashboard />
-                    <span>Dashboard</span>
+        <div className="relative z-20">
+            <Sidebar collapsible="icon">
+              <SidebarHeader>
+                <div className="flex items-center gap-2 p-2 group-data-[collapsible=icon]:hidden">
+                  <Link href="/" className="flex items-center gap-2">
+                    <Logo className="h-12 w-auto text-primary" />
                   </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              {isAdmin && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin">
-                    <Link href="/dashboard/admin">
-                      <Shield />
-                      <span>Admin</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === '/dashboard/profile'} tooltip="Profile">
-                  <Link href="/dashboard/profile">
-                    <UserIcon />
-                    <span>Profile</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === '/dashboard/history'} tooltip="Exam History">
-                  <Link href="/dashboard/history">
-                    <History />
-                    <span>Exam History</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/performance')} tooltip="Performance">
-                  <Link href="/dashboard/performance">
-                    <TrendingUp />
-                    <span>Performance</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-               {showUpgradeButton && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === '/dashboard/upgrade'} variant="outline" className="text-primary hover:bg-primary/10 hover:text-primary border-primary/50" tooltip="Upgrade to Pro">
-                    <Link href="/dashboard/upgrade">
-                      <Gem />
-                      <span>Upgrade to Pro</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-            </SidebarMenu>
-          </SidebarContent>
-          <SidebarFooter>
-            <div className="p-2">
-              <Button onClick={() => handleLogout()} variant="ghost" className="w-full justify-start">
-                <LogOut className="mr-2 h-4 w-4" />
-                <span className="group-data-[collapsible=icon]:hidden">Logout</span>
-              </Button>
-            </div>
-            <div className='p-4 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden'>
-              <p>&copy; {new Date().getFullYear()} Anjalkaran</p>
-            </div>
-          </SidebarFooter>
-        </Sidebar>
+                </div>
+                 <div className="hidden items-center gap-2 p-2 group-data-[collapsible=icon]:flex">
+                 </div>
+              </SidebarHeader>
+              <SidebarContent>
+                <SidebarMenu>
+                  <div className="p-2 group-data-[collapsible=icon]:hidden">
+                    <CardDescription className="text-center text-sm">
+                      {getWelcomeMessage()}
+                    </CardDescription>
+                  </div>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === '/dashboard'} tooltip="Dashboard">
+                      <Link href="/dashboard">
+                        <LayoutDashboard />
+                        <span>Dashboard</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  {isAdmin && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin">
+                        <Link href="/dashboard/admin">
+                          <Shield />
+                          <span>Admin</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/profile'} tooltip="Profile">
+                      <Link href="/dashboard/profile">
+                        <UserIcon />
+                        <span>Profile</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/history'} tooltip="Exam History">
+                      <Link href="/dashboard/history">
+                        <History />
+                        <span>Exam History</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/performance')} tooltip="Performance">
+                      <Link href="/dashboard/performance">
+                        <TrendingUp />
+                        <span>Performance</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                   {showUpgradeButton && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={pathname === '/dashboard/upgrade'} variant="outline" className="text-primary hover:bg-primary/10 hover:text-primary border-primary/50" tooltip="Upgrade to Pro">
+                        <Link href="/dashboard/upgrade">
+                          <Gem />
+                          <span>Upgrade to Pro</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
+                </SidebarMenu>
+              </SidebarContent>
+              <SidebarFooter>
+                <div className="p-2">
+                  <Button onClick={() => handleLogout()} variant="ghost" className="w-full justify-start">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span className="group-data-[collapsible=icon]:hidden">Logout</span>
+                  </Button>
+                </div>
+                <div className='p-4 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden'>
+                  <p>&copy; {new Date().getFullYear()} Anjalkaran</p>
+                </div>
+              </SidebarFooter>
+            </Sidebar>
+        </div>
          <MainContent>
             {isLoading ? (
                  <div className="flex h-full w-full items-center justify-center">
