@@ -84,3 +84,9 @@ export interface LeaderboardEntry {
     averageScore: number;
     totalExams: number;
 }
+
+export interface UserTopicProgress {
+    topicId: string;
+    lastCharacterIndexUsed: number;
+    updatedAt: Date;
+}

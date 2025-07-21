@@ -2,7 +2,7 @@
 
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress } from './types';
 import { ADMIN_EMAILS } from './constants';
 
 // USER MANAGEMENT
@@ -169,6 +169,30 @@ export const deleteTopic = async (topicId: string): Promise<void> => {
     if (!db) throw new Error("Firestore is not initialized");
     await deleteDoc(doc(db, 'topics', topicId));
 };
+
+// USER TOPIC PROGRESS
+export const getUserTopicProgress = async (userId: string, topicId: string): Promise<UserTopicProgress | null> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const progressRef = doc(db, 'users', userId, 'topicProgress', topicId);
+    const progressSnap = await getDoc(progressRef);
+
+    if (progressSnap.exists()) {
+        return progressSnap.data() as UserTopicProgress;
+    }
+    return null;
+}
+
+export const updateUserTopicProgress = async (userId: string, topicId: string, lastCharacterIndexUsed: number): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const progressRef = doc(db, 'users', userId, 'topicProgress', topicId);
+    await setDoc(progressRef, { 
+        topicId, 
+        lastCharacterIndexUsed, 
+        updatedAt: new Date() 
+    }, { merge: true });
+}
 
 // MCQ HISTORY MANAGEMENT
 export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promise<void> => {

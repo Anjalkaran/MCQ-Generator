@@ -135,6 +135,7 @@ export function CreateQuizForm() {
           material: selectedTopic.material,
           previousQuestions: previousQuestions,
           userId: user.uid,
+          topicId: selectedTopic.id,
       };
 
       const { mcqs } = await generateMCQs(generationInput);

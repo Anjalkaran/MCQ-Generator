@@ -11,7 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { getUserData, getQuestionBankByCategory, getAllUserQuestions } from '@/lib/firestore';
+import { getAllUserQuestions, getQuestionBankByCategory, getUserTopicProgress, updateUserTopicProgress } from '@/lib/firestore';
 
 const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
@@ -24,6 +24,7 @@ const GenerateMCQsInputSchema = z.object({
   previousQuestions: z.array(z.string()).optional().describe('A list of previously asked questions to avoid repetition.'),
   bankedQuestions: z.string().optional().describe('Content from previously uploaded exam questions to use as a reference.'),
   userId: z.string().describe('The ID of the user requesting the quiz.'),
+  topicId: z.string().describe('The ID of the topic.'),
 });
 export type GenerateMCQsInput = z.infer<typeof GenerateMCQsInputSchema>;
 
@@ -144,6 +145,8 @@ CRITICAL INSTRUCTION: Do not start questions with phrases like "According to the
   `,
 });
 
+const MATERIAL_CHUNK_SIZE = 2000; // Process 2000 characters of material at a time
+
 const generateMCQsFlow = ai.defineFlow(
   {
     name: 'generateMCQsFlow',
@@ -161,6 +164,31 @@ const generateMCQsFlow = ai.defineFlow(
     // This is now handled by the calling component (create-quiz-form)
     // const previousQuestions = await getAllUserQuestions(input.userId);
     // flowInput.previousQuestions = previousQuestions;
+    
+    // --- Material Progress Logic ---
+    if (input.material && input.topicId) {
+        const userProgress = await getUserTopicProgress(input.userId, input.topicId);
+        const startIndex = userProgress?.lastCharacterIndexUsed || 0;
+        
+        let materialChunk = input.material.substring(startIndex, startIndex + MATERIAL_CHUNK_SIZE);
+        
+        let nextIndex = startIndex + materialChunk.length;
+
+        // If we've reached the end of the material, reset for next time
+        if (nextIndex >= input.material.length) {
+            nextIndex = 0;
+        }
+
+        flowInput.material = materialChunk;
+
+        // Defer the update until after the generation is successful
+        const updateProgress = async () => {
+             await updateUserTopicProgress(input.userId, input.topicId, nextIndex);
+        }
+        defer(updateProgress); // A simple defer utility
+    }
+    // --- End Material Progress Logic ---
+
 
     const excludedCategories = ["Basic Arithmetics", "General Awareness"];
     if (flowInput.category && excludedCategories.includes(flowInput.category)) {
@@ -179,6 +207,9 @@ const generateMCQsFlow = ai.defineFlow(
     if (!initialOutput || !initialOutput.mcqs || initialOutput.mcqs.length === 0) {
         throw new Error('The AI could not generate questions for the selected topic.');
     }
+    
+    // Execute deferred functions (like updating progress)
+    await runDeferred();
 
     if (input.category === "Basic Arithmetics") {
         for (const mcq of initialOutput.mcqs) {
@@ -199,3 +230,16 @@ const generateMCQsFlow = ai.defineFlow(
     return initialOutput;
   }
 );
+
+
+// Helper for deferring execution
+let deferredFunctions: (() => Promise<any>)[] = [];
+
+function defer(fn: () => Promise<any>) {
+    deferredFunctions.push(fn);
+}
+
+async function runDeferred() {
+    await Promise.all(deferredFunctions.map(fn => fn()));
+    deferredFunctions = []; // Reset for the next flow run
+}
