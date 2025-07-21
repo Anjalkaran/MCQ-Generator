@@ -1,5 +1,4 @@
 
-'use server';
 import { NextRequest, NextResponse } from 'next/server';
 import { razorpayInstance } from '@/lib/razorpay';
 import crypto from 'crypto';

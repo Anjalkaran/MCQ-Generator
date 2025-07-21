@@ -1,6 +1,4 @@
 
-'use server';
-
 import { NextRequest, NextResponse } from 'next/server';
 
 // This webhook is no longer the primary method for upgrading users.
