@@ -17,6 +17,11 @@ const features = [
     description: "Simulate the real exam experience with full-length mock tests based on official blueprints or questions from previous years.",
   },
   {
+    icon: <BookCopy className="h-8 w-8 text-primary" />,
+    title: "Topic-wise Practice",
+    description: "Create a custom quiz by selecting a specific topic, difficulty, and number of questions. Ideal for focused practice.",
+  },
+  {
     icon: <TrendingUp className="h-8 w-8 text-primary" />,
     title: "Performance Analysis",
     description: "Track your progress with detailed, topic-wise performance analysis to identify your strengths and areas for improvement.",
