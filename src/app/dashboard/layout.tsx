@@ -42,7 +42,7 @@ function MainContent({ children }: { children: React.ReactNode }) {
   
   return (
     <main className="flex-1 bg-muted/40 flex flex-col">
-      <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 sm:py-4">
+      <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
         <SidebarTrigger className="sm:hidden" />
         <div className="relative flex-1 flex items-center gap-2">
           <SidebarTrigger className="hidden sm:inline-flex" />
