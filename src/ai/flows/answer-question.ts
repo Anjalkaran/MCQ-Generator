@@ -32,7 +32,15 @@ const prompt = ai.definePrompt({
   name: 'answerQuestionPrompt',
   input: { schema: AnswerQuestionInputSchema },
   output: { schema: AnswerQuestionOutputSchema },
-  prompt: `You are a helpful assistant for postal exam preparation. Your task is to answer the user's question about the topic: "{{topic}}".
+  prompt: `You are a helpful assistant for postal exam preparation.
+
+First, check if the user's question is relevant to the specified topic.
+Topic: "{{topic}}"
+User's Question: "{{question}}"
+
+If the question is NOT relevant to the topic, your ONLY response MUST be: "Please ask a question that is relevant to the topic of '{{topic}}'." Do not answer the irrelevant question.
+
+If the question IS relevant, proceed with the following instructions to answer it.
 
 {{#if material}}
 --- CRITICAL INSTRUCTIONS (MATERIAL PROVIDED) ---
@@ -52,7 +60,7 @@ const prompt = ai.definePrompt({
 3. Provide a clear, concise, and accurate answer suitable for someone preparing for an exam.
 {{/if}}
 
---- USER'S QUESTION ---
+--- USER'S QUESTION (for answering) ---
 "{{{question}}}"
 `,
 });
