@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, XCircle, Award, Repeat, Home, BrainCircuit } from "lucide-react";
-import type { MCQ, MCQData, Topic } from "@/lib/types";
+import type { MCQ, Topic } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -14,6 +14,7 @@ import { getFirebaseAuth } from "@/lib/firebase";
 import { saveMCQHistory } from "@/lib/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 
 interface MCQResultsClientProps {
   topicId: string;

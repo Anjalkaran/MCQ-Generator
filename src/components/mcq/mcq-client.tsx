@@ -57,6 +57,7 @@ export function MCQClient({ topicId }: MCQClientProps) {
         numberOfQuestions: quizData.mcqs.length,
         mcqs: quizData.mcqs,
         topic: quizData.topic,
+        isMockTest: quizData.isMockTest || false,
       };
       localStorage.setItem(`quizState-${quizData.topic.id}`, JSON.stringify(answersToStore));
       router.push(`/quiz/${quizData.topic.id}/results`);
@@ -193,6 +194,7 @@ export function MCQClient({ topicId }: MCQClientProps) {
       <CardContent>
         <p className="font-semibold text-lg mb-6">{currentQuestion.question}</p>
         <RadioGroup
+          key={currentQuestionIndex}
           value={selectedAnswers[currentQuestionIndex]}
           onValueChange={handleAnswerSelect}
           className="space-y-4"

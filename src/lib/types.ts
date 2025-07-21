@@ -47,6 +47,7 @@ export interface MCQData {
   topic: Topic;
   mcqs: MCQ[];
   timeLimit?: number;
+  isMockTest?: boolean;
 }
 
 export interface MCQHistory {
