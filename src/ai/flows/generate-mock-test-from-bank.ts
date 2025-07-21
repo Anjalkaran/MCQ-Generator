@@ -35,13 +35,12 @@ const GenerateMockTestFromBankOutputSchema = z.object({
 export type GenerateMockTestFromBankOutput = z.infer<typeof GenerateMockTestFromBankOutputSchema>;
 
 
-const extractAndVerifyQuestionsPrompt = ai.definePrompt({
-    name: 'extractAndVerifyQuestionsPrompt',
+const extractQuestionsForPartPrompt = ai.definePrompt({
+    name: 'extractQuestionsForPartPrompt',
     input: {
         schema: z.object({
             examCategory: z.string(),
-            sectionName: z.string(),
-            topics: z.string(),
+            partName: z.string(),
             questionCount: z.number(),
             questionBank: z.string(),
             studyMaterial: z.string(),
@@ -55,17 +54,18 @@ const extractAndVerifyQuestionsPrompt = ai.definePrompt({
     model: 'googleai/gemini-1.5-flash',
     prompt: `You are an expert Question Curator for the Indian Postal Department's {{examCategory}} exam.
 
-Your task is to create a set of EXACTLY **{{questionCount}}** questions for the section named **"{{sectionName}}"**.
+Your task is to create a set of EXACTLY **{{questionCount}}** questions for **{{partName}}**.
 
 **Process:**
 
-1.  **Extract:** Find questions from the 'QUESTION BANK' that are relevant to the provided list of 'TOPICS'.
+1.  **Extract:** Find questions from the 'QUESTION BANK' that are relevant to **{{partName}}** of the {{examCategory}} exam syllabus.
 2.  **Verify & Correct:**
     *   For each extracted question, you MUST verify its answer using the 'STUDY MATERIAL' as the primary source of truth.
     *   If the answer in the question bank is correct according to the study material, keep it.
-    *   If the answer is INCORRECT, you MUST correct it based on the study material and provide a brief explanation in the 'solution' field.
-    *   If you cannot verify or correct the answer using the study material or your general knowledge, SKIP the question and find another one.
-3.  **Assign Topic:** For each final question, you MUST identify its topic from the list and specify it in the 'topic' field.
+    *   If the answer is INCORRECT, you MUST correct it based on the study material.
+    *   Provide a brief explanation for the correction in the 'solution' field.
+    *   If you cannot verify or correct an answer, SKIP the question and find another one.
+3.  **Assign Topic:** For each final question, you MUST identify its specific topic (e.g., "Profit and loss", "Methods of address") and specify it in the 'topic' field.
 
 **Content Sources:**
 
@@ -76,9 +76,6 @@ Your task is to create a set of EXACTLY **{{questionCount}}** questions for the 
 --- QUESTION BANK (Source of Questions) ---
 {{{questionBank}}}
 --- END QUESTION BANK ---
-
-**Topic List for this section:**
-{{{topics}}}
 
 **CRITICAL INSTRUCTIONS:**
 *   Your final output MUST be a single, valid JSON object containing a 'questions' array.
@@ -129,32 +126,29 @@ const generateMockTestFromBankFlow = ai.defineFlow(
     
     const allGeneratedQuestions: MCQ[] = [];
     
+    // Process each major part sequentially
     for (const part of blueprint.parts) {
-      for (const section of part.sections) {
-        const topicsString = section.topics.map((topic: any) => `- ${(typeof topic === 'string') ? topic : topic.name}`).join('\n');
-        
-        try {
-            const { output } = await extractAndVerifyQuestionsPrompt({
-                examCategory: input.examCategory,
-                sectionName: section.sectionName,
-                topics: topicsString,
-                questionCount: section.questions,
-                questionBank: questionBankContent,
-                studyMaterial: allStudyMaterial,
-            });
+      try {
+          const { output } = await extractQuestionsForPartPrompt({
+              examCategory: input.examCategory,
+              partName: part.partName,
+              questionCount: part.totalQuestions,
+              questionBank: questionBankContent,
+              studyMaterial: allStudyMaterial,
+          });
 
-            if (output && output.questions) {
-                allGeneratedQuestions.push(...output.questions);
-            } else {
-                 console.warn(`Could not generate questions for section: ${section.sectionName}`);
-            }
-        } catch(e) {
-            console.error(`Error generating questions for section ${section.sectionName}`, e);
-            // Continue to the next section even if one fails
-        }
+          if (output && output.questions) {
+              allGeneratedQuestions.push(...output.questions);
+          } else {
+               console.warn(`Could not generate questions for part: ${part.partName}`);
+          }
+      } catch(e) {
+          console.error(`Error generating questions for part ${part.partName}`, e);
+          // Continue to the next part even if one fails
       }
     }
     
+    // Always return a valid object, even if empty
     return { mcqs: allGeneratedQuestions };
   }
 );
