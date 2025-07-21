@@ -358,20 +358,30 @@ export const deleteQuestionBankDocument = async (docId: string): Promise<void> =
     await deleteDoc(doc(db, 'questionBank', docId));
 };
 
-export const getQuestionBankByCategory = async (examCategory: string): Promise<string> => {
+export const getQuestionBankDocumentsByCategory = async (examCategory: 'MTS' | 'POSTMAN' | 'PA'): Promise<BankedQuestion[]> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     const bankCollection = collection(db, 'questionBank');
-    const q = query(bankCollection, where('examCategory', '==', examCategory));
+    let q;
+    if (examCategory === 'POSTMAN') {
+        q = query(bankCollection, where('examCategory', '==', 'MTS'));
+    } else {
+        q = query(bankCollection, where('examCategory', '==', examCategory));
+    }
     
     const querySnapshot = await getDocs(q);
     if (querySnapshot.empty) {
-        return "";
+        return [];
     }
 
-    // Combine content from all matching documents
-    const allContent = querySnapshot.docs.map(doc => doc.data().content).join('\n\n---\n\n');
-    return allContent;
+    return querySnapshot.docs.map(doc => {
+         const data = doc.data();
+        return {
+            id: doc.id,
+            ...data,
+            uploadedAt: data.uploadedAt.toDate(),
+        } as BankedQuestion
+    });
 };
 
 

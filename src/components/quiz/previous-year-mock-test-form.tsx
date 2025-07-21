@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,6 +19,8 @@ import { useDashboard } from '@/app/dashboard/layout';
 import { generateMockTestFromBank } from '@/ai/flows/generate-mock-test-from-bank';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-blueprints';
 import { ADMIN_EMAILS } from '@/lib/constants';
+import { getQuestionBankDocumentsByCategory } from '@/lib/firestore';
+import type { BankedQuestion } from '@/lib/types';
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 
@@ -41,6 +43,8 @@ export function PreviousYearMockTestForm() {
   const { toast } = useToast();
   const { user, userData, isLoading } = useDashboard();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [questionBank, setQuestionBank] = useState<BankedQuestion[]>([]);
+  const [isBankLoading, setIsBankLoading] = useState(false);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -50,6 +54,26 @@ export function PreviousYearMockTestForm() {
   });
 
   const selectedExamType = form.watch('examType');
+
+  useEffect(() => {
+    const fetchBank = async () => {
+        if (selectedExamType) {
+            setIsBankLoading(true);
+            try {
+                const docs = await getQuestionBankDocumentsByCategory(selectedExamType);
+                setQuestionBank(docs);
+            } catch (error) {
+                console.error("Failed to fetch question bank", error);
+                setQuestionBank([]);
+            } finally {
+                setIsBankLoading(false);
+            }
+        } else {
+            setQuestionBank([]);
+        }
+    }
+    fetchBank();
+  }, [selectedExamType]);
 
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
@@ -101,6 +125,7 @@ export function PreviousYearMockTestForm() {
   const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
   const proValidUntilDate = normalizeDate(userData?.proValidUntil);
   const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
+  const hasQuestionPapers = questionBank.length > 0;
 
   if (!isPro && userData) {
      return (
@@ -157,11 +182,20 @@ export function PreviousYearMockTestForm() {
                           </FormItem>
                       )}
                     />
+                    {selectedExamType && !isBankLoading && !hasQuestionPapers && (
+                        <Alert variant="destructive">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle>No Question Papers Found</AlertTitle>
+                            <AlertDescription>
+                                No question papers have been uploaded for the {selectedExamType} category. Please go to the Admin panel to upload documents.
+                            </AlertDescription>
+                        </Alert>
+                    )}
                 </fieldset>
              </CardContent>
              <CardFooter>
-                <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading} className="w-full">
-                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Generate Mock Test"}
+                <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading || isBankLoading || !hasQuestionPapers} className="w-full">
+                    {isGenerating || isBankLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Generate Mock Test"}
                 </Button>
             </CardFooter>
         </form>
