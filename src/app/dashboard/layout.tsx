@@ -166,7 +166,7 @@ export default function DashboardLayout({
   return (
     <DashboardContext.Provider value={contextValue}>
       <SidebarProvider>
-        <Sidebar>
+        <Sidebar collapsible="icon">
           <SidebarHeader>
             <div className="flex items-center gap-2 p-2">
               <Link href="/" className="flex items-center gap-2">
@@ -182,7 +182,7 @@ export default function DashboardLayout({
                 </CardDescription>
               </div>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === '/dashboard'}>
+                <SidebarMenuButton asChild isActive={pathname === '/dashboard'} tooltip="Dashboard">
                   <Link href="/dashboard">
                     <LayoutDashboard />
                     <span>Dashboard</span>
@@ -191,7 +191,7 @@ export default function DashboardLayout({
               </SidebarMenuItem>
               {isAdmin && (
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')}>
+                  <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin">
                     <Link href="/dashboard/admin">
                       <Shield />
                       <span>Admin</span>
@@ -200,7 +200,7 @@ export default function DashboardLayout({
                 </SidebarMenuItem>
               )}
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === '/dashboard/profile'}>
+                <SidebarMenuButton asChild isActive={pathname === '/dashboard/profile'} tooltip="Profile">
                   <Link href="/dashboard/profile">
                     <UserIcon />
                     <span>Profile</span>
@@ -208,7 +208,7 @@ export default function DashboardLayout({
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === '/dashboard/history'}>
+                <SidebarMenuButton asChild isActive={pathname === '/dashboard/history'} tooltip="Exam History">
                   <Link href="/dashboard/history">
                     <History />
                     <span>Exam History</span>
@@ -216,7 +216,7 @@ export default function DashboardLayout({
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/performance')}>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/performance')} tooltip="Performance">
                   <Link href="/dashboard/performance">
                     <TrendingUp />
                     <span>Performance</span>
@@ -225,7 +225,7 @@ export default function DashboardLayout({
               </SidebarMenuItem>
                {showUpgradeButton && (
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === '/dashboard/upgrade'} variant="outline" className="text-primary hover:bg-primary/10 hover:text-primary border-primary/50">
+                  <SidebarMenuButton asChild isActive={pathname === '/dashboard/upgrade'} variant="outline" className="text-primary hover:bg-primary/10 hover:text-primary border-primary/50" tooltip="Upgrade to Pro">
                     <Link href="/dashboard/upgrade">
                       <Gem />
                       <span>Upgrade to Pro</span>
