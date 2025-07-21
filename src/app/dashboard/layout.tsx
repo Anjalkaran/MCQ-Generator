@@ -4,7 +4,7 @@
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Navigation } from 'lucide-react';
 import Link from 'next/link';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
@@ -170,7 +170,6 @@ export default function DashboardLayout({
         <Sidebar>
           <SidebarHeader>
             <div className="flex items-center gap-2 p-2">
-              <SidebarTrigger />
               <Link href="/" className="flex items-center gap-2">
                 <Logo className="h-12 w-auto text-primary" />
               </Link>
@@ -249,12 +248,20 @@ export default function DashboardLayout({
             </div>
           </SidebarFooter>
         </Sidebar>
-        <main className="flex-1 bg-muted/40 p-4 md:p-6">
+        <main className="flex-1 bg-muted/40 flex flex-col">
+          <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 sm:py-4">
+            <SidebarTrigger className="sm:hidden" />
+            <div className="relative flex-1">
+              <SidebarTrigger className="hidden sm:inline-flex" />
+            </div>
+          </header>
+          <div className="p-4 md:p-6 flex-1">
             {isLoading ? (
                  <div className="flex h-screen w-full items-center justify-center">
                     <Loader2 className="h-12 w-12 animate-spin text-primary" />
                  </div>
             ) : children}
+          </div>
         </main>
       </SidebarProvider>
     </DashboardContext.Provider>
