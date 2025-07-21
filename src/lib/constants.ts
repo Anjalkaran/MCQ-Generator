@@ -1,5 +1,6 @@
 
-export const ADMIN_EMAIL = "admin@anjalkaran.com";
+
+export const ADMIN_EMAILS = ["admin@anjalkaran.com", "raamamoorthy@gmail.com"];
 export const FREE_TOPIC_EXAM_LIMIT = 5;
 
 // This key is safe to expose on the client-side

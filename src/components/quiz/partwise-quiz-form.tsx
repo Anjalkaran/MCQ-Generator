@@ -17,7 +17,7 @@ import { normalizeDate } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
 import { useDashboard } from '@/app/dashboard/layout';
-import { ADMIN_EMAIL, FREE_TOPIC_EXAM_LIMIT } from '@/lib/constants';
+import { ADMIN_EMAILS, FREE_TOPIC_EXAM_LIMIT } from '@/lib/constants';
 import { generatePartwiseMCQs } from '@/ai/flows/generate-partwise-mcqs';
 
 const formSchema = z.object({
@@ -51,7 +51,7 @@ export function PartwiseQuizForm() {
   
   const availableExams = useMemo(() => {
     if (!userData) return [];
-    if (userData.email === ADMIN_EMAIL) return examCategories;
+    if (userData.email && ADMIN_EMAILS.includes(userData.email)) return examCategories;
     switch (userData.examCategory) {
         case 'PA':
             return ['PA', 'POSTMAN', 'MTS'];
@@ -132,8 +132,9 @@ export function PartwiseQuizForm() {
     }
   };
   
+  const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
   const proValidUntilDate = normalizeDate(userData?.proValidUntil);
-  const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || (userData?.email === ADMIN_EMAIL);
+  const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
   
   const hasExceededFreeLimit = !isPro && userData && (userData.topicExamsTaken || 0) >= FREE_TOPIC_EXAM_LIMIT;
   

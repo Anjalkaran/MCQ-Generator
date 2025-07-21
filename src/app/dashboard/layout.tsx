@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { getDashboardData } from '@/lib/firestore';
 import type { UserData, Category, Topic, BankedQuestion } from "@/lib/types";
-import { ADMIN_EMAIL, FREE_TOPIC_EXAM_LIMIT } from '@/lib/constants';
+import { ADMIN_EMAILS, FREE_TOPIC_EXAM_LIMIT } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
 
@@ -103,7 +103,7 @@ export default function DashboardLayout({
       if (currentUser) {
         setUser(currentUser);
         
-        const userIsAdmin = currentUser.email === ADMIN_EMAIL;
+        const userIsAdmin = currentUser.email ? ADMIN_EMAILS.includes(currentUser.email) : false;
 
         try {
             if (userIsAdmin) {
@@ -162,12 +162,12 @@ export default function DashboardLayout({
   }, [router, toast, handleLogout, pathname]);
 
   // Direct computation of pro status from userData.
+  const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
   const proValidUntilDate = normalizeDate(userData?.proValidUntil);
   const isPro = !!(userData && (
       (userData.isPro && proValidUntilDate && proValidUntilDate > new Date()) ||
-      userData.email === ADMIN_EMAIL
+      isAdmin
   ));
-  const isAdmin = userData?.email === ADMIN_EMAIL;
   
   const showUpgradeButton = userData && !isPro && !isAdmin;
 

@@ -31,6 +31,7 @@ import Link from 'next/link';
 import { Badge } from '../ui/badge';
 import { Checkbox } from '../ui/checkbox';
 import { cn } from '@/lib/utils';
+import { ADMIN_EMAILS } from '@/lib/constants';
 
 const userUpdateSchema = z.object({
   name: z.string().min(1, { message: 'Username is required.' }),
@@ -291,20 +292,20 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                        <Button asChild variant="ghost" size="icon" disabled={user.email === 'admin@anjalkaran.com'}>
+                        <Button asChild variant="ghost" size="icon" disabled={ADMIN_EMAILS.includes(user.email)}>
                           <Link href={`/dashboard/admin/history/${user.uid}`}>
                             <Eye className="h-4 w-4" />
                             <span className="sr-only">View History</span>
                           </Link>
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenUpdateDialog(user)} disabled={user.email === 'admin@anjalkaran.com' || isLoading}>
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenUpdateDialog(user)} disabled={ADMIN_EMAILS.includes(user.email) || isLoading}>
                             <Edit className="h-4 w-4" />
                             <span className="sr-only">Edit</span>
                         </Button>
 
                         <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" disabled={user.email === 'admin@anjalkaran.com' || isLoading}>
+                            <Button variant="ghost" size="icon" disabled={ADMIN_EMAILS.includes(user.email) || isLoading}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                             <span className="sr-only">Delete</span>
                             </Button>

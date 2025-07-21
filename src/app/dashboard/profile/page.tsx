@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, User, Gem } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { normalizeDate } from '@/lib/utils';
+import { ADMIN_EMAILS } from '@/lib/constants';
 
 export default function ProfilePage() {
     const { user, userData, isLoading } = useDashboard();
@@ -35,7 +36,7 @@ export default function ProfilePage() {
           );
     }
     
-    if (userData.email === "admin@anjalkaran.com") {
+    if (ADMIN_EMAILS.includes(userData.email)) {
          return (
             <div className="space-y-6">
                 <div className="space-y-0.5">

@@ -18,7 +18,7 @@ import Link from 'next/link';
 import { useDashboard } from '@/app/dashboard/layout';
 import { generateMockTestFromBank } from '@/ai/flows/generate-mock-test-from-bank';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-blueprints';
-import { ADMIN_EMAIL } from '@/lib/constants';
+import { ADMIN_EMAILS } from '@/lib/constants';
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 
@@ -98,8 +98,9 @@ export function PreviousYearMockTestForm() {
     }
   };
   
+  const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
   const proValidUntilDate = normalizeDate(userData?.proValidUntil);
-  const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || (userData?.email === ADMIN_EMAIL);
+  const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
 
   if (!isPro && userData) {
      return (

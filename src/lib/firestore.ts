@@ -3,7 +3,7 @@
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit } from 'firebase/firestore';
 import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry } from './types';
-import { ADMIN_EMAIL } from './constants';
+import { ADMIN_EMAILS } from './constants';
 
 // USER MANAGEMENT
 export const getUserData = async (userId: string): Promise<UserData | null> => {
@@ -182,7 +182,10 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
     const historyRef = doc(collection(db, 'mcqHistory'));
     batch.set(historyRef, historyData);
 
-    if (userDoc.exists() && userDoc.data()?.email !== ADMIN_EMAIL) {
+    const userData = userDoc.exists() ? userDoc.data() : null;
+    const isUserAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
+
+    if (userDoc.exists() && !isUserAdmin) {
         if (historyData.isMockTest) {
             batch.update(userRef, { mockTestsTaken: increment(1) });
         } else {
@@ -369,7 +372,8 @@ export const getLeaderboardData = async (examType: 'topic' | 'mock'): Promise<Le
     const userPerformance = new Map<string, { totalScore: number; totalQuestions: number; totalExams: number }>();
     
     histories.forEach(h => {
-        if (h.userId === ADMIN_EMAIL) return; // Exclude admin
+        const user = userMap.get(h.userId);
+        if (user && ADMIN_EMAILS.includes(user.email)) return; // Exclude admins
 
         const current = userPerformance.get(h.userId) || { totalScore: 0, totalQuestions: 0, totalExams: 0 };
         current.totalScore += h.score;

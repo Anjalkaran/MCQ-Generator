@@ -12,6 +12,7 @@ import { Loader2 } from "lucide-react";
 import { getAllUsers } from "@/lib/firestore";
 import type { UserData } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
+import { ADMIN_EMAILS } from "@/lib/constants";
 
 export default function AdminPage() {
   const { user, userData, categories, topics, bankedQuestions, isLoading: isDashboardLoading } = useDashboard();
@@ -23,8 +24,8 @@ export default function AdminPage() {
     const fetchUsers = async () => {
       try {
         const fetchedUsers = await getAllUsers();
-        // Filter out the admin user from the list to prevent self-modification issues
-        const regularUsers = fetchedUsers.filter(u => u.email !== "admin@anjalkaran.com");
+        // Filter out admin users from the list to prevent self-modification issues
+        const regularUsers = fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email));
         setUsers(regularUsers);
       } catch (error) {
         console.error("Failed to fetch users:", error);
@@ -38,7 +39,7 @@ export default function AdminPage() {
       }
     };
 
-    if (userData?.email === "admin@anjalkaran.com") {
+    if (userData?.email && ADMIN_EMAILS.includes(userData.email)) {
         fetchUsers();
     } else {
         setIsLoadingUsers(false);

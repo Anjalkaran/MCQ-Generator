@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { normalizeDate } from "@/lib/utils";
 import { Gem, Loader2, PartyPopper } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { ADMIN_EMAIL, RAZORPAY_KEY_ID } from '@/lib/constants';
+import { ADMIN_EMAILS, RAZORPAY_KEY_ID } from '@/lib/constants';
 
 export default function UpgradePage() {
     const { userData, isLoading } = useDashboard();
@@ -21,8 +21,9 @@ export default function UpgradePage() {
         setIsClient(true);
     }, []);
 
+    const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
     const proValidUntilDate = normalizeDate(userData?.proValidUntil);
-    const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || userData?.email === ADMIN_EMAIL;
+    const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
 
     if (isLoading || !isClient) {
         return (
