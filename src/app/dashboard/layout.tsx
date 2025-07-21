@@ -227,10 +227,10 @@ export default function DashboardLayout({
                     </SidebarMenuItem>
                   )}
                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/topic-wise-mcq')} tooltip="Topic-wise MCQ">
+                      <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/topic-wise-mcq')} tooltip="Practice Quiz">
                         <Link href="/dashboard/topic-wise-mcq">
                           <BookCopy />
-                          <span>Topic-wise MCQ</span>
+                          <span>Practice Quiz</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
