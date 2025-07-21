@@ -5,12 +5,6 @@ import mammoth from 'mammoth';
 import { addQuestionBankDocument } from '@/lib/firestore';
 import type { BankedQuestion } from '@/lib/types';
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();

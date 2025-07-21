@@ -1,15 +1,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
 import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
 import { addMaterialToTopic } from '@/lib/firestore';
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
 
 export async function POST(req: NextRequest) {
   try {
