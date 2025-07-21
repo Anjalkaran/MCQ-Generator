@@ -147,6 +147,17 @@ CRITICAL INSTRUCTION: Do not start questions with phrases like "According to the
 
 const MATERIAL_CHUNK_SIZE = 2000; // Process 2000 characters of material at a time
 
+let deferredFunctions: (() => Promise<any>)[] = [];
+
+function defer(fn: () => Promise<any>) {
+    deferredFunctions.push(fn);
+}
+
+async function runDeferred() {
+    await Promise.all(deferredFunctions.map(fn => fn()));
+    deferredFunctions = []; // Reset for the next flow run
+}
+
 const generateMCQsFlow = ai.defineFlow(
   {
     name: 'generateMCQsFlow',
@@ -186,7 +197,7 @@ const generateMCQsFlow = ai.defineFlow(
         const updateProgress = async () => {
              await updateUserTopicProgress(input.userId, input.topicId, nextIndex);
         }
-        defer(updateProgress); // A simple defer utility
+        defer(updateProgress); 
     }
     // --- End Material Progress Logic ---
 
@@ -225,16 +236,3 @@ const generateMCQsFlow = ai.defineFlow(
     return initialOutput;
   }
 );
-
-
-// Helper for deferring execution
-let deferredFunctions: (() => Promise<any>)[] = [];
-
-function defer(fn: () => Promise<any>) {
-    deferredFunctions.push(fn);
-}
-
-async function runDeferred() {
-    await Promise.all(deferredFunctions.map(fn => fn()));
-    deferredFunctions = []; // Reset for the next flow run
-}
