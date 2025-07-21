@@ -174,9 +174,6 @@ export default function DashboardLayout({
   const getWelcomeMessage = () => {
     if (isLoading || !userData) return null;
     
-    if (isAdmin) {
-        return "Welcome, Admin! Enjoy unlimited access.";
-    }
     if(isPro) {
         return `Welcome, ${userData.name}!`;
     }
