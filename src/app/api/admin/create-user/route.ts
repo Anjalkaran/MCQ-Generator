@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import type { UserData } from '@/lib/types';
 
+export const runtime = 'nodejs';
+
 export async function POST(req: NextRequest) {
   if (!adminAuth || !adminDb) {
     console.error("Firebase Admin SDK not initialized. API cannot function.");

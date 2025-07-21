@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { razorpayInstance } from '@/lib/razorpay';
 import crypto from 'crypto';
 
+export const runtime = 'nodejs';
+
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();

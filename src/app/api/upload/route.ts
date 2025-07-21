@@ -4,6 +4,8 @@ import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
 import { addMaterialToTopic } from '@/lib/firestore';
 
+export const runtime = 'nodejs';
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
