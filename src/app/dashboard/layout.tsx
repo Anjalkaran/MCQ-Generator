@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu } from 'lucide-react';
 import Link from 'next/link';
 import { getFirebaseAuth } from '@/lib/firebase';
@@ -36,6 +36,30 @@ export function useDashboard() {
   }
   return context;
 }
+
+function MainContent({ children }: { children: React.ReactNode }) {
+  const { state, isMobile } = useSidebar();
+  
+  return (
+    <main className="flex-1 bg-muted/40 flex flex-col">
+      <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 sm:py-4">
+        <SidebarTrigger className="sm:hidden" />
+        <div className="relative flex-1 flex items-center gap-2">
+           {!isMobile && state === 'collapsed' && (
+              <Link href="/" className="flex items-center gap-2">
+                <Logo className="h-10 w-auto text-primary" />
+              </Link>
+            )}
+          <SidebarTrigger className="hidden sm:inline-flex" />
+        </div>
+      </header>
+      <div className="p-4 md:p-6 flex-1">
+          {children}
+      </div>
+    </main>
+  );
+}
+
 
 export default function DashboardLayout({
   children,
@@ -168,11 +192,14 @@ export default function DashboardLayout({
       <SidebarProvider>
         <Sidebar collapsible="icon">
           <SidebarHeader>
-            <div className="flex items-center gap-2 p-2">
+            <div className="flex items-center gap-2 p-2 group-data-[collapsible=icon]:hidden">
               <Link href="/" className="flex items-center gap-2">
                 <Logo className="h-12 w-auto text-primary" />
               </Link>
             </div>
+             <div className="hidden items-center gap-2 p-2 group-data-[collapsible=icon]:flex">
+                 <Logo className="h-10 w-auto text-primary" />
+             </div>
           </SidebarHeader>
           <SidebarContent>
             <SidebarMenu>
@@ -247,21 +274,13 @@ export default function DashboardLayout({
             </div>
           </SidebarFooter>
         </Sidebar>
-        <main className="flex-1 bg-muted/40 flex flex-col">
-          <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 sm:py-4">
-            <SidebarTrigger className="sm:hidden" />
-            <div className="relative flex-1">
-              <SidebarTrigger className="hidden sm:inline-flex" />
-            </div>
-          </header>
-          <div className="p-4 md:p-6 flex-1">
+         <MainContent>
             {isLoading ? (
-                 <div className="flex h-screen w-full items-center justify-center">
+                 <div className="flex h-full w-full items-center justify-center">
                     <Loader2 className="h-12 w-12 animate-spin text-primary" />
                  </div>
             ) : children}
-          </div>
-        </main>
+        </MainContent>
       </SidebarProvider>
     </DashboardContext.Provider>
   );
