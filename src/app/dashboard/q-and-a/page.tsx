@@ -9,15 +9,19 @@ import { answerQuestion } from '@/ai/flows/answer-question';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Sparkles, AlertTriangle } from 'lucide-react';
+import { Loader2, Sparkles, AlertTriangle, Check, ChevronsUpDown } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { cn } from '@/lib/utils';
+import type { Topic } from '@/lib/types';
 
 const formSchema = z.object({
-  categoryId: z.string().min(1, 'Please select a category.'),
-  topicId: z.string().min(1, 'Please select a topic.'),
+  topicId: z.string({
+    required_error: 'Please select a topic.',
+  }),
   question: z.string().min(10, 'Your question must be at least 10 characters long.'),
 });
 
@@ -25,24 +29,23 @@ type FormValues = z.infer<typeof formSchema>;
 
 export default function QAPage() {
   const { toast } = useToast();
-  const { user, categories, topics, isLoading: isDashboardLoading } = useDashboard();
+  const { user, userData, topics, isLoading: isDashboardLoading } = useDashboard();
   const [isGenerating, setIsGenerating] = useState(false);
   const [answer, setAnswer] = useState('');
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      categoryId: '',
       topicId: '',
       question: '',
     },
   });
 
-  const selectedCategoryId = form.watch('categoryId');
-
-  const filteredTopics = useMemo(() => {
-    return topics.filter(topic => topic.categoryId === selectedCategoryId);
-  }, [selectedCategoryId, topics]);
+  const availableTopics = useMemo(() => {
+    if (!userData) return [];
+    return topics.filter(topic => topic.examCategories.includes(userData.examCategory));
+  }, [topics, userData]);
 
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
@@ -91,51 +94,66 @@ export default function QAPage() {
               <fieldset disabled={isGenerating || isDashboardLoading} className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="categoryId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Category</FormLabel>
-                      <Select onValueChange={(value) => {
-                        field.onChange(value);
-                        form.setValue('topicId', '');
-                      }} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a category" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {categories.map((cat) => (
-                            <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
                   name="topicId"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-col">
                       <FormLabel>Topic</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCategoryId || filteredTopics.length === 0}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={!selectedCategoryId ? "Select a category first" : (filteredTopics.length > 0 ? "Select a topic" : "No topics in this category")} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {filteredTopics.map((topic) => (
-                            <SelectItem key={topic.id} value={topic.id}>{topic.title}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={cn(
+                                "w-full justify-between",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value
+                                ? availableTopics.find(
+                                    (topic) => topic.id === field.value
+                                  )?.title
+                                : "Select topic"}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0" style={{minWidth: "var(--radix-popover-trigger-width)"}}>
+                          <Command>
+                            <CommandInput placeholder="Search topic..." />
+                            <CommandList>
+                                <CommandEmpty>No topic found.</CommandEmpty>
+                                <CommandGroup>
+                                {availableTopics.map((topic) => (
+                                    <CommandItem
+                                    value={topic.title}
+                                    key={topic.id}
+                                    onSelect={() => {
+                                        form.setValue("topicId", topic.id)
+                                        setPopoverOpen(false)
+                                    }}
+                                    >
+                                    <Check
+                                        className={cn(
+                                        "mr-2 h-4 w-4",
+                                        topic.id === field.value
+                                            ? "opacity-100"
+                                            : "opacity-0"
+                                        )}
+                                    />
+                                    {topic.title}
+                                    </CommandItem>
+                                ))}
+                                </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
                 <FormField
                   control={form.control}
                   name="question"
