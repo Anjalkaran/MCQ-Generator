@@ -16,8 +16,8 @@ export default function TopicWiseMCQPage() {
             </div>
             <Tabs defaultValue="by-topic" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="by-topic">By Topic</TabsTrigger>
-                    <TabsTrigger value="by-part">By Part</TabsTrigger>
+                    <TabsTrigger value="by-topic">Topic Wise</TabsTrigger>
+                    <TabsTrigger value="by-part">Part Wise</TabsTrigger>
                 </TabsList>
                 <TabsContent value="by-topic">
                     <CreateQuizForm />
