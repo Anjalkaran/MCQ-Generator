@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,7 +19,6 @@ import { useDashboard } from '@/app/dashboard/layout';
 import { generateMockTestFromBank } from '@/ai/flows/generate-mock-test-from-bank';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-blueprints';
 import { ADMIN_EMAILS } from '@/lib/constants';
-import { getQuestionBankDocumentsByCategory } from '@/lib/firestore';
 import type { BankedQuestion } from '@/lib/types';
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
@@ -53,12 +52,32 @@ export function PreviousYearMockTestForm() {
     },
   });
 
+  const availableExams = useMemo(() => {
+    if (!userData) return [];
+    if (userData.email && ADMIN_EMAILS.includes(userData.email)) return examCategories;
+    switch (userData.examCategory) {
+        case 'PA':
+            return ['PA', 'POSTMAN', 'MTS'];
+        case 'POSTMAN':
+            return ['POSTMAN', 'MTS'];
+        case 'MTS':
+            return ['MTS'];
+        default:
+            return [];
+    }
+  }, [userData]);
+
+  useEffect(() => {
+    if (userData?.examCategory === 'MTS' && availableExams.length === 1) {
+        form.setValue('examType', 'MTS');
+    }
+  }, [userData?.examCategory, availableExams, form]);
+
   const selectedExamType = form.watch('examType');
 
   useEffect(() => {
     if (selectedExamType) {
         setIsBankLoading(true);
-        // Filter the globally available banked questions
         const filtered = allBankedQuestions.filter(bq => bq.examCategory === selectedExamType);
         setQuestionBank(filtered);
         setIsBankLoading(false);
@@ -159,14 +178,14 @@ export function PreviousYearMockTestForm() {
                       render={({ field }) => (
                           <FormItem>
                           <FormLabel>Select Exam</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value} disabled={!user}>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={!user || availableExams.length <= 1}>
                               <FormControl>
                               <SelectTrigger>
                                   <SelectValue placeholder="Select Exam Type" />
                               </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                              {examCategories.map((exam) => (
+                              {availableExams.map((exam) => (
                                   <SelectItem key={exam} value={exam}>{exam}</SelectItem>
                               ))}
                               </SelectContent>

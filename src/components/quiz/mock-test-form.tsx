@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -48,6 +48,27 @@ export function MockTestForm() {
       examType: undefined,
     },
   });
+
+  const availableExams = useMemo(() => {
+    if (!userData) return [];
+    if (userData.email && ADMIN_EMAILS.includes(userData.email)) return examCategories;
+    switch (userData.examCategory) {
+        case 'PA':
+            return ['PA', 'POSTMAN', 'MTS'];
+        case 'POSTMAN':
+            return ['POSTMAN', 'MTS'];
+        case 'MTS':
+            return ['MTS'];
+        default:
+            return [];
+    }
+  }, [userData]);
+
+  useEffect(() => {
+    if (userData?.examCategory === 'MTS' && availableExams.length === 1) {
+        form.setValue('examType', 'MTS');
+    }
+  }, [userData?.examCategory, availableExams, form]);
 
   const selectedExamType = form.watch('examType');
 
@@ -144,14 +165,14 @@ export function MockTestForm() {
                       render={({ field }) => (
                           <FormItem>
                           <FormLabel>Select Exam</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value} disabled={!user}>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={!user || availableExams.length <= 1}>
                               <FormControl>
                               <SelectTrigger>
                                   <SelectValue placeholder="Select Exam Type" />
                               </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                              {examCategories.map((exam) => (
+                              {availableExams.map((exam) => (
                                   <SelectItem key={exam} value={exam}>{exam}</SelectItem>
                               ))}
                               </SelectContent>
