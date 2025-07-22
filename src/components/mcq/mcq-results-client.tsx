@@ -93,13 +93,14 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
     return null; // or a loading spinner
   }
   
-  const { topic, mcqs: quizMcqs } = quizData;
+  const { topic, mcqs: quizMcqs, isMockTest } = quizData;
   const percentage = quizLength > 0 ? Math.round((score / quizLength) * 100) : 0;
 
   const handleRetake = () => {
     localStorage.removeItem(`quiz-${topicId}`);
     localStorage.removeItem(`quizState-${topicId}`);
-    router.push('/dashboard');
+    const destination = isMockTest ? '/dashboard/mock-test' : '/dashboard/topic-wise-mcq';
+    router.push(destination);
   };
   
   const isArithmeticQuestion = (mcq: MCQ) => {
