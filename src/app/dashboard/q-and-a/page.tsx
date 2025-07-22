@@ -47,6 +47,7 @@ export default function QAPage() {
   });
 
   const selectedPart = form.watch('part');
+  const selectedContextId = form.watch('contextId');
 
   useEffect(() => {
     form.resetField('contextId');
@@ -130,9 +131,22 @@ export default function QAPage() {
     }
   };
   
-  const placeholderText = selectedPart === 'Part B' 
-    ? "e.g., A can do a piece of work in 10 days and B can do it in 15 days. If they work together, in how many days will the work be completed?"
-    : "e.g., What are the business hours for post offices on Saturdays?";
+  const placeholderText = useMemo(() => {
+    if (selectedPart === 'Part A') {
+      return "e.g., What are the business hours for post offices on Saturdays?";
+    }
+    if (selectedPart === 'Part B') {
+      const selectedCategory = categories.find(c => c.id === selectedContextId);
+      if (selectedCategory?.name === "Basic Arithmetics") {
+        return "e.g., A can do a piece of work in 10 days and B can do it in 15 days. If they work together, in how many days will the work be completed?";
+      }
+      if (selectedCategory?.name === "General Awareness") {
+        return "e.g., Who is the current president of India?";
+      }
+      return "Select a category to see a relevant example.";
+    }
+    return "Ask a question about the selected topic...";
+  }, [selectedPart, selectedContextId, categories]);
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
