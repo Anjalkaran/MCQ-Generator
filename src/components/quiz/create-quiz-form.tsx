@@ -142,8 +142,8 @@ export function CreateQuizForm() {
 
       if (!mcqs || mcqs.length === 0) {
         toast({
-          title: 'Quiz Generation Failed',
-          description: 'The AI could not generate a quiz for the selected topic. Please try again.',
+          title: 'Exam Generation Failed',
+          description: 'The AI could not generate an exam for the selected topic. Please try again.',
           variant: 'destructive',
         });
         setIsGenerating(false);
@@ -163,7 +163,7 @@ export function CreateQuizForm() {
         topic: {
           id: topicId,
           title: selectedTopic.title,
-          description: 'A custom generated quiz.',
+          description: 'A custom generated exam.',
           icon: selectedTopic.icon,
           categoryId: selectedTopic.categoryId,
         },
@@ -175,9 +175,9 @@ export function CreateQuizForm() {
       router.push(`/quiz/${topicId}`);
 
     } catch (error: any) {
-      console.error('Error generating quiz:', error);
+      console.error('Error generating exam:', error);
       toast({
-          title: 'Error Generating Quiz',
+          title: 'Error Generating Exam',
           description: error.message || 'An unexpected error occurred. Please try again.',
           variant: 'destructive',
       });
@@ -384,8 +384,14 @@ export function CreateQuizForm() {
             {!hasExceededFreeLimit && (
                  <CardFooter>
                     <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading} className="w-full">
-                        {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Start Exam
+                        {isGenerating ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Generating... Please wait a moment.
+                            </>
+                        ) : (
+                            "Start Exam"
+                        )}
                     </Button>
                 </CardFooter>
             )}

@@ -78,7 +78,7 @@ export function PartwiseQuizForm() {
     setIsGenerating(true);
 
     if (!user || !userData) {
-        toast({ title: 'Not Authenticated', description: 'You must be logged in to create a quiz.', variant: 'destructive' });
+        toast({ title: 'Not Authenticated', description: 'You must be logged in to create an exam.', variant: 'destructive' });
         setIsGenerating(false);
         return;
     }
@@ -94,7 +94,7 @@ export function PartwiseQuizForm() {
 
       if (!mcqs || mcqs.length === 0) {
         toast({
-          title: 'Quiz Generation Failed',
+          title: 'Exam Generation Failed',
           description: 'The AI could not generate questions for the selected part.',
           variant: 'destructive',
         });
@@ -109,7 +109,7 @@ export function PartwiseQuizForm() {
         topic: {
           id: quizId,
           title: `${values.examType} - ${values.part} Practice`,
-          description: `A quiz covering all topics in ${values.part}.`,
+          description: `An exam covering all topics in ${values.part}.`,
           icon: 'scroll-text',
           categoryId: 'partwise-quiz',
         },
@@ -122,9 +122,9 @@ export function PartwiseQuizForm() {
       router.push(`/quiz/${quizId}`);
 
     } catch (error: any) {
-      console.error('Error generating part-wise quiz:', error);
+      console.error('Error generating part-wise exam:', error);
       toast({
-          title: 'Error Generating Quiz',
+          title: 'Error Generating Exam',
           description: error.message || 'An unexpected error occurred. Please try again.',
           variant: 'destructive',
       });
@@ -254,8 +254,14 @@ export function PartwiseQuizForm() {
             {!hasExceededFreeLimit && (
                  <CardFooter>
                     <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading} className="w-full">
-                        {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Start Part-wise Exam
+                         {isGenerating ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Generating... Please wait a moment.
+                            </>
+                        ) : (
+                            "Start Part-wise Exam"
+                        )}
                     </Button>
                 </CardFooter>
             )}

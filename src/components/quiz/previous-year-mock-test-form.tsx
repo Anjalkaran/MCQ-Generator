@@ -176,7 +176,14 @@ export function PreviousYearMockTestForm() {
              </CardContent>
              <CardFooter>
                 <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading || isBankLoading || !hasQuestionPapers} className="w-full">
-                    {isGenerating || isBankLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Generate Mock Test"}
+                    {isGenerating || isBankLoading ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                             Generating... Please wait a moment.
+                        </>
+                    ) : (
+                        "Generate Mock Test"
+                    )}
                 </Button>
             </CardFooter>
         </form>

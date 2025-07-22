@@ -203,7 +203,14 @@ export function MockTestForm() {
              </CardContent>
              <CardFooter>
                 <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading} className="w-full">
-                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Generate Mock Test"}
+                    {isGenerating ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Generating... Please wait a moment.
+                        </>
+                    ) : (
+                        "Generate Mock Test"
+                    )}
                 </Button>
             </CardFooter>
         </form>
