@@ -5,7 +5,6 @@
  * @fileOverview Generates multiple-choice questions (MCQs) from a provided topic.
  *
  * - generateMCQs - A function that handles the MCQ generation process.
- * - GenerateMCQsInput - The input type for the generateMCQs function.
  * - GenerateMCQsOutput - The return type for the generateMCQs function.
  */
 
