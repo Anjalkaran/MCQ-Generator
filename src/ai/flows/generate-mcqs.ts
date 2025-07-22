@@ -147,7 +147,7 @@ For every question you generate, you MUST follow this two-step process:
 
 You MUST generate questions that can be answered with one of the four options. Do NOT create open-ended questions that ask to "Explain...", "Describe...", "What is...", or "List...".
 
-CRITICAL INSTRUCTION: Do not start questions with phrases like "According to the...", "Based on the material...", or any similar introductory text. Questions should be direct.
+CRITICAL INSTRUCTION: Do not start questions or explanations with phrases like "According to the...", "Based on the material...", "The provided material states that...", or any similar introductory text. Questions and explanations should be direct.
 
 --- PRIMARY RULE: SOURCE OF TRUTH ---
 {{#if material}}
