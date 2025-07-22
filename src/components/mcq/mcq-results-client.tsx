@@ -98,6 +98,10 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
     localStorage.removeItem(`quizState-${topicId}`);
     router.push('/dashboard');
   };
+  
+  const isArithmeticQuestion = (mcq: MCQ) => {
+    return mcq.topic?.toLowerCase().includes('arithmetic');
+  };
 
   return (
     <div className="space-y-8">
@@ -138,6 +142,9 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
             {quizMcqs.map((mcq, index) => {
               const userAnswer = userAnswers[index];
               const isCorrect = userAnswer === mcq.correctAnswer;
+              const isArithmetic = quizData.isMockTest ? isArithmeticQuestion(mcq) : false;
+              const explanationLabel = isArithmetic ? "View Solution" : "View Explanation";
+
               return (
                 <li key={index}>
                   <p className="font-semibold mb-2">
@@ -178,7 +185,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
                             <AccordionTrigger>
                                 <div className="flex items-center gap-2 text-primary">
                                     <BrainCircuit className="w-5 h-5" />
-                                    <span className="font-semibold">View Solution</span>
+                                    <span className="font-semibold">{explanationLabel}</span>
                                 </div>
                             </AccordionTrigger>
                             <AccordionContent>
