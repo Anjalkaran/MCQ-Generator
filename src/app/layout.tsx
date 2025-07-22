@@ -5,9 +5,34 @@ import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({subsets: ['latin'], variable: '--font-sans'});
 
+const siteUrl = "https://anjalkaran.in";
+const siteTitle = "Anjalkaran MCQ Test";
+const siteDescription = "Generate and take MCQ tests with the Anjalkaran MCQ Test app.";
+const siteImage = `${siteUrl}/logo.png`;
+
 export const metadata: Metadata = {
-  title: 'Anjalkaran MCQ Test',
-  description: 'Generate and take MCQ tests with the Anjalkaran MCQ Test app.',
+  title: siteTitle,
+  description: siteDescription,
+  openGraph: {
+    type: "website",
+    url: siteUrl,
+    title: siteTitle,
+    description: siteDescription,
+    images: [
+      {
+        url: siteImage,
+        width: 1200,
+        height: 630,
+        alt: "Anjalkaran Logo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteTitle,
+    description: siteDescription,
+    images: [siteImage],
+  },
 };
 
 export default function RootLayout({
