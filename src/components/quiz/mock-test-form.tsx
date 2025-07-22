@@ -65,10 +65,10 @@ export function MockTestForm() {
   }, [userData]);
 
   useEffect(() => {
-    if (userData?.examCategory === 'MTS' && availableExams.length === 1) {
+    if (availableExams.length === 1 && availableExams[0] === 'MTS') {
         form.setValue('examType', 'MTS');
     }
-  }, [userData?.examCategory, availableExams, form]);
+  }, [availableExams, form]);
 
   const selectedExamType = form.watch('examType');
 
@@ -159,28 +159,30 @@ export function MockTestForm() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CardContent>
                 <fieldset disabled={isGenerating || isLoading} className="space-y-6">
-                    <FormField
-                      control={form.control}
-                      name="examType"
-                      render={({ field }) => (
-                          <FormItem>
-                          <FormLabel>Select Exam</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value} disabled={!user || availableExams.length <= 1}>
-                              <FormControl>
-                              <SelectTrigger>
-                                  <SelectValue placeholder="Select Exam Type" />
-                              </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                              {availableExams.map((exam) => (
-                                  <SelectItem key={exam} value={exam}>{exam}</SelectItem>
-                              ))}
-                              </SelectContent>
-                          </Select>
-                          <FormMessage />
-                          </FormItem>
-                      )}
-                    />
+                    {availableExams.length > 1 && (
+                        <FormField
+                        control={form.control}
+                        name="examType"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Select Exam</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value} disabled={!user}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Exam Type" />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                {availableExams.map((exam) => (
+                                    <SelectItem key={exam} value={exam}>{exam}</SelectItem>
+                                ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                    )}
                     {selectedExamType && (
                         <Alert>
                             <AlertTriangle className="h-4 w-4" />

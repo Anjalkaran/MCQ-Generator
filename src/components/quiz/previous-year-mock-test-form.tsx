@@ -55,6 +55,7 @@ export function PreviousYearMockTestForm() {
   const availableExams = useMemo(() => {
     if (!userData) return [];
     if (userData.email && ADMIN_EMAILS.includes(userData.email)) return examCategories;
+    // This component is admin-only, but we keep the logic for robustness
     switch (userData.examCategory) {
         case 'PA':
             return ['PA', 'POSTMAN', 'MTS'];
@@ -66,12 +67,6 @@ export function PreviousYearMockTestForm() {
             return [];
     }
   }, [userData]);
-
-  useEffect(() => {
-    if (userData?.examCategory === 'MTS' && availableExams.length === 1) {
-        form.setValue('examType', 'MTS');
-    }
-  }, [userData?.examCategory, availableExams, form]);
 
   const selectedExamType = form.watch('examType');
 
@@ -134,33 +129,7 @@ export function PreviousYearMockTestForm() {
     }
   };
   
-  const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
-  const proValidUntilDate = normalizeDate(userData?.proValidUntil);
-  const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
   const hasQuestionPapers = questionBank.length > 0;
-
-  if (!isPro && userData) {
-     return (
-        <Card>
-            <CardHeader className="text-center">
-                <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit">
-                    <Gem className="h-8 w-8 text-primary" />
-                </div>
-                <CardTitle>Pro Feature</CardTitle>
-                <CardDescription>
-                    Mock tests are available for pro users. Upgrade your plan to access full-length exams.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Button asChild className="w-full">
-                    <Link href="/dashboard/upgrade">
-                        Upgrade to Pro
-                    </Link>
-                </Button>
-            </CardContent>
-        </Card>
-    );
-  }
 
   return (
     <Card>
@@ -178,7 +147,7 @@ export function PreviousYearMockTestForm() {
                       render={({ field }) => (
                           <FormItem>
                           <FormLabel>Select Exam</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value} disabled={!user || availableExams.length <= 1}>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={!user}>
                               <FormControl>
                               <SelectTrigger>
                                   <SelectValue placeholder="Select Exam Type" />
