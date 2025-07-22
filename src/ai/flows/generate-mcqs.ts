@@ -27,15 +27,15 @@ const GenerateMCQsInputSchema = z.object({
 });
 export type GenerateMCQsInput = z.infer<typeof GenerateMCQsInputSchema>;
 
-const GenerateMCQsOutputSchema = z.object({
-  mcqs: z.array(
-    z.object({
+const MCQSchema = z.object({
       question: z.string().describe('The multiple-choice question.'),
       options: z.array(z.string()).length(4).describe('An array of four possible answers.'),
       correctAnswer: z.string().describe('The full text of the correct answer, which MUST be an exact match to one of the four strings in the `options` array.'),
       solution: z.string().optional().describe('A step-by-step solution for arithmetic problems, or a detailed explanation for other topics.'),
-    })
-  ).describe('The generated multiple-choice questions.'),
+    });
+
+const GenerateMCQsOutputSchema = z.object({
+  mcqs: z.array(MCQSchema).describe('The generated multiple-choice questions.'),
 });
 export type GenerateMCQsOutput = z.infer<typeof GenerateMCQsOutputSchema>;
 
@@ -310,12 +310,22 @@ const generateMCQsFlow = ai.defineFlow(
         throw new Error('The AI could not generate questions for the selected topic.');
     }
     
+    // Validate the output to ensure options are correctly formatted
+    const validatedMCQs = initialOutput.mcqs.filter(mcq => {
+        const validationResult = MCQSchema.safeParse(mcq);
+        if (!validationResult.success) {
+            console.warn("An invalid MCQ was generated and has been filtered out:", validationResult.error);
+            return false;
+        }
+        return true;
+    });
+
+    if (validatedMCQs.length === 0) {
+        throw new Error('The AI failed to generate any valid questions. Please try again.');
+    }
+
     await runDeferred();
     
-    return initialOutput;
+    return { mcqs: validatedMCQs };
   }
 );
-
-    
-
-    
