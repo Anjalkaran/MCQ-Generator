@@ -383,7 +383,7 @@ export const getQuestionBankByCategory = async (examCategory: 'MTS' | 'POSTMAN' 
 
 
 // LEADERBOARD MANAGEMENT
-export const getLeaderboardData = async (examType: 'topic' | 'mock'): Promise<LeaderboardEntry[]> => {
+export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategory: UserData['examCategory']): Promise<LeaderboardEntry[]> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
 
@@ -395,22 +395,24 @@ export const getLeaderboardData = async (examType: 'topic' | 'mock'): Promise<Le
     const historySnapshot = await getDocs(historyQuery);
     const histories = historySnapshot.docs.map(doc => doc.data() as MCQHistory);
 
-    // 2. Fetch all users
-    const users = await getAllUsers();
-    const userMap = new Map(users.map(u => [u.uid, u]));
+    // 2. Fetch all users and filter by exam category
+    const allUsers = await getAllUsers();
+    const filteredUsers = allUsers.filter(u => u.examCategory === examCategory);
+    const userMap = new Map(filteredUsers.map(u => [u.uid, u]));
 
     // 3. Aggregate scores per user
     const userPerformance = new Map<string, { totalScore: number; totalQuestions: number; totalExams: number }>();
     
     histories.forEach(h => {
         const user = userMap.get(h.userId);
-        if (user && ADMIN_EMAILS.includes(user.email)) return; // Exclude admins
-
-        const current = userPerformance.get(h.userId) || { totalScore: 0, totalQuestions: 0, totalExams: 0 };
-        current.totalScore += h.score;
-        current.totalQuestions += h.totalQuestions;
-        current.totalExams += 1;
-        userPerformance.set(h.userId, current);
+        // Only process history if the user belongs to the selected category and is not an admin
+        if (user && !ADMIN_EMAILS.includes(user.email)) {
+            const current = userPerformance.get(h.userId) || { totalScore: 0, totalQuestions: 0, totalExams: 0 };
+            current.totalScore += h.score;
+            current.totalQuestions += h.totalQuestions;
+            current.totalExams += 1;
+            userPerformance.set(h.userId, current);
+        }
     });
 
     // 4. Create leaderboard entries

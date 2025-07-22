@@ -6,14 +6,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import type { LeaderboardEntry } from '@/lib/types';
+import type { LeaderboardEntry, UserData } from '@/lib/types';
 import { Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 interface LeaderboardClientProps {
-  initialTopicLeaderboard: LeaderboardEntry[];
-  initialMockTestLeaderboard: LeaderboardEntry[];
+  initialTopicLeaderboards: Record<UserData['examCategory'], LeaderboardEntry[]>;
+  initialMockTestLeaderboards: Record<UserData['examCategory'], LeaderboardEntry[]>;
 }
+
+type ExamCategory = UserData['examCategory'];
 
 function LeaderboardTable({ data }: { data: LeaderboardEntry[] }) {
   if (data.length === 0) {
@@ -38,7 +42,6 @@ function LeaderboardTable({ data }: { data: LeaderboardEntry[] }) {
           <TableRow>
             <TableHead className="w-16 text-center">Rank</TableHead>
             <TableHead>User</TableHead>
-            <TableHead className="text-center">Exam Category</TableHead>
             <TableHead className="text-center">Exams Taken</TableHead>
             <TableHead className="text-right">Average Score</TableHead>
           </TableRow>
@@ -53,9 +56,6 @@ function LeaderboardTable({ data }: { data: LeaderboardEntry[] }) {
                 </div>
               </TableCell>
               <TableCell className="font-medium">{entry.userName}</TableCell>
-              <TableCell className="text-center">
-                <Badge variant="outline">{entry.examCategory}</Badge>
-              </TableCell>
               <TableCell className="text-center">{entry.totalExams}</TableCell>
               <TableCell className="text-right font-semibold">{entry.averageScore.toFixed(2)}%</TableCell>
             </TableRow>
@@ -66,7 +66,28 @@ function LeaderboardTable({ data }: { data: LeaderboardEntry[] }) {
   );
 }
 
-export function LeaderboardClient({ initialTopicLeaderboard, initialMockTestLeaderboard }: LeaderboardClientProps) {
+function CategorySelector({ selectedCategory, setSelectedCategory }: { selectedCategory: ExamCategory, setSelectedCategory: (category: ExamCategory) => void }) {
+  const categories: ExamCategory[] = ['MTS', 'POSTMAN', 'PA'];
+  return (
+    <RadioGroup
+      value={selectedCategory}
+      onValueChange={(value) => setSelectedCategory(value as ExamCategory)}
+      className="flex items-center space-x-4 mb-4"
+    >
+      <Label>Exam Category:</Label>
+      {categories.map(cat => (
+        <div key={cat} className="flex items-center space-x-2">
+          <RadioGroupItem value={cat} id={`cat-${cat}`} />
+          <Label htmlFor={`cat-${cat}`}>{cat}</Label>
+        </div>
+      ))}
+    </RadioGroup>
+  );
+}
+
+export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLeaderboards }: LeaderboardClientProps) {
+  const [selectedCategory, setSelectedCategory] = useState<ExamCategory>('MTS');
+
   return (
     <Tabs defaultValue="topic" className="w-full">
       <TabsList className="grid w-full grid-cols-2">
@@ -80,7 +101,8 @@ export function LeaderboardClient({ initialTopicLeaderboard, initialMockTestLead
             <CardDescription>Ranking based on average scores from all topic-wise quizzes.</CardDescription>
           </CardHeader>
           <CardContent>
-            <LeaderboardTable data={initialTopicLeaderboard} />
+            <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} />
+            <LeaderboardTable data={initialTopicLeaderboards[selectedCategory]} />
           </CardContent>
         </Card>
       </TabsContent>
@@ -91,7 +113,8 @@ export function LeaderboardClient({ initialTopicLeaderboard, initialMockTestLead
             <CardDescription>Ranking based on average scores from all mock tests.</CardDescription>
           </CardHeader>
           <CardContent>
-            <LeaderboardTable data={initialMockTestLeaderboard} />
+             <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} />
+            <LeaderboardTable data={initialMockTestLeaderboards[selectedCategory]} />
           </CardContent>
         </Card>
       </TabsContent>
