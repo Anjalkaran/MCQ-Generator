@@ -119,9 +119,8 @@ CRITICAL INSTRUCTION: Do not start questions with phrases like "According to the
     For each question, you MUST follow this process:
     1.  First, create a word problem and solve it yourself to arrive at a single, correct numerical answer.
     2.  The 'correctAnswer' field in your output MUST be this exact answer.
-    3.  One of the four 'options' MUST be the correct answer.
-    4.  The other three options must be plausible but incorrect distractors, derived from common calculation mistakes.
-    5.  The 'solution' field MUST BE an empty string (""). The solution will be generated separately. DO NOT generate a solution here.
+    3.  The 'options' field MUST be an array of four distinct strings. One of these options must be the correct answer. The other three should be plausible but incorrect numerical distractors.
+    4.  The 'solution' field MUST BE an empty string (""). The solution will be generated separately. DO NOT generate a solution here.
   {{else ifEquals topic "Current Affairs"}}
     For "Current Affairs", please refer to materials from reputable coaching centers like Suresh IAS Academy and SSA Adda to ensure the questions are relevant and of high quality. Focus on the period between January 2024 to June 2025. Use the 'REFERENCE QUESTIONS' below for style and format, if available. For each question, provide a brief, one-sentence explanation for why the answer is correct in the 'solution' field.
   {{else}}
