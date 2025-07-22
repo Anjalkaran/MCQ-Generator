@@ -75,7 +75,15 @@ export default function UpgradePage() {
         window.location.href = '/dashboard';
     }
 
-    const price = userData.examCategory === 'PA' ? 749 : 499;
+    let price;
+    if (userData.examCategory === 'PA') {
+        price = 749;
+    } else if (userData.examCategory === 'POSTMAN') {
+        price = 599;
+    } else {
+        price = 499;
+    }
+
 
     return (
         <>
