@@ -133,7 +133,17 @@ export default function QAPage() {
   
   const placeholderText = useMemo(() => {
     if (selectedPart === 'Part A') {
-      return "e.g., What are the business hours for post offices on Saturdays?";
+      const selectedTopic = topics.find(t => t.id === selectedContextId);
+      if (selectedTopic?.title === "Business Hours") {
+        return "e.g., What are the business hours for post offices on Saturdays?";
+      }
+      if (selectedTopic?.title === "Methods of address") {
+        return "e.g., What is the correct way to address a letter to a foreign country?";
+      }
+      if (selectedTopic) {
+        return `e.g., Ask a question about "${selectedTopic.title}"...`;
+      }
+      return "Select a topic to see a relevant example.";
     }
     if (selectedPart === 'Part B') {
       const selectedCategory = categories.find(c => c.id === selectedContextId);
@@ -146,7 +156,7 @@ export default function QAPage() {
       return "Select a category to see a relevant example.";
     }
     return "Ask a question about the selected topic...";
-  }, [selectedPart, selectedContextId, categories]);
+  }, [selectedPart, selectedContextId, categories, topics]);
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
