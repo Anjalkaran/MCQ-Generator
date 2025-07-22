@@ -19,6 +19,7 @@ import { useDashboard } from '@/app/dashboard/layout';
 import { generateMockTest } from '@/ai/flows/generate-mock-test';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-blueprints';
 import { ADMIN_EMAILS, FREE_EXAM_LIMIT } from '@/lib/constants';
+import { Input } from '@/components/ui/input';
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 
@@ -57,19 +58,22 @@ export function MockTestForm() {
     }
   }, [userData]);
 
+  const isMTSOnlyUser = useMemo(() => {
+    return availableExams.length === 1 && availableExams[0] === 'MTS';
+  }, [availableExams]);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      examType: availableExams.length === 1 && availableExams[0] === 'MTS' ? 'MTS' : undefined,
+      examType: isMTSOnlyUser ? 'MTS' : undefined,
     },
   });
 
   useEffect(() => {
-    // This effect ensures the form value is set if userData loads after initial render.
-    if (availableExams.length === 1 && availableExams[0] === 'MTS') {
+    if (isMTSOnlyUser) {
         form.setValue('examType', 'MTS');
     }
-  }, [availableExams, form]);
+  }, [isMTSOnlyUser, form]);
 
   const selectedExamType = form.watch('examType');
 
@@ -160,7 +164,7 @@ export function MockTestForm() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CardContent>
                 <fieldset disabled={isGenerating || isLoading} className="space-y-6">
-                    {availableExams.length > 1 ? (
+                    {!isMTSOnlyUser ? (
                         <FormField
                         control={form.control}
                         name="examType"
