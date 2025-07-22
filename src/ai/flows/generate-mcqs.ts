@@ -31,8 +31,8 @@ const GenerateMCQsOutputSchema = z.object({
   mcqs: z.array(
     z.object({
       question: z.string().describe('The multiple-choice question.'),
-      options: z.array(z.string()).describe('Four possible answers.'),
-      correctAnswer: z.string().describe('The correct answer to the question.'),
+      options: z.array(z.string()).length(4).describe('An array of four possible answers.'),
+      correctAnswer: z.string().describe('The full text of the correct answer, which MUST be an exact match to one of the four strings in the `options` array.'),
       solution: z.string().optional().describe('A step-by-step solution for arithmetic problems, or a concise explanation for other topics.'),
     })
   ).describe('The generated multiple-choice questions.'),
@@ -138,10 +138,14 @@ const prompt = ai.definePrompt({
   name: 'generateMCQsPrompt',
   input: {schema: GenerateMCQsInputSchema},
   output: {schema: GenerateMCQsOutputSchema},
-  prompt: `You are an expert in generating multiple-choice questions (MCQs). Your goal is to create {{numberOfQuestions}} questions for the "{{examCategory}}" exam, specifically for "{{part}}". The questions should be on the topic of "{{topic}}" with a "{{difficulty}}" difficulty level. Each question must have four options, one correct answer, and a solution/explanation.
+  prompt: `You are an expert in generating multiple-choice questions (MCQs). Your goal is to create {{numberOfQuestions}} questions for the "{{examCategory}}" exam, specifically for "{{part}}". The questions should be on the topic of "{{topic}}" with a "{{difficulty}}" difficulty level.
 
 --- MOST IMPORTANT RULE ---
-You MUST generate questions that can be answered with one of the four options. Do NOT create open-ended questions that ask to "Explain...", "Describe...", "What is...", or "List...". For every question, the 'options' field MUST be an array of four distinct strings.
+For every question you generate, you MUST follow this two-step process:
+1.  First, generate an array of four distinct strings for the 'options' field.
+2.  Second, from that exact array, select the single correct option and use its full text for the 'correctAnswer' field. The 'correctAnswer' string must be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
+
+You MUST generate questions that can be answered with one of the four options. Do NOT create open-ended questions that ask to "Explain...", "Describe...", "What is...", or "List...".
 
 CRITICAL INSTRUCTION: Do not start questions with phrases like "According to the...", "Based on the material...", or any similar introductory text. Questions should be direct.
 
