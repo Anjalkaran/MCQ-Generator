@@ -39,6 +39,16 @@ const GenerateMCQsOutputSchema = z.object({
 });
 export type GenerateMCQsOutput = z.infer<typeof GenerateMCQsOutputSchema>;
 
+// New schema for the 2-step arithmetic generation
+const ArithmeticProblemSchema = z.object({
+    question: z.string().describe("The word problem."),
+    correctAnswer: z.string().describe("The single, mathematically correct answer."),
+});
+
+const ArithmeticDistractorsSchema = z.object({
+    distractors: z.array(z.string()).length(3).describe("An array of three plausible but incorrect numerical answers."),
+});
+
 const ArithmeticSolutionSchema = z.object({
     steps: z.array(z.string()).describe("An array of strings, where each string is a single step in the calculation using the LCM method."),
     final_answer: z.string().describe("A string containing only the final, mathematically exact answer."),
@@ -87,6 +97,42 @@ Now, solve the following problem according to all the rules above:
 Problem: "{{problem}}"`,
 });
 
+// New prompt for generating just the problem and answer
+const arithmeticProblemPrompt = ai.definePrompt({
+    name: 'arithmeticProblemPrompt',
+    input: { schema: z.object({ topic: z.string(), previousQuestions: z.array(z.string()).optional() }) },
+    output: { schema: z.object({ problems: z.array(ArithmeticProblemSchema) }) },
+    prompt: `You are a meticulous mathematics teacher. Create a word problem for the topic "{{topic}}".
+    
+    IMPORTANT: Do NOT repeat any of the following questions. Ensure the new questions are unique and different from this list:
+    {{#if previousQuestions}}
+        {{#each previousQuestions}}
+        - "{{this}}"
+        {{/each}}
+    {{/if}}
+
+    Your output MUST be a JSON object containing a "problems" array with ONE entry.
+    Each entry must have two keys:
+    1. "question": The full word problem.
+    2. "correctAnswer": The single, mathematically correct answer as a string.
+    Do not generate multiple-choice options here.
+    `,
+});
+
+// New prompt for generating distractors
+const arithmeticDistractorsPrompt = ai.definePrompt({
+    name: 'arithmeticDistractorsPrompt',
+    input: { schema: z.object({ question: z.string(), correctAnswer: z.string() }) },
+    output: { schema: ArithmeticDistractorsSchema },
+    prompt: `For the following math problem, the correct answer is "{{correctAnswer}}".
+    
+    Problem: "{{question}}"
+    
+    Your task is to generate three plausible but INCORRECT numerical answers that could be used as distractors in a multiple-choice question. These should be based on common calculation mistakes.
+    
+    Your output MUST be a valid JSON object with a single key "distractors", which is an array of three distinct strings.
+    `,
+});
 
 const prompt = ai.definePrompt({
   name: 'generateMCQsPrompt',
@@ -95,7 +141,7 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert in generating multiple-choice questions (MCQs). Your goal is to create {{numberOfQuestions}} questions for the "{{examCategory}}" exam, specifically for "{{part}}". The questions should be on the topic of "{{topic}}" with a "{{difficulty}}" difficulty level. Each question must have four options, one correct answer, and a solution/explanation.
 
 --- MOST IMPORTANT RULE ---
-You MUST generate questions that can be answered with one of the four options. Do NOT create open-ended questions that ask to "Explain...", "Describe...", "What is...", or "List...". Every question must be a test of knowledge with a specific, selectable answer. For every question, the 'options' field MUST be an array of four distinct strings.
+You MUST generate questions that can be answered with one of the four options. Do NOT create open-ended questions that ask to "Explain...", "Describe...", "What is...", or "List...". For every question, the 'options' field MUST be an array of four distinct strings.
 
 CRITICAL INSTRUCTION: Do not start questions with phrases like "According to the...", "Based on the material...", or any similar introductory text. Questions should be direct.
 
@@ -114,14 +160,7 @@ CRITICAL INSTRUCTION: Do not start questions with phrases like "According to the
 --- MATERIAL END ---
 {{else}}
 --- GENERATION RULES (NO MATERIAL PROVIDED) ---
-  {{#ifEquals category "Basic Arithmetics"}}
-    You are a meticulous mathematics teacher. Your task is to create high-quality arithmetic problems.
-    For each question, you MUST follow this process:
-    1.  First, create a word problem and solve it yourself to arrive at a single, correct numerical answer.
-    2.  The 'correctAnswer' field in your output MUST be this exact answer.
-    3.  The 'options' field MUST be an array of four distinct strings. One of these options must be the correct answer. The other three should be plausible but incorrect numerical distractors.
-    4.  The 'solution' field MUST BE an empty string (""). The solution will be generated separately. DO NOT generate a solution here.
-  {{else ifEquals topic "Current Affairs"}}
+  {{#ifEquals topic "Current Affairs"}}
     For "Current Affairs", please refer to materials from reputable coaching centers like Suresh IAS Academy and SSA Adda to ensure the questions are relevant and of high quality. Focus on the period between January 2024 to June 2025. Use the 'REFERENCE QUESTIONS' below for style and format, if available. For each question, provide a brief, one-sentence explanation for why the answer is correct in the 'solution' field.
   {{else}}
     For this topic, generate new questions. Use the 'REFERENCE QUESTIONS' below for style, format, and difficulty. Ensure the new questions are unique. For each question, provide a concise explanation for the correct answer in the 'solution' field.
@@ -159,6 +198,15 @@ async function runDeferred() {
     deferredFunctions = []; // Reset for the next flow run
 }
 
+// Function to shuffle an array
+function shuffleArray<T>(array: T[]): T[] {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
 const generateMCQsFlow = ai.defineFlow(
   {
     name: 'generateMCQsFlow',
@@ -172,35 +220,25 @@ const generateMCQsFlow = ai.defineFlow(
     
     let flowInput = { ...input };
 
-    // FIX: Check for excluded categories BEFORE processing material.
     const excludedCategories = ["Basic Arithmetics", "General Awareness"];
     if (flowInput.category && excludedCategories.includes(flowInput.category)) {
       flowInput.material = undefined; 
     }
 
-    // --- Material Progress Logic ---
     if (flowInput.material && input.topicId) {
         const userProgress = await getUserTopicProgress(input.userId, input.topicId);
         const startIndex = userProgress?.lastCharacterIndexUsed || 0;
-        
         let materialChunk = flowInput.material.substring(startIndex, startIndex + MATERIAL_CHUNK_SIZE);
-        
         let nextIndex = startIndex + materialChunk.length;
-
-        // If we've reached the end of the material, reset for next time
         if (nextIndex >= flowInput.material.length) {
             nextIndex = 0;
         }
-
         flowInput.material = materialChunk;
-
-        // Defer the update until after the generation is successful
         const updateProgress = async () => {
              await updateUserTopicProgress(input.userId, input.topicId, nextIndex);
         }
         defer(updateProgress); 
     }
-    // --- End Material Progress Logic ---
 
     if (input.examCategory) {
         const categoryForBank = input.examCategory === 'POSTMAN' ? 'MTS' : input.examCategory;
@@ -210,30 +248,68 @@ const generateMCQsFlow = ai.defineFlow(
         }
     }
 
+    // --- Special Handling for Basic Arithmetics ---
+    if (input.category === "Basic Arithmetics") {
+        const generatedMCQs = [];
+        const existingQuestions = new Set(input.previousQuestions || []);
+
+        for (let i = 0; i < input.numberOfQuestions; i++) {
+            try {
+                // Step 1: Generate the problem and correct answer
+                const problemResponse = await arithmeticProblemPrompt({ 
+                    topic: input.topic, 
+                    previousQuestions: Array.from(existingQuestions) 
+                });
+
+                if (!problemResponse.output?.problems?.[0]) continue;
+                const { question, correctAnswer } = problemResponse.output.problems[0];
+                existingQuestions.add(question); // Add to avoid duplicates in the same run
+
+                // Step 2: Generate distractors
+                const distractorsResponse = await arithmeticDistractorsPrompt({ question, correctAnswer });
+                if (!distractorsResponse.output?.distractors) continue;
+                const { distractors } = distractorsResponse.output;
+
+                // Step 3: Combine and shuffle options
+                const options = shuffleArray([correctAnswer, ...distractors]);
+                
+                // Step 4: Generate the detailed solution
+                let solutionText = "A detailed solution could not be generated for this problem.";
+                try {
+                     const solutionResponse = await arithmeticSolverPrompt({ problem: question });
+                     if (solutionResponse.output) {
+                        solutionText = solutionResponse.output.steps.join('\n');
+                     }
+                } catch (e) {
+                    console.error("Failed to generate a detailed solution:", e);
+                }
+
+                generatedMCQs.push({
+                    question,
+                    options,
+                    correctAnswer,
+                    solution: solutionText,
+                });
+
+            } catch (e) {
+                console.error("Error during arithmetic question generation step:", e);
+            }
+        }
+        
+        await runDeferred();
+        return { mcqs: generatedMCQs };
+    }
+    // --- End Special Handling ---
+
     const {output: initialOutput} = await prompt(flowInput);
     if (!initialOutput || !initialOutput.mcqs || initialOutput.mcqs.length === 0) {
         throw new Error('The AI could not generate questions for the selected topic.');
     }
     
-    // Execute deferred functions (like updating progress)
     await runDeferred();
-
-    if (input.category === "Basic Arithmetics") {
-        for (const mcq of initialOutput.mcqs) {
-            try {
-                const solutionResponse = await arithmeticSolverPrompt({ problem: mcq.question });
-                const solution = solutionResponse.output;
-
-                if (solution) {
-                    mcq.solution = solution.steps.join('\n');
-                }
-            } catch (e) {
-                console.error("Failed to generate a detailed solution for a question:", e);
-                mcq.solution = "A detailed solution could not be generated for this problem.";
-            }
-        }
-    }
-
+    
     return initialOutput;
   }
 );
+
+    
