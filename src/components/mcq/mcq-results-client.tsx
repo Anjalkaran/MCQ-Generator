@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, XCircle, Award, Repeat, Home, BrainCircuit } from "lucide-react";
@@ -36,6 +36,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
   const [quizLength, setQuizLength] = useState(0);
   const [isClient, setIsClient] = useState(false);
   const [quizData, setQuizData] = useState<Omit<StoredQuizData, 'answers' | 'numberOfQuestions'> | null>(null);
+  const hasSavedHistory = useRef(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -44,7 +45,9 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
     const currentUser = auth?.currentUser;
 
     const processResults = async () => {
-      if (savedState && currentUser) {
+      if (savedState && currentUser && !hasSavedHistory.current) {
+        hasSavedHistory.current = true; // Set flag to prevent re-runs
+        
         const { answers, numberOfQuestions, mcqs, topic, isMockTest } = JSON.parse(savedState) as StoredQuizData;
         setUserAnswers(answers);
         setQuizLength(numberOfQuestions);
