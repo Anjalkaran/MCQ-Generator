@@ -6,7 +6,6 @@ import { PreviousYearMockTestForm } from "@/components/quiz/previous-year-mock-t
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDashboard } from "@/app/dashboard/layout";
 import { ADMIN_EMAILS } from "@/lib/constants";
-import { Card, CardContent } from "@/components/ui/card";
 
 export default function MockTestPage() {
     const { userData } = useDashboard();
