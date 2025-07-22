@@ -17,7 +17,7 @@ import { normalizeDate } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
 import { useDashboard } from '@/app/dashboard/layout';
-import { ADMIN_EMAILS, FREE_TOPIC_EXAM_LIMIT } from '@/lib/constants';
+import { ADMIN_EMAILS, FREE_EXAM_LIMIT } from '@/lib/constants';
 import { generatePartwiseMCQs } from '@/ai/flows/generate-partwise-mcqs';
 
 const formSchema = z.object({
@@ -136,7 +136,8 @@ export function PartwiseQuizForm() {
   const proValidUntilDate = normalizeDate(userData?.proValidUntil);
   const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
   
-  const hasExceededFreeLimit = !isPro && userData && (userData.topicExamsTaken || 0) >= FREE_TOPIC_EXAM_LIMIT;
+  const totalExamsTaken = (userData?.topicExamsTaken || 0) + (userData?.mockTestsTaken || 0);
+  const hasExceededFreeLimit = !isPro && userData && totalExamsTaken >= FREE_EXAM_LIMIT;
   
   return (
     <Card>

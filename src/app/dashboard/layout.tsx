@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { getDashboardData } from '@/lib/firestore';
 import type { UserData, Category, Topic, BankedQuestion } from "@/lib/types";
-import { ADMIN_EMAILS, FREE_TOPIC_EXAM_LIMIT } from '@/lib/constants';
+import { ADMIN_EMAILS, FREE_EXAM_LIMIT } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
 import packageJson from '../../../package.json';
@@ -102,7 +102,8 @@ function AppSidebar() {
         return `Welcome, ${userData.name}!`;
     }
 
-    const examsRemaining = FREE_TOPIC_EXAM_LIMIT - (userData.topicExamsTaken || 0);
+    const totalExamsTaken = (userData.topicExamsTaken || 0) + (userData.mockTestsTaken || 0);
+    const examsRemaining = FREE_EXAM_LIMIT - totalExamsTaken;
     return `Welcome, ${userData.name}! You have ${examsRemaining > 0 ? examsRemaining : 0} free exam(s) remaining.`;
   }
 

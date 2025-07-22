@@ -18,7 +18,7 @@ import Link from 'next/link';
 import { useDashboard } from '@/app/dashboard/layout';
 import { generateMockTest } from '@/ai/flows/generate-mock-test';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-blueprints';
-import { ADMIN_EMAILS } from '@/lib/constants';
+import { ADMIN_EMAILS, FREE_EXAM_LIMIT } from '@/lib/constants';
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 
@@ -101,17 +101,20 @@ export function MockTestForm() {
   const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
   const proValidUntilDate = normalizeDate(userData?.proValidUntil);
   const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
+  
+  const totalExamsTaken = (userData?.topicExamsTaken || 0) + (userData?.mockTestsTaken || 0);
+  const hasExceededFreeLimit = !isPro && userData && totalExamsTaken >= FREE_EXAM_LIMIT;
 
-  if (!isPro && userData) {
+  if (hasExceededFreeLimit) {
      return (
         <Card>
             <CardHeader className="text-center">
                 <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit">
                     <Gem className="h-8 w-8 text-primary" />
                 </div>
-                <CardTitle>Pro Feature</CardTitle>
+                <CardTitle>Free Limit Reached</CardTitle>
                 <CardDescription>
-                    Mock tests are available for pro users. Upgrade your plan to access full-length exams.
+                    You have used your free exam allocation. Please upgrade for unlimited access to all features, including Mock Tests.
                 </CardDescription>
             </CardHeader>
             <CardContent>

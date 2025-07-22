@@ -18,7 +18,7 @@ import { getAllUserQuestions } from '@/lib/firestore';
 import type { Category, Topic } from '@/lib/types';
 import { cn, normalizeDate } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { FREE_TOPIC_EXAM_LIMIT, ADMIN_EMAILS } from '@/lib/constants';
+import { FREE_EXAM_LIMIT, ADMIN_EMAILS } from '@/lib/constants';
 import Link from 'next/link';
 import { useDashboard } from '@/app/dashboard/layout';
 
@@ -214,7 +214,8 @@ export function CreateQuizForm() {
   const proValidUntilDate = normalizeDate(userData?.proValidUntil);
   const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
   
-  const hasExceededFreeLimit = !isPro && userData && (userData.topicExamsTaken || 0) >= FREE_TOPIC_EXAM_LIMIT;
+  const totalExamsTaken = (userData?.topicExamsTaken || 0) + (userData?.mockTestsTaken || 0);
+  const hasExceededFreeLimit = !isPro && userData && totalExamsTaken >= FREE_EXAM_LIMIT;
   
   return (
     <Card>
