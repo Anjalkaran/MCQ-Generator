@@ -129,6 +129,10 @@ export default function QAPage() {
       setIsGenerating(false);
     }
   };
+  
+  const placeholderText = selectedPart === 'Part B' 
+    ? "e.g., A can do a piece of work in 10 days and B can do it in 15 days. If they work together, in how many days will the work be completed?"
+    : "e.g., What are the business hours for post offices on Saturdays?";
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
@@ -263,7 +267,7 @@ export default function QAPage() {
                     <FormItem>
                       <FormLabel>Your Question</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="e.g., What are the business hours for post offices on Saturdays?" rows={4} {...field} />
+                        <Textarea placeholder={placeholderText} rows={4} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -312,7 +316,3 @@ export default function QAPage() {
     </div>
   );
 }
-
-    
-
-    
