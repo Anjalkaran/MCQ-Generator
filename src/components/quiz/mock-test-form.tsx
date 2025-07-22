@@ -42,13 +42,6 @@ export function MockTestForm() {
   const { user, userData, isLoading } = useDashboard();
   const [isGenerating, setIsGenerating] = useState(false);
   
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      examType: undefined,
-    },
-  });
-
   const availableExams = useMemo(() => {
     if (!userData) return [];
     if (userData.email && ADMIN_EMAILS.includes(userData.email)) return examCategories;
@@ -64,7 +57,15 @@ export function MockTestForm() {
     }
   }, [userData]);
 
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      examType: availableExams.length === 1 && availableExams[0] === 'MTS' ? 'MTS' : undefined,
+    },
+  });
+
   useEffect(() => {
+    // This effect ensures the form value is set if userData loads after initial render.
     if (availableExams.length === 1 && availableExams[0] === 'MTS') {
         form.setValue('examType', 'MTS');
     }
@@ -159,7 +160,7 @@ export function MockTestForm() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CardContent>
                 <fieldset disabled={isGenerating || isLoading} className="space-y-6">
-                    {availableExams.length > 1 && (
+                    {availableExams.length > 1 ? (
                         <FormField
                         control={form.control}
                         name="examType"
@@ -182,6 +183,8 @@ export function MockTestForm() {
                             </FormItem>
                         )}
                         />
+                    ) : (
+                         <Input type="hidden" {...form.register("examType")} />
                     )}
                     {selectedExamType && (
                         <Alert>
