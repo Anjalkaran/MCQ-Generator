@@ -144,10 +144,10 @@ function AppSidebar() {
             </SidebarMenuItem>
           )}
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/topic-wise-mcq')} tooltip="Practice Quiz">
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/topic-wise-mcq')} tooltip="Practice MCQ">
                 <Link href="/dashboard/topic-wise-mcq" onClick={onLinkClick}>
                   <BookCopy />
-                  <span>Practice Quiz</span>
+                  <span>Practice MCQ</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

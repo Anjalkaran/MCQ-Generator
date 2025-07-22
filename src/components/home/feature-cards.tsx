@@ -11,7 +11,7 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 const features = [
   {
     icon: <BrainCircuit className="h-8 w-8 text-primary" />,
-    title: "Smartly Generated Quizzes",
+    title: "Smartly Generated MCQs",
     description: "Generate unique, high-quality questions for any topic with our advanced system, tailored to different difficulty levels.",
     href: "/dashboard"
   },
@@ -24,7 +24,7 @@ const features = [
   {
     icon: <BookCopy className="h-8 w-8 text-primary" />,
     title: "Topic-wise Practice",
-    description: "Create a custom quiz by selecting a specific topic, difficulty, and number of questions. Ideal for focused practice.",
+    description: "Create a custom exam by selecting a specific topic, difficulty, and number of questions. Ideal for focused practice.",
     href: "/dashboard/topic-wise-mcq"
   },
   {

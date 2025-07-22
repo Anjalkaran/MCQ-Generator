@@ -9,9 +9,9 @@ export default function TopicWiseMCQPage() {
     return (
         <div className="space-y-6 max-w-2xl mx-auto">
             <div className="space-y-2 text-center">
-                <h1 className="text-3xl font-bold tracking-tight">Practice Quiz</h1>
+                <h1 className="text-3xl font-bold tracking-tight">Practice MCQ</h1>
                 <p className="text-muted-foreground">
-                    Create a custom quiz by topic or by an entire syllabus part.
+                    Create a custom exam by topic or by an entire syllabus part.
                 </p>
             </div>
             <Tabs defaultValue="by-topic" className="w-full">

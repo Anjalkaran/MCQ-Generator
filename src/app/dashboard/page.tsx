@@ -47,12 +47,12 @@ export default function DashboardPage() {
                     <CardTitle>Topic-wise MCQ</CardTitle>
                 </div>
                 <CardDescription className="pt-4">
-                    Create a custom quiz by selecting a specific topic, difficulty, and number of questions. Ideal for focused practice.
+                    Create a custom exam by selecting a specific topic, difficulty, and number of questions. Ideal for focused practice.
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex-grow flex items-end">
                 <Button asChild className="w-full">
-                    <Link href="/dashboard/topic-wise-mcq">Create Topic Quiz</Link>
+                    <Link href="/dashboard/topic-wise-mcq">Create Topic Exam</Link>
                 </Button>
             </CardContent>
          </Card>

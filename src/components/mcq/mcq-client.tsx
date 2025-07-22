@@ -216,7 +216,7 @@ export function MCQClient({ topicId }: MCQClientProps) {
         <div className="flex gap-2">
             {isLastQuestion ? (
             <Button onClick={handleFinish} disabled={!selectedAnswers[currentQuestionIndex]}>
-                Finish Quiz
+                Finish Exam
             </Button>
             ) : (
             <>

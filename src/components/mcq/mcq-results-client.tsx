@@ -106,8 +106,8 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
           <div className="flex justify-center items-center mb-4">
             <Award className="w-16 h-16 text-primary" />
           </div>
-          <CardTitle className="text-3xl font-bold font-headline">Quiz Completed!</CardTitle>
-          <p className="text-muted-foreground">You have completed the {topic.title} quiz.</p>
+          <CardTitle className="text-3xl font-bold font-headline">Exam Completed!</CardTitle>
+          <p className="text-muted-foreground">You have completed the {topic.title} exam.</p>
         </CardHeader>
         <CardContent>
           <p className="text-5xl font-bold text-primary">{percentage}%</p>
@@ -117,7 +117,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
           <div className="flex justify-center gap-4 mt-8">
             <Button onClick={handleRetake}>
                 <Repeat className="mr-2 h-4 w-4" />
-                New Quiz
+                New Exam
             </Button>
             <Button variant="outline" asChild>
               <Link href="/dashboard">
