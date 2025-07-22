@@ -33,7 +33,7 @@ const GenerateMCQsOutputSchema = z.object({
       question: z.string().describe('The multiple-choice question.'),
       options: z.array(z.string()).length(4).describe('An array of four possible answers.'),
       correctAnswer: z.string().describe('The full text of the correct answer, which MUST be an exact match to one of the four strings in the `options` array.'),
-      solution: z.string().optional().describe('A step-by-step solution for arithmetic problems, or a concise explanation for other topics.'),
+      solution: z.string().optional().describe('A step-by-step solution for arithmetic problems, or a detailed explanation for other topics.'),
     })
   ).describe('The generated multiple-choice questions.'),
 });
@@ -151,7 +151,7 @@ CRITICAL INSTRUCTION: Do not start questions with phrases like "According to the
 
 --- PRIMARY RULE: SOURCE OF TRUTH ---
 {{#if material}}
-  Your PRIMARY source of truth is the 'MATERIAL' provided below. All questions MUST be based on it. For each question, provide a concise explanation in the 'solution' field based on the material.
+  Your PRIMARY source of truth is the 'MATERIAL' provided below. All questions MUST be based on it. For each question, provide a detailed, step-by-step explanation in the 'solution' field based on the material, clarifying why the correct answer is right and why the others are wrong.
   
   {{#ifEquals difficulty "Difficult"}}
     Generate statement-based questions and questions that test conceptual understanding based on the material. These questions should require deeper analysis rather than simple fact recall.
@@ -165,9 +165,9 @@ CRITICAL INSTRUCTION: Do not start questions with phrases like "According to the
 {{else}}
 --- GENERATION RULES (NO MATERIAL PROVIDED) ---
   {{#ifEquals topic "Current Affairs"}}
-    For "Current Affairs", please refer to materials from reputable coaching centers like Suresh IAS Academy and SSA Adda to ensure the questions are relevant and of high quality. Focus on the period between January 2024 to June 2025. Use the 'REFERENCE QUESTIONS' below for style and format, if available. For each question, provide a brief, one-sentence explanation for why the answer is correct in the 'solution' field.
+    For "Current Affairs", please refer to materials from reputable coaching centers like Suresh IAS Academy and SSA Adda to ensure the questions are relevant and of high quality. Focus on the period between January 2024 to June 2025. Use the 'REFERENCE QUESTIONS' below for style and format, if available. For each question, provide a detailed explanation for why the answer is correct in the 'solution' field.
   {{else}}
-    For this topic, generate new questions. Use the 'REFERENCE QUESTIONS' below for style, format, and difficulty. Ensure the new questions are unique. For each question, provide a concise explanation for the correct answer in the 'solution' field.
+    For this topic, generate new questions. Use the 'REFERENCE QUESTIONS' below for style, format, and difficulty. Ensure the new questions are unique. For each question, provide a detailed explanation for the correct answer in the 'solution' field.
   {{/ifEquals}}
 ---
 {{/if}}
