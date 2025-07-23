@@ -41,6 +41,7 @@ export interface UserData {
     mockTestsTaken: number;
     isPro?: boolean;
     proValidUntil?: any; 
+    createdAt?: any;
 }
 
 export interface MCQData {

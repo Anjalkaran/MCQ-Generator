@@ -81,6 +81,7 @@ export function RegisterForm() {
         mockTestsTaken: 0,
         isPro: false,
         proValidUntil: null,
+        createdAt: new Date(),
       });
 
       toast({

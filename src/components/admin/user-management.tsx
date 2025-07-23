@@ -1,11 +1,11 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Trash2, Edit, Eye, PlusCircle, Gem } from 'lucide-react';
+import { Loader2, Trash2, Edit, Eye, PlusCircle, Gem, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { deleteUserDocument, updateUserDocument } from '@/lib/firestore';
 import type { UserData } from '@/lib/types';
@@ -32,6 +32,9 @@ import { Badge } from '../ui/badge';
 import { Checkbox } from '../ui/checkbox';
 import { cn } from '@/lib/utils';
 import { ADMIN_EMAILS } from '@/lib/constants';
+import { normalizeDate } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
 
 const userUpdateSchema = z.object({
   name: z.string().min(1, { message: 'Username is required.' }),
@@ -57,7 +60,34 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filter, setFilter] = useState('all');
   const { toast } = useToast();
+
+  useEffect(() => {
+    const sortedUsers = [...initialUsers].sort((a, b) => {
+        const dateA = normalizeDate(a.createdAt);
+        const dateB = normalizeDate(b.createdAt);
+        if (dateA && dateB) {
+            return dateB.getTime() - dateA.getTime();
+        }
+        return 0;
+    });
+    setUsers(sortedUsers);
+  }, [initialUsers]);
+
+  const filteredUsers = useMemo(() => {
+    return users
+      .filter(user => {
+        if (filter === 'pro') return user.isPro;
+        if (filter === 'free') return !user.isPro;
+        return true;
+      })
+      .filter(user =>
+        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+  }, [users, searchTerm, filter]);
 
   const updateUserForm = useForm<z.infer<typeof userUpdateSchema>>({
     resolver: zodResolver(userUpdateSchema),
@@ -123,7 +153,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
 
       const { newUser } = await response.json();
       
-      setUsers(prev => [...prev, newUser]);
+      setUsers(prev => [newUser, ...prev]);
       toast({ title: 'Success', description: 'User created successfully.' });
       setIsCreateDialogOpen(false);
       createUserForm.reset();
@@ -159,108 +189,129 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
 
   return (
     <Card>
-    <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-            <CardTitle>Users</CardTitle>
-            <CardDescription>A list of all registered users in the system.</CardDescription>
+    <CardHeader>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+                <CardTitle>Users</CardTitle>
+                <CardDescription>A list of all registered users in the system.</CardDescription>
+            </div>
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                    <Button>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Create User
+                    </Button>
+                </DialogTrigger>
+                 <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Create New User</DialogTitle>
+                        <DialogDescription>
+                            Enter the details for the new user. They will be created in both Authentication and Firestore.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <Form {...createUserForm}>
+                        <form onSubmit={createUserForm.handleSubmit(onCreateSubmit)} className="space-y-4">
+                            <FormField
+                                control={createUserForm.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Username</FormLabel>
+                                    <FormControl><Input placeholder="John Doe" {...field} /></FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={createUserForm.control}
+                                name="email"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Email</FormLabel>
+                                    <FormControl><Input placeholder="name@example.com" {...field} /></FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={createUserForm.control}
+                                name="password"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Password</FormLabel>
+                                    <FormControl><Input type="password" placeholder="********" {...field} /></FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={createUserForm.control}
+                                name="examCategory"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Exam Category</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                        <SelectItem value="MTS">MTS</SelectItem>
+                                        <SelectItem value="POSTMAN">POSTMAN</SelectItem>
+                                        <SelectItem value="PA">PA</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                            control={createUserForm.control}
+                            name="isPro"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <div className="space-y-0.5">
+                                    <FormLabel>Pro User</FormLabel>
+                                    <DialogDescription>
+                                    Pro users have unlimited access to all features.
+                                    </DialogDescription>
+                                </div>
+                                <FormControl>
+                                    <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                    />
+                                </FormControl>
+                                </FormItem>
+                            )}
+                            />
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
+                                <Button type="submit" disabled={isLoading}>
+                                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Create User"}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-                <Button>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Create User
-                </Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Create New User</DialogTitle>
-                    <DialogDescription>
-                        Enter the details for the new user. They will be created in both Authentication and Firestore.
-                    </DialogDescription>
-                </DialogHeader>
-                <Form {...createUserForm}>
-                    <form onSubmit={createUserForm.handleSubmit(onCreateSubmit)} className="space-y-4">
-                        <FormField
-                            control={createUserForm.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Username</FormLabel>
-                                <FormControl><Input placeholder="John Doe" {...field} /></FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={createUserForm.control}
-                            name="email"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Email</FormLabel>
-                                <FormControl><Input placeholder="name@example.com" {...field} /></FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={createUserForm.control}
-                            name="password"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Password</FormLabel>
-                                <FormControl><Input type="password" placeholder="********" {...field} /></FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={createUserForm.control}
-                            name="examCategory"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Exam Category</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                    <SelectItem value="MTS">MTS</SelectItem>
-                                    <SelectItem value="POSTMAN">POSTMAN</SelectItem>
-                                    <SelectItem value="PA">PA</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                          control={createUserForm.control}
-                          name="isPro"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                              <div className="space-y-0.5">
-                                <FormLabel>Pro User</FormLabel>
-                                <DialogDescription>
-                                  Pro users have unlimited access to all features.
-                                </DialogDescription>
-                              </div>
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
-                            <Button type="submit" disabled={isLoading}>
-                                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Create User"}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
-            </DialogContent>
-        </Dialog>
+        <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
+            <div className="relative w-full sm:w-auto flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    type="search"
+                    placeholder="Search by name or email..."
+                    className="pl-8 sm:w-[300px]"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+             <Tabs value={filter} onValueChange={setFilter} className="w-full sm:w-auto">
+                <TabsList>
+                    <TabsTrigger value="all">All</TabsTrigger>
+                    <TabsTrigger value="pro">Pro</TabsTrigger>
+                    <TabsTrigger value="free">Free</TabsTrigger>
+                </TabsList>
+            </Tabs>
+        </div>
     </CardHeader>
     <CardContent>
         <div className="border rounded-md">
@@ -275,8 +326,8 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {users.length > 0 ? (
-                users.map((user) => (
+                {filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
                     <TableRow key={user.uid}>
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
@@ -333,8 +384,8 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                 ))
                 ) : (
                 <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
-                    No users found.
+                    <TableCell colSpan={5} className="h-24 text-center">
+                    No users match your criteria.
                     </TableCell>
                 </TableRow>
                 )}

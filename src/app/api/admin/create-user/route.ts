@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
       topicExamsTaken: 0,
       mockTestsTaken: 0,
       isPro: isPro || false,
+      createdAt: new Date(),
     };
     
     if (newUserForDb.isPro) {
@@ -65,8 +66,9 @@ export async function POST(req: NextRequest) {
         topicExamsTaken: newUserForDb.topicExamsTaken!,
         mockTestsTaken: newUserForDb.mockTestsTaken!,
         isPro: newUserForDb.isPro,
-        // Convert date to ISO string for safe JSON serialization if it exists
+        // Convert dates to ISO string for safe JSON serialization
         proValidUntil: newUserForDb.proValidUntil ? newUserForDb.proValidUntil.toISOString() : undefined,
+        createdAt: newUserForDb.createdAt ? newUserForDb.createdAt.toISOString() : undefined,
     };
 
     // 5. Return the successful response
