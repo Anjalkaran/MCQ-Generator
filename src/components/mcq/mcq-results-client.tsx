@@ -28,6 +28,14 @@ interface StoredQuizData {
   isMockTest?: boolean;
 }
 
+// Helper function to normalize answer strings for comparison
+const normalizeAnswer = (answer: string | undefined): string => {
+    if (!answer) return "";
+    // Trim whitespace and remove leading/trailing quotes (single or double)
+    return answer.trim().replace(/^["']|["']$/g, '');
+};
+
+
 export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -55,7 +63,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
   
         let correctCount = 0;
         mcqs.forEach((mcq: MCQ, index: number) => {
-          if (answers[index] === mcq.correctAnswer) {
+          if (normalizeAnswer(answers[index]) === normalizeAnswer(mcq.correctAnswer)) {
             correctCount++;
           }
         });
@@ -145,7 +153,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
           <ul className="space-y-6">
             {quizMcqs.map((mcq, index) => {
               const userAnswer = userAnswers[index];
-              const isCorrect = userAnswer === mcq.correctAnswer;
+              const isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(mcq.correctAnswer);
               const isArithmetic = quizData.isMockTest ? isArithmeticQuestion(mcq) : false;
               const explanationLabel = isArithmetic ? "View Solution" : "View Explanation";
 
@@ -159,8 +167,8 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
                    )}
                   <div className="space-y-2">
                     {mcq.options.map((option) => {
-                      const isUserChoice = userAnswer === option;
-                      const isTheCorrectAnswer = mcq.correctAnswer === option;
+                      const isUserChoice = normalizeAnswer(userAnswer) === normalizeAnswer(option);
+                      const isTheCorrectAnswer = normalizeAnswer(mcq.correctAnswer) === normalizeAnswer(option);
 
                       return (
                         <div
