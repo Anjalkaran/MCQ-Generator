@@ -76,6 +76,9 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     setUsers(sortedUsers);
   }, [initialUsers]);
 
+  const proUsersCount = useMemo(() => users.filter(u => u.isPro).length, [users]);
+  const freeUsersCount = useMemo(() => users.filter(u => !u.isPro).length, [users]);
+
   const filteredUsers = useMemo(() => {
     return users
       .filter(user => {
@@ -306,9 +309,9 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
             </div>
              <Tabs value={filter} onValueChange={setFilter} className="w-full sm:w-auto">
                 <TabsList>
-                    <TabsTrigger value="all">All</TabsTrigger>
-                    <TabsTrigger value="pro">Pro</TabsTrigger>
-                    <TabsTrigger value="free">Free</TabsTrigger>
+                    <TabsTrigger value="all">All ({users.length})</TabsTrigger>
+                    <TabsTrigger value="pro">Pro ({proUsersCount})</TabsTrigger>
+                    <TabsTrigger value="free">Free ({freeUsersCount})</TabsTrigger>
                 </TabsList>
             </Tabs>
         </div>
