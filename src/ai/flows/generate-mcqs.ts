@@ -24,6 +24,7 @@ const GenerateMCQsInputSchema = z.object({
   bankedQuestions: z.string().optional().describe('Content from previously uploaded exam questions to use as a reference.'),
   userId: z.string().describe('The ID of the user requesting the quiz.'),
   topicId: z.string().describe('The ID of the topic.'),
+  language: z.string().optional().default('English').describe('The language for the generated quiz (e.g., "English", "Tamil").'),
 });
 export type GenerateMCQsInput = z.infer<typeof GenerateMCQsInputSchema>;
 
@@ -66,11 +67,13 @@ export async function generateMCQs(input: GenerateMCQsInput): Promise<GenerateMC
 
 const arithmeticSolverPrompt = ai.definePrompt({
     name: 'arithmeticSolverPrompt',
-    input: { schema: z.object({ problem: z.string() }) },
+    input: { schema: z.object({ problem: z.string(), language: z.string().optional().default('English') }) },
     output: { schema: ArithmeticSolutionSchema },
     prompt: `You are a precise mathematical solver AI. Your sole purpose is to solve the given word problem and provide a step-by-step solution and an exact final answer.
 
 Your output MUST be a valid JSON object. Do not include any text, apologies, or explanations outside of the JSON structure itself.
+
+The language of the solution steps MUST be {{language}}.
 
 The JSON object must have two keys:
 1.  "steps": An array of strings. Each string must be a single, clear step in the calculation. For work-rate problems like this, use the LCM (Least Common Multiple) method.
@@ -81,23 +84,6 @@ CRITICAL INSTRUCTIONS:
 -   Do NOT guess or select the "closest" answer. Calculate and provide only the true mathematical result.
 -   Do NOT use conversational language. Stick to formal, mathematical steps.
 
----
-Here is a perfect example of the required output format.
-
-Problem: "A can do a piece of work in 10 days and B can do it in 15 days. If they work together, in how many days will the work be completed?"
-
-Expected JSON Output:
-{
-  "steps": [
-    "Step 1: Define the total work using the LCM of the days. The LCM of 10 and 15 is 30. Let the total work be 30 units.",
-    "Step 2: Calculate the individual daily work rates (efficiency). A's rate = 30 units / 10 days = 3 units/day. B's rate = 30 units / 15 days = 2 units/day.",
-    "Step 3: Calculate the combined work rate when they work together. Combined rate = A's rate + B's rate = 3 units/day + 2 units/day = 5 units/day.",
-    "Step 4: Calculate the total time required to complete the work together. Time = Total Work / Combined Rate = 30 units / 5 units/day = 6 days."
-  ],
-  "final_answer": "6 days"
-}
----
-
 Now, solve the following problem according to all the rules above:
 
 Problem: "{{problem}}"`,
@@ -106,10 +92,12 @@ Problem: "{{problem}}"`,
 // New prompt for generating just the problem and answer
 const arithmeticProblemPrompt = ai.definePrompt({
     name: 'arithmeticProblemPrompt',
-    input: { schema: z.object({ topic: z.string(), previousQuestions: z.array(z.string()).optional() }) },
+    input: { schema: z.object({ topic: z.string(), previousQuestions: z.array(z.string()).optional(), language: z.string().optional().default('English') }) },
     output: { schema: z.object({ problems: z.array(ArithmeticProblemSchema) }) },
     prompt: `You are a meticulous mathematics teacher. Create a word problem for the topic "{{topic}}".
     
+    The language of the problem and the answer MUST be {{language}}.
+
     IMPORTANT: Do NOT repeat any of the following questions. Ensure the new questions are unique and different from this list:
     {{#if previousQuestions}}
         {{#each previousQuestions}}
@@ -128,13 +116,13 @@ const arithmeticProblemPrompt = ai.definePrompt({
 // New prompt for generating distractors
 const arithmeticDistractorsPrompt = ai.definePrompt({
     name: 'arithmeticDistractorsPrompt',
-    input: { schema: z.object({ question: z.string(), correctAnswer: z.string() }) },
+    input: { schema: z.object({ question: z.string(), correctAnswer: z.string(), language: z.string().optional().default('English') }) },
     output: { schema: ArithmeticDistractorsSchema },
     prompt: `For the following math problem, the correct answer is "{{correctAnswer}}".
     
     Problem: "{{question}}"
     
-    Your task is to generate three plausible but INCORRECT numerical answers that could be used as distractors in a multiple-choice question. These should be based on common calculation mistakes.
+    Your task is to generate three plausible but INCORRECT numerical answers that could be used as distractors in a multiple-choice question. The language of the distractors must be {{language}}.
     
     Your output MUST be a valid JSON object with a single key "distractors", which is an array of three distinct strings.
     `,
@@ -145,6 +133,8 @@ const prompt = ai.definePrompt({
   input: {schema: GenerateMCQsInputSchema},
   output: {schema: GenerateMCQsOutputSchema},
   prompt: `You are an expert in generating multiple-choice questions (MCQs). Your goal is to create {{numberOfQuestions}} questions for the "{{examCategory}}" exam, specifically for "{{part}}". The questions should be on the topic of "{{topic}}" with a "{{difficulty}}" difficulty level.
+
+**CRITICAL: The language for the entire output (question, options, correctAnswer, and solution) MUST be {{language}}.**
 
 --- MOST IMPORTANT RULE ---
 For every question you generate, you MUST follow this two-step process:
@@ -296,7 +286,8 @@ const generateMCQsFlow = ai.defineFlow(
                 // Step 1: Generate the problem and correct answer
                 const problemResponse = await arithmeticProblemPrompt({ 
                     topic: input.topic, 
-                    previousQuestions: Array.from(existingQuestions) 
+                    previousQuestions: Array.from(existingQuestions),
+                    language: input.language
                 });
 
                 if (!problemResponse.output?.problems?.[0]) continue;
@@ -304,7 +295,7 @@ const generateMCQsFlow = ai.defineFlow(
                 existingQuestions.add(question); // Add to avoid duplicates in the same run
 
                 // Step 2: Generate distractors
-                const distractorsResponse = await arithmeticDistractorsPrompt({ question, correctAnswer });
+                const distractorsResponse = await arithmeticDistractorsPrompt({ question, correctAnswer, language: input.language });
                 if (!distractorsResponse.output?.distractors) continue;
                 const { distractors } = distractorsResponse.output;
 
@@ -314,7 +305,7 @@ const generateMCQsFlow = ai.defineFlow(
                 // Step 4: Generate the detailed solution
                 let solutionText = "A detailed solution could not be generated for this problem.";
                 try {
-                     const solutionResponse = await arithmeticSolverPrompt({ problem: question });
+                     const solutionResponse = await arithmeticSolverPrompt({ problem: question, language: input.language });
                      if (solutionResponse.output) {
                         solutionText = solutionResponse.output.steps.join('\n');
                      }

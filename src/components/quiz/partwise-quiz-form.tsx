@@ -25,6 +25,7 @@ const formSchema = z.object({
   part: z.string().min(1, 'Please select a part.'),
   numberOfQuestions: z.coerce.number().min(5).max(50),
   difficulty: z.string().min(1, 'Please select a difficulty level.'),
+  language: z.string().min(1, 'Please select a language.'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -32,6 +33,7 @@ type DifficultyLevel = 'Easy' | 'Moderate' | 'Difficult';
 const difficultyLevels: DifficultyLevel[] = ['Easy', 'Moderate', 'Difficult'];
 const parts = ["Part A", "Part B"] as const;
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
+const languages = ["English", "Tamil"] as const;
 
 export function PartwiseQuizForm() {
   const router = useRouter();
@@ -46,6 +48,7 @@ export function PartwiseQuizForm() {
       part: '',
       numberOfQuestions: 10,
       difficulty: 'Moderate',
+      language: 'English',
     },
   });
   
@@ -90,6 +93,7 @@ export function PartwiseQuizForm() {
           numberOfQuestions: values.numberOfQuestions,
           difficulty: values.difficulty,
           userId: user.uid,
+          language: values.language,
       });
 
       if (!mcqs || mcqs.length === 0) {
@@ -159,6 +163,28 @@ export function PartwiseQuizForm() {
                     </Alert>
                 ) : (
                 <fieldset disabled={isGenerating || isLoading} className="space-y-6">
+                     <FormField
+                      control={form.control}
+                      name="language"
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Language</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                              <SelectTrigger>
+                                  <SelectValue placeholder="Select Language" />
+                              </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                              {languages.map((lang) => (
+                                  <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                              ))}
+                              </SelectContent>
+                          </Select>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                    />
                     <FormField
                       control={form.control}
                       name="examType"

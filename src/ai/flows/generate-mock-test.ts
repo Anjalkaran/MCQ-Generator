@@ -22,10 +22,11 @@ const ArithmeticSolutionSchema = z.object({
 
 const arithmeticSolverPrompt = ai.definePrompt({
     name: 'arithmeticSolverPrompt',
-    input: { schema: z.object({ problem: z.string() }) },
+    input: { schema: z.object({ problem: z.string(), language: z.string().optional().default('English') }) },
     output: { schema: ArithmeticSolutionSchema },
     prompt: `You are a precise mathematical solver AI. Your sole purpose is to solve the given word problem and provide a step-by-step solution and an exact final answer.
 Your output MUST be a valid JSON object. Do not include any text, apologies, or explanations outside of the JSON structure itself.
+The language of the solution MUST be {{language}}.
 The JSON object must have two keys:
 1.  "steps": An array of strings. Each string must be a single, clear step in the calculation. For work-rate problems like this, use the LCM (Least Common Multiple) method.
 2.  "final_answer": A string containing only the final, mathematically exact answer. Express it as a fraction or a decimal (e.g., "18.75 days" or "75/4 days").
@@ -40,6 +41,7 @@ Problem: "{{problem}}"`,
 const GenerateMockTestInputSchema = z.object({
   examCategory: z.string().describe('The exam category (e.g., MTS, POSTMAN, PA).'),
   userId: z.string().describe('The ID of the user requesting the quiz.'),
+  language: z.string().optional().default('English').describe('The language for the generated test (e.g., "English", "Tamil").'),
 });
 export type GenerateMockTestInput = z.infer<typeof GenerateMockTestInputSchema>;
 
@@ -65,6 +67,7 @@ const generateQuestionsForSectionPrompt = ai.definePrompt({
             topics: z.string(),
             questionCount: z.number(),
             previousQuestions: z.array(z.string()).optional().describe('A list of previously asked questions to avoid repetition.'),
+            language: z.string().optional().default('English'),
         })
     },
     output: {
@@ -74,6 +77,8 @@ const generateQuestionsForSectionPrompt = ai.definePrompt({
     },
     model: 'googleai/gemini-1.5-flash',
     prompt: `You are an expert in creating mock test questions for the Indian Postal Department's {{examCategory}} exam.
+
+**CRITICAL: The language for the entire output (question, options, correctAnswer, and solution) MUST be {{language}}.**
 
 Your task is to generate EXACTLY **{{questionCount}}** questions for the section named **"{{sectionName}}"**.
 
@@ -136,6 +141,7 @@ const generateMockTestFlow = ai.defineFlow(
                 topics: topicsString,
                 questionCount: currentChunkSize,
                 previousQuestions: [...previousQuestions, ...allQuestions.map(q => q.question)], // Include already generated questions
+                language: input.language,
             });
 
             if (output && output.questions) {
@@ -159,7 +165,7 @@ const generateMockTestFlow = ai.defineFlow(
             .filter(mcq => mcq.topic && arithmeticTopicNames.includes(mcq.topic))
             .map(async (mcq) => {
                 try {
-                    const solutionResponse = await arithmeticSolverPrompt({ problem: mcq.question });
+                    const solutionResponse = await arithmeticSolverPrompt({ problem: mcq.question, language: input.language });
                     if (solutionResponse.output) {
                         mcq.solution = solutionResponse.output.steps.join('\n');
                     }

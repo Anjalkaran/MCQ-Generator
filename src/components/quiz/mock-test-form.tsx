@@ -22,11 +22,13 @@ import { ADMIN_EMAILS, FREE_EXAM_LIMIT } from '@/lib/constants';
 import { Input } from '@/components/ui/input';
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
+const languages = ["English", "Tamil"] as const;
 
 const formSchema = z.object({
   examType: z.enum(examCategories, {
     required_error: 'Please select an exam type.',
   }),
+  language: z.string().min(1, 'Please select a language.'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -66,6 +68,7 @@ export function MockTestForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       examType: isMTSOnlyUser ? 'MTS' : undefined,
+      language: 'English',
     },
   });
 
@@ -91,6 +94,7 @@ export function MockTestForm() {
       const { mcqs } = await generateMockTest({
           examCategory: values.examType,
           userId: user.uid,
+          language: values.language,
       });
 
       if (!mcqs || mcqs.length === 0) {
@@ -164,6 +168,28 @@ export function MockTestForm() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CardContent>
                 <fieldset disabled={isGenerating || isLoading} className="space-y-6">
+                     <FormField
+                      control={form.control}
+                      name="language"
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Language</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                              <SelectTrigger>
+                                  <SelectValue placeholder="Select Language" />
+                              </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                              {languages.map((lang) => (
+                                  <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                              ))}
+                              </SelectContent>
+                          </Select>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                    />
                     {!isMTSOnlyUser ? (
                         <FormField
                         control={form.control}

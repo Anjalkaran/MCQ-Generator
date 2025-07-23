@@ -20,6 +20,7 @@ const GeneratePartwiseMCQsInputSchema = z.object({
   numberOfQuestions: z.number().describe('The total number of questions to generate for the part.'),
   difficulty: z.string().describe('The difficulty level for the questions.'),
   userId: z.string().describe('The ID of the user requesting the quiz.'),
+  language: z.string().optional().default('English').describe('The language for the generated quiz (e.g., "English", "Tamil").'),
 });
 export type GeneratePartwiseMCQsInput = z.infer<typeof GeneratePartwiseMCQsInputSchema>;
 
@@ -46,6 +47,7 @@ const generateQuestionsForTopicsPrompt = ai.definePrompt({
             topics: z.string(),
             questionCount: z.number(),
             previousQuestions: z.array(z.string()).optional(),
+            language: z.string().optional().default('English'),
         })
     },
     output: {
@@ -55,6 +57,8 @@ const generateQuestionsForTopicsPrompt = ai.definePrompt({
     },
     model: 'googleai/gemini-1.5-flash',
     prompt: `You are an expert in creating high-quality practice questions for the Indian Postal Department's {{examCategory}} exam.
+
+**CRITICAL: The language for the entire output (question, options, correctAnswer, and solution) MUST be {{language}}.**
 
 Your task is to generate EXACTLY **{{questionCount}}** questions for **{{part}}** with a **"{{difficulty}}"** difficulty level.
 
@@ -86,7 +90,7 @@ const generatePartwiseMCQsFlow = ai.defineFlow(
     outputSchema: GeneratePartwiseMCQsOutputSchema,
   },
   async input => {
-    const { examCategory, part, numberOfQuestions, difficulty, userId } = input;
+    const { examCategory, part, numberOfQuestions, difficulty, userId, language } = input;
 
     const topicsForPart = await getTopicsByPartAndExam(part, examCategory);
     if (topicsForPart.length === 0) {
@@ -103,6 +107,7 @@ const generatePartwiseMCQsFlow = ai.defineFlow(
         topics: topicsString,
         questionCount: numberOfQuestions,
         previousQuestions: previousQuestions,
+        language,
     });
     
     if (!output || !output.questions || output.questions.length === 0) {
