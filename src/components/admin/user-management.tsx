@@ -83,8 +83,16 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
   const freeUsersCount = useMemo(() => users.filter(u => !u.isPro).length, [users]);
 
   const uniqueCities = useMemo(() => {
-    const cities = new Set(users.map(user => user.city).filter((city): city is string => !!city));
-    return ['all', ...Array.from(cities).sort()];
+    const cityMap = new Map<string, string>();
+    users.forEach(user => {
+        if (user.city) {
+            const normalizedCity = user.city.trim().toLowerCase();
+            if (!cityMap.has(normalizedCity)) {
+                cityMap.set(normalizedCity, user.city.trim());
+            }
+        }
+    });
+    return ['all', ...Array.from(cityMap.values()).sort()];
   }, [users]);
   
   const filteredUsers = useMemo(() => {
@@ -96,7 +104,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
       })
       .filter(user => {
         if (cityFilter === 'all') return true;
-        return user.city === cityFilter;
+        return user.city?.trim().toLowerCase() === cityFilter.toLowerCase();
       })
       .filter(user =>
         user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
