@@ -134,7 +134,7 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateMCQsOutputSchema},
   prompt: `You are an expert in generating multiple-choice questions (MCQs). Your goal is to create {{numberOfQuestions}} questions for the "{{examCategory}}" exam, specifically for "{{part}}". The questions should be on the topic of "{{topic}}" with a "{{difficulty}}" difficulty level.
 
-**CRITICAL: The language for the entire output (question, options, correctAnswer, and solution) MUST be {{language}}.**
+**CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
 **IMPORTANT RULE FOR TAMIL:** When translating to Tamil, you MUST keep all technical postal terms, scheme names, and abbreviations (e.g., "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office") in English.
 
 --- MOST IMPORTANT RULE ---

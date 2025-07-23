@@ -58,7 +58,7 @@ const generateQuestionsForTopicsPrompt = ai.definePrompt({
     model: 'googleai/gemini-1.5-flash',
     prompt: `You are an expert in creating high-quality practice questions for the Indian Postal Department's {{examCategory}} exam.
 
-**CRITICAL: The language for the entire output (question, options, correctAnswer, and solution) MUST be {{language}}.**
+**CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
 **IMPORTANT RULE FOR TAMIL:** When translating to Tamil, you MUST keep all technical postal terms, scheme names, and abbreviations (e.g., "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman") in English.
 
 Your task is to generate EXACTLY **{{questionCount}}** questions for **{{part}}** with a **"{{difficulty}}"** difficulty level.
