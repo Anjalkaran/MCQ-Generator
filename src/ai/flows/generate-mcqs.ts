@@ -149,6 +149,8 @@ You MUST generate questions that can be answered with one of the four options. D
 
 CRITICAL INSTRUCTION: Do not start questions or explanations with phrases like "According to the...", "Based on the material...", "The provided material states that...", or any similar introductory text. Questions and explanations should be direct.
 
+SPECIAL INSTRUCTION FOR POSTAL TERMS: When generating questions about mail offices, you MUST adhere to these definitions: A 'Sorting Mail Office' opens and sorts mail bags. A 'Transit Mail Office' only receives and dispatches closed bags without sorting them.
+
 --- PRIMARY RULE: SOURCE OF TRUTH ---
 {{#if material}}
   Your PRIMARY source of truth is the 'MATERIAL' provided below. All questions MUST be based on it. For each question, provide a detailed, step-by-step explanation in the 'solution' field based on the material, clarifying why the correct answer is right and why the others are wrong.
