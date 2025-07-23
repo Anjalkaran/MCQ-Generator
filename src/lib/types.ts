@@ -36,6 +36,7 @@ export interface UserData {
     uid: string;
     name: string;
     email: string;
+    city?: string;
     examCategory: 'MTS' | 'POSTMAN' | 'PA';
     topicExamsTaken: number;
     mockTestsTaken: number;

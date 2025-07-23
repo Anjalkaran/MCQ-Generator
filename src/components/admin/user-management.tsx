@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -38,6 +38,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 const userUpdateSchema = z.object({
   name: z.string().min(1, { message: 'Username is required.' }),
+  city: z.string().min(2, { message: "City is required." }),
   examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA'>,
   isPro: z.boolean().default(false).optional(),
 });
@@ -45,6 +46,7 @@ const userUpdateSchema = z.object({
 const userCreateSchema = z.object({
   name: z.string().min(1, { message: 'Username is required.' }),
   email: z.string().email({ message: 'Invalid email address.' }),
+  city: z.string().min(2, { message: "City is required." }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
   examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA'>,
   isPro: z.boolean().default(false).optional(),
@@ -101,6 +103,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     defaultValues: {
         name: '',
         email: '',
+        city: '',
         password: '',
         examCategory: 'MTS',
         isPro: false,
@@ -111,6 +114,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     setSelectedUser(user);
     updateUserForm.reset({
       name: user.name,
+      city: user.city || '',
       examCategory: user.examCategory,
       isPro: user.isPro || false,
     });
@@ -123,6 +127,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     try {
       const dataToUpdate: Partial<UserData> = {
         name: values.name,
+        city: values.city,
         examCategory: values.examCategory,
         isPro: values.isPro,
       };
@@ -238,6 +243,17 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                             />
                             <FormField
                                 control={createUserForm.control}
+                                name="city"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>City</FormLabel>
+                                    <FormControl><Input placeholder="User's City" {...field} /></FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={createUserForm.control}
                                 name="password"
                                 render={({ field }) => (
                                     <FormItem>
@@ -323,6 +339,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                 <TableRow>
                 <TableHead>Username</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>City</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -334,6 +351,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                     <TableRow key={user.uid}>
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.city}</TableCell>
                     <TableCell>{user.examCategory}</TableCell>
                     <TableCell>
                       {user.isPro ? (
@@ -387,7 +405,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                 ))
                 ) : (
                 <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
+                    <TableCell colSpan={6} className="h-24 text-center">
                     No users match your criteria.
                     </TableCell>
                 </TableRow>
@@ -411,6 +429,17 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                                 render={({ field }) => (
                                     <FormItem>
                                     <FormLabel>Username</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={updateUserForm.control}
+                                name="city"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>City</FormLabel>
                                     <FormControl><Input {...field} /></FormControl>
                                     <FormMessage />
                                     </FormItem>

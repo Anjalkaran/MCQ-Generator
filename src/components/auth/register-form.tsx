@@ -24,6 +24,7 @@ import { Alert, AlertTitle } from '@/components/ui/alert';
 const formSchema = z.object({
   name: z.string().min(1, { message: 'Username is required.' }),
   email: z.string().email({ message: 'Invalid email address.' }),
+  city: z.string().min(2, { message: "City is required." }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
   confirmPassword: z.string(),
   examCategory: z.string().min(1, { message: 'Please select an exam category.' }),
@@ -45,6 +46,7 @@ export function RegisterForm() {
     defaultValues: {
       name: '',
       email: '',
+      city: '',
       password: '',
       confirmPassword: '',
       examCategory: '',
@@ -76,6 +78,7 @@ export function RegisterForm() {
         uid: user.uid,
         name: values.name,
         email: values.email,
+        city: values.city,
         examCategory: values.examCategory,
         topicExamsTaken: 0,
         mockTestsTaken: 0,
@@ -142,6 +145,19 @@ export function RegisterForm() {
                   <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input placeholder="name@example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="city"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>City</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Your City" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
