@@ -23,7 +23,16 @@ import { Alert, AlertTitle } from '@/components/ui/alert';
 
 const formSchema = z.object({
   name: z.string().min(1, { message: 'Username is required.' }),
-  email: z.string().email({ message: 'Invalid email address.' }),
+  email: z.string().email({ message: 'Invalid email address.' }).refine(
+    (email) => {
+      const domain = email.split('@')[1];
+      // Check if domain exists and if the TLD (part after the last dot) is at least 2 chars long.
+      return domain && domain.includes('.') && domain.split('.').pop()!.length >= 2;
+    },
+    {
+      message: "Please enter a valid email address.",
+    }
+  ),
   city: z.string().min(2, { message: "City is required." }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
   confirmPassword: z.string(),
