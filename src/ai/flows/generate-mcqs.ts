@@ -54,6 +54,12 @@ const ArithmeticSolutionSchema = z.object({
     final_answer: z.string().describe("A string containing only the final, mathematically exact answer."),
 });
 
+const VerificationSchema = z.object({
+    isCorrect: z.boolean().describe("Whether the provided answer is factually correct based ONLY on the study material."),
+    justification: z.string().describe("A brief justification for the decision, citing the study material if the answer is correct, or explaining the error if it is incorrect."),
+});
+
+
 export async function generateMCQs(input: GenerateMCQsInput): Promise<GenerateMCQsOutput> {
   return generateMCQsFlow(input);
 }
@@ -191,6 +197,32 @@ SPECIAL INSTRUCTION FOR POSTAL TERMS: When generating questions about mail offic
   `,
 });
 
+const verificationPrompt = ai.definePrompt({
+    name: 'verificationPrompt',
+    input: { schema: z.object({ material: z.string(), question: z.string(), answer: z.string() }) },
+    output: { schema: VerificationSchema },
+    prompt: `You are a meticulous Fact-Checker AI. Your only task is to verify if the 'PROPOSED ANSWER' to the 'QUESTION' is factually correct and explicitly supported by the 'STUDY MATERIAL' provided.
+
+Your analysis must adhere to these rules:
+1.  **Single Source of Truth:** Your decision MUST be based exclusively on the 'STUDY MATERIAL'. Do not use any external knowledge.
+2.  **Explicit Support:** The answer is only correct if the information is clearly and directly stated in the material. Do not make inferences or assumptions.
+3.  **Direct Match:** The answer must be a direct factual match. For numerical values (like weights, times, fees), the number must match exactly.
+
+--- STUDY MATERIAL ---
+{{{material}}}
+--- END STUDY MATERIAL ---
+
+--- QUESTION ---
+"{{{question}}}"
+
+--- PROPOSED ANSWER ---
+"{{{answer}}}"
+
+Now, based *only* on the study material, is the proposed answer correct? Provide your response in the required JSON format.
+`,
+});
+
+
 const MATERIAL_CHUNK_SIZE = 2000; // Process 2000 characters of material at a time
 
 let deferredFunctions: (() => Promise<any>)[] = [];
@@ -312,15 +344,33 @@ const generateMCQsFlow = ai.defineFlow(
         throw new Error('The AI could not generate questions for the selected topic.');
     }
     
-    // Validate the output to ensure options are correctly formatted
-    const validatedMCQs = initialOutput.mcqs.filter(mcq => {
-        const validationResult = MCQSchema.safeParse(mcq);
-        if (!validationResult.success) {
-            console.warn("An invalid MCQ was generated and has been filtered out:", validationResult.error);
-            return false;
-        }
-        return true;
-    });
+    let validatedMCQs = initialOutput.mcqs.filter(mcq => MCQSchema.safeParse(mcq).success);
+
+    // --- Verification Step for material-based questions ---
+    if (flowInput.material) {
+        const verificationPromises = validatedMCQs.map(async (mcq) => {
+            try {
+                const verificationResponse = await verificationPrompt({
+                    material: flowInput.material!,
+                    question: mcq.question,
+                    answer: mcq.correctAnswer,
+                });
+                if (verificationResponse.output?.isCorrect) {
+                    return mcq; // Keep the MCQ if it's correct
+                } else {
+                    console.warn(`Filtering out incorrect MCQ. Q: "${mcq.question}", A: "${mcq.correctAnswer}". Justification: ${verificationResponse.output?.justification}`);
+                    return null; // Discard the MCQ if incorrect
+                }
+            } catch (e) {
+                console.error("Error during MCQ verification:", e);
+                return null; // Discard on error
+            }
+        });
+        
+        const verificationResults = await Promise.all(verificationPromises);
+        validatedMCQs = verificationResults.filter(mcq => mcq !== null) as typeof validatedMCQs;
+    }
+
 
     if (validatedMCQs.length === 0) {
         throw new Error('The AI failed to generate any valid questions. Please try again.');
