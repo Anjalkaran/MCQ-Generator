@@ -21,7 +21,7 @@ export function Logo(props: Omit<ComponentProps<'svg'>, 'children'>) {
         Anjal
       </text>
       <text
-        x="145"
+        x="135"
         y="65"
         fontFamily="Verdana, sans-serif"
         fontSize="50"
