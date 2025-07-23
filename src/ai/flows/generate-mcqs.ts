@@ -135,6 +135,7 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert in generating multiple-choice questions (MCQs). Your goal is to create {{numberOfQuestions}} questions for the "{{examCategory}}" exam, specifically for "{{part}}". The questions should be on the topic of "{{topic}}" with a "{{difficulty}}" difficulty level.
 
 **CRITICAL: The language for the entire output (question, options, correctAnswer, and solution) MUST be {{language}}.**
+**IMPORTANT RULE FOR TAMIL:** When translating to Tamil, you MUST keep all technical postal terms, scheme names, and abbreviations (e.g., "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office") in English.
 
 --- MOST IMPORTANT RULE ---
 For every question you generate, you MUST follow this two-step process:
@@ -143,7 +144,7 @@ For every question you generate, you MUST follow this two-step process:
 
 You MUST generate questions that can be answered with one of the four options. Do NOT create open-ended questions that ask to "Explain...", "Describe...", "What is...", or "List...".
 
-CRITICAL INSTRUCTION: Do not start questions or explanations with phrases like "According to the...", "Based on the material...", "The provided material states that...", or any similar introductory text. Questions and explanations should be direct. Furthermore, do not generate questions that are logically flawed or whose correct answer is debatable. For example, a question like "What essential information is missing if a letter is returned to the sender?" is ambiguous. A better question would be "What is the most likely reason a letter cannot be delivered to the recipient, causing it to be returned to the sender?". Ensure your questions are clear and have one single, undisputed correct answer based on the provided material or general postal knowledge.
+CRITICAL INSTRUCTION: Do not start questions or explanations with phrases like "According to the...", "Based on the material...", "The provided material states that...", or any similar introductory text. Questions and explanations should be direct. Furthermore, do not generate questions that are logically flawed, whose correct answer is debatable, or where the correct answer is not present in the options. For example, a question like "What essential information is missing if a letter is returned to the sender?" is ambiguous. A better question would be "What is the most likely reason a letter cannot be delivered to the recipient, causing it to be returned to the sender?". Ensure your questions are clear and have one single, undisputed correct answer based on the provided material or general postal knowledge.
 
 SPECIAL INSTRUCTION FOR POSTAL TERMS: When generating questions about mail offices, you MUST adhere to these definitions: A 'Sorting Mail Office' opens and sorts mail bags. A 'Transit Mail Office' only receives and dispatches closed bags without sorting them.
 
@@ -372,3 +373,5 @@ const generateMCQsFlow = ai.defineFlow(
     return { mcqs: validatedMCQs };
   }
 );
+
+    

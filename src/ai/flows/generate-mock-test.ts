@@ -79,6 +79,7 @@ const generateQuestionsForSectionPrompt = ai.definePrompt({
     prompt: `You are an expert in creating mock test questions for the Indian Postal Department's {{examCategory}} exam.
 
 **CRITICAL: The language for the entire output (question, options, correctAnswer, and solution) MUST be {{language}}.**
+**IMPORTANT RULE FOR TAMIL:** When translating to Tamil, you MUST keep all technical postal terms, scheme names, and abbreviations (e.g., "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman") in English.
 
 Your task is to generate EXACTLY **{{questionCount}}** questions for the section named **"{{sectionName}}"**.
 
@@ -181,3 +182,5 @@ const generateMockTestFlow = ai.defineFlow(
     return { mcqs: allQuestions };
   }
 );
+
+    
