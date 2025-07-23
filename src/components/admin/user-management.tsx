@@ -64,6 +64,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
+  const [cityFilter, setCityFilter] = useState('all');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -81,6 +82,11 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
   const proUsersCount = useMemo(() => users.filter(u => u.isPro).length, [users]);
   const freeUsersCount = useMemo(() => users.filter(u => !u.isPro).length, [users]);
 
+  const uniqueCities = useMemo(() => {
+    const cities = new Set(users.map(user => user.city).filter((city): city is string => !!city));
+    return ['all', ...Array.from(cities).sort()];
+  }, [users]);
+  
   const filteredUsers = useMemo(() => {
     return users
       .filter(user => {
@@ -88,11 +94,16 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
         if (filter === 'free') return !user.isPro;
         return true;
       })
+      .filter(user => {
+        if (cityFilter === 'all') return true;
+        return user.city === cityFilter;
+      })
       .filter(user =>
         user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase())
       );
-  }, [users, searchTerm, filter]);
+  }, [users, searchTerm, filter, cityFilter]);
+
 
   const updateUserForm = useForm<z.infer<typeof userUpdateSchema>>({
     resolver: zodResolver(userUpdateSchema),
@@ -330,6 +341,20 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                     <TabsTrigger value="free">Free ({freeUsersCount})</TabsTrigger>
                 </TabsList>
             </Tabs>
+             <div className="w-full sm:w-auto">
+                <Select value={cityFilter} onValueChange={setCityFilter}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                        <SelectValue placeholder="Filter by city" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {uniqueCities.map(city => (
+                            <SelectItem key={city} value={city}>
+                                {city === 'all' ? 'All Cities' : city}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
         </div>
     </CardHeader>
     <CardContent>
