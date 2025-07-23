@@ -1,5 +1,4 @@
 
-
 import type { LucideIcon } from 'lucide-react';
 
 export interface MCQ {
@@ -100,4 +99,13 @@ export interface QnAUsage {
     userId: string;
     topic: string;
     timestamp: Date;
+}
+
+export interface Notification {
+    id: string;
+    message: string;
+    createdAt: Date;
+    isRead: boolean;
+    userId: string;
+    userName: string;
 }

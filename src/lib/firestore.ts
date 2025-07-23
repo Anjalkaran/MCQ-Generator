@@ -1,8 +1,7 @@
 
-
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification } from './types';
 import { ADMIN_EMAILS } from './constants';
 
 // USER MANAGEMENT
@@ -463,26 +462,63 @@ export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategor
     return sortedLeaderboard;
 };
 
+// NOTIFICATION MANAGEMENT
+export const addAdminNotification = async (notification: Omit<Notification, 'id' | 'isRead' | 'createdAt'>): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const newNotification: Omit<Notification, 'id'> = {
+        ...notification,
+        createdAt: new Date(),
+        isRead: false,
+    };
+    await addDoc(collection(db, 'notifications'), newNotification);
+};
+
+export const getAdminNotifications = async (): Promise<Notification[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const notificationsCollection = collection(db, 'notifications');
+    const q = query(notificationsCollection, orderBy('createdAt', 'desc'), limit(20));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt.toDate(),
+    } as Notification));
+};
+
+export const markNotificationsAsRead = async (notificationIds: string[]): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const batch = writeBatch(db);
+    notificationIds.forEach(id => {
+        const notifRef = doc(db, 'notifications', id);
+        batch.update(notifRef, { isRead: true });
+    });
+    await batch.commit();
+};
+
 
 // CONSOLIDATED DASHBOARD DATA FETCHING
 export const getDashboardData = async (userId: string, isAdmin: boolean = false) => {
-    const [categories, topics, bankedQuestions, qnaUsage] = await Promise.all([
+    const [categories, topics, bankedQuestions, qnaUsage, notifications] = await Promise.all([
         getCategories(),
         getTopics(),
         isAdmin ? getQuestionBankDocuments() : [],
         isAdmin ? getQnAUsage() : [],
+        isAdmin ? getAdminNotifications() : [],
     ]);
     
     if (isAdmin) {
-        return { userData: null, categories, topics, bankedQuestions, qnaUsage };
+        return { userData: null, categories, topics, bankedQuestions, qnaUsage, notifications };
     }
 
     const userData = await getUserData(userId);
     if (!userData) {
-        return { userData: null, categories: [], topics: [], bankedQuestions: [], qnaUsage: [] };
+        return { userData: null, categories: [], topics: [], bankedQuestions: [], qnaUsage: [], notifications: [] };
     }
 
-    return { userData, categories, topics, bankedQuestions, qnaUsage: [] };
+    return { userData, categories, topics, bankedQuestions, qnaUsage: [], notifications: [] };
 }
 
 

@@ -13,11 +13,12 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { getDashboardData } from '@/lib/firestore';
-import type { UserData, Category, Topic, BankedQuestion, QnAUsage } from "@/lib/types";
+import type { UserData, Category, Topic, BankedQuestion, QnAUsage, Notification } from "@/lib/types";
 import { ADMIN_EMAILS, FREE_EXAM_LIMIT } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
 import packageJson from '../../../package.json';
+import { AdminNotifications } from '@/components/dashboard/admin-notifications';
 
 interface DashboardContextType {
   user: User | null;
@@ -26,6 +27,7 @@ interface DashboardContextType {
   topics: Topic[];
   bankedQuestions: BankedQuestion[];
   qnaUsage: QnAUsage[];
+  notifications: Notification[];
   isLoading: boolean;
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>;
 }
@@ -42,6 +44,8 @@ export function useDashboard() {
 
 function MainContent({ children }: { children: React.ReactNode }) {
   const { state, isMobile } = useSidebar();
+  const { userData, notifications } = useDashboard();
+  const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
   
   return (
     <main className="flex-1 bg-muted/40 flex flex-col">
@@ -55,6 +59,7 @@ function MainContent({ children }: { children: React.ReactNode }) {
               </Link>
             )}
         </div>
+        {isAdmin && <AdminNotifications initialNotifications={notifications} />}
       </header>
       <div className="p-4 md:p-6 flex-1">
           {children}
@@ -251,6 +256,7 @@ export default function DashboardLayout({
   const [topics, setTopics] = useState<Topic[]>([]);
   const [bankedQuestions, setBankedQuestions] = useState<BankedQuestion[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const handleLogout = useCallback(async (authInstance = getFirebaseAuth(), showToast = true) => {
@@ -293,12 +299,13 @@ export default function DashboardLayout({
                     mockTestsTaken: 0,
                     isPro: true,
                 };
-                const { categories, topics, bankedQuestions, qnaUsage } = await getDashboardData(currentUser.uid, true);
+                const { categories, topics, bankedQuestions, qnaUsage, notifications } = await getDashboardData(currentUser.uid, true);
                 setUserData(adminUserData);
                 setCategories(categories);
                 setTopics(topics);
                 setBankedQuestions(bankedQuestions);
                 setQnaUsage(qnaUsage);
+                setNotifications(notifications);
 
             } else {
                 const { userData: fetchedUserData, categories, topics, bankedQuestions } = await getDashboardData(currentUser.uid);
@@ -313,6 +320,7 @@ export default function DashboardLayout({
                 setTopics(topics);
                 setBankedQuestions(bankedQuestions);
                 setQnaUsage([]); // Non-admins don't need this data
+                setNotifications([]);
             }
 
             if (pathname.startsWith('/dashboard/admin') && !userIsAdmin) {
@@ -331,6 +339,7 @@ export default function DashboardLayout({
         setTopics([]);
         setBankedQuestions([]);
         setQnaUsage([]);
+        setNotifications([]);
         if (!pathname.startsWith('/auth')) {
             router.push('/auth/login');
         }
@@ -341,7 +350,7 @@ export default function DashboardLayout({
     
   }, [router, toast, handleLogout, pathname]);
   
-  const contextValue = { user, userData, categories, topics, bankedQuestions, qnaUsage, isLoading, setUserData };
+  const contextValue = { user, userData, categories, topics, bankedQuestions, qnaUsage, notifications, isLoading, setUserData };
 
   return (
     <DashboardContext.Provider value={contextValue}>
