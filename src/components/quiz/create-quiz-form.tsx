@@ -37,7 +37,12 @@ type DifficultyLevel = 'Easy' | 'Moderate' | 'Difficult';
 const difficultyLevels: DifficultyLevel[] = ['Easy', 'Moderate', 'Difficult'];
 const parts = ["Part A", "Part B"] as const;
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
-const languages = ["English", "Tamil"] as const;
+const languages = [
+    { value: 'English', label: 'English' },
+    { value: 'Tamil', label: 'தமிழ்' },
+    { value: 'Hindi', label: 'हिन्दी' },
+] as const;
+
 
 export function CreateQuizForm() {
   const router = useRouter();
@@ -255,7 +260,7 @@ export function CreateQuizForm() {
                               </FormControl>
                               <SelectContent>
                               {languages.map((lang) => (
-                                  <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                                  <SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>
                               ))}
                               </SelectContent>
                           </Select>
@@ -426,3 +431,5 @@ export function CreateQuizForm() {
     </Card>
   );
 }
+
+    

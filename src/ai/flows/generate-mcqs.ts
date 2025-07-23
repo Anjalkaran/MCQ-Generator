@@ -24,7 +24,7 @@ const GenerateMCQsInputSchema = z.object({
   bankedQuestions: z.string().optional().describe('Content from previously uploaded exam questions to use as a reference.'),
   userId: z.string().describe('The ID of the user requesting the quiz.'),
   topicId: z.string().describe('The ID of the topic.'),
-  language: z.string().optional().default('English').describe('The language for the generated quiz (e.g., "English", "Tamil").'),
+  language: z.string().optional().default('English').describe('The language for the generated quiz (e.g., "English", "Tamil", "Hindi").'),
 });
 export type GenerateMCQsInput = z.infer<typeof GenerateMCQsInputSchema>;
 
@@ -135,7 +135,7 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert in generating multiple-choice questions (MCQs). Your goal is to create {{numberOfQuestions}} questions for the "{{examCategory}}" exam, specifically for "{{part}}". The questions should be on the topic of "{{topic}}" with a "{{difficulty}}" difficulty level.
 
 **CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
-**IMPORTANT RULE FOR TAMIL:** When translating to Tamil, you MUST keep all technical postal terms, scheme names, and abbreviations (e.g., "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office") in English.
+**IMPORTANT RULE FOR TAMIL/HINDI:** When translating to Tamil or Hindi, you MUST keep all technical postal terms, scheme names, and abbreviations (e.g., "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office") in English.
 
 --- MOST IMPORTANT RULE ---
 For every question you generate, you MUST follow this two-step process:

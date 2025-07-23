@@ -22,7 +22,12 @@ import { ADMIN_EMAILS, FREE_EXAM_LIMIT } from '@/lib/constants';
 import { Input } from '@/components/ui/input';
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
-const languages = ["English", "Tamil"] as const;
+const languages = [
+    { value: 'English', label: 'English' },
+    { value: 'Tamil', label: 'தமிழ்' },
+    { value: 'Hindi', label: 'हिन्दी' },
+] as const;
+
 
 const formSchema = z.object({
   examType: z.enum(examCategories, {
@@ -182,7 +187,7 @@ export function MockTestForm() {
                               </FormControl>
                               <SelectContent>
                               {languages.map((lang) => (
-                                  <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                                  <SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>
                               ))}
                               </SelectContent>
                           </Select>
@@ -244,3 +249,5 @@ export function MockTestForm() {
     </Card>
   );
 }
+
+    

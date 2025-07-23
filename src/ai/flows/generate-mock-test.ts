@@ -41,7 +41,7 @@ Problem: "{{problem}}"`,
 const GenerateMockTestInputSchema = z.object({
   examCategory: z.string().describe('The exam category (e.g., MTS, POSTMAN, PA).'),
   userId: z.string().describe('The ID of the user requesting the quiz.'),
-  language: z.string().optional().default('English').describe('The language for the generated test (e.g., "English", "Tamil").'),
+  language: z.string().optional().default('English').describe('The language for the generated test (e.g., "English", "Tamil", "Hindi").'),
 });
 export type GenerateMockTestInput = z.infer<typeof GenerateMockTestInputSchema>;
 
@@ -79,7 +79,7 @@ const generateQuestionsForSectionPrompt = ai.definePrompt({
     prompt: `You are an expert in creating mock test questions for the Indian Postal Department's {{examCategory}} exam.
 
 **CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
-**IMPORTANT RULE FOR TAMIL:** When translating to Tamil, you MUST keep all technical postal terms, scheme names, and abbreviations (e.g., "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman") in English.
+**IMPORTANT RULE FOR TAMIL/HINDI:** When translating to Tamil or Hindi, you MUST keep all technical postal terms, scheme names, and abbreviations (e.g., "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman") in English.
 
 Your task is to generate EXACTLY **{{questionCount}}** questions for the section named **"{{sectionName}}"**.
 
