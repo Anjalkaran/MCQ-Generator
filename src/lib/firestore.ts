@@ -2,7 +2,7 @@
 
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage } from './types';
 import { ADMIN_EMAILS } from './constants';
 
 // USER MANAGEMENT
@@ -444,20 +444,51 @@ export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategor
 
 // CONSOLIDATED DASHBOARD DATA FETCHING
 export const getDashboardData = async (userId: string, isAdmin: boolean = false) => {
-    const [categories, topics, bankedQuestions] = await Promise.all([
+    const [categories, topics, bankedQuestions, qnaUsage] = await Promise.all([
         getCategories(),
         getTopics(),
         isAdmin ? getQuestionBankDocuments() : [],
+        isAdmin ? getQnAUsage() : [],
     ]);
     
     if (isAdmin) {
-        return { userData: null, categories, topics, bankedQuestions };
+        return { userData: null, categories, topics, bankedQuestions, qnaUsage };
     }
 
     const userData = await getUserData(userId);
     if (!userData) {
-        return { userData: null, categories: [], topics: [], bankedQuestions: [] };
+        return { userData: null, categories: [], topics: [], bankedQuestions: [], qnaUsage: [] };
     }
 
-    return { userData, categories, topics, bankedQuestions };
+    return { userData, categories, topics, bankedQuestions, qnaUsage: [] };
 }
+
+
+// ANALYTICS
+export const logQnAUSage = async (userId: string, topic: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    
+    const usageData = {
+        userId,
+        topic,
+        timestamp: new Date(),
+    };
+
+    await addDoc(collection(db, 'qnaUsage'), usageData);
+};
+
+export const getQnAUsage = async (): Promise<QnAUsage[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const qnaCollection = collection(db, 'qnaUsage');
+    const snapshot = await getDocs(qnaCollection);
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            ...data,
+            timestamp: data.timestamp.toDate(),
+        } as QnAUsage;
+    });
+};

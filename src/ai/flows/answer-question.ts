@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Answers a user's question based on provided study material or general knowledge if no material is available.
@@ -9,11 +10,13 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { logQnAUSage } from '@/lib/firestore';
 
 const AnswerQuestionInputSchema = z.object({
   material: z.string().optional().describe('The study material to search for the answer, if available.'),
   question: z.string().describe('The user\'s question.'),
   topic: z.string().describe('The topic of the question.'),
+  userId: z.string().describe('The ID of the user asking the question.'),
 });
 export type AnswerQuestionInput = z.infer<typeof AnswerQuestionInputSchema>;
 
@@ -76,6 +79,12 @@ const answerQuestionFlow = ai.defineFlow(
     if (!output) {
       throw new Error('The AI could not generate an answer.');
     }
+    
+    // Log the usage only on successful answer generation
+    if (input.userId && input.topic) {
+        await logQnAUSage(input.userId, input.topic);
+    }
+    
     return output;
   }
 );

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
@@ -12,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { getDashboardData } from '@/lib/firestore';
-import type { UserData, Category, Topic, BankedQuestion } from "@/lib/types";
+import type { UserData, Category, Topic, BankedQuestion, QnAUsage } from "@/lib/types";
 import { ADMIN_EMAILS, FREE_EXAM_LIMIT } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
@@ -24,6 +25,7 @@ interface DashboardContextType {
   categories: Category[];
   topics: Topic[];
   bankedQuestions: BankedQuestion[];
+  qnaUsage: QnAUsage[];
   isLoading: boolean;
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>;
 }
@@ -248,6 +250,7 @@ export default function DashboardLayout({
   const [categories, setCategories] = useState<Category[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [bankedQuestions, setBankedQuestions] = useState<BankedQuestion[]>([]);
+  const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const handleLogout = useCallback(async (authInstance = getFirebaseAuth(), showToast = true) => {
@@ -290,11 +293,12 @@ export default function DashboardLayout({
                     mockTestsTaken: 0,
                     isPro: true,
                 };
-                const { categories, topics, bankedQuestions } = await getDashboardData(currentUser.uid, true);
+                const { categories, topics, bankedQuestions, qnaUsage } = await getDashboardData(currentUser.uid, true);
                 setUserData(adminUserData);
                 setCategories(categories);
                 setTopics(topics);
                 setBankedQuestions(bankedQuestions);
+                setQnaUsage(qnaUsage);
 
             } else {
                 const { userData: fetchedUserData, categories, topics, bankedQuestions } = await getDashboardData(currentUser.uid);
@@ -308,6 +312,7 @@ export default function DashboardLayout({
                 setCategories(categories);
                 setTopics(topics);
                 setBankedQuestions(bankedQuestions);
+                setQnaUsage([]); // Non-admins don't need this data
             }
 
             if (pathname.startsWith('/dashboard/admin') && !userIsAdmin) {
@@ -325,6 +330,7 @@ export default function DashboardLayout({
         setCategories([]);
         setTopics([]);
         setBankedQuestions([]);
+        setQnaUsage([]);
         if (!pathname.startsWith('/auth')) {
             router.push('/auth/login');
         }
@@ -335,7 +341,7 @@ export default function DashboardLayout({
     
   }, [router, toast, handleLogout, pathname]);
   
-  const contextValue = { user, userData, categories, topics, bankedQuestions, isLoading, setUserData };
+  const contextValue = { user, userData, categories, topics, bankedQuestions, qnaUsage, isLoading, setUserData };
 
   return (
     <DashboardContext.Provider value={contextValue}>

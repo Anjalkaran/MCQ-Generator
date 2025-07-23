@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -121,6 +122,7 @@ export default function QAPage() {
         material: material,
         question: values.question,
         topic: topicTitle,
+        userId: user.uid,
       });
       setAnswer(answer);
     } catch (error: any) {

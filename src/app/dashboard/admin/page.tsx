@@ -1,52 +1,94 @@
 
+
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useDashboard } from "@/app/dashboard/layout";
 import { UserManagement } from '@/components/admin/user-management';
 import { TopicManagement } from '@/components/admin/topic-management';
 import { QuestionBankManagement } from '@/components/admin/question-bank-management';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
-import { getAllUsers } from "@/lib/firestore";
-import type { UserData } from "@/lib/types";
+import { Loader2, Users } from "lucide-react";
+import { getAllUsers, getQnAUsage } from "@/lib/firestore";
+import type { UserData, QnAUsage } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { ADMIN_EMAILS } from "@/lib/constants";
+
+function AnalyticsTab({ qnaUsage }: { qnaUsage: QnAUsage[] }) {
+    const uniqueUsers = useMemo(() => {
+        const userIds = new Set(qnaUsage.map(item => item.userId));
+        return userIds.size;
+    }, [qnaUsage]);
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Feature Analytics</CardTitle>
+                <CardDescription>Usage statistics for key features.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                 <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                            'Ask Your Doubt' Usage
+                        </CardTitle>
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{uniqueUsers}</div>
+                        <p className="text-xs text-muted-foreground">
+                            unique users have used this feature.
+                        </p>
+                    </CardContent>
+                </Card>
+            </CardContent>
+        </Card>
+    );
+}
 
 export default function AdminPage() {
   const { user, userData, categories, topics, bankedQuestions, isLoading: isDashboardLoading } = useDashboard();
   const [users, setUsers] = useState<UserData[]>([]);
+  const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchAdminData = async () => {
       try {
-        const fetchedUsers = await getAllUsers();
-        // Filter out admin users from the list to prevent self-modification issues
+        const [fetchedUsers, fetchedQnAUsage] = await Promise.all([
+            getAllUsers(),
+            getQnAUsage()
+        ]);
+        
         const regularUsers = fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email));
         setUsers(regularUsers);
+        setQnaUsage(fetchedQnAUsage);
+
       } catch (error) {
-        console.error("Failed to fetch users:", error);
+        console.error("Failed to fetch admin data:", error);
         toast({
           title: "Error",
-          description: "Could not fetch the user list.",
+          description: "Could not fetch admin data.",
           variant: "destructive"
         });
       } finally {
         setIsLoadingUsers(false);
+        setIsLoadingAnalytics(false);
       }
     };
 
     if (userData?.email && ADMIN_EMAILS.includes(userData.email)) {
-        fetchUsers();
+        fetchAdminData();
     } else {
         setIsLoadingUsers(false);
+        setIsLoadingAnalytics(false);
     }
   }, [userData, toast]);
 
-  if (isDashboardLoading || isLoadingUsers) {
+  if (isDashboardLoading || isLoadingUsers || isLoadingAnalytics) {
     return (
        <div className="flex h-[50vh] w-full items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -72,14 +114,15 @@ export default function AdminPage() {
        <div className="space-y-0.5">
           <h1 className="text-2xl font-bold tracking-tight">Admin Panel</h1>
           <p className="text-muted-foreground">
-            Manage users, topics, and question banks for the application.
+            Manage users, topics, question banks, and view analytics.
           </p>
         </div>
       <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="topics">Topic Management</TabsTrigger>
           <TabsTrigger value="question-bank">Question Bank</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
         <TabsContent value="users">
           <UserManagement initialUsers={users} /> 
@@ -89,6 +132,9 @@ export default function AdminPage() {
         </TabsContent>
         <TabsContent value="question-bank">
             <QuestionBankManagement initialBankedQuestions={bankedQuestions} />
+        </TabsContent>
+        <TabsContent value="analytics">
+            <AnalyticsTab qnaUsage={qnaUsage} />
         </TabsContent>
       </Tabs>
     </div>

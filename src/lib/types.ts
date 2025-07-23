@@ -1,4 +1,5 @@
 
+
 import type { LucideIcon } from 'lucide-react';
 
 export interface MCQ {
@@ -92,4 +93,11 @@ export interface UserTopicProgress {
     topicId: string;
     lastCharacterIndexUsed: number;
     updatedAt: Date;
+}
+
+export interface QnAUsage {
+    id: string;
+    userId: string;
+    topic: string;
+    timestamp: Date;
 }
