@@ -346,6 +346,28 @@ export const getQuestionBankDocuments = async (): Promise<BankedQuestion[]> => {
     });
 };
 
+export const getQuestionBankDocumentsByCategory = async (examCategory: 'MTS' | 'POSTMAN' | 'PA'): Promise<BankedQuestion[] | null> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const bankCollection = collection(db, 'questionBank');
+    
+    const q = query(bankCollection, where('examCategory', '==', examCategory));
+    
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) {
+        return null;
+    }
+
+    return querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            ...data,
+            uploadedAt: data.uploadedAt.toDate(), // Convert Firestore Timestamp to JS Date
+        } as BankedQuestion
+    });
+};
+
 export const addQuestionBankDocument = async (data: Omit<BankedQuestion, 'id'>): Promise<DocumentReference> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
@@ -419,7 +441,7 @@ export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategor
     const leaderboard: Omit<LeaderboardEntry, 'rank'>[] = [];
     userPerformance.forEach((perf, userId) => {
         const user = userMap.get(userId);
-        if (user && perf.totalExams > 0) { // Only include users with at least one exam
+        if (user && perf.totalExams > 2) { // Only include users with more than 2 exams
             leaderboard.push({
                 userId: userId,
                 userName: user.name,
