@@ -4,10 +4,10 @@
 import { useState, useEffect } from 'react';
 import { useDashboard } from "@/app/dashboard/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, BookCopy, FileText, Rss } from 'lucide-react';
+import { Loader2, BookCopy, FileText } from 'lucide-react';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { LiveTestCard } from '@/components/dashboard/live-test-card';
+import { LiveTestDashboardCard } from '@/components/dashboard/live-test-dashboard-card';
 import type { LiveTest } from '@/lib/types';
 import { getLiveTests } from '@/lib/firestore';
 import Script from 'next/script';
@@ -62,21 +62,13 @@ export default function DashboardPage() {
             strategy="lazyOnload"
         />
         <div className="space-y-6">
-          {liveTests.length > 0 && (
-            <div className="space-y-4">
-               <div className="flex items-center gap-2">
-                 <Rss className="h-6 w-6 text-primary animate-pulse" />
-                 <h2 className="text-2xl font-bold tracking-tight">Upcoming Live Tests</h2>
-               </div>
-              {liveTests.map(test => <LiveTestCard key={test.id} test={test} />)}
-            </div>
-          )}
-
           <div className="space-y-2 text-center pt-4">
-            <h1 className="text-3xl font-bold tracking-tight">Create Your Own Exam</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Create Your Exam</h1>
             <p className="text-muted-foreground">Choose an exam type to get started.</p>
           </div>
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <LiveTestDashboardCard initialLiveTests={liveTests} />
+
             <Card className="flex flex-col">
                 <CardHeader>
                     <div className="flex items-center gap-4">
@@ -95,13 +87,14 @@ export default function DashboardPage() {
                     </Button>
                 </CardContent>
             </Card>
+
             <Card className="flex flex-col">
                 <CardHeader>
                     <div className="flex items-center gap-4">
                         <div className="bg-primary/10 p-3 rounded-full">
                             <FileText className="h-6 w-6 text-primary" />
                         </div>
-                        <CardTitle>Mock Test</CardTitle>
+                        <CardTitle>Practice Mock Test</CardTitle>
                     </div>
                     <CardDescription className="pt-4">
                         Generate a full-length mock test that simulates the real exam, based on the official blueprint for your selected category.
