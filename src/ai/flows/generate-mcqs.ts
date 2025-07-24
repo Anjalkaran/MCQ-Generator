@@ -42,8 +42,7 @@ export type GenerateMCQsOutput = z.infer<typeof GenerateMCQsOutputSchema>;
 
 // New schema for the 2-step arithmetic generation
 const ArithmeticProblemSchema = z.object({
-    question: z.string().describe("The word problem."),
-    correctAnswer: z.string().describe("The single, mathematically correct answer."),
+    question: z.string().describe("The word problem or numerical equation."),
 });
 
 const ArithmeticDistractorsSchema = z.object({
@@ -51,7 +50,7 @@ const ArithmeticDistractorsSchema = z.object({
 });
 
 const ArithmeticSolutionSchema = z.object({
-    steps: z.array(z.string()).describe("An array of strings, where each string is a single step in the calculation using the LCM method."),
+    steps: z.array(z.string()).describe("An array of strings, where each string is a single step in the calculation using the LCM method for work problems, or BODMAS order for equations."),
     final_answer: z.string().describe("A string containing only the final, mathematically exact answer."),
 });
 
@@ -73,7 +72,7 @@ const arithmeticSolverPrompt = ai.definePrompt({
 
 Your output MUST be a valid JSON object. Do not include any text, apologies, or explanations outside of the JSON structure itself.
 
-The language of the solution steps MUST be {{language}}.
+The language of the solution steps and the final answer MUST be {{language}}.
 
 The JSON object must have two keys:
 1.  "steps": An array of strings. Each string must be a single, clear step in the calculation. For work-rate problems like this, use the LCM (Least Common Multiple) method. For BODMAS problems, show each operation in order.
@@ -89,14 +88,14 @@ Now, solve the following problem according to all the rules above:
 Problem: "{{problem}}"`,
 });
 
-// New prompt for generating just the problem and answer
+// New prompt for generating just the problem
 const arithmeticProblemPrompt = ai.definePrompt({
     name: 'arithmeticProblemPrompt',
     input: { schema: z.object({ topic: z.string(), previousQuestions: z.array(z.string()).optional(), language: z.string().optional().default('English') }) },
     output: { schema: z.object({ problems: z.array(ArithmeticProblemSchema) }) },
     prompt: `You are a meticulous mathematics teacher. Create a word problem or a numerical equation for the topic "{{topic}}".
     
-    The language of the problem and the answer MUST be {{language}}.
+    The language of the problem MUST be {{language}}.
 
     IMPORTANT: Do NOT repeat any of the following questions. Ensure the new questions are unique and different from this list:
     {{#if previousQuestions}}
@@ -106,10 +105,9 @@ const arithmeticProblemPrompt = ai.definePrompt({
     {{/if}}
 
     Your output MUST be a JSON object containing a "problems" array with ONE entry.
-    Each entry must have two keys:
-    1. "question": The full word problem or equation (e.g., "Solve using BODMAS: 10 + 5 * 2 - 2 / 1 = ?").
-    2. "correctAnswer": The single, mathematically correct answer as a string (e.g., "18").
-    Do not generate multiple-choice options here.
+    Each entry must have a single key: "question".
+    The value should be the full word problem or equation (e.g., "Solve using BODMAS: 10 + 5 * 2 - 2 / 1 = ?").
+    Do not generate multiple-choice options or the answer here.
     `,
 });
 
@@ -284,36 +282,34 @@ const generateMCQsFlow = ai.defineFlow(
 
         for (let i = 0; i < input.numberOfQuestions; i++) {
             try {
-                // Step 1: Generate the problem and correct answer
+                // Step 1: Generate just the problem statement
                 const problemResponse = await arithmeticProblemPrompt({ 
                     topic: input.topic, 
                     previousQuestions: Array.from(existingQuestions),
                     language: input.language
                 });
-
+                
                 if (!problemResponse.output?.problems?.[0]) continue;
-                const { question, correctAnswer } = problemResponse.output.problems[0];
+                const { question } = problemResponse.output.problems[0];
                 existingQuestions.add(question); // Add to avoid duplicates in the same run
 
-                // Step 2: Generate distractors
+                // Step 2: Get the VERIFIED correct answer and solution from the solver
+                const solutionResponse = await arithmeticSolverPrompt({ problem: question, language: input.language });
+                if (!solutionResponse.output?.final_answer) {
+                    console.error("Solver failed to produce an answer for:", question);
+                    continue;
+                }
+                const correctAnswer = solutionResponse.output.final_answer;
+                const solutionText = solutionResponse.output.steps.join('\n');
+                
+                // Step 3: Generate distractors based on the VERIFIED correct answer
                 const distractorsResponse = await arithmeticDistractorsPrompt({ question, correctAnswer, language: input.language });
                 if (!distractorsResponse.output?.distractors) continue;
                 const { distractors } = distractorsResponse.output;
 
-                // Step 3: Combine and shuffle options
+                // Step 4: Combine and shuffle options
                 const options = shuffleArray([correctAnswer, ...distractors]);
                 
-                // Step 4: Generate the detailed solution
-                let solutionText = "A detailed solution could not be generated for this problem.";
-                try {
-                     const solutionResponse = await arithmeticSolverPrompt({ problem: question, language: input.language });
-                     if (solutionResponse.output) {
-                        solutionText = solutionResponse.output.steps.join('\n');
-                     }
-                } catch (e) {
-                    console.error("Failed to generate a detailed solution:", e);
-                }
-
                 generatedMCQs.push({
                     question,
                     options,
@@ -373,5 +369,3 @@ const generateMCQsFlow = ai.defineFlow(
     return { mcqs: validatedMCQs };
   }
 );
-
-      
