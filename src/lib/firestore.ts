@@ -507,9 +507,9 @@ export const getDashboardData = async (userId: string, isAdmin: boolean = false)
 
     let onlineUserCount = 0;
     if (isAdmin) {
-        const fiveMinutesAgo = Timestamp.fromMillis(Date.now() - 5 * 60 * 1000);
+        const twoMinutesAgo = Timestamp.fromMillis(Date.now() - 2 * 60 * 1000);
         const usersRef = collection(db, 'users');
-        const onlineQuery = query(usersRef, where('lastSeen', '>', fiveMinutesAgo));
+        const onlineQuery = query(usersRef, where('lastSeen', '>', twoMinutesAgo));
         const onlineSnapshot = await getDocs(onlineQuery);
         onlineUserCount = onlineSnapshot.size;
     }
