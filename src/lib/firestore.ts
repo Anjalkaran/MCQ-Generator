@@ -1,6 +1,6 @@
 
 import { getFirebaseDb } from './firebase';
-import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion } from 'firebase/firestore';
 import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest } from './types';
 import { ADMIN_EMAILS } from './constants';
 
@@ -18,6 +18,7 @@ export const getUserData = async (userId: string): Promise<UserData | null> => {
             ...data,
             topicExamsTaken: data.topicExamsTaken || 0,
             mockTestsTaken: data.mockTestsTaken || 0,
+            liveTestsTaken: data.liveTestsTaken || [],
         } as UserData;
     }
     return null;
@@ -40,6 +41,7 @@ export const createUserDocument = async (userData: Omit<UserData, 'id'>): Promis
       ...userData,
       topicExamsTaken: 0,
       mockTestsTaken: 0,
+      liveTestsTaken: [],
       isPro: false,
       proValidUntil: null,
       lastSeen: serverTimestamp(),
@@ -246,41 +248,23 @@ export const getExamHistoryForUser = async (userId: string): Promise<MCQHistory[
     
     const historyCollection = collection(db, 'mcqHistory');
     
-    // Create two separate queries that Firestore can handle without a custom index.
-    const mockTestQuery = query(
-        historyCollection, 
-        where('userId', '==', userId), 
-        where('isMockTest', '==', true)
-    );
-    const topicExamQuery = query(
-        historyCollection, 
-        where('userId', '==', userId),
-        where('isMockTest', '==', false)
-    );
+    const q = query(historyCollection, where('userId', '==', userId));
 
-    const [mockTestSnapshot, topicExamSnapshot] = await Promise.all([
-        getDocs(mockTestQuery),
-        getDocs(topicExamQuery),
-    ]);
+    const snapshot = await getDocs(q);
     
     const history: MCQHistory[] = [];
 
-    const processSnapshot = (snapshot: any) => {
-        snapshot.docs.forEach((doc: any) => {
-            const data = doc.data();
-            const takenAt = data.takenAt?.toDate ? data.takenAt.toDate() : new Date();
-            
-            history.push({
-                id: doc.id,
-                ...data,
-                topicTitle: data.topicTitle || 'Mock Test',
-                takenAt: takenAt,
-            } as MCQHistory);
-        });
-    };
-
-    processSnapshot(mockTestSnapshot);
-    processSnapshot(topicExamSnapshot);
+    snapshot.docs.forEach((doc: any) => {
+        const data = doc.data();
+        const takenAt = data.takenAt?.toDate ? data.takenAt.toDate() : new Date();
+        
+        history.push({
+            id: doc.id,
+            ...data,
+            topicTitle: data.topicTitle || 'Mock Test',
+            takenAt: takenAt,
+        } as MCQHistory);
+    });
 
     // Sort the combined results in-memory
     history.sort((a, b) => b.takenAt.getTime() - a.takenAt.getTime());
@@ -439,6 +423,15 @@ export const getLiveTests = async (): Promise<LiveTest[]> => {
             endTime: data.endTime,
         } as LiveTest;
     }).sort((a, b) => a.startTime.toDate().getTime() - b.startTime.toDate().getTime());
+};
+
+export const markLiveTestAsTaken = async (userId: string, liveTestId: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+        liveTestsTaken: arrayUnion(liveTestId)
+    });
 };
 
 

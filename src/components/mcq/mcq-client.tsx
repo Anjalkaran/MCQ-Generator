@@ -58,6 +58,7 @@ export function MCQClient({ topicId }: MCQClientProps) {
         mcqs: quizData.mcqs,
         topic: quizData.topic,
         isMockTest: quizData.isMockTest || false,
+        liveTestId: quizData.liveTestId,
       };
       localStorage.setItem(`quizState-${quizData.topic.id}`, JSON.stringify(answersToStore));
       router.push(`/quiz/${quizData.topic.id}/results`);

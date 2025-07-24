@@ -1,4 +1,3 @@
-
 import type { LucideIcon } from 'lucide-react';
 import type { Timestamp } from 'firebase/firestore';
 
@@ -41,6 +40,7 @@ export interface UserData {
     examCategory: 'MTS' | 'POSTMAN' | 'PA';
     topicExamsTaken: number;
     mockTestsTaken: number;
+    liveTestsTaken?: string[]; // Array of liveTest IDs
     isPro?: boolean;
     proValidUntil?: any; 
     createdAt?: any;
@@ -52,6 +52,7 @@ export interface MCQData {
   mcqs: MCQ[];
   timeLimit?: number;
   isMockTest?: boolean;
+  liveTestId?: string; // Add liveTestId to quiz data
 }
 
 export interface MCQHistory {
@@ -64,6 +65,7 @@ export interface MCQHistory {
     questions: string[];
     takenAt: Date;
     isMockTest?: boolean;
+    liveTestId?: string; // Add liveTestId to history
 }
 
 export interface TopicPerformance {
@@ -119,4 +121,5 @@ export interface LiveTest {
     startTime: Timestamp;
     endTime: Timestamp;
     questionPaperId: string; // Document ID from the 'liveTestBank' collection
+    price?: number; // Price for the test for non-pro users
 }
