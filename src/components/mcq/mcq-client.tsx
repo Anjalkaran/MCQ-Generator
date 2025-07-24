@@ -86,11 +86,17 @@ export function MCQClient({ topicId }: MCQClientProps) {
   }, [topicId, router]);
   
   useEffect(() => {
-    if (timeLeft === null || timeLeft <= 0) {
-        if (timeLeft === 0) {
-            handleFinish();
-        }
-        return;
+    if (timeLeft === 0) {
+      toast({
+        title: "Time's Up!",
+        description: "Your exam has been automatically submitted.",
+      });
+      handleFinish();
+      return;
+    }
+
+    if (timeLeft === null || timeLeft < 0) {
+      return;
     }
 
     timerRef.current = setInterval(() => {
@@ -102,7 +108,7 @@ export function MCQClient({ topicId }: MCQClientProps) {
             clearInterval(timerRef.current);
         }
     };
-}, [timeLeft, handleFinish]);
+}, [timeLeft, handleFinish, toast]);
 
   const handleExtendTime = () => {
     if (timeLeft !== null && timeExtensionsUsed < MAX_TIME_EXTENSIONS) {
