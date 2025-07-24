@@ -11,6 +11,7 @@ import { LiveTestDashboardCard } from '@/components/dashboard/live-test-dashboar
 import type { LiveTest } from '@/lib/types';
 import { getLiveTests } from '@/lib/firestore';
 import Script from 'next/script';
+import { Timestamp } from 'firebase/firestore';
 
 export default function DashboardPage() {
   const { user, userData, isLoading } = useDashboard();
@@ -21,8 +22,36 @@ export default function DashboardPage() {
     const fetchTests = async () => {
         setIsLoadingTests(true);
         try {
-            const tests = await getLiveTests();
-            setLiveTests(tests);
+            // Firestore call remains for when you add real tests
+            const testsFromDB = await getLiveTests();
+            
+            // --- TEMPORARY SCHEDULED TEST ---
+            // This is the hardcoded test data for the MTS exam.
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            const startTime = new Date(tomorrow);
+            startTime.setHours(20, 0, 0, 0); // 8:00 PM
+
+            const endTime = new Date(tomorrow);
+            endTime.setHours(22, 0, 0, 0); // 10:00 PM
+
+            const tempMTSTest: LiveTest = {
+                id: 'temp-mts-test-1',
+                title: 'Live Mock Test - MTS',
+                examCategory: 'MTS',
+                // This needs to be a valid document ID from your 'liveTestBank' collection
+                // I'm using a placeholder ID here.
+                questionPaperId: 'YOUR_MTS_QUESTION_PAPER_ID', 
+                price: 29,
+                startTime: Timestamp.fromDate(startTime),
+                endTime: Timestamp.fromDate(endTime),
+            };
+            // --- END TEMPORARY DATA ---
+
+            // Combine DB tests with the temporary one
+            setLiveTests([tempMTSTest, ...testsFromDB]);
+
         } catch (error) {
             console.error("Failed to fetch live tests:", error);
         } finally {
