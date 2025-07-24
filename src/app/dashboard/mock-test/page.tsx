@@ -14,7 +14,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { getFirebaseDb } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { generateMockTest } from '@/ai/flows/generate-mock-test';
+import { generateMockTestFromBank } from '@/ai/flows/generate-mock-test-from-bank';
 import { MTS_BLUEPRINT } from '@/lib/exam-blueprints';
 
 
@@ -31,13 +31,13 @@ const LiveTestCard = () => {
     const targetTime = useMemo(() => {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(20, 30, 0, 0); // 8:30 PM
+        tomorrow.setHours(20, 0, 0, 0); // 8:00 PM
         return tomorrow;
     }, []);
 
     const endTime = useMemo(() => {
         const end = new Date(targetTime);
-        end.setHours(end.getHours() + 2); // Ends at 10:30 PM
+        end.setHours(end.getHours() + 2); // Ends at 10:00 PM
         return end;
     }, [targetTime]);
 
@@ -96,7 +96,8 @@ const LiveTestCard = () => {
         }
 
         try {
-            const { mcqs } = await generateMockTest({ examCategory: 'MTS', userId: user.uid, language: 'English' });
+            // Use the question bank flow instead of AI generation
+            const { mcqs } = await generateMockTestFromBank({ examCategory: 'MTS', userId: user.uid });
             
             const quizId = `live-mock-test-MTS-${user.uid}`;
             const quizData = {
@@ -124,7 +125,7 @@ const LiveTestCard = () => {
 
         } catch (error: any) {
             console.error("Error generating live test:", error);
-            toast({ title: 'Error', description: 'Could not generate the test. Please try again.', variant: 'destructive' });
+            toast({ title: 'Error', description: error.message || 'Could not generate the test. Please try again.', variant: 'destructive' });
             setIsGenerating(false);
         }
     };
@@ -154,7 +155,7 @@ const LiveTestCard = () => {
             <CardHeader className="text-center">
                 <CardTitle className="text-2xl text-primary">MTS Live Mock Test</CardTitle>
                 <CardDescription>
-                    Starts: Tomorrow at 8:30 PM | Ends: Tomorrow at 10:30 PM
+                    Starts: Tomorrow at 8:00 PM | Ends: Tomorrow at 10:00 PM
                 </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
