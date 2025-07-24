@@ -144,10 +144,12 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
                 </Link>
               </Button>
             )}
-            <Button onClick={handleRetake}>
-                <Repeat className="mr-2 h-4 w-4" />
-                New Exam
-            </Button>
+            {!liveTestId && (
+                <Button onClick={handleRetake}>
+                    <Repeat className="mr-2 h-4 w-4" />
+                    New Exam
+                </Button>
+            )}
             <Button variant="outline" asChild>
               <Link href="/dashboard">
                 <Home className="mr-2 h-4 w-4" />
