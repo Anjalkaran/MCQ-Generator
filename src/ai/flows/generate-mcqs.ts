@@ -95,19 +95,35 @@ const arithmeticProblemPrompt = ai.definePrompt({
     output: { schema: z.object({ problems: z.array(ArithmeticProblemSchema) }) },
     prompt: `You are a meticulous mathematics teacher. Create a word problem or a numerical equation for the topic "{{topic}}".
     
-    The language of the problem MUST be {{language}}.
+The language of the problem MUST be {{language}}.
 
-    IMPORTANT: Do NOT repeat any of the following questions. Ensure the new questions are unique and different from this list:
-    {{#if previousQuestions}}
-        {{#each previousQuestions}}
-        - "{{this}}"
-        {{/each}}
-    {{/if}}
+--- TOPIC-SPECIFIC INSTRUCTIONS ---
+{{#ifEquals topic "Average"}}
+You MUST create a problem that involves calculating the average of a set of numbers.
+Example: "Find the average of the following numbers: 10, 20, 30, 40, 50."
+DO NOT create a number series or pattern-finding problem.
+{{else ifEquals topic "BODMAS"}}
+You MUST create a numerical equation that requires the BODMAS rule to solve.
+Example: "Solve using BODMAS: 10 + 5 * 2 - (8 / 4) = ?"
+{{else ifEquals topic "Time and work"}}
+You MUST create a word problem involving work rates and time.
+Example: "A can complete a task in 10 days and B can do it in 15 days. If they work together, in how many days will the work be completed?"
+{{else}}
+Generate a standard, relevant word problem for the topic "{{topic}}".
+{{/ifEquals}}
+--- END INSTRUCTIONS ---
 
-    Your output MUST be a JSON object containing a "problems" array with ONE entry.
-    Each entry must have a single key: "question".
-    The value should be the full word problem or equation (e.g., "Solve using BODMAS: 10 + 5 * 2 - 2 / 1 = ?").
-    Do not generate multiple-choice options or the answer here.
+IMPORTANT: Do NOT repeat any of the following questions. Ensure the new questions are unique and different from this list:
+{{#if previousQuestions}}
+    {{#each previousQuestions}}
+    - "{{this}}"
+    {{/each}}
+{{/if}}
+
+Your output MUST be a JSON object containing a "problems" array with ONE entry.
+Each entry must have a single key: "question".
+The value should be the full word problem or equation.
+Do not generate multiple-choice options or the answer here.
     `,
 });
 
