@@ -77,26 +77,26 @@ export const LiveTestDashboardCard = ({ initialLiveTests }: { initialLiveTests: 
             }
             
             const now = new Date();
+            let totalSeconds;
 
             if (now >= startTime && now <= endTime) {
                 if (testState !== 'live') setTestState('live');
-                const totalSeconds = Math.floor((endTime.getTime() - now.getTime()) / 1000);
-                const hours = Math.floor(totalSeconds / 3600);
-                const minutes = Math.floor((totalSeconds % 3600) / 60);
-                setTimeRemaining(`${hours}h ${minutes}m`);
-
+                totalSeconds = Math.floor((endTime.getTime() - now.getTime()) / 1000);
             } else if (now > endTime) {
                 if (testState !== 'ended') setTestState('ended');
                 setTimeRemaining('This live test has ended.');
                 clearInterval(interval);
+                return;
             } else {
                 if (testState !== 'upcoming') setTestState('upcoming');
-                const totalSeconds = Math.floor((startTime.getTime() - now.getTime()) / 1000);
-                const days = Math.floor(totalSeconds / (3600 * 24));
-                const hours = Math.floor((totalSeconds % (3600 * 24)) / 3600);
-                const minutes = Math.floor((totalSeconds % 3600) / 60);
-                setTimeRemaining(`${days}d ${hours}h ${minutes}m`);
+                totalSeconds = Math.floor((startTime.getTime() - now.getTime()) / 1000);
             }
+
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            setTimeRemaining(`${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
+
         }, 1000);
 
         return () => clearInterval(interval);
