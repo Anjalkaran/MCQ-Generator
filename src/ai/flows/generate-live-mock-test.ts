@@ -48,11 +48,11 @@ const verifyAndFormatQuestionPaperPrompt = ai.definePrompt({
     model: 'googleai/gemini-1.5-flash',
     prompt: `You are an expert Question Verifier for the Indian Postal Department exams.
 
-Your task is to process the entire 'QUESTION PAPER' provided below, verify each question against the 'STUDY MATERIAL', and output a clean, verified list of questions in JSON format.
+Your task is to process the ENTIRE 'QUESTION PAPER' provided below, verify each question against the 'STUDY MATERIAL', and output a clean, verified list of ALL questions in JSON format.
 
 **Process:**
 
-1.  **Read and Parse:** Go through the entire 'QUESTION PAPER' text and identify all the multiple-choice questions. For each question, you MUST extract the full text of the question and the **full text for all four of its options**.
+1.  **Read and Parse:** Go through the entire 'QUESTION PAPER' text from start to finish and identify ALL the multiple-choice questions. For each question, you MUST extract the full text of the question and the **full text for all four of its options**.
 2.  **Verify & Correct:**
     *   For each question found, you MUST use the 'STUDY MATERIAL' as the single source of truth to verify the correct answer.
     *   If the answer in the question paper is correct, keep it.
