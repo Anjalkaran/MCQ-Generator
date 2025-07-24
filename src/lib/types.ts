@@ -1,5 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
+import type { Timestamp } from 'firebase/firestore';
 
 export interface MCQ {
   question: string;
@@ -109,4 +110,13 @@ export interface Notification {
     isRead: boolean;
     userId: string;
     userName: string;
+}
+
+export interface LiveTest {
+    id: string;
+    title: string;
+    examCategory: 'MTS' | 'POSTMAN' | 'PA';
+    startTime: Timestamp;
+    endTime: Timestamp;
+    questionPaperId: string; // Document ID from the 'liveTestBank' collection
 }

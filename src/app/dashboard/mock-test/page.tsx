@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { useDashboard } from '@/app/dashboard/layout';
-import { Loader2, PlayCircle, Lock, CheckCircle, TimerOff } from 'lucide-react';
+import { Loader2, PlayCircle, Lock, CheckCircle, TimerOff, Trophy } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MockTestForm } from '@/components/quiz/mock-test-form';
 import { PreviousYearMockTestForm } from '@/components/quiz/previous-year-mock-test-form';
@@ -15,10 +15,18 @@ import { getFirebaseDb } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { generateLiveMockTest } from '@/ai/flows/generate-live-mock-test';
-import { MTS_BLUEPRINT } from '@/lib/exam-blueprints';
+import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-blueprints';
+import type { LiveTest } from '@/lib/types';
+import { getLiveTests } from '@/lib/firestore';
+import { normalizeDate } from '@/lib/utils';
 
+const blueprintMap = {
+    MTS: MTS_BLUEPRINT,
+    POSTMAN: POSTMAN_BLUEPRINT,
+    PA: PA_BLUEPRINT,
+};
 
-const LiveTestCard = () => {
+const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const { user } = useDashboard();
     const { toast } = useToast();
     const router = useRouter();
@@ -26,31 +34,22 @@ const LiveTestCard = () => {
     const [timeRemaining, setTimeRemaining] = useState('');
     const [testState, setTestState] = useState<'upcoming' | 'live' | 'ended' | 'completed' | 'loading'>('loading');
 
-    const liveTestId = 'mts-live-test-2024-07-28'; // Unique ID for this specific test
-
-    const targetTime = useMemo(() => {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(20, 0, 0, 0); // 8:00 PM
-        return tomorrow;
-    }, []);
-
-    const endTime = useMemo(() => {
-        const end = new Date(targetTime);
-        end.setHours(end.getHours() + 2); // Ends at 10:00 PM
-        return end;
-    }, [targetTime]);
+    const startTime = useMemo(() => normalizeDate(test.startTime), [test.startTime]);
+    const endTime = useMemo(() => normalizeDate(test.endTime), [test.endTime]);
 
     useEffect(() => {
+        if (!startTime || !endTime) return;
+
         const checkUserStatus = async () => {
             if (!user) {
-                setTestState('upcoming');
+                // If user isn't loaded yet, keep loading state
+                if(testState !== 'loading') setTestState('upcoming');
                 return;
             }
             const db = getFirebaseDb();
             if (!db) return;
 
-            const testAttemptRef = doc(db, 'users', user.uid, 'liveTests', liveTestId);
+            const testAttemptRef = doc(db, 'users', user.uid, 'liveTests', test.id);
             const docSnap = await getDoc(testAttemptRef);
             if (docSnap.exists()) {
                 setTestState('completed');
@@ -60,22 +59,28 @@ const LiveTestCard = () => {
         checkUserStatus();
 
         const interval = setInterval(() => {
-            const now = new Date();
-            if (testState === 'completed') {
+            if (testState === 'completed' || testState === 'ended') {
                 clearInterval(interval);
                 return;
             }
+            
+            const now = new Date();
 
-            if (now >= targetTime && now <= endTime) {
+            if (now >= startTime && now <= endTime) {
                 setTestState('live');
-                setTimeRemaining('');
+                const totalSeconds = Math.floor((endTime.getTime() - now.getTime()) / 1000);
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+                setTimeRemaining(`${hours}h ${minutes}m ${seconds}s remaining`);
+
             } else if (now > endTime) {
                 setTestState('ended');
-                setTimeRemaining('The live test has ended.');
+                setTimeRemaining('This live test has ended.');
                 clearInterval(interval);
             } else {
                 setTestState('upcoming');
-                const totalSeconds = Math.floor((targetTime.getTime() - now.getTime()) / 1000);
+                const totalSeconds = Math.floor((startTime.getTime() - now.getTime()) / 1000);
                 const days = Math.floor(totalSeconds / (3600 * 24));
                 const hours = Math.floor((totalSeconds % (3600 * 24)) / 3600);
                 const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -85,7 +90,7 @@ const LiveTestCard = () => {
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [targetTime, endTime, user, testState]);
+    }, [startTime, endTime, user, test.id, testState]);
 
     const handleStartTest = async () => {
         setIsGenerating(true);
@@ -96,18 +101,18 @@ const LiveTestCard = () => {
         }
 
         try {
-            // Use the dedicated live test flow
-            const { mcqs } = await generateLiveMockTest({ liveTestId: 'mts-live-test-paper-1' });
+            const { mcqs } = await generateLiveMockTest({ liveTestId: test.questionPaperId });
             
-            const quizId = `live-mock-test-MTS-${user.uid}`;
+            const blueprint = blueprintMap[test.examCategory];
+            const quizId = `live-mock-test-${test.examCategory}-${user.uid}`;
             const quizData = {
                 mcqs: mcqs,
-                timeLimit: MTS_BLUEPRINT.totalDurationMinutes * 60,
+                timeLimit: blueprint.totalDurationMinutes * 60,
                 isMockTest: true,
                 topic: {
                     id: quizId,
-                    title: `MTS Live Mock Test`,
-                    description: `Live mock test conducted on ${targetTime.toLocaleDateString()}.`,
+                    title: test.title,
+                    description: `Live mock test conducted on ${startTime?.toLocaleDateString()}.`,
                     icon: 'scroll-text',
                     categoryId: 'live-mock-test',
                 },
@@ -117,8 +122,8 @@ const LiveTestCard = () => {
 
             const db = getFirebaseDb();
             if (db) {
-                const testAttemptRef = doc(db, 'users', user.uid, 'liveTests', liveTestId);
-                await setDoc(testAttemptRef, { completedAt: new Date() });
+                const testAttemptRef = doc(db, 'users', user.uid, 'liveTests', test.id);
+                await setDoc(testAttemptRef, { completedAt: new Date(), title: test.title });
             }
 
             router.push(`/quiz/${quizId}`);
@@ -133,7 +138,7 @@ const LiveTestCard = () => {
     const getButton = () => {
         switch (testState) {
             case 'loading':
-                return <Button disabled className="w-full"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading...</Button>;
+                return <Button disabled className="w-full"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading Status...</Button>;
             case 'upcoming':
                 return <Button disabled className="w-full"><Lock className="mr-2 h-4 w-4" />Starts In: {timeRemaining}</Button>;
             case 'live':
@@ -142,30 +147,36 @@ const LiveTestCard = () => {
                     Start Live Test Now
                 </Button>;
             case 'completed':
-                return <Button disabled className="w-full"><CheckCircle className="mr-2 h-4 w-4" />Test Completed</Button>;
+                return <Button disabled className="w-full"><CheckCircle className="mr-2 h-4 w-4" />Test Already Attempted</Button>;
             case 'ended':
                 return <Button disabled className="w-full"><TimerOff className="mr-2 h-4 w-4" />Test Has Ended</Button>;
             default:
                 return null;
         }
+    };
+    
+    if (!startTime || !endTime) {
+        return <Card><CardContent><Loader2 className="animate-spin" /></CardContent></Card>
     }
 
     return (
         <Card className="border-primary border-2 shadow-lg">
             <CardHeader className="text-center">
-                <CardTitle className="text-2xl text-primary">MTS Live Mock Test</CardTitle>
+                <CardTitle className="text-2xl text-primary">{test.title}</CardTitle>
                 <CardDescription>
-                    Starts: Tomorrow at 8:00 PM | Ends: Tomorrow at 10:00 PM
+                    Starts: {startTime.toLocaleString()} | Ends: {endTime.toLocaleString()}
                 </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
                 <div className="p-4 bg-muted rounded-lg mb-4">
-                    <p className="text-sm text-muted-foreground">Time Remaining to Start</p>
+                    <p className="text-sm text-muted-foreground">
+                        {testState === 'upcoming' ? 'Time Remaining to Start' : 'Test is Live!'}
+                    </p>
                     <p className="text-3xl font-bold tracking-tighter">
-                        {testState === 'upcoming' ? timeRemaining : 'The test is now live!'}
+                        {timeRemaining}
                     </p>
                 </div>
-                <p className="text-xs text-muted-foreground px-4">You can start the 60-minute test anytime within the 2-hour window. You only have one attempt.</p>
+                <p className="text-xs text-muted-foreground px-4">You can start the {blueprintMap[test.examCategory].totalDurationMinutes}-minute test anytime within the 2-hour window. You only have one attempt.</p>
             </CardContent>
             <CardFooter>
                 {getButton()}
@@ -174,9 +185,50 @@ const LiveTestCard = () => {
     );
 }
 
+const NoLiveTests = () => (
+    <Card>
+        <CardContent className="pt-6 text-center text-muted-foreground space-y-2">
+            <Trophy className="mx-auto h-10 w-10" />
+            <p className="font-semibold">No Live Tests Scheduled</p>
+            <p className="text-sm">Check back later for upcoming live mock tests.</p>
+        </CardContent>
+    </Card>
+)
+
 export default function MockTestPage() {
-    const { userData } = useDashboard();
+    const { userData, isLoading: isDashboardLoading } = useDashboard();
+    const [liveTests, setLiveTests] = useState<LiveTest[]>([]);
+    const [isLoadingTests, setIsLoadingTests] = useState(true);
     const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
+
+    useEffect(() => {
+        const fetchTests = async () => {
+            setIsLoadingTests(true);
+            try {
+                const tests = await getLiveTests();
+                setLiveTests(tests);
+            } catch (error) {
+                console.error("Failed to fetch live tests:", error);
+            } finally {
+                setIsLoadingTests(false);
+            }
+        };
+        fetchTests();
+    }, []);
+
+    const renderLiveTests = () => {
+        if (isLoadingTests || isDashboardLoading) {
+            return <div className="flex justify-center items-center h-40"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+        }
+        if (liveTests.length === 0) {
+            return <NoLiveTests />;
+        }
+        return (
+            <div className="space-y-4">
+                {liveTests.map(test => <LiveTestCard key={test.id} test={test} />)}
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6 max-w-2xl mx-auto">
@@ -192,7 +244,7 @@ export default function MockTestPage() {
                     <TabsTrigger value="practice-test">Practice Mock Test</TabsTrigger>
                 </TabsList>
                 <TabsContent value="live-test">
-                    <LiveTestCard />
+                    {renderLiveTests()}
                 </TabsContent>
                 <TabsContent value="practice-test">
                     <div className="space-y-6">

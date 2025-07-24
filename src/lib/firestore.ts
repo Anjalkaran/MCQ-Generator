@@ -1,7 +1,7 @@
 
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest } from './types';
 import { ADMIN_EMAILS } from './constants';
 
 // USER MANAGEMENT
@@ -420,6 +420,25 @@ export const getLiveTestQuestionPaper = async (liveTestId: string): Promise<Bank
         ...data,
         uploadedAt: data.uploadedAt.toDate(),
     } as BankedQuestion;
+};
+
+export const getLiveTests = async (): Promise<LiveTest[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const testsCollection = collection(db, 'liveTests');
+    const now = new Date();
+    // Query for tests where the end time is in the future
+    const q = query(testsCollection, where('endTime', '>', now));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            ...data,
+            startTime: data.startTime,
+            endTime: data.endTime,
+        } as LiveTest;
+    }).sort((a, b) => a.startTime.toDate().getTime() - b.startTime.toDate().getTime());
 };
 
 
