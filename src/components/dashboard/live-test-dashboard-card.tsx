@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { useDashboard } from '@/app/dashboard/layout';
-import { Loader2, PlayCircle, Lock, CheckCircle, TimerOff, Gem, Rss } from 'lucide-react';
+import { Loader2, PlayCircle, Lock, CheckCircle, TimerOff, Gem, Rss, Ban } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -36,7 +36,7 @@ export const LiveTestDashboardCard = ({ initialLiveTests }: { initialLiveTests: 
     const [isGenerating, setIsGenerating] = useState(false);
     const [isPaying, setIsPaying] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState('');
-    const [testState, setTestState] = useState<'upcoming' | 'live' | 'ended' | 'completed' | 'loading' | 'none'>('loading');
+    const [testState, setTestState] = useState<'upcoming' | 'live' | 'ended' | 'completed' | 'loading' | 'none' | 'entryClosed'>('loading');
 
     // Find the next upcoming or currently live test
     const nextTest = useMemo(() => {
@@ -51,6 +51,12 @@ export const LiveTestDashboardCard = ({ initialLiveTests }: { initialLiveTests: 
 
     const startTime = useMemo(() => nextTest ? normalizeDate(nextTest.startTime) : null, [nextTest]);
     const endTime = useMemo(() => nextTest ? normalizeDate(nextTest.endTime) : null, [nextTest]);
+    const entryCutoffTime = useMemo(() => {
+        if (!startTime) return null;
+        const cutoff = new Date(startTime);
+        cutoff.setMinutes(cutoff.getMinutes() + 10);
+        return cutoff;
+    }, [startTime]);
     
     const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
     const proValidUntilDate = normalizeDate(userData?.proValidUntil);
@@ -59,7 +65,7 @@ export const LiveTestDashboardCard = ({ initialLiveTests }: { initialLiveTests: 
     const isFirstTestFree = !isPro && liveTestsTakenCount === 0;
 
     useEffect(() => {
-        if (!nextTest || !startTime || !endTime) {
+        if (!nextTest || !startTime || !endTime || !entryCutoffTime) {
             setTestState('none');
             return;
         }
@@ -85,9 +91,14 @@ export const LiveTestDashboardCard = ({ initialLiveTests }: { initialLiveTests: 
             const now = new Date();
             let totalSeconds;
 
-            if (now >= startTime && now <= endTime) {
+            if (now >= startTime && now <= entryCutoffTime) {
                 if (testState !== 'live') setTestState('live');
-                totalSeconds = Math.floor((endTime.getTime() - now.getTime()) / 1000);
+                totalSeconds = Math.floor((entryCutoffTime.getTime() - now.getTime()) / 1000);
+            } else if (now > entryCutoffTime && now <= endTime) {
+                 if (testState !== 'entryClosed') setTestState('entryClosed');
+                 setTimeRemaining('Entry window has closed.');
+                 clearInterval(interval);
+                 return;
             } else if (now > endTime) {
                 if (testState !== 'ended') setTestState('ended');
                 setTimeRemaining('This live test has ended.');
@@ -106,7 +117,7 @@ export const LiveTestDashboardCard = ({ initialLiveTests }: { initialLiveTests: 
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [startTime, endTime, testState, userData, nextTest, isAdmin]);
+    }, [startTime, endTime, entryCutoffTime, testState, userData, nextTest, isAdmin]);
 
     const startTest = async () => {
         if (!nextTest || !user) return;
@@ -197,6 +208,7 @@ export const LiveTestDashboardCard = ({ initialLiveTests }: { initialLiveTests: 
         if (testState === 'loading') return <Button disabled className="w-full"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading Status...</Button>;
         if (testState === 'upcoming' && !isAdmin) return <Button disabled className="w-full"><Lock className="mr-2 h-4 w-4" />Starts In: {timeRemaining}</Button>;
         if (testState === 'completed' && !isAdmin) return <Button disabled className="w-full"><CheckCircle className="mr-2 h-4 w-4" />Test Already Attempted</Button>;
+        if (testState === 'entryClosed' && !isAdmin) return <Button disabled className="w-full"><Ban className="mr-2 h-4 w-4" />Entry Window Closed</Button>;
         if (testState === 'ended' && !isAdmin) return <Button disabled className="w-full"><TimerOff className="mr-2 h-4 w-4" />Test Has Ended</Button>;
 
         // Always show start button for admins
@@ -250,6 +262,13 @@ export const LiveTestDashboardCard = ({ initialLiveTests }: { initialLiveTests: 
          )
     }
 
+    const getCountdownLabel = () => {
+        if (isAdmin) return 'Admin Override';
+        if (testState === 'upcoming') return 'Starts In';
+        if (testState === 'live') return 'Entry Window Closes In';
+        return 'Test Window is Live!';
+    }
+
     return (
         <Card className="flex flex-col border-primary border-2 shadow-lg relative overflow-hidden">
              {isFirstTestFree && testState === 'live' && !isAdmin && (
@@ -271,7 +290,7 @@ export const LiveTestDashboardCard = ({ initialLiveTests }: { initialLiveTests: 
             <CardContent className="text-center flex-grow flex flex-col justify-center">
                  <div className="p-4 bg-muted rounded-lg">
                     <p className="text-sm text-muted-foreground">
-                        {isAdmin ? 'Admin Override' : (testState === 'upcoming' ? 'Starts In' : 'Test Window Ends In')}
+                        {getCountdownLabel()}
                     </p>
                     <p className="text-3xl font-bold tracking-tighter text-primary">
                         {timeRemaining}
