@@ -27,13 +27,12 @@ export default function DashboardPage() {
             
             // --- TEMPORARY SCHEDULED TEST ---
             // This is the hardcoded test data for the MTS exam.
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
+            const today = new Date();
             
-            const startTime = new Date(tomorrow);
+            const startTime = new Date(today);
             startTime.setHours(20, 0, 0, 0); // 8:00 PM
 
-            const endTime = new Date(tomorrow);
+            const endTime = new Date(today);
             endTime.setHours(22, 0, 0, 0); // 10:00 PM
 
             const tempMTSTest: LiveTest = {
