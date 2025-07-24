@@ -63,6 +63,12 @@ export const LiveTestDashboardCard = ({ initialLiveTests }: { initialLiveTests: 
             setTestState('none');
             return;
         }
+        
+        if (isAdmin) {
+            setTestState('live');
+            setTimeRemaining("Admin Access");
+            return;
+        }
 
         const interval = setInterval(() => {
             if (userData?.liveTestsTaken?.includes(nextTest.id)) {
@@ -100,7 +106,7 @@ export const LiveTestDashboardCard = ({ initialLiveTests }: { initialLiveTests: 
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [startTime, endTime, testState, userData, nextTest]);
+    }, [startTime, endTime, testState, userData, nextTest, isAdmin]);
 
     const startTest = async () => {
         if (!nextTest || !user) return;
@@ -125,13 +131,18 @@ export const LiveTestDashboardCard = ({ initialLiveTests }: { initialLiveTests: 
             };
 
             localStorage.setItem(`quiz-${quizId}`, JSON.stringify(quizData));
-            await markLiveTestAsTaken(user.uid, nextTest.id);
-            setUserData(prev => prev ? ({ ...prev, liveTestsTaken: [...(prev.liveTestsTaken || []), nextTest.id] }) : null);
+            
+            // Only mark test as taken for non-admins to allow for repeated testing
+            if (!isAdmin) {
+                await markLiveTestAsTaken(user.uid, nextTest.id);
+                setUserData(prev => prev ? ({ ...prev, liveTestsTaken: [...(prev.liveTestsTaken || []), nextTest.id] }) : null);
+            }
+            
             router.push(`/quiz/${quizId}`);
 
         } catch (error: any) {
             console.error("Error generating live test:", error);
-            toast({ title: 'Error', description: error.message || 'Could not generate the test.', variant: 'destructive' });
+            toast({ title: 'Error', description: error.message || 'Could not generate the test. Please try again.', variant: 'destructive' });
             setIsGenerating(false);
         }
     };
@@ -184,14 +195,15 @@ export const LiveTestDashboardCard = ({ initialLiveTests }: { initialLiveTests: 
     const getButton = () => {
         if (!nextTest) return null;
         if (testState === 'loading') return <Button disabled className="w-full"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading Status...</Button>;
-        if (testState === 'upcoming') return <Button disabled className="w-full"><Lock className="mr-2 h-4 w-4" />Starts In: {timeRemaining}</Button>;
-        if (testState === 'completed') return <Button disabled className="w-full"><CheckCircle className="mr-2 h-4 w-4" />Test Already Attempted</Button>;
-        if (testState === 'ended') return <Button disabled className="w-full"><TimerOff className="mr-2 h-4 w-4" />Test Has Ended</Button>;
+        if (testState === 'upcoming' && !isAdmin) return <Button disabled className="w-full"><Lock className="mr-2 h-4 w-4" />Starts In: {timeRemaining}</Button>;
+        if (testState === 'completed' && !isAdmin) return <Button disabled className="w-full"><CheckCircle className="mr-2 h-4 w-4" />Test Already Attempted</Button>;
+        if (testState === 'ended' && !isAdmin) return <Button disabled className="w-full"><TimerOff className="mr-2 h-4 w-4" />Test Has Ended</Button>;
 
-        if (isPro) {
+        // Always show start button for admins
+        if (isPro || isAdmin) {
             return <Button onClick={startTest} disabled={isGenerating} className="w-full bg-green-600 hover:bg-green-700">
                 {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
-                Start Live Test
+                Start Live Test {isAdmin && "(Admin)"}
             </Button>;
         }
         
@@ -240,7 +252,7 @@ export const LiveTestDashboardCard = ({ initialLiveTests }: { initialLiveTests: 
 
     return (
         <Card className="flex flex-col border-primary border-2 shadow-lg relative overflow-hidden">
-             {isFirstTestFree && testState === 'live' && (
+             {isFirstTestFree && testState === 'live' && !isAdmin && (
                 <Badge className="absolute -top-2 -right-2 transform rotate-12 text-base px-3 py-1 z-10">
                     First Test Free!
                 </Badge>
@@ -259,7 +271,7 @@ export const LiveTestDashboardCard = ({ initialLiveTests }: { initialLiveTests: 
             <CardContent className="text-center flex-grow flex flex-col justify-center">
                  <div className="p-4 bg-muted rounded-lg">
                     <p className="text-sm text-muted-foreground">
-                        {testState === 'upcoming' ? 'Starts In' : 'Test Window Ends In'}
+                        {isAdmin ? 'Admin Override' : (testState === 'upcoming' ? 'Starts In' : 'Test Window Ends In')}
                     </p>
                     <p className="text-3xl font-bold tracking-tighter text-primary">
                         {timeRemaining}
