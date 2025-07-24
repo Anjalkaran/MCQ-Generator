@@ -14,7 +14,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { getFirebaseDb } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { generateMockTestFromBank } from '@/ai/flows/generate-mock-test-from-bank';
+import { generateLiveMockTest } from '@/ai/flows/generate-live-mock-test';
 import { MTS_BLUEPRINT } from '@/lib/exam-blueprints';
 
 
@@ -96,8 +96,8 @@ const LiveTestCard = () => {
         }
 
         try {
-            // Use the question bank flow instead of AI generation
-            const { mcqs } = await generateMockTestFromBank({ examCategory: 'MTS', userId: user.uid });
+            // Use the dedicated live test flow
+            const { mcqs } = await generateLiveMockTest({ liveTestId: 'mts-live-test-paper-1' });
             
             const quizId = `live-mock-test-MTS-${user.uid}`;
             const quizData = {

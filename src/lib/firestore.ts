@@ -403,6 +403,25 @@ export const getQuestionBankByCategory = async (examCategory: 'MTS' | 'POSTMAN' 
     return combinedContent;
 };
 
+// LIVE TEST BANK
+export const getLiveTestQuestionPaper = async (liveTestId: string): Promise<BankedQuestion | null> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const docRef = doc(db, 'liveTestBank', liveTestId);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+        return null;
+    }
+    
+    const data = docSnap.data();
+    return {
+        id: docSnap.id,
+        ...data,
+        uploadedAt: data.uploadedAt.toDate(),
+    } as BankedQuestion;
+};
+
 
 // LEADERBOARD MANAGEMENT
 export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategory: UserData['examCategory']): Promise<LeaderboardEntry[]> => {
