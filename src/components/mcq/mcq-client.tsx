@@ -65,11 +65,8 @@ export function MCQClient({ topicId }: MCQClientProps) {
       };
       localStorage.setItem(`quizState-${quizData.topic.id}`, JSON.stringify(answersToStore));
       
-      if (quizData.liveTestId) {
-        router.push('/dashboard/leaderboard');
-      } else {
-        router.push(`/quiz/${quizData.topic.id}/results`);
-      }
+      // Always redirect to results page
+      router.push(`/quiz/${quizData.topic.id}/results`);
     }
   }, [quizData, selectedAnswers, router]);
 

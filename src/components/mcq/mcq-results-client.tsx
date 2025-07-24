@@ -4,7 +4,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle, XCircle, Award, Repeat, Home, BrainCircuit } from "lucide-react";
+import { CheckCircle, XCircle, Award, Repeat, Home, BrainCircuit, Trophy } from "lucide-react";
 import type { MCQ, Topic } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -105,7 +105,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
     return null; // or a loading spinner
   }
   
-  const { topic, mcqs: quizMcqs, isMockTest } = quizData;
+  const { topic, mcqs: quizMcqs, isMockTest, liveTestId } = quizData;
   const percentage = quizLength > 0 ? Math.round((score / quizLength) * 100) : 0;
 
   const handleRetake = () => {
@@ -135,6 +135,14 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
             You scored {score} out of {quizLength}
           </p>
           <div className="flex justify-center gap-4 mt-8">
+             {liveTestId && (
+              <Button asChild>
+                <Link href="/dashboard/leaderboard">
+                  <Trophy className="mr-2 h-4 w-4" />
+                  View Leaderboard
+                </Link>
+              </Button>
+            )}
             <Button onClick={handleRetake}>
                 <Repeat className="mr-2 h-4 w-4" />
                 New Exam
