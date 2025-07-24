@@ -35,7 +35,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 type DifficultyLevel = 'Easy' | 'Moderate' | 'Difficult';
 const difficultyLevels: DifficultyLevel[] = ['Easy', 'Moderate', 'Difficult'];
-const parts = ["Part A", "Part B"] as const;
+const parts = ["Part A"] as const;
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 const languages = [
     { value: 'English', label: 'English' },
