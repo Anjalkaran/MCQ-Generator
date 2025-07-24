@@ -1,6 +1,6 @@
 
 import { getFirebaseDb } from './firebase';
-import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp } from 'firebase/firestore';
 import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification } from './types';
 import { ADMIN_EMAILS } from './constants';
 
@@ -42,6 +42,7 @@ export const createUserDocument = async (userData: Omit<UserData, 'id'>): Promis
       mockTestsTaken: 0,
       isPro: false,
       proValidUntil: null,
+      lastSeen: serverTimestamp(),
     });
 };
 
@@ -501,6 +502,18 @@ export const markNotificationsAsRead = async (notificationIds: string[]): Promis
 
 // CONSOLIDATED DASHBOARD DATA FETCHING
 export const getDashboardData = async (userId: string, isAdmin: boolean = false) => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+
+    let onlineUserCount = 0;
+    if (isAdmin) {
+        const fiveMinutesAgo = Timestamp.fromMillis(Date.now() - 5 * 60 * 1000);
+        const usersRef = collection(db, 'users');
+        const onlineQuery = query(usersRef, where('lastSeen', '>', fiveMinutesAgo));
+        const onlineSnapshot = await getDocs(onlineQuery);
+        onlineUserCount = onlineSnapshot.size;
+    }
+
     const [categories, topics, bankedQuestions, qnaUsage, notifications] = await Promise.all([
         getCategories(),
         getTopics(),
@@ -510,15 +523,15 @@ export const getDashboardData = async (userId: string, isAdmin: boolean = false)
     ]);
     
     if (isAdmin) {
-        return { userData: null, categories, topics, bankedQuestions, qnaUsage, notifications };
+        return { userData: null, categories, topics, bankedQuestions, qnaUsage, notifications, onlineUserCount };
     }
 
     const userData = await getUserData(userId);
     if (!userData) {
-        return { userData: null, categories: [], topics: [], bankedQuestions: [], qnaUsage: [], notifications: [] };
+        return { userData: null, categories: [], topics: [], bankedQuestions: [], qnaUsage: [], notifications: [], onlineUserCount: 0 };
     }
 
-    return { userData, categories, topics, bankedQuestions, qnaUsage: [], notifications: [] };
+    return { userData, categories, topics, bankedQuestions, qnaUsage: [], notifications: [], onlineUserCount: 0 };
 }
 
 

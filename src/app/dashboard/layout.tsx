@@ -5,7 +5,7 @@
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users } from 'lucide-react';
 import Link from 'next/link';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
@@ -28,6 +28,7 @@ interface DashboardContextType {
   bankedQuestions: BankedQuestion[];
   qnaUsage: QnAUsage[];
   notifications: Notification[];
+  onlineUserCount: number;
   isLoading: boolean;
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>;
 }
@@ -48,7 +49,7 @@ function MainContent({ children }: { children: React.ReactNode }) {
   const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
   
   return (
-    <main className="flex-1 bg-muted/40 flex flex-col">
+    <main className="flex-1 bg-muted/40 flex flex-col min-h-0">
       <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
         <SidebarTrigger className="sm:hidden" />
         <div className="relative flex-1 flex items-center gap-2">
@@ -61,7 +62,7 @@ function MainContent({ children }: { children: React.ReactNode }) {
         </div>
         {isAdmin && <AdminNotifications initialNotifications={notifications} />}
       </header>
-      <div className="p-4 md:p-6 flex-1">
+      <div className="p-4 md:p-6 flex-1 overflow-auto">
           {children}
       </div>
     </main>
@@ -72,7 +73,7 @@ function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
-  const { user, userData, isLoading } = useDashboard();
+  const { user, userData, isLoading, onlineUserCount } = useDashboard();
   const { setOpenMobile } = useSidebar();
 
   const handleLogout = useCallback(async (authInstance = getFirebaseAuth(), showToast = true) => {
@@ -227,6 +228,17 @@ function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
+        {isAdmin && (
+            <div className="p-2 border-t group-data-[collapsible=icon]:hidden">
+                <div className="flex items-center justify-between text-sm px-2">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                        <Users className="h-4 w-4" />
+                        <span>Online Users</span>
+                    </div>
+                    <span className="font-semibold text-primary">{onlineUserCount}</span>
+                </div>
+            </div>
+        )}
         <div className="p-2">
           <Button onClick={() => handleLogout()} variant="ghost" className="w-full justify-start">
             <LogOut className="mr-2 h-4 w-4" />
@@ -257,6 +269,7 @@ export default function DashboardLayout({
   const [bankedQuestions, setBankedQuestions] = useState<BankedQuestion[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [onlineUserCount, setOnlineUserCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const handleLogout = useCallback(async (authInstance = getFirebaseAuth(), showToast = true) => {
@@ -272,6 +285,33 @@ export default function DashboardLayout({
       if (showToast) toast({ title: 'Logout Failed', description: error.message || 'An unexpected error occurred.', variant: 'destructive' });
     }
   }, [router, toast]);
+
+  // Heartbeat effect
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+    if (user) {
+      const sendHeartbeat = async () => {
+        try {
+          await fetch('/api/user/heartbeat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: user.uid }),
+          });
+        } catch (error) {
+          console.error("Failed to send heartbeat:", error);
+        }
+      };
+      // Send initial heartbeat immediately
+      sendHeartbeat();
+      // Then send every 60 seconds
+      intervalId = setInterval(sendHeartbeat, 60000);
+    }
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [user]);
 
   useEffect(() => {
     const auth = getFirebaseAuth();
@@ -299,13 +339,14 @@ export default function DashboardLayout({
                     mockTestsTaken: 0,
                     isPro: true,
                 };
-                const { categories, topics, bankedQuestions, qnaUsage, notifications } = await getDashboardData(currentUser.uid, true);
+                const { categories, topics, bankedQuestions, qnaUsage, notifications, onlineUserCount } = await getDashboardData(currentUser.uid, true);
                 setUserData(adminUserData);
                 setCategories(categories);
                 setTopics(topics);
                 setBankedQuestions(bankedQuestions);
                 setQnaUsage(qnaUsage);
                 setNotifications(notifications);
+                setOnlineUserCount(onlineUserCount);
 
             } else {
                 const { userData: fetchedUserData, categories, topics, bankedQuestions } = await getDashboardData(currentUser.uid);
@@ -321,6 +362,7 @@ export default function DashboardLayout({
                 setBankedQuestions(bankedQuestions);
                 setQnaUsage([]); // Non-admins don't need this data
                 setNotifications([]);
+                setOnlineUserCount(0);
             }
 
             if (pathname.startsWith('/dashboard/admin') && !userIsAdmin) {
@@ -340,6 +382,7 @@ export default function DashboardLayout({
         setBankedQuestions([]);
         setQnaUsage([]);
         setNotifications([]);
+        setOnlineUserCount(0);
         if (!pathname.startsWith('/auth')) {
             router.push('/auth/login');
         }
@@ -350,22 +393,24 @@ export default function DashboardLayout({
     
   }, [router, toast, handleLogout, pathname]);
   
-  const contextValue = { user, userData, categories, topics, bankedQuestions, qnaUsage, notifications, isLoading, setUserData };
+  const contextValue = { user, userData, categories, topics, bankedQuestions, qnaUsage, notifications, onlineUserCount, isLoading, setUserData };
 
   return (
     <DashboardContext.Provider value={contextValue}>
-      <SidebarProvider>
-        <div className="relative z-20">
-            <AppSidebar />
-        </div>
-         <MainContent>
-            {isLoading ? (
-                 <div className="flex h-full w-full items-center justify-center">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                 </div>
-            ) : children}
-        </MainContent>
-      </SidebarProvider>
+      <div className="flex h-screen overflow-hidden">
+        <SidebarProvider>
+          <div className="relative z-20">
+              <AppSidebar />
+          </div>
+           <MainContent>
+              {isLoading ? (
+                   <div className="flex h-full w-full items-center justify-center">
+                      <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                   </div>
+              ) : children}
+          </MainContent>
+        </SidebarProvider>
+      </div>
     </DashboardContext.Provider>
   );
 }

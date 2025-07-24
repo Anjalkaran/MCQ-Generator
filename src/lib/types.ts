@@ -43,6 +43,7 @@ export interface UserData {
     isPro?: boolean;
     proValidUntil?: any; 
     createdAt?: any;
+    lastSeen?: any;
 }
 
 export interface MCQData {

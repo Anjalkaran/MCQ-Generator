@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebase';
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -94,6 +94,7 @@ export function RegisterForm() {
         isPro: false,
         proValidUntil: null,
         createdAt: new Date(),
+        lastSeen: serverTimestamp(),
       });
 
       toast({
