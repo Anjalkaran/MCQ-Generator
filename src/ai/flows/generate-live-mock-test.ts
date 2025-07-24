@@ -48,16 +48,16 @@ const verifyAndFormatQuestionPaperPrompt = ai.definePrompt({
     model: 'googleai/gemini-1.5-flash',
     prompt: `You are an expert Question Verifier for the Indian Postal Department exams.
 
-Your task is to process the ENTIRE 'QUESTION PAPER' provided below, verify each question against the 'STUDY MATERIAL', and output a clean, verified list of ALL questions in JSON format.
+Your task is to process the 'QUESTION PAPER' provided below, verify each question against the 'STUDY MATERIAL', and output a clean, verified list of EXACTLY 50 questions in JSON format.
 
 **Process:**
 
-1.  **Read and Parse:** Go through the entire 'QUESTION PAPER' text from start to finish and identify ALL the multiple-choice questions. For each question, you MUST extract the full text of the question and the **full text for all four of its options**.
+1.  **Read and Parse:** Go through the 'QUESTION PAPER' text and identify all the multiple-choice questions. For each question, you MUST extract the full text of the question and the **full text for all four of its options**.
 2.  **Verify & Correct:**
     *   For each question found, you MUST use the 'STUDY MATERIAL' as the single source of truth to verify the correct answer.
     *   If the answer in the question paper is correct, keep it.
     *   If the answer is INCORRECT, you MUST correct it based on the study material. The 'correctAnswer' field in the output must contain the full, correct option text.
-    *   If a question cannot be verified or its answer is ambiguous from the material, SKIP that question entirely.
+    *   If a question cannot be verified or its answer is ambiguous from the material, SKIP that question entirely and find another one to meet the 50-question requirement.
 3.  **Assign Topic:** For each verified question, identify its specific topic from the study material (e.g., "Profit and loss", "Methods of address") and specify it in the 'topic' field.
 
 **Content Sources:**
@@ -72,7 +72,7 @@ Your task is to process the ENTIRE 'QUESTION PAPER' provided below, verify each 
 
 **CRITICAL INSTRUCTIONS:**
 *   Your final output MUST be a single, valid JSON object containing a 'questions' array.
-*   The 'questions' array must only contain questions that you could successfully verify against the study material.
+*   The 'questions' array MUST contain EXACTLY 50 questions. You must continue processing the document until you have found 50 verifiable questions.
 *   The 'options' array for each question MUST contain four strings, each being the complete text of an answer option.
 *   Do NOT invent new questions. All questions must originate from the 'QUESTION PAPER'.
 `,
