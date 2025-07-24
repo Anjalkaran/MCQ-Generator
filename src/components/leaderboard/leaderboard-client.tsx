@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { getLiveTestLeaderboardData } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertTitle } from '@/components/ui/alert';
 
 interface LeaderboardClientProps {
   initialTopicLeaderboards: Record<UserData['examCategory'], LeaderboardEntry[]>;
@@ -75,7 +76,7 @@ function CategorySelector({ selectedCategory, setSelectedCategory }: { selectedC
   return (
     <RadioGroup
       value={selectedCategory}
-      onValuecha_nge={(value) => setSelectedCategory(value as ExamCategory)}
+      onValueChange={(value) => setSelectedCategory(value as ExamCategory)}
       className="flex items-center space-x-4 mb-4"
     >
       <Label>Exam Category:</Label>
@@ -113,7 +114,7 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
 
 
   return (
-    <Tabs defaultValue="topic" className="w-full">
+    <Tabs defaultValue="live" className="w-full">
       <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger value="live">Live Test</TabsTrigger>
         <TabsTrigger value="topic">Topic-wise</TabsTrigger>
@@ -123,9 +124,16 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
         <Card>
           <CardHeader>
             <CardTitle>Live Test Leaderboard</CardTitle>
-            <CardDescription>Ranking based on scores from live test events. The top-ranked free user for each event wins one year of Pro access!</CardDescription>
+            <CardDescription>Ranking based on scores from live test events. See who comes out on top!</CardDescription>
           </CardHeader>
           <CardContent>
+            <Alert className="mb-4 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800">
+                <Trophy className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                <AlertTitle className="text-yellow-800 dark:text-yellow-300">Special Reward!</AlertTitle>
+                <CardDescription className="text-yellow-700 dark:text-yellow-400">
+                    The top-ranked free user for each event will win one year of unlimited Pro access for free!
+                </CardDescription>
+            </Alert>
             <div className="mb-4">
                 <Label>Select Live Test Event</Label>
                 <Select value={selectedLiveTest} onValueChange={handleLiveTestChange}>
