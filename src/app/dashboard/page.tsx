@@ -40,8 +40,7 @@ export default function DashboardPage() {
                 title: 'Live Mock Test - MTS',
                 examCategory: 'MTS',
                 // This needs to be a valid document ID from your 'liveTestBank' collection
-                // I'm using a placeholder ID here.
-                questionPaperId: 'YOUR_MTS_QUESTION_PAPER_ID', 
+                questionPaperId: 'iClpZtEkKDgjJWiw4asi', 
                 price: 29,
                 startTime: Timestamp.fromDate(startTime),
                 endTime: Timestamp.fromDate(endTime),
