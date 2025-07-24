@@ -3,6 +3,7 @@ import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion } from 'firebase/firestore';
 import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest } from './types';
 import { ADMIN_EMAILS } from './constants';
+import { normalizeDate } from './utils';
 
 // USER MANAGEMENT
 export const getUserData = async (userId: string): Promise<UserData | null> => {
@@ -59,12 +60,13 @@ export const updateUserDocument = async (userId: string, data: Partial<UserData>
         const proValidUntil = new Date();
         proValidUntil.setFullYear(proValidUntil.getFullYear() + 1);
         updateData.proValidUntil = proValidUntil;
-    } else if (!data.isPro) {
+    } else if (data.isPro === false) { // Explicitly check for false to handle un-pro-ing a user
         updateData.proValidUntil = null;
     }
     
     await updateDoc(userRef, updateData);
 };
+
 
 export const deleteUserDocument = async (userId: string): Promise<void> => {
   const db = getFirebaseDb();
@@ -478,7 +480,7 @@ export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategor
                 userName: user.name,
                 examCategory: user.examCategory,
                 averageScore: (perf.totalQuestions > 0) ? (perf.totalScore / perf.totalQuestions) * 100 : 0,
-                totalExams: perf.totalExams
+                totalExams: perf.totalExams,
             });
         }
     });
@@ -493,6 +495,72 @@ export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategor
 
     return sortedLeaderboard;
 };
+
+export const getLiveTestsForLeaderboard = async (): Promise<LiveTest[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const testsCollection = collection(db, 'liveTests');
+    const now = new Date();
+    // Query for tests that have already ended
+    const q = query(testsCollection, where('endTime', '<', now), orderBy('endTime', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LiveTest));
+};
+
+export const getLiveTestLeaderboardData = async (liveTestId: string): Promise<LeaderboardEntry[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+
+    const historyCollection = collection(db, 'mcqHistory');
+    const q = query(historyCollection, where('liveTestId', '==', liveTestId));
+    const historySnapshot = await getDocs(q);
+    const histories = historySnapshot.docs.map(doc => doc.data() as MCQHistory);
+
+    const userIds = [...new Set(histories.map(h => h.userId))];
+    if (userIds.length === 0) return [];
+    
+    const allUsers = await getAllUsers();
+    const userMap = new Map(allUsers.map(u => [u.uid, u]));
+    
+    let leaderboard: Omit<LeaderboardEntry, 'rank'>[] = [];
+    
+    histories.forEach(h => {
+        const user = userMap.get(h.userId);
+        if (user && !ADMIN_EMAILS.includes(user.email)) {
+            leaderboard.push({
+                userId: h.userId,
+                userName: user.name,
+                examCategory: user.examCategory,
+                score: h.score,
+                totalQuestions: h.totalQuestions,
+                averageScore: (h.totalQuestions > 0) ? (h.score / h.totalQuestions) * 100 : 0,
+            });
+        }
+    });
+    
+    const sortedLeaderboard = leaderboard
+        .sort((a, b) => b.averageScore - a.averageScore)
+        .map((entry, index) => ({
+            ...entry,
+            rank: index + 1,
+        }));
+
+    // Reward logic: Find the top-ranked free user and upgrade them
+    const topPerformer = sortedLeaderboard[0];
+    if (topPerformer) {
+        const winnerData = userMap.get(topPerformer.userId);
+        const proValidUntilDate = normalizeDate(winnerData?.proValidUntil);
+        const isPro = !!(winnerData?.isPro && proValidUntilDate && proValidUntilDate > new Date());
+        
+        if (winnerData && !isPro) {
+            console.log(`Upgrading live test winner ${winnerData.name} to Pro.`);
+            await updateUserDocument(winnerData.uid, { isPro: true });
+        }
+    }
+    
+    return sortedLeaderboard;
+};
+
 
 // NOTIFICATION MANAGEMENT
 export const addAdminNotification = async (notification: Omit<Notification, 'id' | 'isRead' | 'createdAt'>): Promise<void> => {

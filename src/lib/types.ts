@@ -1,3 +1,4 @@
+
 import type { LucideIcon } from 'lucide-react';
 import type { Timestamp } from 'firebase/firestore';
 
@@ -89,7 +90,10 @@ export interface LeaderboardEntry {
     userName: string;
     examCategory: 'MTS' | 'POSTMAN' | 'PA';
     averageScore: number;
-    totalExams: number;
+    totalExams?: number;
+    score?: number;
+    totalQuestions?: number;
+    liveTestId?: string;
 }
 
 export interface UserTopicProgress {
