@@ -5,7 +5,7 @@
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
@@ -142,14 +142,16 @@ function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           {isAdmin && (
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin">
-                <Link href="/dashboard/admin" onClick={onLinkClick}>
-                  <Shield />
-                  <span>Admin</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            <>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin">
+                  <Link href="/dashboard/admin" onClick={onLinkClick}>
+                    <Shield />
+                    <span>Admin</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </>
           )}
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/topic-wise-mcq')} tooltip="Practice MCQ">

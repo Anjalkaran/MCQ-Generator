@@ -7,6 +7,7 @@ import { useDashboard } from "@/app/dashboard/layout";
 import { UserManagement } from '@/components/admin/user-management';
 import { TopicManagement } from '@/components/admin/topic-management';
 import { QuestionBankManagement } from '@/components/admin/question-bank-management';
+import { ReportsManagement } from '@/components/admin/reports-management';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, Users } from "lucide-react";
@@ -118,11 +119,12 @@ export default function AdminPage() {
           </p>
         </div>
       <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="topics">Topic Management</TabsTrigger>
           <TabsTrigger value="question-bank">Question Bank</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="reports">Reports</TabsTrigger>
         </TabsList>
         <TabsContent value="users">
           <UserManagement initialUsers={users} /> 
@@ -135,6 +137,9 @@ export default function AdminPage() {
         </TabsContent>
         <TabsContent value="analytics">
             <AnalyticsTab qnaUsage={qnaUsage} />
+        </TabsContent>
+        <TabsContent value="reports">
+            <ReportsManagement allUsers={users} />
         </TabsContent>
       </Tabs>
     </div>
