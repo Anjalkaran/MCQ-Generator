@@ -16,7 +16,7 @@ import type { MCQ } from '@/lib/types';
 import { getAllUserQuestions } from '@/lib/firestore';
 
 const ArithmeticSolutionSchema = z.object({
-    steps: z.array(z.string()).describe("An array of strings, where each string is a single step in the calculation using the LCM method."),
+    steps: z.array(z.string()).describe("An array of strings, where each string is a single step in the calculation using the LCM method. For BODMAS problems, show each operation in order."),
     final_answer: z.string().describe("A string containing only the final, mathematically exact answer."),
 });
 
@@ -28,8 +28,8 @@ const arithmeticSolverPrompt = ai.definePrompt({
 Your output MUST be a valid JSON object. Do not include any text, apologies, or explanations outside of the JSON structure itself.
 The language of the solution MUST be {{language}}.
 The JSON object must have two keys:
-1.  "steps": An array of strings. Each string must be a single, clear step in the calculation. For work-rate problems like this, use the LCM (Least Common Multiple) method.
-2.  "final_answer": A string containing only the final, mathematically exact answer. Express it as a fraction or a decimal (e.g., "18.75 days" or "75/4 days").
+1.  "steps": An array of strings. Each string must be a single, clear step in the calculation. For work-rate problems like this, use the LCM (Least Common Multiple) method. For BODMAS problems, show each operation in order.
+2.  "final_answer": A string containing only the final, mathematically exact answer. Express it as a fraction or a decimal if necessary (e.g., "18.75 days" or "75/4 days" or "18").
 CRITICAL INSTRUCTIONS:
 -   Do NOT mention or analyze any multiple-choice options that might be in the problem description. Ignore them completely.
 -   Do NOT guess or select the "closest" answer. Calculate and provide only the true mathematical result.
@@ -183,4 +183,4 @@ const generateMockTestFlow = ai.defineFlow(
   }
 );
 
-    
+      

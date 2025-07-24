@@ -76,8 +76,8 @@ Your output MUST be a valid JSON object. Do not include any text, apologies, or 
 The language of the solution steps MUST be {{language}}.
 
 The JSON object must have two keys:
-1.  "steps": An array of strings. Each string must be a single, clear step in the calculation. For work-rate problems like this, use the LCM (Least Common Multiple) method.
-2.  "final_answer": A string containing only the final, mathematically exact answer. Express it as a fraction or a decimal (e.g., "18.75 days" or "75/4 days").
+1.  "steps": An array of strings. Each string must be a single, clear step in the calculation. For work-rate problems like this, use the LCM (Least Common Multiple) method. For BODMAS problems, show each operation in order.
+2.  "final_answer": A string containing only the final, mathematically exact answer. Express it as a fraction or a decimal if necessary (e.g., "18.75 days" or "75/4 days" or "18").
 
 CRITICAL INSTRUCTIONS:
 -   Do NOT mention or analyze any multiple-choice options that might be in the problem description. Ignore them completely.
@@ -94,7 +94,7 @@ const arithmeticProblemPrompt = ai.definePrompt({
     name: 'arithmeticProblemPrompt',
     input: { schema: z.object({ topic: z.string(), previousQuestions: z.array(z.string()).optional(), language: z.string().optional().default('English') }) },
     output: { schema: z.object({ problems: z.array(ArithmeticProblemSchema) }) },
-    prompt: `You are a meticulous mathematics teacher. Create a word problem for the topic "{{topic}}".
+    prompt: `You are a meticulous mathematics teacher. Create a word problem or a numerical equation for the topic "{{topic}}".
     
     The language of the problem and the answer MUST be {{language}}.
 
@@ -107,8 +107,8 @@ const arithmeticProblemPrompt = ai.definePrompt({
 
     Your output MUST be a JSON object containing a "problems" array with ONE entry.
     Each entry must have two keys:
-    1. "question": The full word problem.
-    2. "correctAnswer": The single, mathematically correct answer as a string.
+    1. "question": The full word problem or equation (e.g., "Solve using BODMAS: 10 + 5 * 2 - 2 / 1 = ?").
+    2. "correctAnswer": The single, mathematically correct answer as a string (e.g., "18").
     Do not generate multiple-choice options here.
     `,
 });
@@ -122,7 +122,7 @@ const arithmeticDistractorsPrompt = ai.definePrompt({
     
     Problem: "{{question}}"
     
-    Your task is to generate three plausible but INCORRECT numerical answers that could be used as distractors in a multiple-choice question. The language of the distractors must be {{language}}.
+    Your task is to generate three plausible but INCORRECT numerical answers that could be used as distractors in a multiple-choice question. The language of the distractors must be {{language}}. They should be common mistakes a student might make.
     
     Your output MUST be a valid JSON object with a single key "distractors", which is an array of three distinct strings.
     `,
@@ -374,4 +374,4 @@ const generateMCQsFlow = ai.defineFlow(
   }
 );
 
-    
+      
