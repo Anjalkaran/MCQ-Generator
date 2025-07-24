@@ -312,6 +312,33 @@ export default function DashboardLayout({
       }
     };
   }, [user]);
+  
+  // Online user count refresh effect for admins
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | undefined;
+    if (userData?.email && ADMIN_EMAILS.includes(userData.email)) {
+        const fetchOnlineUsers = async () => {
+            try {
+                const response = await fetch('/api/admin/online-users');
+                if (response.ok) {
+                    const data = await response.json();
+                    setOnlineUserCount(data.onlineUserCount);
+                }
+            } catch (error) {
+                console.error("Failed to fetch online user count:", error);
+            }
+        };
+        // Fetch immediately and then set interval
+        fetchOnlineUsers();
+        intervalId = setInterval(fetchOnlineUsers, 30000); // Refresh every 30 seconds
+    }
+    return () => {
+        if (intervalId) {
+            clearInterval(intervalId);
+        }
+    };
+  }, [userData]);
+
 
   useEffect(() => {
     const auth = getFirebaseAuth();
