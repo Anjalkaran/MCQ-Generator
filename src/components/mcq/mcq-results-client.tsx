@@ -106,7 +106,8 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
   }
   
   const { topic, mcqs: quizMcqs, isMockTest, liveTestId } = quizData;
-  const percentage = quizLength > 0 ? Math.round((score / quizLength) * 100) : 0;
+  const totalMarks = score * 2;
+  const maxMarks = quizLength * 2;
 
   const handleRetake = () => {
     localStorage.removeItem(`quiz-${topicId}`);
@@ -130,9 +131,9 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
           <p className="text-muted-foreground">You have completed the {topic.title} exam.</p>
         </CardHeader>
         <CardContent>
-          <p className="text-5xl font-bold text-primary">{percentage}%</p>
+          <p className="text-5xl font-bold text-primary">{totalMarks}</p>
           <p className="text-xl text-muted-foreground mt-2">
-            You scored {score} out of {quizLength}
+            Total Marks out of {maxMarks}
           </p>
           <div className="flex justify-center gap-4 mt-8">
              {liveTestId && (
