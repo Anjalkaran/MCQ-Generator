@@ -13,7 +13,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { getLiveTestLeaderboardData } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 interface LeaderboardClientProps {
   initialTopicLeaderboards: Record<UserData['examCategory'], LeaderboardEntry[]>;
@@ -130,9 +130,9 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
             <Alert className="mb-4 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800">
                 <Trophy className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
                 <AlertTitle className="text-yellow-800 dark:text-yellow-300">Special Reward!</AlertTitle>
-                <CardDescription className="text-yellow-700 dark:text-yellow-400">
+                <AlertDescription className="text-yellow-700 dark:text-yellow-400">
                     The top-ranked free user for each event will win one year of unlimited Pro access for free!
-                </CardDescription>
+                </AlertDescription>
             </Alert>
             <div className="mb-4">
                 <Label>Select Live Test Event</Label>
