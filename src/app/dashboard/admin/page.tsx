@@ -8,13 +8,15 @@ import { UserManagement } from '@/components/admin/user-management';
 import { TopicManagement } from '@/components/admin/topic-management';
 import { QuestionBankManagement } from '@/components/admin/question-bank-management';
 import { ReportsManagement } from '@/components/admin/reports-management';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Users } from "lucide-react";
+import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download } from "lucide-react";
 import { getAllUsers, getQnAUsage } from "@/lib/firestore";
 import type { UserData, QnAUsage } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { ADMIN_EMAILS } from "@/lib/constants";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 function AnalyticsTab({ qnaUsage }: { qnaUsage: QnAUsage[] }) {
     const uniqueUsers = useMemo(() => {
@@ -48,12 +50,23 @@ function AnalyticsTab({ qnaUsage }: { qnaUsage: QnAUsage[] }) {
     );
 }
 
+const adminSections = [
+    { value: 'users', label: 'User Management', icon: Shield },
+    { value: 'topics', label: 'Topic Management', icon: BookCopy },
+    { value: 'question-bank', label: 'Question Bank', icon: FileText },
+    { value: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { value: 'reports', label: 'Reports', icon: Download },
+] as const;
+
+type AdminSection = typeof adminSections[number]['value'];
+
 export default function AdminPage() {
   const { user, userData, categories, topics, bankedQuestions, isLoading: isDashboardLoading } = useDashboard();
   const [users, setUsers] = useState<UserData[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(true);
+  const [activeSection, setActiveSection] = useState<AdminSection>('users');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -110,6 +123,23 @@ export default function AdminPage() {
     );
   }
 
+  const renderContent = () => {
+    switch(activeSection) {
+        case 'users':
+            return <UserManagement initialUsers={users} />;
+        case 'topics':
+            return <TopicManagement initialCategories={categories} initialTopics={topics} />;
+        case 'question-bank':
+            return <QuestionBankManagement initialBankedQuestions={bankedQuestions} />;
+        case 'analytics':
+            return <AnalyticsTab qnaUsage={qnaUsage} />;
+        case 'reports':
+            return <ReportsManagement allUsers={users} />;
+        default:
+            return null;
+    }
+  }
+
   return (
     <div className="space-y-6">
        <div className="space-y-0.5">
@@ -118,30 +148,27 @@ export default function AdminPage() {
             Manage users, topics, question banks, and view analytics.
           </p>
         </div>
-      <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="users">User Management</TabsTrigger>
-          <TabsTrigger value="topics">Topic Management</TabsTrigger>
-          <TabsTrigger value="question-bank">Question Bank</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="reports">Reports</TabsTrigger>
-        </TabsList>
-        <TabsContent value="users">
-          <UserManagement initialUsers={users} /> 
-        </TabsContent>
-        <TabsContent value="topics">
-          <TopicManagement initialCategories={categories} initialTopics={topics} />
-        </TabsContent>
-        <TabsContent value="question-bank">
-            <QuestionBankManagement initialBankedQuestions={bankedQuestions} />
-        </TabsContent>
-        <TabsContent value="analytics">
-            <AnalyticsTab qnaUsage={qnaUsage} />
-        </TabsContent>
-        <TabsContent value="reports">
-            <ReportsManagement allUsers={users} />
-        </TabsContent>
-      </Tabs>
+        
+        <RadioGroup
+            value={activeSection}
+            onValueChange={(value) => setActiveSection(value as AdminSection)}
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2"
+        >
+            {adminSections.map(({ value, label, icon: Icon }) => (
+                 <Label key={value} htmlFor={value} className={cn(
+                    "flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer",
+                    activeSection === value && "border-primary"
+                 )}>
+                    <RadioGroupItem value={value} id={value} className="sr-only" />
+                    <Icon className="mb-2 h-6 w-6" />
+                    <span className="text-center text-sm font-medium">{label}</span>
+                 </Label>
+            ))}
+        </RadioGroup>
+
+        <div className="mt-6">
+            {renderContent()}
+        </div>
     </div>
   );
 }
