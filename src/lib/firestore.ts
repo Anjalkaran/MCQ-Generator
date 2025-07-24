@@ -389,7 +389,35 @@ export const getQuestionBankByCategory = async (examCategory: 'MTS' | 'POSTMAN' 
     return combinedContent;
 };
 
-// LIVE TEST BANK
+// LIVE TEST BANK MANAGEMENT
+export const getLiveTestBankDocuments = async (): Promise<BankedQuestion[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const bankCollection = collection(db, 'liveTestBank');
+    const q = query(bankCollection, orderBy('uploadedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            ...data,
+            uploadedAt: data.uploadedAt.toDate(),
+        } as BankedQuestion;
+    });
+};
+
+export const addLiveTestBankDocument = async (data: Omit<BankedQuestion, 'id'>): Promise<DocumentReference> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    return await addDoc(collection(db, 'liveTestBank'), data);
+};
+
+export const deleteLiveTestBankDocument = async (docId: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    await deleteDoc(doc(db, 'liveTestBank', docId));
+};
+
 export const getLiveTestQuestionPaper = async (liveTestId: string): Promise<BankedQuestion | null> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
@@ -619,24 +647,25 @@ export const getDashboardData = async (userId: string, isAdmin: boolean = false)
         onlineUserCount = onlineSnapshot.size;
     }
 
-    const [categories, topics, bankedQuestions, qnaUsage, notifications] = await Promise.all([
+    const [categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications] = await Promise.all([
         getCategories(),
         getTopics(),
         isAdmin ? getQuestionBankDocuments() : [],
+        isAdmin ? getLiveTestBankDocuments() : [],
         isAdmin ? getQnAUsage() : [],
         isAdmin ? getAdminNotifications() : [],
     ]);
     
     if (isAdmin) {
-        return { userData: null, categories, topics, bankedQuestions, qnaUsage, notifications, onlineUserCount };
+        return { userData: null, categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, onlineUserCount };
     }
 
     const userData = await getUserData(userId);
     if (!userData) {
-        return { userData: null, categories: [], topics: [], bankedQuestions: [], qnaUsage: [], notifications: [], onlineUserCount: 0 };
+        return { userData: null, categories: [], topics: [], bankedQuestions: [], liveTestBank: [], qnaUsage: [], notifications: [], onlineUserCount: 0 };
     }
 
-    return { userData, categories, topics, bankedQuestions, qnaUsage: [], notifications: [], onlineUserCount: 0 };
+    return { userData, categories, topics, bankedQuestions, liveTestBank: [], qnaUsage: [], notifications: [], onlineUserCount: 0 };
 }
 
 

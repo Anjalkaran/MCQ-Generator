@@ -26,6 +26,7 @@ interface DashboardContextType {
   categories: Category[];
   topics: Topic[];
   bankedQuestions: BankedQuestion[];
+  liveTestBank: BankedQuestion[];
   qnaUsage: QnAUsage[];
   notifications: Notification[];
   onlineUserCount: number;
@@ -269,6 +270,7 @@ export default function DashboardLayout({
   const [categories, setCategories] = useState<Category[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [bankedQuestions, setBankedQuestions] = useState<BankedQuestion[]>([]);
+  const [liveTestBank, setLiveTestBank] = useState<BankedQuestion[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [onlineUserCount, setOnlineUserCount] = useState(0);
@@ -368,11 +370,12 @@ export default function DashboardLayout({
                     mockTestsTaken: 0,
                     isPro: true,
                 };
-                const { categories, topics, bankedQuestions, qnaUsage, notifications, onlineUserCount } = await getDashboardData(currentUser.uid, true);
+                const { categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, onlineUserCount } = await getDashboardData(currentUser.uid, true);
                 setUserData(adminUserData);
                 setCategories(categories);
                 setTopics(topics);
                 setBankedQuestions(bankedQuestions);
+                setLiveTestBank(liveTestBank);
                 setQnaUsage(qnaUsage);
                 setNotifications(notifications);
                 setOnlineUserCount(onlineUserCount);
@@ -389,6 +392,7 @@ export default function DashboardLayout({
                 setCategories(categories);
                 setTopics(topics);
                 setBankedQuestions(bankedQuestions);
+                setLiveTestBank([]);
                 setQnaUsage([]); // Non-admins don't need this data
                 setNotifications([]);
                 setOnlineUserCount(0);
@@ -409,6 +413,7 @@ export default function DashboardLayout({
         setCategories([]);
         setTopics([]);
         setBankedQuestions([]);
+        setLiveTestBank([]);
         setQnaUsage([]);
         setNotifications([]);
         setOnlineUserCount(0);
@@ -422,7 +427,7 @@ export default function DashboardLayout({
     
   }, [router, toast, handleLogout, pathname]);
   
-  const contextValue = { user, userData, categories, topics, bankedQuestions, qnaUsage, notifications, onlineUserCount, isLoading, setUserData };
+  const contextValue = { user, userData, categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, onlineUserCount, isLoading, setUserData };
 
   return (
     <DashboardContext.Provider value={contextValue}>
