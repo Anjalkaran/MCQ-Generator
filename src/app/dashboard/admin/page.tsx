@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -66,7 +65,7 @@ export default function AdminPage() {
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(true);
-  const [activeSection, setActiveSection] = useState<AdminSection>('users');
+  const [activeSection, setActiveSection] = useState<AdminSection | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -124,6 +123,10 @@ export default function AdminPage() {
   }
 
   const renderContent = () => {
+    if (!activeSection) {
+        return null;
+    }
+    
     switch(activeSection) {
         case 'users':
             return <UserManagement initialUsers={users} />;
@@ -150,7 +153,7 @@ export default function AdminPage() {
         </div>
         
         <RadioGroup
-            value={activeSection}
+            value={activeSection ?? ''}
             onValueChange={(value) => setActiveSection(value as AdminSection)}
             className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2"
         >
