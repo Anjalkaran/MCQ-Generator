@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Sparkles, AlertTriangle, Check, ChevronsUpDown } from 'lucide-react';
+import { Loader2, Sparkles, AlertTriangle, Check, ChevronsUpDown, Wrench } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
@@ -52,6 +52,7 @@ export default function QAPage() {
 
   useEffect(() => {
     form.resetField('contextId');
+    setAnswer(''); // Clear answer when part changes
   }, [selectedPart, form]);
 
   const partA_Topics = useMemo(() => {
@@ -105,7 +106,7 @@ export default function QAPage() {
         }
         material = selectedTopic.material;
         topicTitle = selectedTopic.title;
-    } else { // Part B
+    } else { // Part B - This part is currently disabled, so this logic won't be hit.
         const selectedCategory = categories.find(c => c.id === values.contextId);
          if (!selectedCategory) {
             toast({ title: 'Error', description: 'Selected category not found.', variant: 'destructive' });
@@ -147,18 +148,8 @@ export default function QAPage() {
       }
       return "Select a topic to see a relevant example.";
     }
-    if (selectedPart === 'Part B') {
-      const selectedCategory = categories.find(c => c.id === selectedContextId);
-      if (selectedCategory?.name === "Basic Arithmetics") {
-        return "e.g., A can do a piece of work in 10 days and B can do it in 15 days. If they work together, in how many days will the work be completed?";
-      }
-      if (selectedCategory?.name === "General Awareness") {
-        return "e.g., Who is the current president of India?";
-      }
-      return "Select a category to see a relevant example.";
-    }
     return "Ask a question about the selected topic...";
-  }, [selectedPart, selectedContextId, categories, topics]);
+  }, [selectedPart, selectedContextId, topics]);
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
@@ -197,116 +188,102 @@ export default function QAPage() {
                 />
 
                 {selectedPart === 'Part A' && (
-                    <FormField
-                    control={form.control}
-                    name="contextId"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                        <FormLabel>Topic</FormLabel>
-                        <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                            <PopoverTrigger asChild>
-                            <FormControl>
-                                <Button
-                                variant="outline"
-                                role="combobox"
-                                disabled={!selectedPart}
-                                className={cn(
-                                    "w-full justify-between",
-                                    !field.value && "text-muted-foreground"
-                                )}
-                                >
-                                {field.value
-                                    ? partA_Topics.find(
-                                        (topic) => topic.id === field.value
-                                    )?.title
-                                    : "Select a topic"}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                            </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-full p-0" style={{minWidth: "var(--radix-popover-trigger-width)"}}>
-                            <Command>
-                                <CommandInput placeholder="Search topic..." />
-                                <CommandList>
-                                    <CommandEmpty>No topic found.</CommandEmpty>
-                                    <CommandGroup>
-                                    {partA_Topics.map((topic) => (
-                                        <CommandItem
-                                        value={topic.title}
-                                        key={topic.id}
-                                        onSelect={() => {
-                                            form.setValue("contextId", topic.id)
-                                            setPopoverOpen(false)
-                                        }}
-                                        >
-                                        <Check
-                                            className={cn(
-                                            "mr-2 h-4 w-4",
-                                            topic.id === field.value
-                                                ? "opacity-100"
-                                                : "opacity-0"
-                                            )}
-                                        />
-                                        {topic.title}
-                                        </CommandItem>
-                                    ))}
-                                    </CommandGroup>
-                                </CommandList>
-                            </Command>
-                            </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                )}
-                
-                {selectedPart === 'Part B' && (
-                     <FormField
+                    <>
+                        <FormField
                         control={form.control}
                         name="contextId"
                         render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Category</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value} disabled={!selectedPart || partB_Categories.length === 0}>
+                            <FormItem className="flex flex-col">
+                            <FormLabel>Topic</FormLabel>
+                            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                                <PopoverTrigger asChild>
                                 <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder={partB_Categories.length === 0 ? "No categories in this part" : "Select a category"} />
-                                </SelectTrigger>
+                                    <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    disabled={!selectedPart}
+                                    className={cn(
+                                        "w-full justify-between",
+                                        !field.value && "text-muted-foreground"
+                                    )}
+                                    >
+                                    {field.value
+                                        ? partA_Topics.find(
+                                            (topic) => topic.id === field.value
+                                        )?.title
+                                        : "Select a topic"}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
                                 </FormControl>
-                                <SelectContent>
-                                {partB_Categories.map((cat) => (
-                                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                                ))}
-                                </SelectContent>
-                            </Select>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-full p-0" style={{minWidth: "var(--radix-popover-trigger-width)"}}>
+                                <Command>
+                                    <CommandInput placeholder="Search topic..." />
+                                    <CommandList>
+                                        <CommandEmpty>No topic found.</CommandEmpty>
+                                        <CommandGroup>
+                                        {partA_Topics.map((topic) => (
+                                            <CommandItem
+                                            value={topic.title}
+                                            key={topic.id}
+                                            onSelect={() => {
+                                                form.setValue("contextId", topic.id)
+                                                setPopoverOpen(false)
+                                            }}
+                                            >
+                                            <Check
+                                                className={cn(
+                                                "mr-2 h-4 w-4",
+                                                topic.id === field.value
+                                                    ? "opacity-100"
+                                                    : "opacity-0"
+                                                )}
+                                            />
+                                            {topic.title}
+                                            </CommandItem>
+                                        ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                                </PopoverContent>
+                            </Popover>
                             <FormMessage />
                             </FormItem>
                         )}
-                    />
+                        />
+                         <FormField
+                            control={form.control}
+                            name="question"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Your Question</FormLabel>
+                                <FormControl>
+                                    <Textarea placeholder={placeholderText} rows={4} {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                    </>
                 )}
-
-                <FormField
-                  control={form.control}
-                  name="question"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Your Question</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder={placeholderText} rows={4} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </fieldset>
+              
+               {selectedPart === 'Part B' && (
+                 <div className="text-center text-muted-foreground p-4 border-2 border-dashed rounded-lg">
+                    <Wrench className="mx-auto h-8 w-8 mb-2" />
+                    <p className="font-semibold">Part B is temporarily unavailable.</p>
+                    <p className="text-sm">Updating soon, will be back shortly!</p>
+                </div>
+               )}
             </CardContent>
-            <CardFooter>
-              <Button type="submit" disabled={isGenerating || isDashboardLoading || !form.formState.isValid}>
-                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                Get Answer
-              </Button>
-            </CardFooter>
+            {selectedPart === 'Part A' && (
+                <CardFooter>
+                <Button type="submit" disabled={isGenerating || isDashboardLoading || !form.formState.isValid}>
+                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                    Get Answer
+                </Button>
+                </CardFooter>
+            )}
           </form>
         </Form>
       </Card>
