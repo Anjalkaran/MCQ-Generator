@@ -263,13 +263,6 @@ export const LiveTestDashboardCard = ({ initialLiveTests }: { initialLiveTests: 
          )
     }
 
-    const getCountdownLabel = () => {
-        if (isAdmin) return 'Admin Override';
-        if (testState === 'upcoming') return 'Starts In';
-        if (testState === 'live') return 'Entry Window Closes In';
-        return 'Test Window is Live!';
-    }
-
     return (
         <Card className="flex flex-col border-primary border-2 shadow-lg relative overflow-hidden">
              {isFirstTestFree && testState === 'live' && !isAdmin && (
@@ -289,14 +282,6 @@ export const LiveTestDashboardCard = ({ initialLiveTests }: { initialLiveTests: 
                 </CardDescription>
             </CardHeader>
             <CardContent className="text-center flex-grow flex flex-col justify-center space-y-4">
-                 <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">
-                        {getCountdownLabel()}
-                    </p>
-                    <p className="text-3xl font-bold tracking-tighter text-primary">
-                        {timeRemaining}
-                    </p>
-                </div>
                  <Alert className="text-left bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800">
                     <Trophy className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
                     <AlertTitle className="text-yellow-800 dark:text-yellow-300">Win a Prize!</AlertTitle>
