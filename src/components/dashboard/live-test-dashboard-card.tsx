@@ -261,7 +261,7 @@ export const LiveTestDashboardCard = ({ initialLiveTests }: { initialLiveTests: 
                     <p className="text-sm text-muted-foreground">
                         {testState === 'upcoming' ? 'Starts In' : 'Test Window Ends In'}
                     </p>
-                    <p className="text-3xl font-bold tracking-tighter">
+                    <p className="text-3xl font-bold tracking-tighter text-primary">
                         {timeRemaining}
                     </p>
                 </div>
