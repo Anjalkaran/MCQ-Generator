@@ -68,6 +68,7 @@ const arithmeticSolverPrompt = ai.definePrompt({
     name: 'arithmeticSolverPrompt',
     input: { schema: z.object({ problem: z.string(), language: z.string().optional().default('English') }) },
     output: { schema: ArithmeticSolutionSchema },
+    model: 'googleai/gemini-1.5-flash',
     prompt: `You are a precise mathematical solver AI. Your sole purpose is to solve the given word problem and provide a step-by-step solution and an exact final answer.
 
 Your output MUST be a valid JSON object. Do not include any text, apologies, or explanations outside of the JSON structure itself.
@@ -385,3 +386,5 @@ const generateMCQsFlow = ai.defineFlow(
     return { mcqs: validatedMCQs };
   }
 );
+
+    
