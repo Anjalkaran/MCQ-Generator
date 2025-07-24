@@ -534,12 +534,18 @@ export const getLiveTestLeaderboardData = async (liveTestId: string): Promise<Le
                 score: h.score,
                 totalQuestions: h.totalQuestions,
                 averageScore: (h.totalQuestions > 0) ? (h.score / h.totalQuestions) * 100 : 0,
+                durationInSeconds: h.durationInSeconds,
             });
         }
     });
     
     const sortedLeaderboard = leaderboard
-        .sort((a, b) => b.averageScore - a.averageScore)
+        .sort((a, b) => {
+            if (b.averageScore !== a.averageScore) {
+                return b.averageScore - a.averageScore; // Higher score first
+            }
+            return (a.durationInSeconds || Infinity) - (b.durationInSeconds || Infinity); // Lower duration first
+        })
         .map((entry, index) => ({
             ...entry,
             rank: index + 1,

@@ -65,6 +65,7 @@ export interface MCQHistory {
     totalQuestions: number;
     questions: string[];
     takenAt: Date;
+    durationInSeconds?: number;
     isMockTest?: boolean;
     liveTestId?: string; // Add liveTestId to history
 }
@@ -93,6 +94,7 @@ export interface LeaderboardEntry {
     totalExams?: number;
     score?: number;
     totalQuestions?: number;
+    durationInSeconds?: number;
     liveTestId?: string;
 }
 

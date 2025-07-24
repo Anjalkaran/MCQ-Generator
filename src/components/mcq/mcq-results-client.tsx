@@ -27,6 +27,7 @@ interface StoredQuizData {
   topic: Topic;
   isMockTest?: boolean;
   liveTestId?: string;
+  durationInSeconds?: number;
 }
 
 // Helper function to normalize answer strings for comparison
@@ -57,7 +58,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
       if (savedState && currentUser && !hasSavedHistory.current) {
         hasSavedHistory.current = true; // Set flag to prevent re-runs
         
-        const { answers, numberOfQuestions, mcqs, topic, isMockTest, liveTestId } = JSON.parse(savedState) as StoredQuizData;
+        const { answers, numberOfQuestions, mcqs, topic, isMockTest, liveTestId, durationInSeconds } = JSON.parse(savedState) as StoredQuizData;
         setUserAnswers(answers);
         setQuizLength(numberOfQuestions);
         setQuizData({ mcqs, topic, isMockTest, liveTestId });
@@ -82,6 +83,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
               takenAt: new Date(),
               isMockTest: isMockTest || false,
               liveTestId: liveTestId,
+              durationInSeconds: durationInSeconds,
           });
 
         } catch (err) {

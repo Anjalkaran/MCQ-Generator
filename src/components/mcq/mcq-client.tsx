@@ -46,12 +46,14 @@ export function MCQClient({ topicId }: MCQClientProps) {
   const [isClient, setIsClient] = useState(false);
   const [timeExtensionsUsed, setTimeExtensionsUsed] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const quizStartTimeRef = useRef<number | null>(null);
 
   const handleFinish = useCallback(() => {
     if (timerRef.current) {
         clearInterval(timerRef.current);
     }
-    if (typeof window !== 'undefined' && quizData) {
+    if (typeof window !== 'undefined' && quizData && quizStartTimeRef.current !== null) {
+      const durationInSeconds = Math.round((Date.now() - quizStartTimeRef.current) / 1000);
       const answersToStore = {
         answers: selectedAnswers,
         numberOfQuestions: quizData.mcqs.length,
@@ -59,9 +61,15 @@ export function MCQClient({ topicId }: MCQClientProps) {
         topic: quizData.topic,
         isMockTest: quizData.isMockTest || false,
         liveTestId: quizData.liveTestId,
+        durationInSeconds: durationInSeconds,
       };
       localStorage.setItem(`quizState-${quizData.topic.id}`, JSON.stringify(answersToStore));
-      router.push(`/quiz/${quizData.topic.id}/results`);
+      
+      if (quizData.liveTestId) {
+        router.push('/dashboard/leaderboard');
+      } else {
+        router.push(`/quiz/${quizData.topic.id}/results`);
+      }
     }
   }, [quizData, selectedAnswers, router]);
 
@@ -71,6 +79,7 @@ export function MCQClient({ topicId }: MCQClientProps) {
     if (savedQuiz) {
       const parsedData: MCQData = JSON.parse(savedQuiz);
       setQuizData(parsedData);
+      quizStartTimeRef.current = Date.now();
       if (parsedData.timeLimit) {
         setTimeLeft(parsedData.timeLimit);
       }
