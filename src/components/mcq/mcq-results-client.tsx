@@ -82,19 +82,25 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
             });
             setScore(correctCount);
 
-            saveMCQHistory({
+            const historyPayload = {
                 userId: currentUser.uid,
                 topicId: topic.id,
                 topicTitle: topic.title,
                 score: correctCount,
                 totalQuestions: numberOfQuestions,
                 questions: mcqs.map((mcq: MCQ) => mcq.question),
-                takenAt: new Date(),
                 isMockTest: isMockTest || false,
                 liveTestId: liveTestId,
                 durationInSeconds: durationInSeconds,
-            }).catch(err => {
-                console.error("Failed to save quiz history:", err);
+            };
+
+            saveMCQHistory(historyPayload).catch(err => {
+                // Log the actual error from Firestore to the console for detailed debugging
+                console.error("Failed to save quiz history. Error object:", err);
+                
+                // Also log the data you attempted to send
+                console.log("Data that failed to save:", historyPayload);
+
                 toast({
                     title: "Error",
                     description: "Your exam result could not be saved.",

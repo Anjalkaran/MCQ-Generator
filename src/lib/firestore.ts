@@ -203,18 +203,42 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
 
-    const { userId, isMockTest } = historyData;
+    const { 
+        userId, 
+        isMockTest, 
+        score, 
+        totalQuestions, 
+        questions, 
+        topicId, 
+        topicTitle, 
+        liveTestId, 
+        durationInSeconds 
+    } = historyData;
 
-    // Create a robust data object, ensuring required fields have valid values.
-    // This prevents Firestore errors from `undefined` values.
-    const dataToSave = {
-        ...historyData,
-        // If topicId is missing (e.g., for a mock test), provide a default placeholder.
-        topicId: historyData.topicId || (isMockTest ? 'mock_test' : 'unknown_topic'),
-        // Also ensure topicTitle has a fallback
-        topicTitle: historyData.topicTitle || (isMockTest ? 'Mock Test' : 'Quiz'),
-        takenAt: serverTimestamp(),
+    // --- START: THE CRITICAL FIX ---
+    // Explicitly build the object to be saved. This prevents any 'undefined'
+    // values from being included, which is a common cause for Firestore write failures.
+    const dataToSave: { [key: string]: any } = {
+        userId,
+        score,
+        totalQuestions,
+        questions: questions || [], // Ensure questions is always an array
+        isMockTest: isMockTest || false,
+        topicId: topicId || (isMockTest ? 'mock_test' : 'unknown_topic'),
+        topicTitle: topicTitle || (isMockTest ? 'Mock Test' : 'Quiz'),
+        takenAt: serverTimestamp(), // Use server-side timestamp for accuracy
     };
+
+    // Only add optional fields if they have a valid value.
+    if (liveTestId) {
+        dataToSave.liveTestId = liveTestId;
+    }
+    // Check for both undefined and null, as 0 is a valid duration.
+    if (durationInSeconds !== undefined && durationInSeconds !== null) {
+        dataToSave.durationInSeconds = durationInSeconds;
+    }
+    // --- END: THE CRITICAL FIX ---
+
 
     const batch = writeBatch(db);
 
