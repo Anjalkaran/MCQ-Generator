@@ -203,11 +203,17 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     
+    // Ensure topicTitle is a string
+    const dataToSave = {
+        ...historyData,
+        topicTitle: historyData.topicTitle || (historyData.isMockTest ? 'Mock Test' : 'Quiz'),
+    };
+
     const batch = writeBatch(db);
     
     // 1. Create a reference for the new history document
     const historyRef = doc(collection(db, 'mcqHistory'));
-    batch.set(historyRef, historyData);
+    batch.set(historyRef, dataToSave);
     
     // 2. Create a reference to the user document to update their exam count
     const userRef = doc(db, 'users', historyData.userId);
@@ -222,6 +228,7 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
     // 4. Commit both operations at once
     await batch.commit();
 };
+
 
 export const getAllUserQuestions = async (userId: string): Promise<string[]> => {
     const db = getFirebaseDb();
