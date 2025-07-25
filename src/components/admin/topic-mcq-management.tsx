@@ -45,7 +45,7 @@ interface TopicMCQManagementProps {
 export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQManagementProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [topics] = useState<Topic[]>(initialTopics);
-  const [topicMCQs, setTopicMCQs] = useState<TopicMCQ[]>(initialTopicMCQs);
+  const [topicMCQs, setTopicMCQs] = useState<TopicMCQ[]>(initialTopicMCQs || []);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const { toast } = useToast();
 
@@ -220,7 +220,7 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {topicMCQs.length > 0 ? (
+                            {topicMCQs && topicMCQs.length > 0 ? (
                                 topicMCQs.map((tm) => (
                                     <TableRow key={tm.id}>
                                         <TableCell className="font-medium">{getTopicTitle(tm.topicId)}</TableCell>
