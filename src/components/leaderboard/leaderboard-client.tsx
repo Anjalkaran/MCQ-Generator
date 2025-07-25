@@ -1,24 +1,29 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { LeaderboardEntry, UserData } from '@/lib/types';
-import { Trophy } from 'lucide-react';
+import type { LeaderboardEntry, UserData, LiveTest } from '@/lib/types';
+import { Trophy, Clock, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { getLiveTestLeaderboardData } from '@/lib/firestore';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { normalizeDate } from '@/lib/utils';
+import { format } from 'date-fns';
 
 interface LeaderboardClientProps {
   initialTopicLeaderboards: Record<UserData['examCategory'], LeaderboardEntry[]>;
   initialMockTestLeaderboards: Record<UserData['examCategory'], LeaderboardEntry[]>;
+  pastLiveTests: LiveTest[];
 }
 
 type ExamCategory = UserData['examCategory'];
 
-function LeaderboardTable({ data }: { data: LeaderboardEntry[] }) {
+function LeaderboardTable({ data, type = 'general' }: { data: LeaderboardEntry[], type?: 'general' | 'live' }) {
   if (data.length === 0) {
     return (
       <div className="text-center text-muted-foreground py-10">
@@ -34,6 +39,13 @@ function LeaderboardTable({ data }: { data: LeaderboardEntry[] }) {
     return "";
   }
   
+  const formatDuration = (seconds?: number) => {
+    if (seconds === undefined || seconds === null) return 'N/A';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs}s`;
+  }
+
   return (
     <div className="border rounded-md">
       <Table>
@@ -41,8 +53,17 @@ function LeaderboardTable({ data }: { data: LeaderboardEntry[] }) {
           <TableRow>
             <TableHead className="w-16 text-center">Rank</TableHead>
             <TableHead>User</TableHead>
-            <TableHead className="text-center">Exams Taken</TableHead>
-            <TableHead className="text-right">Percentage</TableHead>
+            {type === 'general' ? (
+                 <>
+                    <TableHead className="text-center">Exams Taken</TableHead>
+                    <TableHead className="text-right">Avg. Percentage</TableHead>
+                </>
+            ) : (
+                <>
+                    <TableHead className="text-center">Score</TableHead>
+                    <TableHead className="text-right">Time Taken</TableHead>
+                </>
+            )}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -55,8 +76,20 @@ function LeaderboardTable({ data }: { data: LeaderboardEntry[] }) {
                 </div>
               </TableCell>
               <TableCell className="font-medium">{entry.userName}</TableCell>
-              <TableCell className="text-center">{entry.totalExams}</TableCell>
-              <TableCell className="text-right font-semibold">{entry.averageScore.toFixed(2)}%</TableCell>
+              {type === 'general' ? (
+                <>
+                    <TableCell className="text-center">{entry.totalExams}</TableCell>
+                    <TableCell className="text-right font-semibold">{entry.averageScore.toFixed(2)}%</TableCell>
+                </>
+              ) : (
+                <>
+                    <TableCell className="text-center font-semibold">{entry.score}/{entry.totalQuestions}</TableCell>
+                    <TableCell className="text-right flex items-center justify-end gap-1">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        {formatDuration(entry.durationInSeconds)}
+                    </TableCell>
+                </>
+              )}
             </TableRow>
           ))}
         </TableBody>
@@ -84,14 +117,66 @@ function CategorySelector({ selectedCategory, setSelectedCategory }: { selectedC
   );
 }
 
-export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLeaderboards }: LeaderboardClientProps) {
+function LiveTestLeaderboard({ pastLiveTests }: { pastLiveTests: LiveTest[] }) {
+    const [selectedTestId, setSelectedTestId] = useState<string | undefined>(pastLiveTests[0]?.id);
+    const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        const fetchLeaderboard = async () => {
+            if (!selectedTestId) return;
+            setIsLoading(true);
+            try {
+                const data = await getLiveTestLeaderboardData(selectedTestId);
+                setLeaderboardData(data);
+            } catch (error) {
+                console.error("Failed to fetch live test leaderboard:", error);
+                setLeaderboardData([]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchLeaderboard();
+    }, [selectedTestId]);
+
+    return (
+        <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
+                <Label>Select a Live Test:</Label>
+                <Select value={selectedTestId} onValueChange={setSelectedTestId}>
+                    <SelectTrigger className="w-full sm:w-[300px]">
+                        <SelectValue placeholder="Select a past live test..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {pastLiveTests.map(test => (
+                            <SelectItem key={test.id} value={test.id}>
+                                {test.title} ({format(normalizeDate(test.startTime)!, 'PPP')})
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            {isLoading ? (
+                <div className="flex justify-center items-center py-10">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+            ) : (
+                <LeaderboardTable data={leaderboardData} type="live" />
+            )}
+        </div>
+    );
+}
+
+
+export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLeaderboards, pastLiveTests }: LeaderboardClientProps) {
   const [selectedCategory, setSelectedCategory] = useState<ExamCategory>('MTS');
 
   return (
     <Tabs defaultValue="topic" className="w-full">
-      <TabsList className="grid w-full grid-cols-2">
+      <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger value="topic">Topic-wise</TabsTrigger>
         <TabsTrigger value="mock">Mock Test</TabsTrigger>
+        <TabsTrigger value="live">Live Test</TabsTrigger>
       </TabsList>
       <TabsContent value="topic">
         <Card>
@@ -114,6 +199,23 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
           <CardContent>
              <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} />
             <LeaderboardTable data={initialMockTestLeaderboards[selectedCategory]} />
+          </CardContent>
+        </Card>
+      </TabsContent>
+       <TabsContent value="live">
+        <Card>
+          <CardHeader>
+            <CardTitle>Live Test Leaderboard</CardTitle>
+            <CardDescription>View rankings for a specific live test. Ranks are determined by score, then by the time taken to complete the test.</CardDescription>
+          </CardHeader>
+          <CardContent>
+             {pastLiveTests.length > 0 ? (
+                <LiveTestLeaderboard pastLiveTests={pastLiveTests} />
+             ) : (
+                <div className="text-center text-muted-foreground py-10">
+                    No live tests have been completed yet.
+                </div>
+             )}
           </CardContent>
         </Card>
       </TabsContent>
