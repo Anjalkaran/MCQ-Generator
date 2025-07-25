@@ -137,8 +137,6 @@ export function CreateQuizForm() {
     }
 
     try {
-      const previousQuestions = await getAllUserQuestions(user.uid);
-
       const generationInput = {
           topic: selectedTopic.title,
           category: selectedCategory.name,
@@ -147,15 +145,14 @@ export function CreateQuizForm() {
           examCategory: values.examType,
           part: selectedTopic.part,
           material: selectedTopic.material,
-          previousQuestions: previousQuestions,
           userId: user.uid,
           topicId: selectedTopic.id,
           language: values.language,
       };
 
-      const { mcqs } = await generateMCQs(generationInput);
+      const result = await generateMCQs(generationInput);
 
-      if (!mcqs || mcqs.length === 0) {
+      if (!result || !result.mcqs || result.mcqs.length === 0) {
         toast({
           title: 'Exam Generation Failed',
           description: 'The AI could not generate an exam for the selected topic. Please try again.',
@@ -164,6 +161,8 @@ export function CreateQuizForm() {
         setIsGenerating(false);
         return;
       }
+
+      const { mcqs } = result;
 
       const timePerQuestion: Record<DifficultyLevel, number> = {
         Easy: 30,
