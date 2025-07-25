@@ -76,7 +76,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
           await saveMCQHistory({
               userId: currentUser.uid,
               topicId: topic.id,
-              topicTitle: topic.title,
+              topicTitle: topic.title, // Pass the correct field here
               score: correctCount,
               totalQuestions: numberOfQuestions,
               questions: mcqs.map((mcq: MCQ) => mcq.question),
@@ -87,7 +87,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
           });
 
         } catch (err) {
-            console.error("Failed to save quiz history or fetch user data:", err);
+            console.error("Failed to save quiz history:", err);
             toast({
               title: "Error",
               description: "Could not save your exam results.",
