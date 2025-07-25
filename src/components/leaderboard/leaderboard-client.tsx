@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -18,7 +18,7 @@ interface LeaderboardClientProps {
 
 type ExamCategory = UserData['examCategory'];
 
-function LeaderboardTable({ data, type }: { data: LeaderboardEntry[]; type: 'topic' | 'mock' }) {
+function LeaderboardTable({ data }: { data: LeaderboardEntry[] }) {
   if (data.length === 0) {
     return (
       <div className="text-center text-muted-foreground py-10">
@@ -41,7 +41,7 @@ function LeaderboardTable({ data, type }: { data: LeaderboardEntry[]; type: 'top
           <TableRow>
             <TableHead className="w-16 text-center">Rank</TableHead>
             <TableHead>User</TableHead>
-            <TableHead className="text-center">{type === 'mock' || type === 'topic' ? 'Exams Taken' : 'Score'}</TableHead>
+            <TableHead className="text-center">Exams Taken</TableHead>
             <TableHead className="text-right">Percentage</TableHead>
           </TableRow>
         </TableHeader>
@@ -55,7 +55,7 @@ function LeaderboardTable({ data, type }: { data: LeaderboardEntry[]; type: 'top
                 </div>
               </TableCell>
               <TableCell className="font-medium">{entry.userName}</TableCell>
-              <TableCell className="text-center">{entry.totalExams ? `${entry.totalExams} exams` : `${entry.score}/${entry.totalQuestions}`}</TableCell>
+              <TableCell className="text-center">{entry.totalExams}</TableCell>
               <TableCell className="text-right font-semibold">{entry.averageScore.toFixed(2)}%</TableCell>
             </TableRow>
           ))}
@@ -101,7 +101,7 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
           </CardHeader>
           <CardContent>
             <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} />
-            <LeaderboardTable data={initialTopicLeaderboards[selectedCategory]} type="topic" />
+            <LeaderboardTable data={initialTopicLeaderboards[selectedCategory]} />
           </CardContent>
         </Card>
       </TabsContent>
@@ -113,7 +113,7 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
           </CardHeader>
           <CardContent>
              <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} />
-            <LeaderboardTable data={initialMockTestLeaderboards[selectedCategory]} type="mock" />
+            <LeaderboardTable data={initialMockTestLeaderboards[selectedCategory]} />
           </CardContent>
         </Card>
       </TabsContent>
