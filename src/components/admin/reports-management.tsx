@@ -9,9 +9,21 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Gem, Download, Loader2 } from 'lucide-react';
+import { Gem, Download, Loader2, RefreshCw } from 'lucide-react';
 import type { UserData } from '@/lib/types';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface ReportsManagementProps {
     allUsers: UserData[];
@@ -19,6 +31,84 @@ interface ReportsManagementProps {
 
 type ExamCategory = 'MTS' | 'POSTMAN' | 'PA' | 'all';
 type ProStatus = 'all' | 'pro' | 'free';
+
+function DataReconciliationCard() {
+    const [isReconciling, setIsReconciling] = useState(false);
+    const { toast } = useToast();
+
+    const handleReconcile = async () => {
+        setIsReconciling(true);
+        try {
+            const response = await fetch('/api/admin/reconcile-counts', {
+                method: 'POST',
+            });
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to reconcile counts.');
+            }
+            
+            toast({
+                title: 'Reconciliation Complete',
+                description: `${result.updatedCount} user exam counts have been successfully updated.`,
+            });
+
+        } catch (error: any) {
+            console.error('Reconciliation error:', error);
+            toast({
+                title: 'Reconciliation Failed',
+                description: error.message,
+                variant: 'destructive',
+            });
+        } finally {
+            setIsReconciling(false);
+        }
+    };
+
+    return (
+         <Card>
+            <CardHeader>
+                <CardTitle>Data Reconciliation</CardTitle>
+                <CardDescription>
+                    Fix inconsistencies in user data. This is useful for correcting data after a bug fix.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                        <h3 className="font-semibold">Reconcile Exam Counts</h3>
+                        <p className="text-sm text-muted-foreground">
+                            Corrects the `topicExamsTaken` and `mockTestsTaken` counts for all users based on their saved exam history.
+                        </p>
+                    </div>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="outline">
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                                Reconcile
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This will scan all users and their entire exam history. It will update any users whose exam counts are incorrect. This action can take a few moments and cannot be undone.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleReconcile} disabled={isReconciling}>
+                                    {isReconciling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Yes, Reconcile Counts
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
 
 export function ReportsManagement({ allUsers }: ReportsManagementProps) {
     const [examCategoryFilter, setExamCategoryFilter] = useState<ExamCategory>('all');
@@ -87,106 +177,109 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
     }
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>User Reports</CardTitle>
-                <CardDescription>Filter and view user data. You can download the filtered list as a CSV file.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 border rounded-lg">
-                        <div>
-                            <Label htmlFor="search">Search Name/Email</Label>
-                            <Input id="search" placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>User Reports</CardTitle>
+                    <CardDescription>Filter and view user data. You can download the filtered list as a CSV file.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 border rounded-lg">
+                            <div>
+                                <Label htmlFor="search">Search Name/Email</Label>
+                                <Input id="search" placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                            </div>
+                            <div>
+                                <Label htmlFor="exam-category">Exam Category</Label>
+                                <Select value={examCategoryFilter} onValueChange={(v) => setExamCategoryFilter(v as ExamCategory)}>
+                                    <SelectTrigger id="exam-category"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Categories</SelectItem>
+                                        <SelectItem value="MTS">MTS</SelectItem>
+                                        <SelectItem value="POSTMAN">POSTMAN</SelectItem>
+                                        <SelectItem value="PA">PA</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <Label htmlFor="pro-status">Subscription Status</Label>
+                                <Select value={proStatusFilter} onValueChange={(v) => setProStatusFilter(v as ProStatus)}>
+                                    <SelectTrigger id="pro-status"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Statuses</SelectItem>
+                                        <SelectItem value="pro">Pro Users</SelectItem>
+                                        <SelectItem value="free">Free Users</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <Label htmlFor="city">City</Label>
+                                <Select value={cityFilter} onValueChange={setCityFilter}>
+                                    <SelectTrigger id="city"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        {uniqueCities.map(city => (
+                                            <SelectItem key={city} value={city}>
+                                                {city === 'all' ? 'All Cities' : city}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
-                        <div>
-                            <Label htmlFor="exam-category">Exam Category</Label>
-                            <Select value={examCategoryFilter} onValueChange={(v) => setExamCategoryFilter(v as ExamCategory)}>
-                                <SelectTrigger id="exam-category"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Categories</SelectItem>
-                                    <SelectItem value="MTS">MTS</SelectItem>
-                                    <SelectItem value="POSTMAN">POSTMAN</SelectItem>
-                                    <SelectItem value="PA">PA</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                            <Label htmlFor="pro-status">Subscription Status</Label>
-                            <Select value={proStatusFilter} onValueChange={(v) => setProStatusFilter(v as ProStatus)}>
-                                <SelectTrigger id="pro-status"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Statuses</SelectItem>
-                                    <SelectItem value="pro">Pro Users</SelectItem>
-                                    <SelectItem value="free">Free Users</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                            <Label htmlFor="city">City</Label>
-                             <Select value={cityFilter} onValueChange={setCityFilter}>
-                                <SelectTrigger id="city"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    {uniqueCities.map(city => (
-                                        <SelectItem key={city} value={city}>
-                                            {city === 'all' ? 'All Cities' : city}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
 
-                    <div className="flex justify-between items-center">
-                        <p className="text-sm text-muted-foreground">Showing {filteredUsers.length} of {allUsers.length} users.</p>
-                        <Button onClick={handleDownload} disabled={isLoading || filteredUsers.length === 0}>
-                            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                            Download CSV
-                        </Button>
-                    </div>
+                        <div className="flex justify-between items-center">
+                            <p className="text-sm text-muted-foreground">Showing {filteredUsers.length} of {allUsers.length} users.</p>
+                            <Button onClick={handleDownload} disabled={isLoading || filteredUsers.length === 0}>
+                                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                Download CSV
+                            </Button>
+                        </div>
 
-                    <div className="border rounded-md">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Username</TableHead>
-                                    <TableHead>Email</TableHead>
-                                    <TableHead>City</TableHead>
-                                    <TableHead>Category</TableHead>
-                                    <TableHead>Status</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredUsers.length > 0 ? (
-                                    filteredUsers.map((user) => (
-                                        <TableRow key={user.uid}>
-                                            <TableCell className="font-medium">{user.name}</TableCell>
-                                            <TableCell>{user.email}</TableCell>
-                                            <TableCell>{user.city || 'N/A'}</TableCell>
-                                            <TableCell>{user.examCategory}</TableCell>
-                                            <TableCell>
-                                                {user.isPro ? (
-                                                    <Badge variant="default" className="bg-green-600 hover:bg-green-700">
-                                                        <Gem className="mr-1 h-3 w-3" /> Pro
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge variant="secondary">Free</Badge>
-                                                )}
+                        <div className="border rounded-md">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Username</TableHead>
+                                        <TableHead>Email</TableHead>
+                                        <TableHead>City</TableHead>
+                                        <TableHead>Category</TableHead>
+                                        <TableHead>Status</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredUsers.length > 0 ? (
+                                        filteredUsers.map((user) => (
+                                            <TableRow key={user.uid}>
+                                                <TableCell className="font-medium">{user.name}</TableCell>
+                                                <TableCell>{user.email}</TableCell>
+                                                <TableCell>{user.city || 'N/A'}</TableCell>
+                                                <TableCell>{user.examCategory}</TableCell>
+                                                <TableCell>
+                                                    {user.isPro ? (
+                                                        <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+                                                            <Gem className="mr-1 h-3 w-3" /> Pro
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="secondary">Free</Badge>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="h-24 text-center">
+                                                No users match the current filters.
                                             </TableCell>
                                         </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={5} className="h-24 text-center">
-                                            No users match the current filters.
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </div>
-                </div>
-            </CardContent>
-        </Card>
+                </CardContent>
+            </Card>
+            <DataReconciliationCard />
+        </div>
     );
 }
