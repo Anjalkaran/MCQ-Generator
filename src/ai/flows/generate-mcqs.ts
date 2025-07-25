@@ -439,14 +439,18 @@ const generateMCQsFlow = ai.defineFlow(
 
 
     const finalMCQs: (typeof MCQSchema._type)[] = [];
-    const MAX_ATTEMPTS = 3;
     let attempts = 0;
     
     // Create a set of all previously seen questions to avoid duplicates in this session
     const questionsToAvoid = new Set(previousQuestions);
 
-    while (finalMCQs.length < input.numberOfQuestions && attempts < MAX_ATTEMPTS) {
+    while (finalMCQs.length < input.numberOfQuestions) {
         attempts++;
+        if (attempts > (input.numberOfQuestions * 2) && attempts > 10) { // Safety break after many attempts
+            console.error(`Exceeded maximum attempts (${attempts}) to generate questions. Returning what was found.`);
+            break;
+        }
+
         const questionsNeeded = input.numberOfQuestions - finalMCQs.length;
         
         const currentFlowInput = {
@@ -489,7 +493,7 @@ const generateMCQsFlow = ai.defineFlow(
         
         // Add newly generated and validated questions to our final list and avoidance set
         validatedMCQs.forEach(mcq => {
-            if (!questionsToAvoid.has(mcq.question)) {
+            if (!questionsToAvoid.has(mcq.question) && finalMCQs.length < input.numberOfQuestions) {
                 finalMCQs.push(mcq);
                 questionsToAvoid.add(mcq.question);
             }
