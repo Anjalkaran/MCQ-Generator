@@ -5,26 +5,20 @@ import { useState, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { LeaderboardEntry, UserData, LiveTest } from '@/lib/types';
-import { Trophy, Loader2 } from 'lucide-react';
+import type { LeaderboardEntry, UserData } from '@/lib/types';
+import { Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { getLiveTestLeaderboardData } from '@/lib/firestore';
-import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 interface LeaderboardClientProps {
   initialTopicLeaderboards: Record<UserData['examCategory'], LeaderboardEntry[]>;
   initialMockTestLeaderboards: Record<UserData['examCategory'], LeaderboardEntry[]>;
-  initialLiveTestLeaderboard: LeaderboardEntry[];
-  pastLiveTests: LiveTest[];
 }
 
 type ExamCategory = UserData['examCategory'];
 
-function LeaderboardTable({ data }: { data: LeaderboardEntry[] }) {
+function LeaderboardTable({ data, type }: { data: LeaderboardEntry[]; type: 'topic' | 'mock' }) {
   if (data.length === 0) {
     return (
       <div className="text-center text-muted-foreground py-10">
@@ -47,7 +41,7 @@ function LeaderboardTable({ data }: { data: LeaderboardEntry[] }) {
           <TableRow>
             <TableHead className="w-16 text-center">Rank</TableHead>
             <TableHead>User</TableHead>
-            <TableHead className="text-center">Score</TableHead>
+            <TableHead className="text-center">{type === 'mock' || type === 'topic' ? 'Exams Taken' : 'Score'}</TableHead>
             <TableHead className="text-right">Percentage</TableHead>
           </TableRow>
         </TableHeader>
@@ -90,75 +84,15 @@ function CategorySelector({ selectedCategory, setSelectedCategory }: { selectedC
   );
 }
 
-export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLeaderboards, initialLiveTestLeaderboard, pastLiveTests }: LeaderboardClientProps) {
+export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLeaderboards }: LeaderboardClientProps) {
   const [selectedCategory, setSelectedCategory] = useState<ExamCategory>('MTS');
-  const [liveTestLeaderboard, setLiveTestLeaderboard] = useState<LeaderboardEntry[]>(initialLiveTestLeaderboard);
-  const [selectedLiveTest, setSelectedLiveTest] = useState<string>(pastLiveTests[0]?.id || '');
-  const [isLoadingLiveLeaderboard, setIsLoadingLiveLeaderboard] = useState(false);
-  const { toast } = useToast();
-
-  const handleLiveTestChange = useCallback(async (liveTestId: string) => {
-    if (!liveTestId) return;
-    setSelectedLiveTest(liveTestId);
-    setIsLoadingLiveLeaderboard(true);
-    try {
-        const data = await getLiveTestLeaderboardData(liveTestId);
-        setLiveTestLeaderboard(data);
-    } catch (error) {
-        console.error("Failed to fetch live test leaderboard:", error);
-        toast({ title: "Error", description: "Could not load leaderboard data for this event.", variant: "destructive" });
-    } finally {
-        setIsLoadingLiveLeaderboard(false);
-    }
-  }, [toast]);
-
 
   return (
-    <Tabs defaultValue="live" className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="live">Live Test</TabsTrigger>
+    <Tabs defaultValue="topic" className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="topic">Topic-wise</TabsTrigger>
         <TabsTrigger value="mock">Mock Test</TabsTrigger>
       </TabsList>
-      <TabsContent value="live">
-        <Card>
-          <CardHeader>
-            <CardTitle>Live Test Leaderboard</CardTitle>
-            <CardDescription>Ranking based on scores from live test events. See who comes out on top!</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Alert className="mb-4 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800">
-                <Trophy className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                <AlertTitle className="text-yellow-800 dark:text-yellow-300">Special Reward!</AlertTitle>
-                <AlertDescription className="text-yellow-700 dark:text-yellow-400">
-                    The top-ranked free user for each event will win one year of unlimited Pro access for free!
-                </AlertDescription>
-            </Alert>
-            <div className="mb-4">
-                <Label>Select Live Test Event</Label>
-                <Select value={selectedLiveTest} onValueChange={handleLiveTestChange}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select a past live test..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {pastLiveTests.map(test => (
-                            <SelectItem key={test.id} value={test.id}>
-                                {test.title} - {new Date(test.startTime.seconds * 1000).toLocaleDateString()}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-            {isLoadingLiveLeaderboard ? (
-                <div className="flex justify-center items-center h-40">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-            ) : (
-                <LeaderboardTable data={liveTestLeaderboard} />
-            )}
-          </CardContent>
-        </Card>
-      </TabsContent>
       <TabsContent value="topic">
         <Card>
           <CardHeader>
@@ -167,7 +101,7 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
           </CardHeader>
           <CardContent>
             <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} />
-            <LeaderboardTable data={initialTopicLeaderboards[selectedCategory]} />
+            <LeaderboardTable data={initialTopicLeaderboards[selectedCategory]} type="topic" />
           </CardContent>
         </Card>
       </TabsContent>
@@ -179,7 +113,7 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
           </CardHeader>
           <CardContent>
              <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} />
-            <LeaderboardTable data={initialMockTestLeaderboards[selectedCategory]} />
+            <LeaderboardTable data={initialMockTestLeaderboards[selectedCategory]} type="mock" />
           </CardContent>
         </Card>
       </TabsContent>
