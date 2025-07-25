@@ -10,7 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { getQuestionBankByCategory, getUserTopicProgress, updateUserTopicProgress } from '@/lib/firestore';
+import { getQuestionBankByCategory, getUserTopicProgress, updateUserTopicProgress, getTopicMCQs } from '@/lib/firestore';
 
 const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
@@ -229,6 +229,30 @@ Now, based *only* on the study material, is the proposed answer correct? Provide
 `,
 });
 
+const extractMCQsFromTextPrompt = ai.definePrompt({
+    name: 'extractMCQsFromTextPrompt',
+    input: { schema: z.object({ textContent: z.string(), numberOfQuestions: z.number() }) },
+    output: { schema: GenerateMCQsOutputSchema },
+    model: 'googleai/gemini-1.5-flash',
+    prompt: `You are an expert at parsing and formatting multiple-choice questions (MCQs).
+
+Your task is to extract exactly {{numberOfQuestions}} unique questions from the 'TEXT CONTENT' provided below.
+
+**Process:**
+1.  Read the 'TEXT CONTENT' and identify distinct multiple-choice questions.
+2.  For each question, accurately extract the full question text, all four of its options, and the indicated correct answer.
+3.  Randomly select {{numberOfQuestions}} of these extracted questions to include in your output.
+
+**CRITICAL RULE:** The 'correctAnswer' field in your output MUST be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
+
+--- TEXT CONTENT ---
+{{{textContent}}}
+--- END TEXT CONTENT ---
+
+Your final output must be a single, valid JSON object containing an 'mcqs' array with exactly {{numberOfQuestions}} questions. Do not add a 'solution' field.
+`
+});
+
 
 const MATERIAL_CHUNK_SIZE = 2000; // Process 2000 characters of material at a time
 
@@ -345,6 +369,54 @@ const generateMCQsFlow = ai.defineFlow(
     }
     // --- End Special Handling ---
 
+    // --- HYBRID LOGIC: Check for uploaded MCQs first ---
+    const uploadedMCQs = await getTopicMCQs(input.topicId);
+    if (uploadedMCQs && uploadedMCQs.length > 0) {
+        // Combine content from all documents for the topic
+        const combinedContent = uploadedMCQs.map(doc => doc.content).join('\n\n---\n\n');
+        
+        const { output: extractedOutput } = await extractMCQsFromTextPrompt({
+            textContent: combinedContent,
+            numberOfQuestions: input.numberOfQuestions
+        });
+        
+        if (extractedOutput && extractedOutput.mcqs && extractedOutput.mcqs.length > 0) {
+            // Now, verify each extracted question against the material
+            if (flowInput.material) {
+                const verificationPromises = extractedOutput.mcqs.map(async (mcq) => {
+                    try {
+                        const verificationResponse = await verificationPrompt({
+                            material: flowInput.material!,
+                            question: mcq.question,
+                            answer: mcq.correctAnswer,
+                        });
+                        if (verificationResponse.output?.isCorrect) {
+                            return { ...mcq, solution: verificationResponse.output.justification }; // Use justification as solution
+                        } else {
+                            console.warn(`Filtering out incorrect MCQ from uploaded doc. Q: "${mcq.question}", A: "${mcq.correctAnswer}". Justification: ${verificationResponse.output?.justification}`);
+                            return null;
+                        }
+                    } catch (e) {
+                        console.error("Error during uploaded MCQ verification:", e);
+                        return null;
+                    }
+                });
+                const verifiedMCQs = (await Promise.all(verificationPromises)).filter(mcq => mcq !== null);
+                if (verifiedMCQs.length > 0) {
+                     await runDeferred();
+                     return { mcqs: verifiedMCQs as any[] };
+                }
+            } else {
+                 // If no material to verify against, just return the extracted MCQs
+                 await runDeferred();
+                 return { mcqs: extractedOutput.mcqs };
+            }
+        }
+        // If extraction fails, fall through to generation
+    }
+    // --- END HYBRID LOGIC ---
+
+
     const {output: initialOutput} = await prompt(flowInput);
     if (!initialOutput || !initialOutput.mcqs || initialOutput.mcqs.length === 0) {
         throw new Error('The AI could not generate questions for the selected topic.');
@@ -387,7 +459,3 @@ const generateMCQsFlow = ai.defineFlow(
     return { mcqs: validatedMCQs };
   }
 );
-
-    
-
-    

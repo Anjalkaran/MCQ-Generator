@@ -1,7 +1,7 @@
 
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ } from './types';
 import { ADMIN_EMAILS } from './constants';
 import { normalizeDate } from './utils';
 
@@ -632,6 +632,51 @@ export const markNotificationsAsRead = async (notificationIds: string[]): Promis
     await batch.commit();
 };
 
+// TOPIC MCQ MANAGEMENT
+export const getTopicMCQs = async (topicId?: string): Promise<TopicMCQ[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const mcqCollection = collection(db, 'topicMCQs');
+    const q = topicId ? query(mcqCollection, where('topicId', '==', topicId), orderBy('uploadedAt', 'desc')) : query(mcqCollection, orderBy('uploadedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            ...data,
+            uploadedAt: data.uploadedAt.toDate(),
+        } as TopicMCQ;
+    });
+};
+
+export const addTopicMCQDocument = async (data: Omit<TopicMCQ, 'id'>): Promise<DocumentReference> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    // Check if a document for this topicId already exists
+    const existingDocs = await getTopicMCQs(data.topicId);
+    if (existingDocs.length > 0) {
+        // Append content to the existing document
+        const existingDoc = existingDocs[0];
+        const newContent = existingDoc.content + '\n\n---\n\n' + data.content;
+        const docRef = doc(db, 'topicMCQs', existingDoc.id);
+        await updateDoc(docRef, { 
+            content: newContent,
+            fileName: data.fileName, // Update with the latest file name
+            uploadedAt: data.uploadedAt 
+        });
+        return docRef;
+    } else {
+        // Create a new document
+        return await addDoc(collection(db, 'topicMCQs'), data);
+    }
+};
+
+export const deleteTopicMCQDocument = async (docId: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    await deleteDoc(doc(db, 'topicMCQs', docId));
+};
+
 
 // CONSOLIDATED DASHBOARD DATA FETCHING
 export const getDashboardData = async (userId: string, isAdmin: boolean = false) => {
@@ -647,25 +692,26 @@ export const getDashboardData = async (userId: string, isAdmin: boolean = false)
         onlineUserCount = onlineSnapshot.size;
     }
 
-    const [categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications] = await Promise.all([
+    const [categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, topicMCQs] = await Promise.all([
         getCategories(),
         getTopics(),
         isAdmin ? getQuestionBankDocuments() : [],
         isAdmin ? getLiveTestBankDocuments() : [],
         isAdmin ? getQnAUsage() : [],
         isAdmin ? getAdminNotifications() : [],
+        isAdmin ? getTopicMCQs() : [],
     ]);
     
     if (isAdmin) {
-        return { userData: null, categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, onlineUserCount };
+        return { userData: null, categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, onlineUserCount, topicMCQs };
     }
 
     const userData = await getUserData(userId);
     if (!userData) {
-        return { userData: null, categories: [], topics: [], bankedQuestions: [], liveTestBank: [], qnaUsage: [], notifications: [], onlineUserCount: 0 };
+        return { userData: null, categories: [], topics: [], bankedQuestions: [], liveTestBank: [], qnaUsage: [], notifications: [], onlineUserCount: 0, topicMCQs: [] };
     }
 
-    return { userData, categories, topics, bankedQuestions, liveTestBank: [], qnaUsage: [], notifications: [], onlineUserCount: 0 };
+    return { userData, categories, topics, bankedQuestions, liveTestBank: [], qnaUsage: [], notifications: [], onlineUserCount: 0, topicMCQs: [] };
 }
 
 
