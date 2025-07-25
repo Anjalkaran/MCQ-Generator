@@ -332,11 +332,14 @@ const generateMCQsFlow = ai.defineFlow(
     if (input.category === "Basic Arithmetics") {
         let generatedMCQs = [];
         const existingQuestions = new Set(previousQuestions);
-        const MAX_ATTEMPTS = 5;
         let attempts = 0;
 
-        while (generatedMCQs.length < input.numberOfQuestions && attempts < MAX_ATTEMPTS) {
+        while (generatedMCQs.length < input.numberOfQuestions) {
             attempts++;
+            if (attempts > 10) { 
+                console.error(`Breaking arithmetic generation loop after 10 attempts. Could only generate ${generatedMCQs.length} questions.`);
+                break;
+            }
             try {
                 // Step 1: Generate just the problem statement(s)
                 const problemsToGenerate = input.numberOfQuestions - generatedMCQs.length;
@@ -352,7 +355,7 @@ const generateMCQsFlow = ai.defineFlow(
                 for (const problem of problemResponse.output.problems) {
                     const { question } = problem;
                     if (existingQuestions.has(question)) continue;
-                    existingQuestions.add(question); // Add to avoid duplicates in the same run
+                    
 
                     // Step 2: Get the VERIFIED correct answer and solution from the solver
                     const solutionResponse = await arithmeticSolverPrompt({ problem: question, language: input.language });
@@ -371,12 +374,15 @@ const generateMCQsFlow = ai.defineFlow(
                     // Step 4: Combine and shuffle options
                     const options = shuffleArray([correctAnswer, ...distractors]);
                     
-                    generatedMCQs.push({
-                        question,
-                        options,
-                        correctAnswer,
-                        solution: solutionText,
-                    });
+                    if (!existingQuestions.has(question) && generatedMCQs.length < input.numberOfQuestions) {
+                        generatedMCQs.push({
+                            question,
+                            options,
+                            correctAnswer,
+                            solution: solutionText,
+                        });
+                        existingQuestions.add(question); // Add to avoid duplicates in the same run
+                    }
                 }
 
             } catch (e) {
@@ -385,8 +391,12 @@ const generateMCQsFlow = ai.defineFlow(
         }
         
         await runDeferred();
-        if (generatedMCQs.length === 0) {
+        if (generatedMCQs.length === 0 && input.numberOfQuestions > 0) {
             throw new Error('The AI could not generate any arithmetic questions after multiple attempts.');
+        }
+        
+        if (generatedMCQs.length < input.numberOfQuestions) {
+            console.warn(`Warning: Could only generate ${generatedMCQs.length} out of ${input.numberOfQuestions} requested arithmetic questions.`);
         }
         return { mcqs: generatedMCQs.slice(0, input.numberOfQuestions) };
     }

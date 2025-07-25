@@ -264,11 +264,8 @@ export const getAllUserQuestions = async (userId: string): Promise<string[]> => 
 
     const history = await getExamHistoryForUser(userId);
 
-    // Limit to the most recent 15 exams to avoid overly large prompts.
-    const recentHistory = history.slice(0, 15);
-
     const allQuestions = new Set<string>();
-    recentHistory.forEach(item => {
+    history.forEach(item => {
         if (Array.isArray(item.questions)) {
             item.questions.forEach(q => allQuestions.add(q));
         }
