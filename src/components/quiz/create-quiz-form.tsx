@@ -35,7 +35,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 type DifficultyLevel = 'Easy' | 'Moderate' | 'Difficult';
 const difficultyLevels: DifficultyLevel[] = ['Easy', 'Moderate', 'Difficult'];
-const parts = ["Part A"] as const;
+const parts = ["Part A", "Part B"] as const;
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 const languages = [
     { value: 'English', label: 'English' },
@@ -107,6 +107,12 @@ export function CreateQuizForm() {
   useEffect(() => {
     form.resetField('topicId', { defaultValue: '' });
   }, [selectedCategoryId, form]);
+
+  useEffect(() => {
+    if (selectedPart === 'Part A') {
+      form.setValue('difficulty', 'Moderate', { shouldValidate: true });
+    }
+  }, [selectedPart, form]);
 
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
@@ -368,34 +374,36 @@ export function CreateQuizForm() {
                         </FormItem>
                     )}
                     />
-                    <FormField
-                    control={form.control}
-                    name="difficulty"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Difficulty Level</FormLabel>
-                        <FormControl>
-                            <div className="grid grid-cols-3 gap-2">
-                            {difficultyLevels.map((level) => (
-                                <Card
-                                key={level}
-                                onClick={() => form.setValue('difficulty', level, { shouldValidate: true })}
-                                className={cn(
-                                    'cursor-pointer p-2 text-center transition-all',
-                                    selectedDifficulty === level
-                                    ? 'border-primary ring-2 ring-primary bg-accent'
-                                    : 'hover:bg-muted/50'
-                                )}
-                                >
-                                <CardTitle className="text-base font-medium">{level}</CardTitle>
-                                </Card>
-                            ))}
-                            </div>
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
+                    {selectedPart === 'Part B' && (
+                        <FormField
+                        control={form.control}
+                        name="difficulty"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Difficulty Level</FormLabel>
+                            <FormControl>
+                                <div className="grid grid-cols-3 gap-2">
+                                {difficultyLevels.map((level) => (
+                                    <Card
+                                    key={level}
+                                    onClick={() => form.setValue('difficulty', level, { shouldValidate: true })}
+                                    className={cn(
+                                        'cursor-pointer p-2 text-center transition-all',
+                                        selectedDifficulty === level
+                                        ? 'border-primary ring-2 ring-primary bg-accent'
+                                        : 'hover:bg-muted/50'
+                                    )}
+                                    >
+                                    <CardTitle className="text-base font-medium">{level}</CardTitle>
+                                    </Card>
+                                ))}
+                                </div>
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
                     )}
-                    />
                     <FormField
                     control={form.control}
                     name="numberOfQuestions"
@@ -431,5 +439,3 @@ export function CreateQuizForm() {
     </Card>
   );
 }
-
-    
