@@ -321,8 +321,11 @@ const generateMCQsFlow = ai.defineFlow(
     if (input.category === "Basic Arithmetics") {
         const generatedMCQs = [];
         const existingQuestions = new Set(input.previousQuestions || []);
+        const MAX_ATTEMPTS = 5;
+        let attempts = 0;
 
-        for (let i = 0; i < input.numberOfQuestions; i++) {
+        while (generatedMCQs.length < input.numberOfQuestions && attempts < MAX_ATTEMPTS) {
+            attempts++;
             try {
                 // Step 1: Generate just the problem statement
                 const problemResponse = await arithmeticProblemPrompt({ 
@@ -360,11 +363,14 @@ const generateMCQsFlow = ai.defineFlow(
                 });
 
             } catch (e) {
-                console.error("Error during arithmetic question generation step:", e);
+                console.error(`Attempt ${attempts}: Error during arithmetic question generation step:`, e);
             }
         }
         
         await runDeferred();
+        if (generatedMCQs.length === 0) {
+            throw new Error('The AI could not generate any arithmetic questions after multiple attempts.');
+        }
         return { mcqs: generatedMCQs };
     }
     // --- End Special Handling ---
