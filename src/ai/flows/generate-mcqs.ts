@@ -10,7 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { getQuestionBankByCategory, getUserTopicProgress, updateUserTopicProgress, getTopicMCQs } from '@/lib/firestore';
+import { getQuestionBankByCategory, getUserTopicProgress, updateUserTopicProgress, getTopicMCQs, getAllUserQuestions } from '@/lib/firestore';
 
 const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
@@ -20,8 +20,6 @@ const GenerateMCQsInputSchema = z.object({
   examCategory: z.string().optional().describe('The target exam category (e.g., MTS, POSTMAN, PA).'),
   part: z.string().optional().describe('The part of the syllabus this topic belongs to (e.g., Part A, Part B).'),
   material: z.string().optional().describe('The study material for the topic, if available.'),
-  previousQuestions: z.array(z.string()).optional().describe('A list of previously asked questions to avoid repetition.'),
-  bankedQuestions: z.string().optional().describe('Content from previously uploaded exam questions to use as a reference.'),
   userId: z.string().describe('The ID of the user requesting the quiz.'),
   topicId: z.string().describe('The ID of the topic.'),
   language: z.string().optional().default('English').describe('The language for the generated quiz (e.g., "English", "Tamil", "Hindi").'),
@@ -145,7 +143,11 @@ const arithmeticDistractorsPrompt = ai.definePrompt({
 
 const prompt = ai.definePrompt({
   name: 'generateMCQsPrompt',
-  input: {schema: GenerateMCQsInputSchema},
+  input: {schema: z.object({
+      ...GenerateMCQsInputSchema.shape,
+      previousQuestions: z.array(z.string()).optional(),
+      bankedQuestions: z.string().optional(),
+  })},
   output: {schema: GenerateMCQsOutputSchema},
   model: 'googleai/gemini-1.5-flash',
   prompt: `You are an expert in generating multiple-choice questions (MCQs). Your goal is to create {{numberOfQuestions}} questions for the "{{examCategory}}" exam, specifically for "{{part}}". The questions should be on the topic of "{{topic}}" with a "{{difficulty}}" difficulty level.
@@ -287,7 +289,14 @@ const generateMCQsFlow = ai.defineFlow(
       throw new Error("A user ID must be provided to generate a quiz.");
     }
     
-    let flowInput = { ...input };
+    // Fetch user's entire question history once
+    const previousQuestions = await getAllUserQuestions(input.userId);
+
+    let flowInput = { 
+        ...input,
+        previousQuestions: previousQuestions,
+        bankedQuestions: undefined as string | undefined
+    };
 
     const excludedCategories = ["Basic Arithmetics", "General Awareness"];
     if (flowInput.category && excludedCategories.includes(flowInput.category)) {
@@ -320,7 +329,7 @@ const generateMCQsFlow = ai.defineFlow(
     // --- Special Handling for Basic Arithmetics ---
     if (input.category === "Basic Arithmetics") {
         const generatedMCQs = [];
-        const existingQuestions = new Set(input.previousQuestions || []);
+        const existingQuestions = new Set(previousQuestions);
         const MAX_ATTEMPTS = 5;
         let attempts = 0;
 
@@ -423,20 +432,21 @@ const generateMCQsFlow = ai.defineFlow(
     // --- END HYBRID LOGIC ---
 
 
-    const finalMCQs = [];
+    const finalMCQs: (typeof MCQSchema._type)[] = [];
     const MAX_ATTEMPTS = 3;
     let attempts = 0;
+    
+    // Create a set of all previously seen questions to avoid duplicates in this session
+    const questionsToAvoid = new Set(previousQuestions);
 
     while (finalMCQs.length < input.numberOfQuestions && attempts < MAX_ATTEMPTS) {
         attempts++;
         const questionsNeeded = input.numberOfQuestions - finalMCQs.length;
+        
         const currentFlowInput = {
           ...flowInput,
           numberOfQuestions: questionsNeeded,
-          previousQuestions: [
-            ...(flowInput.previousQuestions || []),
-            ...finalMCQs.map(q => q.question),
-          ]
+          previousQuestions: Array.from(questionsToAvoid),
         };
 
         const { output: initialOutput } = await prompt(currentFlowInput);
@@ -470,8 +480,14 @@ const generateMCQsFlow = ai.defineFlow(
             const verificationResults = await Promise.all(verificationPromises);
             validatedMCQs = verificationResults.filter(mcq => mcq !== null) as typeof validatedMCQs;
         }
-
-        finalMCQs.push(...validatedMCQs);
+        
+        // Add newly generated and validated questions to our final list and avoidance set
+        validatedMCQs.forEach(mcq => {
+            if (!questionsToAvoid.has(mcq.question)) {
+                finalMCQs.push(mcq);
+                questionsToAvoid.add(mcq.question);
+            }
+        });
     }
 
     if (finalMCQs.length === 0) {
