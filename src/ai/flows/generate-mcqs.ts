@@ -444,73 +444,93 @@ const generateMCQsFlow = ai.defineFlow(
     // Create a set of all previously seen questions to avoid duplicates in this session
     const questionsToAvoid = new Set(previousQuestions);
 
+    // --- START: THE CRITICAL FIX ---
+    // This loop will now continue until the number of final MCQs matches the requested number.
     while (finalMCQs.length < input.numberOfQuestions) {
         attempts++;
-        if (attempts > 10) { // Add a safety break to prevent infinite loops
-            console.error("Breaking loop after 10 generation attempts.");
-            break;
+        // Add a more robust safety break to prevent runaway costs or infinite loops.
+        if (attempts > 10) { 
+            console.error(`Breaking generation loop after 10 attempts. Could only generate ${finalMCQs.length} questions.`);
+            break; // Exit the loop if it's taking too long
         }
         
+        // Calculate how many more questions are needed in this iteration.
         const questionsNeeded = input.numberOfQuestions - finalMCQs.length;
+        
+        console.log(`Attempt ${attempts}: Need to generate ${questionsNeeded} more questions.`);
         
         const currentFlowInput = {
           ...flowInput,
-          numberOfQuestions: questionsNeeded,
+          numberOfQuestions: questionsNeeded, // Always ask for the remaining number
           previousQuestions: Array.from(questionsToAvoid),
         };
 
-        const { output: initialOutput } = await prompt(currentFlowInput);
+        try {
+            const { output: initialOutput } = await prompt(currentFlowInput);
 
-        if (!initialOutput || !initialOutput.mcqs || initialOutput.mcqs.length === 0) {
-            console.warn(`Attempt ${attempts}: AI failed to generate any questions.`);
-            continue;
-        }
+            if (!initialOutput || !initialOutput.mcqs || initialOutput.mcqs.length === 0) {
+                console.warn(`Attempt ${attempts}: AI failed to generate any questions in this batch.`);
+                continue; // Skip to the next attempt
+            }
 
-        let validatedMCQs = initialOutput.mcqs.filter(mcq => MCQSchema.safeParse(mcq).success);
+            // Perform validation and verification on the newly generated batch
+            let validatedMCQs = initialOutput.mcqs.filter(mcq => MCQSchema.safeParse(mcq).success);
 
-        if (flowInput.material) {
-            const verificationPromises = validatedMCQs.map(async (mcq) => {
-                try {
-                    const verificationResponse = await verificationPrompt({
-                        material: flowInput.material!,
-                        question: mcq.question,
-                        answer: mcq.correctAnswer,
-                    });
-                    if (verificationResponse.output?.isCorrect) {
-                        return mcq;
-                    } else {
-                        console.warn(`Filtering out incorrect MCQ. Q: "${mcq.question}", A: "${mcq.correctAnswer}". Justification: ${verificationResponse.output?.justification}`);
-                        return null;
+            if (flowInput.material && validatedMCQs.length > 0) {
+                const verificationPromises = validatedMCQs.map(async (mcq) => {
+                    try {
+                        const verificationResponse = await verificationPrompt({
+                            material: flowInput.material!,
+                            question: mcq.question,
+                            answer: mcq.correctAnswer,
+                        });
+                        if (verificationResponse.output?.isCorrect) {
+                            return mcq;
+                        } else {
+                            console.warn(`Filtering out incorrect MCQ. Q: "${mcq.question}", A: "${mcq.correctAnswer}". Justification: ${verificationResponse.output?.justification}`);
+                            return null;
+                        }
+                    } catch (e) {
+                        console.error("Error during MCQ verification:", e);
+                        return null; // Treat verification errors as a failure for that MCQ
                     }
-                } catch (e) {
-                    console.error("Error during MCQ verification:", e);
-                    return null;
+                });
+                const verificationResults = await Promise.all(verificationPromises);
+                validatedMCQs = verificationResults.filter(mcq => mcq !== null) as typeof validatedMCQs;
+            }
+            
+            // Add the new, unique, and verified questions to our final list.
+            validatedMCQs.forEach(mcq => {
+                // Double-check for uniqueness and that we don't exceed the requested number
+                if (!questionsToAvoid.has(mcq.question) && finalMCQs.length < input.numberOfQuestions) {
+                    finalMCQs.push(mcq);
+                    questionsToAvoid.add(mcq.question);
                 }
             });
-            const verificationResults = await Promise.all(verificationPromises);
-            validatedMCQs = verificationResults.filter(mcq => mcq !== null) as typeof validatedMCQs;
-        }
-        
-        // Add newly generated and validated questions to our final list and avoidance set
-        validatedMCQs.forEach(mcq => {
-            if (!questionsToAvoid.has(mcq.question) && finalMCQs.length < input.numberOfQuestions) {
-                finalMCQs.push(mcq);
-                questionsToAvoid.add(mcq.question);
-            }
-        });
-    }
+            
+            console.log(`Attempt ${attempts} complete. Total questions so far: ${finalMCQs.length}`);
 
+        } catch (error) {
+            console.error(`An error occurred during generation attempt ${attempts}:`, error);
+            // Decide if you want to 'continue' or 'break' on error. Continuing is often better.
+        }
+    }
+    // --- END: THE CRITICAL FIX ---
+
+    // Final check after the loop
     if (finalMCQs.length === 0 && input.numberOfQuestions > 0) {
         throw new Error('The AI could not generate any valid questions for the selected topic after multiple attempts.');
     }
     
+    // This warning is now more meaningful
     if (finalMCQs.length < input.numberOfQuestions) {
-        console.warn(`Warning: Could only generate ${finalMCQs.length} out of ${input.numberOfQuestions} requested valid questions.`);
+        console.warn(`Warning: Could only generate ${finalMCQs.length} out of ${input.numberOfQuestions} requested valid questions after ${attempts} attempts.`);
     }
 
 
     await runDeferred();
     
+    // The slice is still a good safeguard, but the loop logic should already handle the limit.
     return { mcqs: finalMCQs.slice(0, input.numberOfQuestions) };
   }
 );
