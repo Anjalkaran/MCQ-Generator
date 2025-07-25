@@ -330,7 +330,7 @@ const generateMCQsFlow = ai.defineFlow(
 
     // --- Special Handling for Basic Arithmetics ---
     if (input.category === "Basic Arithmetics") {
-        let generatedMCQs = [];
+        const generatedMCQs: (typeof MCQSchema._type)[] = [];
         const existingQuestions = new Set(previousQuestions);
         let attempts = 0;
 
@@ -356,7 +356,6 @@ const generateMCQsFlow = ai.defineFlow(
                     const { question } = problem;
                     if (existingQuestions.has(question)) continue;
                     
-
                     // Step 2: Get the VERIFIED correct answer and solution from the solver
                     const solutionResponse = await arithmeticSolverPrompt({ problem: question, language: input.language });
                     if (!solutionResponse.output?.final_answer) {
