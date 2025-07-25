@@ -446,8 +446,10 @@ const generateMCQsFlow = ai.defineFlow(
 
     while (finalMCQs.length < input.numberOfQuestions) {
         attempts++;
-        // Remove the safety break to ensure the loop continues until the required number of questions is met.
-        // A different timeout mechanism should be considered if this process could run indefinitely.
+        if (attempts > 10) { // Add a safety break to prevent infinite loops
+            console.error("Breaking loop after 10 generation attempts.");
+            break;
+        }
         
         const questionsNeeded = input.numberOfQuestions - finalMCQs.length;
         
@@ -461,11 +463,6 @@ const generateMCQsFlow = ai.defineFlow(
 
         if (!initialOutput || !initialOutput.mcqs || initialOutput.mcqs.length === 0) {
             console.warn(`Attempt ${attempts}: AI failed to generate any questions.`);
-            // Add a safety check for too many failed attempts without any generation
-            if (attempts > 10) { 
-                console.error("Breaking loop after 10 consecutive failed generation attempts.");
-                break;
-            }
             continue;
         }
 
@@ -503,7 +500,7 @@ const generateMCQsFlow = ai.defineFlow(
         });
     }
 
-    if (finalMCQs.length === 0) {
+    if (finalMCQs.length === 0 && input.numberOfQuestions > 0) {
         throw new Error('The AI could not generate any valid questions for the selected topic after multiple attempts.');
     }
     
