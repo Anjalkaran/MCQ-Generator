@@ -202,36 +202,24 @@ export const updateUserTopicProgress = async (userId: string, topicId: string, l
 export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
-
-    const userRef = doc(db, 'users', historyData.userId);
-    const userDoc = await getDoc(userRef);
-    const userData = userDoc.exists() ? userDoc.data() : null;
-    const isUserAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
-
-    // Do not update counts for admins
-    if (isUserAdmin) {
-        // Just save the history, without touching user counts
-        await addDoc(collection(db, 'mcqHistory'), historyData);
-        return;
-    }
-
+    
     const batch = writeBatch(db);
     
-    // 1. Add the detailed history document
+    // 1. Create a reference for the new history document
     const historyRef = doc(collection(db, 'mcqHistory'));
     batch.set(historyRef, historyData);
+    
+    // 2. Create a reference to the user document to update their exam count
+    const userRef = doc(db, 'users', historyData.userId);
 
-    // 2. Prepare and add the user's exam count update
-    if (userDoc.exists()) {
-        const updateData: { [key: string]: any } = {};
-        if (historyData.isMockTest) {
-            updateData.mockTestsTaken = increment(1);
-        } else {
-            updateData.topicExamsTaken = increment(1);
-        }
-        batch.update(userRef, updateData);
-    }
-
+    // 3. Conditionally increment the correct counter
+    const updateData = historyData.isMockTest 
+        ? { mockTestsTaken: increment(1) }
+        : { topicExamsTaken: increment(1) };
+        
+    batch.update(userRef, updateData);
+    
+    // 4. Commit both operations at once
     await batch.commit();
 };
 
