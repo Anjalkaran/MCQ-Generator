@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { getFirebaseAuth } from "@/lib/firebase";
+import { onAuthStateChanged, type User } from 'firebase/auth';
 import { saveMCQHistory } from "@/lib/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -51,53 +52,60 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
   useEffect(() => {
     setIsClient(true);
     const savedState = localStorage.getItem(`quizState-${topicId}`);
+    
+    if (!savedState) {
+        // If there's no state, no point in setting up auth listener
+        return;
+    }
+
     const auth = getFirebaseAuth();
-    const currentUser = auth?.currentUser;
+    if (!auth) {
+        console.error("Firebase Auth not initialized.");
+        toast({ title: "Error", description: "Could not connect to authentication service.", variant: "destructive" });
+        return;
+    }
 
-    const processResults = async () => {
-      if (savedState && currentUser && !hasSavedHistory.current) {
-        hasSavedHistory.current = true; // Set flag to prevent re-runs
-        
-        const { answers, numberOfQuestions, mcqs, topic, isMockTest, liveTestId, durationInSeconds } = JSON.parse(savedState) as StoredQuizData;
-        setUserAnswers(answers);
-        setQuizLength(numberOfQuestions);
-        setQuizData({ mcqs, topic, isMockTest, liveTestId });
-  
-        let correctCount = 0;
-        mcqs.forEach((mcq: MCQ, index: number) => {
-          if (normalizeAnswer(answers[index]) === normalizeAnswer(mcq.correctAnswer)) {
-            correctCount++;
-          }
-        });
-        setScore(correctCount);
-  
-        try {
-          // Save history to Firestore
-          await saveMCQHistory({
-              userId: currentUser.uid,
-              topicId: topic.id,
-              topicTitle: topic.title, // Pass the correct field here
-              score: correctCount,
-              totalQuestions: numberOfQuestions,
-              questions: mcqs.map((mcq: MCQ) => mcq.question),
-              takenAt: new Date(),
-              isMockTest: isMockTest || false,
-              liveTestId: liveTestId,
-              durationInSeconds: durationInSeconds,
-          });
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        if (currentUser && !hasSavedHistory.current) {
+            hasSavedHistory.current = true; // Prevent re-runs
+            
+            const { answers, numberOfQuestions, mcqs, topic, isMockTest, liveTestId, durationInSeconds } = JSON.parse(savedState) as StoredQuizData;
+            setUserAnswers(answers);
+            setQuizLength(numberOfQuestions);
+            setQuizData({ mcqs, topic, isMockTest, liveTestId });
 
-        } catch (err) {
-            console.error("Failed to save quiz history:", err);
-            toast({
-              title: "Error",
-              description: "Could not save your exam results.",
-              variant: "destructive"
-            })
+            let correctCount = 0;
+            mcqs.forEach((mcq: MCQ, index: number) => {
+                if (normalizeAnswer(answers[index]) === normalizeAnswer(mcq.correctAnswer)) {
+                    correctCount++;
+                }
+            });
+            setScore(correctCount);
+
+            saveMCQHistory({
+                userId: currentUser.uid,
+                topicId: topic.id,
+                topicTitle: topic.title,
+                score: correctCount,
+                totalQuestions: numberOfQuestions,
+                questions: mcqs.map((mcq: MCQ) => mcq.question),
+                takenAt: new Date(),
+                isMockTest: isMockTest || false,
+                liveTestId: liveTestId,
+                durationInSeconds: durationInSeconds,
+            }).catch(err => {
+                console.error("Failed to save quiz history:", err);
+                toast({
+                    title: "Error",
+                    description: "Your exam result could not be saved.",
+                    variant: "destructive"
+                });
+            });
         }
-      }
-    };
+    });
 
-    processResults();
+    // Cleanup subscription on component unmount
+    return () => unsubscribe();
 
   }, [topicId, toast]);
 
