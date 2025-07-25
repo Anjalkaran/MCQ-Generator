@@ -27,7 +27,7 @@ const formSchema = z.object({
   part: z.string().min(1, 'Please select a part.'),
   categoryId: z.string().min(1, 'Please select a category.'),
   topicId: z.string().min(1, 'Please select a topic.'),
-  numberOfQuestions: z.coerce.number().min(3).max(50),
+  numberOfQuestions: z.coerce.number().min(3).max(25),
   difficulty: z.string().min(1, 'Please select a difficulty level.'),
   language: z.string().min(1, 'Please select a language.'),
 });
@@ -409,9 +409,9 @@ export function CreateQuizForm() {
                     name="numberOfQuestions"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Number of Questions (3-50)</FormLabel>
+                        <FormLabel>Number of Questions (3-25)</FormLabel>
                         <FormControl>
-                            <Input type="number" min="3" max="50" {...field} />
+                            <Input type="number" min="3" max="25" {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
