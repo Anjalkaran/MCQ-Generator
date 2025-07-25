@@ -202,11 +202,18 @@ export const updateUserTopicProgress = async (userId: string, topicId: string, l
 export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
-    
+
     const userRef = doc(db, 'users', historyData.userId);
     const userDoc = await getDoc(userRef);
     const userData = userDoc.exists() ? userDoc.data() : null;
     const isUserAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
+
+    // Do not update counts for admins
+    if (isUserAdmin) {
+        // Just save the history, without touching user counts
+        await addDoc(collection(db, 'mcqHistory'), historyData);
+        return;
+    }
 
     const batch = writeBatch(db);
     
@@ -215,7 +222,7 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
     batch.set(historyRef, historyData);
 
     // 2. Prepare and add the user's exam count update
-    if (userDoc.exists() && !isUserAdmin) {
+    if (userDoc.exists()) {
         const updateData: { [key: string]: any } = {};
         if (historyData.isMockTest) {
             updateData.mockTestsTaken = increment(1);
