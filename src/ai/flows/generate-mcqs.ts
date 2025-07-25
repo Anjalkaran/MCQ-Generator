@@ -417,45 +417,63 @@ const generateMCQsFlow = ai.defineFlow(
     // --- END HYBRID LOGIC ---
 
 
-    const {output: initialOutput} = await prompt(flowInput);
-    if (!initialOutput || !initialOutput.mcqs || initialOutput.mcqs.length === 0) {
-        throw new Error('The AI could not generate questions for the selected topic.');
+    const finalMCQs = [];
+    const MAX_ATTEMPTS = 3;
+    let attempts = 0;
+
+    while (finalMCQs.length < input.numberOfQuestions && attempts < MAX_ATTEMPTS) {
+        attempts++;
+        const questionsNeeded = input.numberOfQuestions - finalMCQs.length;
+        const currentFlowInput = { ...flowInput, numberOfQuestions: questionsNeeded };
+
+        const { output: initialOutput } = await prompt(currentFlowInput);
+
+        if (!initialOutput || !initialOutput.mcqs || initialOutput.mcqs.length === 0) {
+            console.warn(`Attempt ${attempts}: AI failed to generate any questions.`);
+            continue;
+        }
+
+        let validatedMCQs = initialOutput.mcqs.filter(mcq => MCQSchema.safeParse(mcq).success);
+
+        if (flowInput.material) {
+            const verificationPromises = validatedMCQs.map(async (mcq) => {
+                try {
+                    const verificationResponse = await verificationPrompt({
+                        material: flowInput.material!,
+                        question: mcq.question,
+                        answer: mcq.correctAnswer,
+                    });
+                    if (verificationResponse.output?.isCorrect) {
+                        return mcq;
+                    } else {
+                        console.warn(`Filtering out incorrect MCQ. Q: "${mcq.question}", A: "${mcq.correctAnswer}". Justification: ${verificationResponse.output?.justification}`);
+                        return null;
+                    }
+                } catch (e) {
+                    console.error("Error during MCQ verification:", e);
+                    return null;
+                }
+            });
+            const verificationResults = await Promise.all(verificationPromises);
+            validatedMCQs = verificationResults.filter(mcq => mcq !== null) as typeof validatedMCQs;
+        }
+
+        finalMCQs.push(...validatedMCQs);
+    }
+
+    if (finalMCQs.length === 0) {
+        throw new Error('The AI could not generate any valid questions for the selected topic after multiple attempts.');
     }
     
-    let validatedMCQs = initialOutput.mcqs.filter(mcq => MCQSchema.safeParse(mcq).success);
-
-    // --- Verification Step for material-based questions ---
-    if (flowInput.material) {
-        const verificationPromises = validatedMCQs.map(async (mcq) => {
-            try {
-                const verificationResponse = await verificationPrompt({
-                    material: flowInput.material!,
-                    question: mcq.question,
-                    answer: mcq.correctAnswer,
-                });
-                if (verificationResponse.output?.isCorrect) {
-                    return mcq; // Keep the MCQ if it's correct
-                } else {
-                    console.warn(`Filtering out incorrect MCQ. Q: "${mcq.question}", A: "${mcq.correctAnswer}". Justification: ${verificationResponse.output?.justification}`);
-                    return null; // Discard the MCQ if incorrect
-                }
-            } catch (e) {
-                console.error("Error during MCQ verification:", e);
-                return null; // Discard on error
-            }
-        });
-        
-        const verificationResults = await Promise.all(verificationPromises);
-        validatedMCQs = verificationResults.filter(mcq => mcq !== null) as typeof validatedMCQs;
+    if (finalMCQs.length < input.numberOfQuestions) {
+        console.warn(`Warning: Could only generate ${finalMCQs.length} out of ${input.numberOfQuestions} requested valid questions.`);
     }
 
-
-    if (validatedMCQs.length === 0) {
-        throw new Error('The AI failed to generate any valid questions. Please try again.');
-    }
 
     await runDeferred();
     
-    return { mcqs: validatedMCQs };
+    return { mcqs: finalMCQs.slice(0, input.numberOfQuestions) };
   }
 );
+
+    
