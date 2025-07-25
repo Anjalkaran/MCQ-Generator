@@ -15,9 +15,8 @@ import { getAllUsers, getQnAUsage } from "@/lib/firestore";
 import type { UserData, QnAUsage } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { ADMIN_EMAILS } from "@/lib/constants";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 function AnalyticsTab({ qnaUsage }: { qnaUsage: QnAUsage[] }) {
     const uniqueUsers = useMemo(() => {
@@ -69,7 +68,7 @@ export default function AdminPage() {
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(true);
-  const [activeSection, setActiveSection] = useState<AdminSection | null>(null);
+  const [activeSection, setActiveSection] = useState<AdminSection>('users');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -160,22 +159,22 @@ export default function AdminPage() {
           </p>
         </div>
         
-        <RadioGroup
-            value={activeSection ?? ''}
-            onValueChange={(value) => setActiveSection(value as AdminSection)}
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2"
-        >
-            {adminSections.map(({ value, label, icon: Icon }) => (
-                 <Label key={value} htmlFor={value} className={cn(
-                    "flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer",
-                    activeSection === value && "border-primary"
-                 )}>
-                    <RadioGroupItem value={value} id={value} className="sr-only" />
-                    <Icon className="mb-2 h-6 w-6" />
-                    <span className="text-center text-sm font-medium">{label}</span>
-                 </Label>
-            ))}
-        </RadioGroup>
+        <div className="space-y-2">
+            <Label htmlFor="admin-section">Select a Section</Label>
+            <Select
+                value={activeSection}
+                onValueChange={(value) => setActiveSection(value as AdminSection)}
+            >
+                <SelectTrigger id="admin-section">
+                    <SelectValue placeholder="Select a section to manage..." />
+                </SelectTrigger>
+                <SelectContent>
+                    {adminSections.map(({ value, label }) => (
+                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
 
         <div className="mt-6">
             {renderContent()}
