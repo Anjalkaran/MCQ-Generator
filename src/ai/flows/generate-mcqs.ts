@@ -90,25 +90,25 @@ Problem: "{{problem}}"`,
 // New prompt for generating just the problem
 const arithmeticProblemPrompt = ai.definePrompt({
     name: 'arithmeticProblemPrompt',
-    input: { schema: z.object({ topic: z.string(), previousQuestions: z.array(z.string()).optional(), language: z.string().optional().default('English') }) },
+    input: { schema: z.object({ topic: z.string(), previousQuestions: z.array(z.string()).optional(), language: z.string().optional().default('English'), numberOfQuestions: z.number() }) },
     output: { schema: z.object({ problems: z.array(ArithmeticProblemSchema) }) },
-    prompt: `You are a meticulous mathematics teacher. Create a word problem or a numerical equation for the topic "{{topic}}".
+    prompt: `You are a meticulous mathematics teacher. Create {{numberOfQuestions}} unique word problems or numerical equations for the topic "{{topic}}".
     
 The language of the problem MUST be {{language}}.
 
 --- TOPIC-SPECIFIC INSTRUCTIONS ---
 {{#ifEquals topic "Average"}}
-You MUST create a problem that involves calculating the average of a set of numbers.
+You MUST create problems that involve calculating the average of a set of numbers.
 Example: "Find the average of the following numbers: 10, 20, 30, 40, 50."
 DO NOT create a number series or pattern-finding problem.
 {{else ifEquals topic "BODMAS"}}
-You MUST create a numerical equation that requires the BODMAS rule to solve.
+You MUST create numerical equations that require the BODMAS rule to solve.
 Example: "Solve using BODMAS: 10 + 5 * 2 - (8 / 4) = ?"
 {{else ifEquals topic "Time and work"}}
-You MUST create a word problem involving work rates and time.
+You MUST create word problems involving work rates and time.
 Example: "A can complete a task in 10 days and B can do it in 15 days. If they work together, in how many days will the work be completed?"
 {{else}}
-Generate a standard, relevant word problem for the topic "{{topic}}".
+Generate standard, relevant word problems for the topic "{{topic}}".
 {{/ifEquals}}
 --- END INSTRUCTIONS ---
 
@@ -119,7 +119,7 @@ IMPORTANT: Do NOT repeat any of the following questions. Ensure the new question
     {{/each}}
 {{/if}}
 
-Your output MUST be a JSON object containing a "problems" array with ONE entry.
+Your output MUST be a JSON object containing a "problems" array with EXACTLY {{numberOfQuestions}} entries.
 Each entry must have a single key: "question".
 The value should be the full word problem or equation.
 Do not generate multiple-choice options or the answer here.
@@ -328,7 +328,7 @@ const generateMCQsFlow = ai.defineFlow(
 
     // --- Special Handling for Basic Arithmetics ---
     if (input.category === "Basic Arithmetics") {
-        const generatedMCQs = [];
+        let generatedMCQs = [];
         const existingQuestions = new Set(previousQuestions);
         const MAX_ATTEMPTS = 5;
         let attempts = 0;
@@ -336,40 +336,46 @@ const generateMCQsFlow = ai.defineFlow(
         while (generatedMCQs.length < input.numberOfQuestions && attempts < MAX_ATTEMPTS) {
             attempts++;
             try {
-                // Step 1: Generate just the problem statement
+                // Step 1: Generate just the problem statement(s)
+                const problemsToGenerate = input.numberOfQuestions - generatedMCQs.length;
                 const problemResponse = await arithmeticProblemPrompt({ 
                     topic: input.topic, 
                     previousQuestions: Array.from(existingQuestions),
-                    language: input.language
+                    language: input.language,
+                    numberOfQuestions: problemsToGenerate,
                 });
                 
-                if (!problemResponse.output?.problems?.[0]) continue;
-                const { question } = problemResponse.output.problems[0];
-                existingQuestions.add(question); // Add to avoid duplicates in the same run
+                if (!problemResponse.output?.problems || problemResponse.output.problems.length === 0) continue;
 
-                // Step 2: Get the VERIFIED correct answer and solution from the solver
-                const solutionResponse = await arithmeticSolverPrompt({ problem: question, language: input.language });
-                if (!solutionResponse.output?.final_answer) {
-                    console.error("Solver failed to produce an answer for:", question);
-                    continue;
+                for (const problem of problemResponse.output.problems) {
+                    const { question } = problem;
+                    if (existingQuestions.has(question)) continue;
+                    existingQuestions.add(question); // Add to avoid duplicates in the same run
+
+                    // Step 2: Get the VERIFIED correct answer and solution from the solver
+                    const solutionResponse = await arithmeticSolverPrompt({ problem: question, language: input.language });
+                    if (!solutionResponse.output?.final_answer) {
+                        console.error("Solver failed to produce an answer for:", question);
+                        continue;
+                    }
+                    const correctAnswer = solutionResponse.output.final_answer;
+                    const solutionText = solutionResponse.output.steps.join('\n');
+                    
+                    // Step 3: Generate distractors based on the VERIFIED correct answer
+                    const distractorsResponse = await arithmeticDistractorsPrompt({ question, correctAnswer, language: input.language });
+                    if (!distractorsResponse.output?.distractors) continue;
+                    const { distractors } = distractorsResponse.output;
+
+                    // Step 4: Combine and shuffle options
+                    const options = shuffleArray([correctAnswer, ...distractors]);
+                    
+                    generatedMCQs.push({
+                        question,
+                        options,
+                        correctAnswer,
+                        solution: solutionText,
+                    });
                 }
-                const correctAnswer = solutionResponse.output.final_answer;
-                const solutionText = solutionResponse.output.steps.join('\n');
-                
-                // Step 3: Generate distractors based on the VERIFIED correct answer
-                const distractorsResponse = await arithmeticDistractorsPrompt({ question, correctAnswer, language: input.language });
-                if (!distractorsResponse.output?.distractors) continue;
-                const { distractors } = distractorsResponse.output;
-
-                // Step 4: Combine and shuffle options
-                const options = shuffleArray([correctAnswer, ...distractors]);
-                
-                generatedMCQs.push({
-                    question,
-                    options,
-                    correctAnswer,
-                    solution: solutionText,
-                });
 
             } catch (e) {
                 console.error(`Attempt ${attempts}: Error during arithmetic question generation step:`, e);
@@ -380,7 +386,7 @@ const generateMCQsFlow = ai.defineFlow(
         if (generatedMCQs.length === 0) {
             throw new Error('The AI could not generate any arithmetic questions after multiple attempts.');
         }
-        return { mcqs: generatedMCQs };
+        return { mcqs: generatedMCQs.slice(0, input.numberOfQuestions) };
     }
     // --- End Special Handling ---
 
