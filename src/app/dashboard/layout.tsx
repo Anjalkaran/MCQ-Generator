@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { getDashboardData } from '@/lib/firestore';
-import type { UserData, Category, Topic, BankedQuestion, QnAUsage, Notification } from "@/lib/types";
+import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification } from "@/lib/types";
 import { ADMIN_EMAILS, FREE_EXAM_LIMIT } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
@@ -26,6 +26,7 @@ interface DashboardContextType {
   categories: Category[];
   topics: Topic[];
   bankedQuestions: BankedQuestion[];
+  topicMCQs: TopicMCQ[];
   liveTestBank: BankedQuestion[];
   qnaUsage: QnAUsage[];
   notifications: Notification[];
@@ -270,6 +271,7 @@ export default function DashboardLayout({
   const [categories, setCategories] = useState<Category[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [bankedQuestions, setBankedQuestions] = useState<BankedQuestion[]>([]);
+  const [topicMCQs, setTopicMCQs] = useState<TopicMCQ[]>([]);
   const [liveTestBank, setLiveTestBank] = useState<BankedQuestion[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -370,11 +372,12 @@ export default function DashboardLayout({
                     mockTestsTaken: 0,
                     isPro: true,
                 };
-                const { categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, onlineUserCount } = await getDashboardData(currentUser.uid, true);
+                const { categories, topics, bankedQuestions, topicMCQs, liveTestBank, qnaUsage, notifications, onlineUserCount } = await getDashboardData(currentUser.uid, true);
                 setUserData(adminUserData);
                 setCategories(categories);
                 setTopics(topics);
                 setBankedQuestions(bankedQuestions);
+                setTopicMCQs(topicMCQs);
                 setLiveTestBank(liveTestBank);
                 setQnaUsage(qnaUsage);
                 setNotifications(notifications);
@@ -392,6 +395,7 @@ export default function DashboardLayout({
                 setCategories(categories);
                 setTopics(topics);
                 setBankedQuestions(bankedQuestions);
+                setTopicMCQs([]);
                 setLiveTestBank([]);
                 setQnaUsage([]); // Non-admins don't need this data
                 setNotifications([]);
@@ -413,6 +417,7 @@ export default function DashboardLayout({
         setCategories([]);
         setTopics([]);
         setBankedQuestions([]);
+        setTopicMCQs([]);
         setLiveTestBank([]);
         setQnaUsage([]);
         setNotifications([]);
@@ -427,7 +432,7 @@ export default function DashboardLayout({
     
   }, [router, toast, handleLogout, pathname]);
   
-  const contextValue = { user, userData, categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, onlineUserCount, isLoading, setUserData };
+  const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, qnaUsage, notifications, onlineUserCount, isLoading, setUserData };
 
   return (
     <DashboardContext.Provider value={contextValue}>

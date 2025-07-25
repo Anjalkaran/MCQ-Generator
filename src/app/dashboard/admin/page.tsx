@@ -6,10 +6,11 @@ import { useDashboard } from "@/app/dashboard/layout";
 import { UserManagement } from '@/components/admin/user-management';
 import { TopicManagement } from '@/components/admin/topic-management';
 import { QuestionBankManagement } from '@/components/admin/question-bank-management';
+import { TopicMCQManagement } from '@/components/admin/topic-mcq-management';
 import { LiveTestManagement } from '@/components/admin/live-test-management';
 import { ReportsManagement } from '@/components/admin/reports-management';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy } from "lucide-react";
+import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion } from "lucide-react";
 import { getAllUsers, getQnAUsage } from "@/lib/firestore";
 import type { UserData, QnAUsage } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -53,6 +54,7 @@ function AnalyticsTab({ qnaUsage }: { qnaUsage: QnAUsage[] }) {
 const adminSections = [
     { value: 'users', label: 'User Management', icon: Shield },
     { value: 'topics', label: 'Topic Management', icon: BookCopy },
+    { value: 'topic-mcq', label: 'MCQ Bank', icon: FileQuestion },
     { value: 'question-bank', label: 'Question Bank', icon: FileText },
     { value: 'live-test', label: 'Live Test Management', icon: Trophy },
     { value: 'analytics', label: 'Analytics', icon: BarChart3 },
@@ -62,7 +64,7 @@ const adminSections = [
 type AdminSection = typeof adminSections[number]['value'];
 
 export default function AdminPage() {
-  const { user, userData, categories, topics, bankedQuestions, liveTestBank, isLoading: isDashboardLoading } = useDashboard();
+  const { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, isLoading: isDashboardLoading } = useDashboard();
   const [users, setUsers] = useState<UserData[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
@@ -134,6 +136,8 @@ export default function AdminPage() {
             return <UserManagement initialUsers={users} />;
         case 'topics':
             return <TopicManagement initialCategories={categories} initialTopics={topics} />;
+        case 'topic-mcq':
+            return <TopicMCQManagement initialTopics={topics} initialTopicMCQs={topicMCQs} />;
         case 'question-bank':
             return <QuestionBankManagement initialBankedQuestions={bankedQuestions} />;
         case 'live-test':
@@ -159,7 +163,7 @@ export default function AdminPage() {
         <RadioGroup
             value={activeSection ?? ''}
             onValueChange={(value) => setActiveSection(value as AdminSection)}
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2"
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2"
         >
             {adminSections.map(({ value, label, icon: Icon }) => (
                  <Label key={value} htmlFor={value} className={cn(

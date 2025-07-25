@@ -85,6 +85,14 @@ export interface BankedQuestion {
     uploadedAt: Date;
 }
 
+export interface TopicMCQ {
+    id: string;
+    topicId: string;
+    fileName: string;
+    content: string;
+    uploadedAt: Date;
+}
+
 export interface LeaderboardEntry {
     rank: number;
     userId: string;
