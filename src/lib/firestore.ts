@@ -637,7 +637,7 @@ export const getTopicMCQs = async (topicId?: string): Promise<TopicMCQ[]> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     const mcqCollection = collection(db, 'topicMCQs');
-    const q = topicId ? query(mcqCollection, where('topicId', '==', topicId), orderBy('uploadedAt', 'desc')) : query(mcqCollection, orderBy('uploadedAt', 'desc'));
+    const q = topicId ? query(mcqCollection, where('topicId', '==', topicId)) : query(mcqCollection, orderBy('uploadedAt', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => {
         const data = doc.data();
