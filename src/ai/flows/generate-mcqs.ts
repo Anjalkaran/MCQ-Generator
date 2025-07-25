@@ -424,7 +424,14 @@ const generateMCQsFlow = ai.defineFlow(
     while (finalMCQs.length < input.numberOfQuestions && attempts < MAX_ATTEMPTS) {
         attempts++;
         const questionsNeeded = input.numberOfQuestions - finalMCQs.length;
-        const currentFlowInput = { ...flowInput, numberOfQuestions: questionsNeeded };
+        const currentFlowInput = {
+          ...flowInput,
+          numberOfQuestions: questionsNeeded,
+          previousQuestions: [
+            ...(flowInput.previousQuestions || []),
+            ...finalMCQs.map(q => q.question),
+          ]
+        };
 
         const { output: initialOutput } = await prompt(currentFlowInput);
 
