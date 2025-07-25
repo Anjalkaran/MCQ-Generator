@@ -199,29 +199,29 @@ export const updateUserTopicProgress = async (userId: string, topicId: string, l
 }
 
 // MCQ HISTORY MANAGEMENT
-export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promise<void> => {
+export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id' | 'takenAt'>): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
 
     const { userId, isMockTest } = historyData;
-
-    // Ensure topicTitle is a string for reliability
+    
+    const batch = writeBatch(db);
+    
+    // 1. Save the main history document
+    const historyRef = doc(collection(db, 'mcqHistory'));
     const dataToSave = {
         ...historyData,
         topicTitle: historyData.topicTitle || (isMockTest ? 'Mock Test' : 'Quiz'),
+        takenAt: serverTimestamp(), // Use server timestamp for accuracy
     };
-
-    const batch = writeBatch(db);
-
-    const historyRef = doc(collection(db, 'mcqHistory'));
     batch.set(historyRef, dataToSave);
-
+    
+    // 2. Update the user's stats
     const userRef = doc(db, 'users', userId);
-
     const updateData = isMockTest
         ? { mockTestsTaken: increment(1) }
         : { topicExamsTaken: increment(1) };
-    
+        
     batch.update(userRef, updateData);
     
     await batch.commit();
