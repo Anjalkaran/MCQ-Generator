@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { useDashboard } from '@/app/dashboard/layout';
-import { Loader2, PlayCircle, CheckCircle, Trophy } from 'lucide-react';
+import { Loader2, PlayCircle, CheckCircle, Trophy, Ban } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -29,10 +29,20 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
     const [isGenerating, setIsGenerating] = useState(false);
 
     const startTime = normalizeDate(test.startTime);
-    const hasTakenTest = userData?.liveTestsTaken?.includes(test.id);
     const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
+    const hasTakenTest = userData?.liveTestsTaken?.includes(test.id);
 
     const startTest = async () => {
+        // Safeguard: Prevent non-admins from retaking the test
+        if (hasTakenTest && !isAdmin) {
+            toast({
+                title: "Already Attempted",
+                description: "You have already completed this live test and cannot retake it.",
+                variant: "destructive",
+            });
+            return;
+        }
+
         setIsGenerating(true);
         if (!user) {
             toast({ title: 'Authentication Error', description: 'You must be logged in to start the test.', variant: 'destructive' });
@@ -77,7 +87,7 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
                 <CardDescription>
                     Conducted on: {startTime?.toLocaleDateString()}
                 </CardDescription>
-                 {hasTakenTest && !isAdmin && (
+                 {hasTakenTest && (
                     <Badge variant="secondary" className="w-fit mt-2">
                         <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
                         Attempted
@@ -87,19 +97,26 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
             <CardContent className="flex-grow space-y-4">
             </CardContent>
             <CardFooter className="flex-col items-stretch gap-2">
-                <Button onClick={startTest} disabled={isGenerating}>
-                    {isGenerating ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Loading... Please wait
-                        </>
-                    ) : (
-                        <>
-                            <PlayCircle className="mr-2 h-4 w-4" />
-                            Practice Test
-                        </>
-                    )}
-                </Button>
+                {hasTakenTest && !isAdmin ? (
+                     <Button disabled>
+                        <Ban className="mr-2 h-4 w-4" />
+                        Already Attempted
+                    </Button>
+                ) : (
+                    <Button onClick={startTest} disabled={isGenerating}>
+                        {isGenerating ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Loading... Please wait
+                            </>
+                        ) : (
+                            <>
+                                <PlayCircle className="mr-2 h-4 w-4" />
+                                {isAdmin && hasTakenTest ? 'Re-take Test (Admin)' : 'Practice Test'}
+                            </>
+                        )}
+                    </Button>
+                )}
                  <Button variant="outline" asChild>
                     <Link href={`/dashboard/leaderboard?liveTestId=${test.id}`}>
                         <Trophy className="mr-2 h-4 w-4" />
