@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,8 +12,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Eye, Trash2, Calendar as CalendarIcon } from 'lucide-react';
-import { deleteLiveTestBankDocument, addLiveTest } from '@/lib/firestore';
+import { Loader2, Upload, Calendar as CalendarIcon, Clock, Trash2 } from 'lucide-react';
+import { addLiveTest } from '@/lib/firestore';
 import type { BankedQuestion, LiveTest } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -21,8 +21,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { cn } from '@/lib/utils';
+import { cn, normalizeDate } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
+import { Badge } from '@/components/ui/badge';
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 
@@ -30,7 +31,7 @@ const scheduleSchema = z.object({
   title: z.string().min(3, "Title is required."),
   questionPaperId: z.string().min(1, "You must select a question paper."),
   examCategory: z.enum(examCategories),
-  price: z.coerce.number().min(0, "Price must be a positive number."),
+  price: z.coerce.number().min(0, "Price must be a positive number.").optional().default(0),
   startTime: z.date({ required_error: "A start date and time is required." }),
   endTime: z.date({ required_error: "An end date and time is required." })
 }).refine(data => data.endTime > data.startTime, {
@@ -40,15 +41,25 @@ const scheduleSchema = z.object({
 
 interface LiveTestManagementProps {
     initialLiveTestBank: BankedQuestion[];
+    initialLiveTests: LiveTest[];
 }
 
-export function LiveTestManagement({ initialLiveTestBank }: LiveTestManagementProps) {
+export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: LiveTestManagementProps) {
   const [isScheduling, setIsScheduling] = useState(false);
   const [liveTestBank] = useState<BankedQuestion[]>(initialLiveTestBank);
+  const [liveTests, setLiveTests] = useState<LiveTest[]>(initialLiveTests);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof scheduleSchema>>({
     resolver: zodResolver(scheduleSchema),
+    defaultValues: {
+      title: '',
+      questionPaperId: undefined,
+      examCategory: undefined,
+      price: 0,
+      startTime: undefined,
+      endTime: undefined,
+    }
   });
 
   const onSubmit = async (values: z.infer<typeof scheduleSchema>) => {
@@ -59,7 +70,17 @@ export function LiveTestManagement({ initialLiveTestBank }: LiveTestManagementPr
             startTime: Timestamp.fromDate(values.startTime),
             endTime: Timestamp.fromDate(values.endTime),
         };
-        await addLiveTest(liveTestData);
+        const newDocRef = await addLiveTest(liveTestData);
+        
+        const newLiveTest: LiveTest = {
+          id: newDocRef.id,
+          ...values,
+          startTime: Timestamp.fromDate(values.startTime),
+          endTime: Timestamp.fromDate(values.endTime),
+        }
+        
+        setLiveTests(prev => [newLiveTest, ...prev].sort((a,b) => normalizeDate(b.startTime)!.getTime() - normalizeDate(a.startTime)!.getTime()));
+        
         toast({ title: 'Success', description: 'Live test scheduled successfully.' });
         form.reset();
     } catch (error: any) {
@@ -74,13 +95,27 @@ export function LiveTestManagement({ initialLiveTestBank }: LiveTestManagementPr
   const filteredPapers = selectedCategory 
     ? liveTestBank.filter(p => p.examCategory === selectedCategory) 
     : [];
+    
+  const getStatus = (test: LiveTest) => {
+    const now = new Date();
+    const startTime = normalizeDate(test.startTime)!;
+    const endTime = normalizeDate(test.endTime)!;
+
+    if (now > endTime) return <Badge variant="secondary">Completed</Badge>;
+    if (now >= startTime && now <= endTime) return <Badge className="bg-green-600 hover:bg-green-700">Live</Badge>;
+    return <Badge variant="outline">Upcoming</Badge>;
+  };
+  
+  const getQuestionPaperName = (id: string) => {
+    return liveTestBank.find(p => p.id === id)?.fileName || 'Unknown Paper';
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="grid gap-6 lg:grid-cols-2">
         <Card>
         <CardHeader>
             <CardTitle>Schedule a New Live Test</CardTitle>
-            <CardDescription>Select a pre-uploaded question paper and set the schedule for the live test.</CardDescription>
+            <CardDescription>Select a question paper and set the schedule for the live test.</CardDescription>
         </CardHeader>
         <CardContent>
             <Form {...form}>
@@ -257,12 +292,49 @@ export function LiveTestManagement({ initialLiveTestBank }: LiveTestManagementPr
                     />
                 </div>
                 <Button type="submit" disabled={isScheduling}>
-                {isScheduling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                {isScheduling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Clock className="mr-2 h-4 w-4" />}
                 Schedule Live Test
                 </Button>
             </form>
             </Form>
         </CardContent>
+        </Card>
+        
+        <Card>
+            <CardHeader>
+                <CardTitle>All Scheduled Live Tests</CardTitle>
+                <CardDescription>A complete list of upcoming, live, and past tests.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="border rounded-md">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Title</TableHead>
+                                <TableHead>Start Time</TableHead>
+                                <TableHead>End Time</TableHead>
+                                <TableHead>Status</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {liveTests.length > 0 ? (
+                                liveTests.map((test) => (
+                                    <TableRow key={test.id}>
+                                        <TableCell className="font-medium">{test.title}<br/><span className="text-xs text-muted-foreground">{getQuestionPaperName(test.questionPaperId)}</span></TableCell>
+                                        <TableCell>{format(normalizeDate(test.startTime)!, "dd/MM/yy hh:mm a")}</TableCell>
+                                        <TableCell>{format(normalizeDate(test.endTime)!, "dd/MM/yy hh:mm a")}</TableCell>
+                                        <TableCell>{getStatus(test)}</TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="h-24 text-center">No live tests scheduled yet.</TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+            </CardContent>
         </Card>
     </div>
   );

@@ -11,8 +11,8 @@ import { LiveTestManagement } from '@/components/admin/live-test-management';
 import { ReportsManagement } from '@/components/admin/reports-management';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion } from "lucide-react";
-import { getAllUsers, getQnAUsage } from "@/lib/firestore";
-import type { UserData, QnAUsage } from "@/lib/types";
+import { getAllUsers, getQnAUsage, getLiveTests } from "@/lib/firestore";
+import type { UserData, QnAUsage, LiveTest } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { ADMIN_EMAILS } from "@/lib/constants";
 import { Label } from "@/components/ui/label";
@@ -57,7 +57,7 @@ const adminSections = [
     { value: 'topics', label: 'Topic Management', icon: BookCopy },
     { value: 'topic-mcq', label: 'MCQ Bank', icon: FileQuestion },
     { value: 'question-bank', label: 'Question Bank', icon: FileText },
-    { value: 'live-test', label: 'Live Test Management', icon: Trophy },
+    { value: 'live-test', label: 'Live Test', icon: Trophy },
     { value: 'analytics', label: 'Analytics', icon: BarChart3 },
     { value: 'reports', label: 'Reports', icon: Download },
 ] as const;
@@ -68,22 +68,26 @@ export default function AdminPage() {
   const { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, isLoading: isDashboardLoading } = useDashboard();
   const [users, setUsers] = useState<UserData[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
+  const [allLiveTests, setAllLiveTests] = useState<LiveTest[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(true);
+  const [isLoadingLiveTests, setIsLoadingLiveTests] = useState(true);
   const [activeSection, setActiveSection] = useState<AdminSection>('users');
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchAdminData = async () => {
       try {
-        const [fetchedUsers, fetchedQnAUsage] = await Promise.all([
+        const [fetchedUsers, fetchedQnAUsage, fetchedLiveTests] = await Promise.all([
             getAllUsers(),
-            getQnAUsage()
+            getQnAUsage(),
+            getLiveTests(true) // Fetch all live tests
         ]);
         
         const regularUsers = fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email));
         setUsers(regularUsers);
         setQnaUsage(fetchedQnAUsage);
+        setAllLiveTests(fetchedLiveTests);
 
       } catch (error) {
         console.error("Failed to fetch admin data:", error);
@@ -95,6 +99,7 @@ export default function AdminPage() {
       } finally {
         setIsLoadingUsers(false);
         setIsLoadingAnalytics(false);
+        setIsLoadingLiveTests(false);
       }
     };
 
@@ -103,10 +108,11 @@ export default function AdminPage() {
     } else {
         setIsLoadingUsers(false);
         setIsLoadingAnalytics(false);
+        setIsLoadingLiveTests(false);
     }
   }, [userData, toast]);
 
-  if (isDashboardLoading || isLoadingUsers || isLoadingAnalytics) {
+  if (isDashboardLoading || isLoadingUsers || isLoadingAnalytics || isLoadingLiveTests) {
     return (
        <div className="flex h-[50vh] w-full items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -142,7 +148,7 @@ export default function AdminPage() {
         case 'question-bank':
             return <QuestionBankManagement initialBankedQuestions={bankedQuestions} />;
         case 'live-test':
-            return <LiveTestManagement initialLiveTestBank={liveTestBank} />;
+            return <LiveTestManagement initialLiveTestBank={liveTestBank} initialLiveTests={allLiveTests} />;
         case 'analytics':
             return <AnalyticsTab qnaUsage={qnaUsage} />;
         case 'reports':
