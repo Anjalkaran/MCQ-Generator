@@ -161,21 +161,21 @@ export default function AdminPage() {
           </p>
         </div>
         
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-7">
           {adminSections.map((section) => (
             <Card
               key={section.value}
               onClick={() => setActiveSection(section.value)}
               className={cn(
-                "cursor-pointer transition-all hover:shadow-md",
+                "cursor-pointer transition-all hover:shadow-md flex flex-col items-center justify-center aspect-square",
                 activeSection === section.value && "border-primary ring-2 ring-primary"
               )}
             >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardHeader className="items-center text-center p-4">
+                {React.createElement(section.icon, { className: "h-6 w-6 text-muted-foreground mb-2" })}
                 <CardTitle className="text-sm font-medium">
                   {section.label}
                 </CardTitle>
-                {React.createElement(section.icon, { className: "h-4 w-4 text-muted-foreground" })}
               </CardHeader>
             </Card>
           ))}
