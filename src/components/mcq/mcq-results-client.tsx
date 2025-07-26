@@ -34,8 +34,8 @@ interface StoredQuizData {
 // Helper function to normalize answer strings for comparison
 const normalizeAnswer = (answer: string | undefined): string => {
     if (!answer) return "";
-    // Trim whitespace and remove leading/trailing quotes (single or double)
-    return answer.trim().replace(/^["']|["']$/g, '');
+    // Trim whitespace and remove leading/trailing quotes (single or double) and periods.
+    return answer.trim().replace(/^["']|["'.]$/g, '').toLowerCase();
 };
 
 
@@ -152,7 +152,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
           <div className="flex justify-center gap-4 mt-8">
              {liveTestId && (
               <Button asChild>
-                <Link href="/dashboard/leaderboard">
+                <Link href={`/dashboard/leaderboard?liveTestId=${liveTestId}`}>
                   <Trophy className="mr-2 h-4 w-4" />
                   View Leaderboard
                 </Link>
