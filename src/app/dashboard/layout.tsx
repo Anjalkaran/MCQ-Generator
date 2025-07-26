@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
@@ -479,7 +478,7 @@ export default function DashboardLayout({
 
   return (
     <DashboardContext.Provider value={contextValue}>
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex min-h-screen flex-col md:flex-row">
         <SidebarProvider>
           <div className="relative z-20">
               <AppSidebar />
