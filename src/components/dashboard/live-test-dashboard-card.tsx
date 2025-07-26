@@ -277,9 +277,6 @@ export const LiveTestDashboardCard = ({ initialLiveTests }: { initialLiveTests: 
                     </div>
                     <CardTitle>{nextTest?.title}</CardTitle>
                 </div>
-                 <CardDescription className="pt-4">
-                    Starts: {startTime?.toLocaleDateString()} at {startTime?.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                </CardDescription>
             </CardHeader>
             <CardContent className="text-center flex-grow flex flex-col justify-center space-y-4">
                  <Alert className="text-left bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800">
