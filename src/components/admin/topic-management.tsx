@@ -552,15 +552,63 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                 <CardTitle>Manage Content</CardTitle>
                 <CardDescription>View, edit, or delete existing categories and topics.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
                  <div className="border rounded-md">
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Category</TableHead>
+                                <TableHead>Exams</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                             {categories.length > 0 ? (
+                                categories.map((cat) => (
+                                    <TableRow key={cat.id}>
+                                        <TableCell className="font-medium">{cat.name}</TableCell>
+                                        <TableCell>
+                                            <div className="flex gap-1">
+                                                {cat.examCategories?.map(ec => <Badge key={ec} variant="secondary">{ec}</Badge>)}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-right space-x-1">
+                                            <Button variant="ghost" size="icon" onClick={() => handleOpenCategoryDialog(cat)}><Edit className="h-4 w-4" /></Button>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Delete Category: {cat.name}?</AlertDialogTitle>
+                                                        <AlertDialogDescription>This will also delete ALL topics within this category. This action is permanent and cannot be undone.</AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDeleteCategory(cat.id)}>Delete</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                             ) : (
+                                 <TableRow>
+                                    <TableCell colSpan={3} className="h-24 text-center">
+                                        No categories created yet.
+                                    </TableCell>
+                                </TableRow>
+                             )}
+                        </TableBody>
+                    </Table>
+                 </div>
+
+                 <div className="border rounded-md">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
                                 <TableHead>Topic</TableHead>
                                 <TableHead>Part</TableHead>
-                                <TableHead>Exam</TableHead>
                                 <TableHead>Material</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
@@ -569,14 +617,8 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                             {topics.length > 0 ? (
                                 topics.map((topic) => (
                                     <TableRow key={topic.id}>
-                                        <TableCell>{getCategoryName(topic.categoryId)}</TableCell>
-                                        <TableCell className="font-medium">{topic.title}</TableCell>
+                                        <TableCell className="font-medium">{topic.title}<br/><span className="text-xs text-muted-foreground">{getCategoryName(topic.categoryId)}</span></TableCell>
                                         <TableCell><Badge variant="outline">{topic.part}</Badge></TableCell>
-                                        <TableCell>
-                                            <div className="flex gap-1">
-                                                {topic.examCategories?.map(ec => <Badge key={ec} variant="secondary">{ec}</Badge>)}
-                                            </div>
-                                        </TableCell>
                                         <TableCell>
                                             {topic.material ? (
                                                 <Badge>Uploaded</Badge>
@@ -606,7 +648,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="h-24 text-center">
+                                    <TableCell colSpan={4} className="h-24 text-center">
                                         No topics created yet.
                                     </TableCell>
                                 </TableRow>
