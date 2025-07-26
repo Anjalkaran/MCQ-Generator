@@ -117,7 +117,7 @@ const verificationPrompt = ai.definePrompt({
     prompt: `You are a meticulous Fact-Checker AI. Your only task is to verify if the 'PROPOSED ANSWER' to the 'QUESTION' is factually correct and explicitly supported by the 'STUDY MATERIAL' provided.
 
 Your analysis must adhere to these rules:
-1.  **Single Source of Truth:** Your decision MUST be based exclusively on the 'STUDY MATERIAL'. Do not use any external knowledge.
+1.  **Single Source of Truth:** Your decision MUST be based exclusively on the 'STUDY MATERIAL'. Do not make inferences or assumptions.
 2.  **Explicit Support:** The answer is only correct if the information is clearly and directly stated in the material. Do not make inferences or assumptions.
 3.  **Direct Match:** The answer must be a direct factual match. For numerical values (like weights, times, fees), the number must match exactly.
 
@@ -247,24 +247,27 @@ const generateMCQsFlow = ai.defineFlow(
             }));
             
             const previousQuestionSet = new Set(previousQuestions);
-            let unseenMCQs = allBankedMCQs.filter(mcq => !previousQuestionSet.has(mcq.question));
+            const unseenMCQs = allBankedMCQs.filter(mcq => !previousQuestionSet.has(mcq.question));
             
+            // **CRITICAL FIX**: If the category is Basic Arithmetics, ALWAYS use the uploaded document.
+            // Do not verify it. Trust the user's uploaded content completely.
+            if (input.category === "Basic Arithmetics") {
+                console.log("Basic Arithmetics category detected with uploaded document. Using document content directly.");
+                await runDeferred();
+                const questionsToReturn = unseenMCQs.length >= input.numberOfQuestions ? unseenMCQs : allBankedMCQs;
+                return { mcqs: shuffleArray(questionsToReturn).slice(0, input.numberOfQuestions) };
+            }
+
             // If all banked questions have been seen, reset and use all of them
             if (unseenMCQs.length < input.numberOfQuestions) {
                 console.log("Not enough unseen questions, using all available questions from the document.");
-                unseenMCQs = allBankedMCQs;
             }
 
-            if (unseenMCQs.length > 0) {
-                // For Arithmetic, trust the uploaded content and skip verification
-                if (input.category === "Basic Arithmetics") {
-                    await runDeferred();
-                    return { mcqs: shuffleArray(unseenMCQs).slice(0, input.numberOfQuestions) };
-                }
-                
-                // For other topics, verify against material if it exists
+            const questionsToUse = unseenMCQs.length >= input.numberOfQuestions ? unseenMCQs : allBankedMCQs;
+
+            if (questionsToUse.length > 0) {
                 if (fullMaterial) {
-                    const verificationPromises = unseenMCQs.map(async (mcq) => {
+                    const verificationPromises = questionsToUse.map(async (mcq) => {
                         try {
                             const verificationResponse = await verificationPrompt({
                                 material: fullMaterial!,
@@ -288,12 +291,10 @@ const generateMCQsFlow = ai.defineFlow(
                         await runDeferred();
                         return { mcqs: shuffleArray(verifiedMCQs as any[]).slice(0, input.numberOfQuestions) };
                     }
-                    // If all verified MCQs are filtered out, fall through to AI generation as a last resort
                     console.warn("All banked questions were filtered out after verification. Falling back to AI generation.");
                 } else {
-                    // If no material, just return the shuffled unseen MCQs
                     await runDeferred();
-                    return { mcqs: shuffleArray(unseenMCQs).slice(0, input.numberOfQuestions) };
+                    return { mcqs: shuffleArray(questionsToUse).slice(0, input.numberOfQuestions) };
                 }
             }
         }
