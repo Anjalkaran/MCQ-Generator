@@ -57,15 +57,21 @@ Your task is to process the 'QUESTION PAPER' provided below and output a clean, 
 
 **Process:**
 
-1.  **Read and Parse:** Go through the entire 'QUESTION PAPER' text and identify all 50 multiple-choice questions. For each question, you MUST extract the full text of the question and the **full text for all four of its options**.
-2.  **Verify & Assign Topic:**
-    *   For each question, use the 'STUDY MATERIAL' to verify the correct answer. The 'correctAnswer' field in the output must contain the full, correct option text from the translated options.
-    *   Assign its specific topic from the study material (e.g., "Profit and loss", "Methods of address") and specify it in the 'topic' field.
-    *   If a question seems ambiguous, make a reasonable interpretation based on the study material rather than skipping it. Your goal is to produce 50 questions.
+1.  **Read and Parse:** Go through the entire 'QUESTION PAPER' text and identify all 50 multiple-choice questions. For each question, you MUST extract the full text of the question, the **full text for all four of its options**, and the indicated correct answer.
+2.  **Assign Topic:** For each question, identify its specific topic from the study material (e.g., "Profit and loss", "Methods of address") and specify it in the 'topic' field.
+
+{{#ifEquals language "English"}}
+--- ENGLISH LANGUAGE INSTRUCTIONS ---
+3.  **Verify Answers:** For each question, use the 'STUDY MATERIAL' to verify the correct answer. The 'correctAnswer' field in the output must contain the full, correct option text. If a question is ambiguous, make a reasonable interpretation.
+{{else}}
+--- NON-ENGLISH LANGUAGE INSTRUCTIONS ---
+3.  **Translate Reliably:** Your primary goal is to translate the question, all four options, and the correct answer accurately into {{{language}}}. Do NOT attempt to verify the answer against the study material, as this can interfere with the translation. Trust the correct answer provided in the source 'QUESTION PAPER'.
+{{/ifEquals}}
+
 
 **Content Sources:**
 
---- STUDY MATERIAL (Primary Source of Truth) ---
+--- STUDY MATERIAL (For Topic Assignment and English Verification) ---
 {{{studyMaterial}}}
 --- END STUDY MATERIAL ---
 
@@ -77,7 +83,7 @@ Your task is to process the 'QUESTION PAPER' provided below and output a clean, 
 *   Your final output MUST be a single, valid JSON object containing a 'questions' array with EXACTLY 50 questions.
 *   Do NOT skip questions. Process all 50 questions from the source paper.
 *   The 'options' array for each question MUST contain four strings, each being the complete text of an answer option.
-*   Do NOT invent new questions. All questions must originate from the 'QUESTION PAPER'.
+*   The 'correctAnswer' field MUST be an exact, translated match of one of the four options.
 `,
 });
 
