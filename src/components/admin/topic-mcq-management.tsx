@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Eye, Trash2 } from 'lucide-react';
+import { Loader2, Upload, Eye, Trash2, Search } from 'lucide-react';
 import { deleteTopicMCQDocument } from '@/lib/firestore';
 import type { Topic, TopicMCQ } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -47,6 +47,7 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
   const [topics] = useState<Topic[]>(initialTopics);
   const [topicMCQs, setTopicMCQs] = useState<TopicMCQ[]>(initialTopicMCQs || []);
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof uploadSchema>>({
@@ -104,6 +105,18 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
   const getTopicTitle = (topicId: string) => {
     return topics.find(t => t.id === topicId)?.title || 'Unknown Topic';
   }
+
+  const filteredTopicMCQs = useMemo(() => {
+    if (!searchTerm) {
+        return topicMCQs;
+    }
+    const lowercasedFilter = searchTerm.toLowerCase();
+    return topicMCQs.filter(tm => 
+        getTopicTitle(tm.topicId).toLowerCase().includes(lowercasedFilter) ||
+        tm.fileName.toLowerCase().includes(lowercasedFilter)
+    );
+  }, [searchTerm, topicMCQs, topics]);
+
 
   return (
     <div className="space-y-6">
@@ -207,6 +220,15 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
             <CardHeader>
                 <CardTitle>Uploaded Topic MCQ Documents</CardTitle>
                 <CardDescription>View and manage previously uploaded question documents for each topic.</CardDescription>
+                 <div className="relative pt-2">
+                    <Search className="absolute left-2.5 top-4 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search by topic or file name..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-8 w-full"
+                    />
+                </div>
             </CardHeader>
             <CardContent>
                  <div className="border rounded-md">
@@ -220,8 +242,8 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {topicMCQs && topicMCQs.length > 0 ? (
-                                topicMCQs.map((tm) => (
+                            {filteredTopicMCQs && filteredTopicMCQs.length > 0 ? (
+                                filteredTopicMCQs.map((tm) => (
                                     <TableRow key={tm.id}>
                                         <TableCell className="font-medium">{getTopicTitle(tm.topicId)}</TableCell>
                                         <TableCell>{tm.fileName}</TableCell>
