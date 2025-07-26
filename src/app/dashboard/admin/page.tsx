@@ -159,22 +159,27 @@ export default function AdminPage() {
           </p>
         </div>
         
-        <div className="space-y-2">
-            <Label htmlFor="admin-section">Select a Section</Label>
-            <Select
-                value={activeSection}
-                onValueChange={(value) => setActiveSection(value as AdminSection)}
-            >
-                <SelectTrigger id="admin-section">
-                    <SelectValue placeholder="Select a section to manage..." />
-                </SelectTrigger>
-                <SelectContent>
-                    {adminSections.map(({ value, label }) => (
-                        <SelectItem key={value} value={value}>{label}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-        </div>
+        <Card>
+            <CardHeader>
+                <CardTitle>Select a Section</CardTitle>
+                <CardDescription>Choose a section below to manage.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Select
+                    value={activeSection}
+                    onValueChange={(value) => setActiveSection(value as AdminSection)}
+                >
+                    <SelectTrigger id="admin-section">
+                        <SelectValue placeholder="Select a section to manage..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {adminSections.map(({ value, label }) => (
+                            <SelectItem key={value} value={value}>{label}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </CardContent>
+        </Card>
 
         <div className="mt-6">
             {renderContent()}
