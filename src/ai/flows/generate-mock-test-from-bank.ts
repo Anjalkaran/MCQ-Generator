@@ -2,7 +2,7 @@
 'use server';
 
 /**
- * @fileOverview Generates a mock test by selecting one question paper and verifying its answers.
+ * @fileOverview Generates a mock test by selecting one question paper and extracting its questions.
  *
  * - generateMockTestFromBank - A function that handles the mock test generation process.
  * - GenerateMockTestFromBankInput - The input type for the function.
@@ -11,8 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import type { MCQ } from '@/lib/types';
-import { getQuestionBankDocumentsByCategory, getTopics } from '@/lib/firestore';
+import { getQuestionBankDocumentsByCategory } from '@/lib/firestore';
 
 const GenerateMockTestFromBankInputSchema = z.object({
   examCategory: z.enum(["MTS", "POSTMAN", "PA"]).describe('The exam category (e.g., MTS, POSTMAN, PA).'),
@@ -25,7 +24,7 @@ const MCQSchema = z.object({
   options: z.array(z.string()).min(4, 'There must be four options.').max(4, 'There must be four options.').describe('Four possible answers, including the full text of each option.'),
   correctAnswer: z.string().describe('The correct answer to the question.'),
   topic: z.string().describe('The topic the question belongs to.'),
-  solution: z.string().optional().describe('A step-by-step solution, if available from verification.'),
+  solution: z.string().optional().describe('A step-by-step solution, if available.'),
 });
 
 const GenerateMockTestFromBankOutputSchema = z.object({
@@ -33,12 +32,11 @@ const GenerateMockTestFromBankOutputSchema = z.object({
 });
 export type GenerateMockTestFromBankOutput = z.infer<typeof GenerateMockTestFromBankOutputSchema>;
 
-const verifyAndFormatQuestionPaperPrompt = ai.definePrompt({
-    name: 'verifyAndFormatQuestionPaperPrompt',
+const extractMCQsFromBankPrompt = ai.definePrompt({
+    name: 'extractMCQsFromBankPrompt',
     input: {
         schema: z.object({
             questionPaperContent: z.string(),
-            studyMaterial: z.string(),
         })
     },
     output: {
@@ -47,35 +45,29 @@ const verifyAndFormatQuestionPaperPrompt = ai.definePrompt({
         })
     },
     model: 'googleai/gemini-1.5-flash',
-    prompt: `You are an expert Question Verifier for the Indian Postal Department exams.
+    prompt: `You are an expert Question Extractor for Indian Postal Department exam papers.
 
-Your task is to process the entire 'QUESTION PAPER' provided below, verify each question against the 'STUDY MATERIAL', and output a clean, verified list of questions in JSON format.
+Your task is to meticulously parse the entire 'QUESTION PAPER' provided below and extract every multiple-choice question into a clean JSON format.
 
 **Process:**
 
-1.  **Read and Parse:** Go through the entire 'QUESTION PAPER' text and identify all the multiple-choice questions. For each question, you MUST extract the full text of the question and the **full text for all four of its options**.
-2.  **Verify & Correct:**
-    *   For each question found, you MUST use the 'STUDY MATERIAL' as the single source of truth to verify the correct answer.
-    *   If the answer in the question paper is correct, keep it.
-    *   If the answer is INCORRECT, you MUST correct it based on the study material. The 'correctAnswer' field in the output must contain the full, correct option text.
-    *   If a question cannot be verified or its answer is ambiguous from the material, SKIP that question entirely.
-3.  **Assign Topic:** For each verified question, identify its specific topic from the study material (e.g., "Profit and loss", "Methods of address") and specify it in the 'topic' field.
+1.  **Read and Parse:** Go through the 'QUESTION PAPER' text and identify all multiple-choice questions. For each question, you MUST extract:
+    *   The full text of the question.
+    *   The full text for all four of its options.
+    *   The correct answer as indicated in the text.
+    *   The solution, if one is provided.
+    *   The topic of the question (e.g., "Profit and loss", "Methods of address").
+2.  **Format Correctly:** Ensure the extracted data fits the required JSON schema precisely.
 
-**Content Sources:**
-
---- STUDY MATERIAL (Primary Source of Truth) ---
-{{{studyMaterial}}}
---- END STUDY MATERIAL ---
+**CRITICAL INSTRUCTIONS:**
+*   Your final output MUST be a single, valid JSON object containing a 'questions' array.
+*   The 'correctAnswer' field MUST be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
+*   Do NOT verify, correct, or change any of the content. Extract it exactly as it appears in the text.
+*   The 'options' array for each question MUST contain four strings.
 
 --- QUESTION PAPER ---
 {{{questionPaperContent}}}
 --- END QUESTION PAPER ---
-
-**CRITICAL INSTRUCTIONS:**
-*   Your final output MUST be a single, valid JSON object containing a 'questions' array.
-*   The 'questions' array must only contain questions that you could successfully verify against the study material.
-*   The 'options' array for each question MUST contain four strings, each being the complete text of an answer option.
-*   Do NOT invent new questions. All questions must originate from the 'QUESTION PAPER'.
 `,
 });
 
@@ -92,28 +84,21 @@ const generateMockTestFromBankFlow = ai.defineFlow(
   },
   async input => {
     
-    const [questionPapers, allTopics] = await Promise.all([
-        getQuestionBankDocumentsByCategory(input.examCategory),
-        getTopics()
-    ]);
+    const questionPapers = await getQuestionBankDocumentsByCategory(input.examCategory);
     
     if (!questionPapers || questionPapers.length === 0) {
         throw new Error(`No question papers found for exam category: ${input.examCategory}. Please upload some documents.`);
     }
-
-    // Combine all study material from all topics into one string
-    const allStudyMaterial = allTopics.map(t => `Topic: ${t.title}\nMaterial: ${t.material || 'N/A'}`).join('\n\n---\n\n');
     
     // Randomly select one question paper to process
     const selectedPaper = questionPapers[Math.floor(Math.random() * questionPapers.length)];
 
-    const { output } = await verifyAndFormatQuestionPaperPrompt({
+    const { output } = await extractMCQsFromBankPrompt({
         questionPaperContent: selectedPaper.content,
-        studyMaterial: allStudyMaterial,
     });
     
     if (!output || !output.questions || output.questions.length === 0) {
-        throw new Error(`Could not extract any verifiable questions from the selected paper: ${selectedPaper.fileName}.`);
+        throw new Error(`Could not extract any questions from the selected paper: ${selectedPaper.fileName}. The document might be empty or in an unsupported format.`);
     }
 
     return { mcqs: output.questions };
