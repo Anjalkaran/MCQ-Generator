@@ -279,13 +279,14 @@ export const LiveTestDashboardCard = ({ initialLiveTests }: { initialLiveTests: 
                 </div>
             </CardHeader>
             <CardContent className="text-center flex-grow flex flex-col justify-center space-y-4">
-                 <Alert className="text-left bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800">
-                    <Trophy className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                    <AlertTitle className="text-yellow-800 dark:text-yellow-300">Win a Prize!</AlertTitle>
-                    <AlertDescription className="text-yellow-700 dark:text-yellow-400">
-                        The top-ranked free user wins a **FREE** 1-year Pro subscription!
-                    </AlertDescription>
-                </Alert>
+                <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                        {testState === 'upcoming' ? 'Time Remaining to Start' : 'Test Window is Live!'}
+                    </p>
+                    <p className="text-3xl font-bold tracking-tighter">
+                        {timeRemaining}
+                    </p>
+                </div>
             </CardContent>
             <CardFooter>
                 {getButton()}
