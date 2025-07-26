@@ -104,37 +104,6 @@ SPECIAL INSTRUCTION FOR POSTAL TERMS: When generating questions about mail offic
   `,
 });
 
-const VerificationSchema = z.object({
-    isCorrect: z.boolean().describe("Whether the provided answer is factually correct based ONLY on the study material."),
-    justification: z.string().describe("A brief justification for the decision, citing the study material if the answer is correct, or explaining the error if it is incorrect."),
-});
-
-
-const verificationPrompt = ai.definePrompt({
-    name: 'verificationPrompt',
-    input: { schema: z.object({ material: z.string(), question: z.string(), answer: z.string() }) },
-    output: { schema: VerificationSchema },
-    prompt: `You are a meticulous Fact-Checker AI. Your only task is to verify if the 'PROPOSED ANSWER' to the 'QUESTION' is factually correct and explicitly supported by the 'STUDY MATERIAL' provided.
-
-Your analysis must adhere to these rules:
-1.  **Single Source of Truth:** Your decision MUST be based exclusively on the 'STUDY MATERIAL'. Do not make inferences or assumptions.
-2.  **Explicit Support:** The answer is only correct if the information is clearly and directly stated in the material. Do not make inferences or assumptions.
-3.  **Direct Match:** The answer must be a direct factual match. For numerical values (like weights, times, fees), the number must match exactly.
-
---- STUDY MATERIAL ---
-{{{material}}}
---- END STUDY MATERIAL ---
-
---- QUESTION ---
-"{{{question}}}"
-
---- PROPOSED ANSWER ---
-"{{{answer}}}"
-
-Now, based *only* on the study material, is the proposed answer correct? Provide your response in the required JSON format.
-`,
-});
-
 const extractMCQsFromTextPrompt = ai.definePrompt({
     name: 'extractMCQsFromTextPrompt',
     input: { schema: z.object({ textContent: z.string(), topicName: z.string(), numberOfQuestions: z.number(), language: z.string().optional().default('English') }) },
@@ -208,51 +177,57 @@ const generateMCQsFlow = ai.defineFlow(
         previousQuestions: previousQuestions,
         bankedQuestions: undefined as string | undefined
     };
-
-    const excludedCategories = ["Basic Arithmetics", "General Awareness"];
-    if (flowInput.category && excludedCategories.includes(flowInput.category)) {
-      flowInput.material = undefined; 
-    }
     
-    const fullMaterial = flowInput.material;
-    if (flowInput.material && input.topicId) {
+    // Defer user progress update to the end of the flow
+    const updateUserProgress = async (contentSource: string) => {
         const userProgress = await getUserTopicProgress(input.userId, input.topicId);
         const startIndex = userProgress?.lastCharacterIndexUsed || 0;
-        let materialChunk = flowInput.material.substring(startIndex, startIndex + MATERIAL_CHUNK_SIZE);
-        let nextIndex = startIndex + materialChunk.length;
-        if (nextIndex >= flowInput.material.length) {
-            nextIndex = 0;
+        const endIndex = startIndex + MATERIAL_CHUNK_SIZE;
+        let nextIndex = endIndex;
+        
+        if (endIndex >= contentSource.length) {
+            nextIndex = 0; // Reset to the beginning if we've reached the end
         }
+        
         defer(async () => {
              await updateUserTopicProgress(input.userId, input.topicId, nextIndex);
         });
+        
+        return contentSource.substring(startIndex, endIndex);
+    };
+
+    const uploadedMCQs = await getTopicMCQs(input.topicId);
+    if (uploadedMCQs && uploadedMCQs.length > 0) {
+        console.log("Uploaded MCQ document found for topic. Using it as the primary source.");
+        
+        const combinedContent = uploadedMCQs.map(doc => doc.content).join('\n\n---\n\n');
+        const contentChunk = await updateUserProgress(combinedContent);
+
+        const { output: extractedOutput } = await extractMCQsFromTextPrompt({
+            textContent: contentChunk,
+            topicName: input.topic,
+            numberOfQuestions: input.numberOfQuestions,
+            language: input.language,
+        });
+
+        if (extractedOutput && extractedOutput.mcqs && extractedOutput.mcqs.length > 0) {
+             await runDeferred();
+             return { mcqs: extractedOutput.mcqs };
+        }
+        console.warn("Could not extract MCQs from the uploaded document chunk. Falling back to AI generation.");
     }
 
+    // Fallback to study material or general AI generation if no MCQ doc is found
+    const fullMaterial = flowInput.material;
+    if (fullMaterial) {
+        flowInput.material = await updateUserProgress(fullMaterial);
+    }
+    
     if (input.examCategory) {
         const categoryForBank = input.examCategory === 'POSTMAN' ? 'MTS' : input.examCategory;
         const bankedQuestions = await getQuestionBankByCategory(categoryForBank as 'MTS' | 'POSTMAN' | 'PA');
         if (bankedQuestions) {
             flowInput.bankedQuestions = bankedQuestions;
-        }
-    }
-
-    const uploadedMCQs = await getTopicMCQs(input.topicId);
-    if (uploadedMCQs && uploadedMCQs.length > 0) {
-        if (input.category === "Basic Arithmetics") {
-            console.log("Basic Arithmetics category detected with uploaded document. Using document content directly.");
-            const combinedContent = uploadedMCQs.map(doc => doc.content).join('\n\n---\n\n');
-            const { output: extractedOutput } = await extractMCQsFromTextPrompt({
-                textContent: combinedContent,
-                topicName: input.topic,
-                numberOfQuestions: input.numberOfQuestions,
-                language: input.language,
-            });
-
-            if (extractedOutput && extractedOutput.mcqs && extractedOutput.mcqs.length > 0) {
-                 await runDeferred();
-                 return { mcqs: extractedOutput.mcqs };
-            }
-             console.warn("Could not extract MCQs from the Arithmetic document. Falling back to AI generation.");
         }
     }
 
@@ -267,7 +242,7 @@ const generateMCQsFlow = ai.defineFlow(
     for (let i = 0; i < NUM_BATCHES; i++) {
         const promise = prompt({
             ...flowInput,
-            material: fullMaterial,
+            material: fullMaterial, // Use full material for better context in generation
             numberOfQuestions: BATCH_SIZE,
             previousQuestions: [],
         }).catch(err => {
