@@ -31,115 +31,13 @@ const MCQSchema = z.object({
       options: z.array(z.string()).length(4).describe('An array of four possible answers, with the full text for each option.'),
       correctAnswer: z.string().describe('The full text of the correct answer, which MUST be an exact match to one of the four strings in the `options` array.'),
       solution: z.string().optional().describe('A step-by-step solution for arithmetic problems, or a detailed explanation for other topics.'),
+      topic: z.string().optional().describe("The specific topic of the question."),
     });
 
 const GenerateMCQsOutputSchema = z.object({
   mcqs: z.array(MCQSchema).describe('The generated multiple-choice questions.'),
 });
 export type GenerateMCQsOutput = z.infer<typeof GenerateMCQsOutputSchema>;
-
-// New schema for the 2-step arithmetic generation
-const ArithmeticProblemSchema = z.object({
-    question: z.string().describe("The word problem or numerical equation."),
-});
-
-const ArithmeticDistractorsSchema = z.object({
-    distractors: z.array(z.string()).length(3).describe("An array of three plausible but incorrect numerical answers."),
-});
-
-const ArithmeticSolutionSchema = z.object({
-    steps: z.array(z.string()).describe("An array of strings, where each string is a single step in the calculation using the LCM method for work problems, or BODMAS order for equations."),
-    final_answer: z.string().describe("A string containing only the final, mathematically exact answer."),
-});
-
-const VerificationSchema = z.object({
-    isCorrect: z.boolean().describe("Whether the provided answer is factually correct based ONLY on the study material."),
-    justification: z.string().describe("A brief justification for the decision, citing the study material if the answer is correct, or explaining the error if it is incorrect."),
-});
-
-
-export async function generateMCQs(input: GenerateMCQsInput): Promise<GenerateMCQsOutput> {
-  return generateMCQsFlow(input);
-}
-
-const arithmeticSolverPrompt = ai.definePrompt({
-    name: 'arithmeticSolverPrompt',
-    input: { schema: z.object({ problem: z.string(), language: z.string().optional().default('English') }) },
-    output: { schema: ArithmeticSolutionSchema },
-    model: 'googleai/gemini-1.5-flash',
-    prompt: `You are a precise mathematical solver AI. Your sole purpose is to solve the given word problem or equation and provide a step-by-step solution and an exact final answer.
-
-Your output MUST be a valid JSON object. Do not include any text, apologies, or explanations outside of the JSON structure itself.
-
-The language of the solution steps and the final answer MUST be {{language}}.
-
-The JSON object must have two keys:
-1.  "steps": An array of strings. Each string must be a single, clear step in the calculation. For work-rate problems, use the LCM (Least Common Multiple) method. For BODMAS problems, show each operation in order.
-2.  "final_answer": A string containing only the final, mathematically exact answer. Express it as a fraction, a decimal, or a whole number as appropriate (e.g., "18.75 days", "75/4 days", "37").
-
-CRITICAL INSTRUCTIONS:
--   Do NOT mention or analyze any multiple-choice options that might be in the problem description. Ignore them completely.
--   Do NOT guess or select the "closest" answer. Calculate and provide only the true mathematical result.
--   Do NOT use conversational language. Stick to formal, mathematical steps.
-
-Now, solve the following problem according to all the rules above:
-
-Problem: "{{problem}}"`,
-});
-
-// New prompt for generating just the problem
-const arithmeticProblemPrompt = ai.definePrompt({
-    name: 'arithmeticProblemPrompt',
-    input: { schema: z.object({ topic: z.string(), previousQuestions: z.array(z.string()).optional(), language: z.string().optional().default('English'), numberOfQuestions: z.number() }) },
-    output: { schema: z.object({ problems: z.array(ArithmeticProblemSchema) }) },
-    prompt: `You are a meticulous mathematics teacher. Create {{numberOfQuestions}} unique word problems or numerical equations for the topic "{{topic}}".
-    
-The language of the problem MUST be {{language}}.
-
---- TOPIC-SPECIFIC INSTRUCTIONS ---
-{{#ifEquals topic "Average"}}
-You MUST create problems that involve calculating the average of a set of numbers.
-Example: "Find the average of the following numbers: 10, 20, 30, 40, 50."
-DO NOT create a number series or pattern-finding problem.
-{{else ifEquals topic "BODMAS"}}
-You MUST create numerical equations that require the BODMAS rule to solve.
-Example: "Solve using BODMAS: 10 + 5 * 2 - (8 / 4) = ?"
-{{else ifEquals topic "Time and work"}}
-You MUST create word problems involving work rates and time.
-Example: "A can complete a task in 10 days and B can do it in 15 days. If they work together, in how many days will the work be completed?"
-{{else}}
-Generate standard, relevant word problems for the topic "{{topic}}".
-{{/ifEquals}}
---- END INSTRUCTIONS ---
-
-IMPORTANT: Do NOT repeat any of the following questions. Ensure the new questions are unique and different from this list:
-{{#if previousQuestions}}
-    {{#each previousQuestions}}
-    - "{{this}}"
-    {{/each}}
-{{/if}}
-
-Your output MUST be a JSON object containing a "problems" array with EXACTLY {{numberOfQuestions}} entries.
-Each entry must have a single key: "question".
-The value should be the full word problem or equation.
-Do not generate multiple-choice options or the answer here.
-    `,
-});
-
-// New prompt for generating distractors
-const arithmeticDistractorsPrompt = ai.definePrompt({
-    name: 'arithmeticDistractorsPrompt',
-    input: { schema: z.object({ question: z.string(), correctAnswer: z.string(), language: z.string().optional().default('English') }) },
-    output: { schema: ArithmeticDistractorsSchema },
-    prompt: `For the following math problem, the correct answer is "{{correctAnswer}}".
-    
-    Problem: "{{question}}"
-    
-    Your task is to generate three plausible but INCORRECT numerical answers that could be used as distractors in a multiple-choice question. The language of the distractors must be {{language}}. They should be common mistakes a student might make.
-    
-    Your output MUST be a valid JSON object with a single key "distractors", which is an array of three distinct strings.
-    `,
-});
 
 const prompt = ai.definePrompt({
   name: 'generateMCQsPrompt',
@@ -206,6 +104,12 @@ SPECIAL INSTRUCTION FOR POSTAL TERMS: When generating questions about mail offic
   `,
 });
 
+const VerificationSchema = z.object({
+    isCorrect: z.boolean().describe("Whether the provided answer is factually correct based ONLY on the study material."),
+    justification: z.string().describe("A brief justification for the decision, citing the study material if the answer is correct, or explaining the error if it is incorrect."),
+});
+
+
 const verificationPrompt = ai.definePrompt({
     name: 'verificationPrompt',
     input: { schema: z.object({ material: z.string(), question: z.string(), answer: z.string() }) },
@@ -233,17 +137,18 @@ Now, based *only* on the study material, is the proposed answer correct? Provide
 
 const extractMCQsFromTextPrompt = ai.definePrompt({
     name: 'extractMCQsFromTextPrompt',
-    input: { schema: z.object({ textContent: z.string(), numberOfQuestions: z.number() }) },
+    input: { schema: z.object({ textContent: z.string(), topicName: z.string() }) },
     output: { schema: GenerateMCQsOutputSchema },
     model: 'googleai/gemini-1.5-flash',
     prompt: `You are an expert at parsing and formatting multiple-choice questions (MCQs).
 
-Your task is to extract exactly {{numberOfQuestions}} unique questions from the 'TEXT CONTENT' provided below.
+Your task is to extract ALL unique questions from the 'TEXT CONTENT' provided below.
 
 **Process:**
-1.  Read the 'TEXT CONTENT' and identify distinct multiple-choice questions.
-2.  For each question, accurately extract the full question text, all four of its options, and the indicated correct answer.
-3.  Randomly select {{numberOfQuestions}} of these extracted questions to include in your output.
+1.  Read the 'TEXT CONTENT' and identify all distinct multiple-choice questions.
+2.  For each question, accurately extract the full question text, all four of its options, the indicated correct answer, and the step-by-step solution if provided.
+3.  For EACH extracted question, you MUST add a 'topic' field with the value "{{topicName}}".
+4.  If a solution is not found for a question, the 'solution' field MUST be an empty string ("").
 
 **CRITICAL RULE:** The 'correctAnswer' field in your output MUST be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
 **TRIMMING RULE:** If an option in the text starts with a letter followed by a period or parenthesis (e.g., "a.", "B)", "c."), you MUST trim this prefix from the option text before including it in the output. For example, "a. The quick brown fox" should become "The quick brown fox".
@@ -252,13 +157,11 @@ Your task is to extract exactly {{numberOfQuestions}} unique questions from the 
 {{{textContent}}}
 --- END TEXT CONTENT ---
 
-Your final output must be a single, valid JSON object containing an 'mcqs' array with exactly {{numberOfQuestions}} questions. Do not add a 'solution' field.
+Your final output must be a single, valid JSON object containing an 'mcqs' array with all the questions you could find. Each question object MUST include the 'topic' and 'solution' fields.
 `
 });
 
-
-const MATERIAL_CHUNK_SIZE = 2000; // Process 2000 characters of material at a time
-
+const MATERIAL_CHUNK_SIZE = 2000; 
 let deferredFunctions: (() => Promise<any>)[] = [];
 
 function defer(fn: () => Promise<any>) {
@@ -267,16 +170,19 @@ function defer(fn: () => Promise<any>) {
 
 async function runDeferred() {
     await Promise.all(deferredFunctions.map(fn => fn()));
-    deferredFunctions = []; // Reset for the next flow run
+    deferredFunctions = []; 
 }
 
-// Function to shuffle an array
 function shuffleArray<T>(array: T[]): T[] {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [array[i], array[j]] = [array[j], array[i]];
   }
   return array;
+}
+
+export async function generateMCQs(input: GenerateMCQsInput): Promise<GenerateMCQsOutput> {
+  return generateMCQsFlow(input);
 }
 
 const generateMCQsFlow = ai.defineFlow(
@@ -302,11 +208,8 @@ const generateMCQsFlow = ai.defineFlow(
     if (flowInput.category && excludedCategories.includes(flowInput.category)) {
       flowInput.material = undefined; 
     }
-
-    // --- MATERIAL HANDLING: Use the FULL material for generation, not just a chunk ---
-    // The chunking logic is for tracking reading progress, not for limiting the AI's source material.
-    // We will keep the 'defer' part to update progress, but use the full material for generation.
-    const fullMaterial = flowInput.material; // Keep a copy of the full material
+    
+    const fullMaterial = flowInput.material;
     if (flowInput.material && input.topicId) {
         const userProgress = await getUserTopicProgress(input.userId, input.topicId);
         const startIndex = userProgress?.lastCharacterIndexUsed || 0;
@@ -315,7 +218,6 @@ const generateMCQsFlow = ai.defineFlow(
         if (nextIndex >= flowInput.material.length) {
             nextIndex = 0;
         }
-        // Don't overwrite the main material, just defer the progress update
         defer(async () => {
              await updateUserTopicProgress(input.userId, input.topicId, nextIndex);
         });
@@ -329,151 +231,79 @@ const generateMCQsFlow = ai.defineFlow(
         }
     }
 
-    // --- HYBRID LOGIC: Check for uploaded MCQs first ---
     const uploadedMCQs = await getTopicMCQs(input.topicId);
     if (uploadedMCQs && uploadedMCQs.length > 0) {
-        // Combine content from all documents for the topic
         const combinedContent = uploadedMCQs.map(doc => doc.content).join('\n\n---\n\n');
         
         const { output: extractedOutput } = await extractMCQsFromTextPrompt({
             textContent: combinedContent,
-            numberOfQuestions: input.numberOfQuestions
+            topicName: input.topic,
         });
         
         if (extractedOutput && extractedOutput.mcqs && extractedOutput.mcqs.length > 0) {
-            // For Arithmetic, trust the uploaded content and skip verification
-            if (input.category === "Basic Arithmetics") {
-                 await runDeferred();
-                 return { mcqs: extractedOutput.mcqs };
-            }
+            const previousQuestionSet = new Set(previousQuestions);
+            const unseenMCQs = extractedOutput.mcqs.filter(mcq => !previousQuestionSet.has(mcq.question));
 
-            // For other topics, verify each extracted question against the material
-            if (flowInput.material) {
-                const verificationPromises = extractedOutput.mcqs.map(async (mcq) => {
-                    try {
-                        const verificationResponse = await verificationPrompt({
-                            material: flowInput.material!,
-                            question: mcq.question,
-                            answer: mcq.correctAnswer,
-                        });
-                        if (verificationResponse.output?.isCorrect) {
-                            return { ...mcq, solution: verificationResponse.output.justification }; // Use justification as solution
-                        } else {
-                            console.warn(`Filtering out incorrect MCQ from uploaded doc. Q: "${mcq.question}", A: "${mcq.correctAnswer}". Justification: ${verificationResponse.output?.justification}`);
+            if (unseenMCQs.length >= input.numberOfQuestions) {
+                const mcqsWithTopic = unseenMCQs.map(mcq => ({
+                    ...mcq,
+                    topic: mcq.topic || input.topic
+                }));
+
+                if (input.category === "Basic Arithmetics") {
+                    await runDeferred();
+                    return { mcqs: shuffleArray(mcqsWithTopic).slice(0, input.numberOfQuestions) };
+                }
+
+                if (fullMaterial) {
+                    const verificationPromises = mcqsWithTopic.map(async (mcq) => {
+                        try {
+                            const verificationResponse = await verificationPrompt({
+                                material: fullMaterial!,
+                                question: mcq.question,
+                                answer: mcq.correctAnswer,
+                            });
+                            if (verificationResponse.output?.isCorrect) {
+                                return { ...mcq, solution: mcq.solution || verificationResponse.output.justification };
+                            } else {
+                                console.warn(`Filtering out incorrect MCQ from uploaded doc. Q: "${mcq.question}", A: "${mcq.correctAnswer}". Justification: ${verificationResponse.output?.justification}`);
+                                return null;
+                            }
+                        } catch (e) {
+                            console.error("Error during uploaded MCQ verification:", e);
                             return null;
                         }
-                    } catch (e) {
-                        console.error("Error during uploaded MCQ verification:", e);
-                        return null;
+                    });
+                    const verifiedMCQs = (await Promise.all(verificationPromises)).filter(mcq => mcq !== null);
+                    if (verifiedMCQs.length >= input.numberOfQuestions) {
+                        await runDeferred();
+                        return { mcqs: shuffleArray(verifiedMCQs as any[]).slice(0, input.numberOfQuestions) };
                     }
-                });
-                const verifiedMCQs = (await Promise.all(verificationPromises)).filter(mcq => mcq !== null);
-                if (verifiedMCQs.length > 0) {
-                     await runDeferred();
-                     return { mcqs: verifiedMCQs as any[] };
+                } else {
+                    await runDeferred();
+                    return { mcqs: shuffleArray(mcqsWithTopic).slice(0, input.numberOfQuestions) };
                 }
-            } else {
-                 // If no material to verify against (e.g., General Awareness), just return the extracted MCQs
-                 await runDeferred();
-                 return { mcqs: extractedOutput.mcqs };
             }
         }
-        // If extraction fails, fall through to AI generation
     }
-    // --- END HYBRID LOGIC ---
 
-
-    // --- Special Handling for Basic Arithmetics (if no uploaded file) ---
-    if (input.category === "Basic Arithmetics") {
-        const generatedMCQs: (typeof MCQSchema._type)[] = [];
-        const existingQuestions = new Set(previousQuestions);
-        let attempts = 0;
-
-        while (generatedMCQs.length < input.numberOfQuestions) {
-            attempts++;
-            if (attempts > 10) { 
-                console.error(`Breaking arithmetic generation loop after 10 attempts. Could only generate ${generatedMCQs.length} questions.`);
-                break;
-            }
-            try {
-                // Step 1: Generate just the problem statement(s)
-                const problemsToGenerate = input.numberOfQuestions - generatedMCQs.length;
-                const problemResponse = await arithmeticProblemPrompt({ 
-                    topic: input.topic, 
-                    previousQuestions: Array.from(existingQuestions),
-                    language: input.language,
-                    numberOfQuestions: problemsToGenerate,
-                });
-                
-                if (!problemResponse.output?.problems || problemResponse.output.problems.length === 0) continue;
-
-                for (const problem of problemResponse.output.problems) {
-                    const { question } = problem;
-                    if (existingQuestions.has(question)) continue;
-                    
-                    // Step 2: Get the VERIFIED correct answer and solution from the solver
-                    const solutionResponse = await arithmeticSolverPrompt({ problem: question, language: input.language });
-                    if (!solutionResponse.output?.final_answer) {
-                        console.error("Solver failed to produce an answer for:", question);
-                        continue;
-                    }
-                    const correctAnswer = solutionResponse.output.final_answer;
-                    const solutionText = solutionResponse.output.steps.join('\n');
-                    
-                    // Step 3: Generate distractors based on the VERIFIED correct answer
-                    const distractorsResponse = await arithmeticDistractorsPrompt({ question, correctAnswer, language: input.language });
-                    if (!distractorsResponse.output?.distractors) continue;
-                    const { distractors } = distractorsResponse.output;
-
-                    // Step 4: Combine and shuffle options
-                    const options = shuffleArray([correctAnswer, ...distractors]);
-                    
-                    if (!existingQuestions.has(question) && generatedMCQs.length < input.numberOfQuestions) {
-                        generatedMCQs.push({
-                            question,
-                            options,
-                            correctAnswer,
-                            solution: solutionText,
-                        });
-                        existingQuestions.add(question); // Add to avoid duplicates in the same run
-                    }
-                }
-
-            } catch (e) {
-                console.error(`Attempt ${attempts}: Error during arithmetic question generation step:`, e);
-            }
-        }
-        
-        await runDeferred();
-        if (generatedMCQs.length === 0 && input.numberOfQuestions > 0) {
-            throw new Error('The AI could not generate any arithmetic questions after multiple attempts.');
-        }
-        
-        if (generatedMCQs.length < input.numberOfQuestions) {
-            console.warn(`Warning: Could only generate ${generatedMCQs.length} out of ${input.numberOfQuestions} requested arithmetic questions.`);
-        }
-        return { mcqs: generatedMCQs.slice(0, input.numberOfQuestions) };
-    }
-    // --- End Special Handling ---
-
-    // --- START: NEW PARALLEL BATCH GENERATION LOGIC ---
     console.log(`Starting parallel batch generation for ${input.numberOfQuestions} questions.`);
 
     const questionsToAvoid = new Set(previousQuestions);
-    const BATCH_SIZE = 10; // Ask for 10 questions at a time. A good balance.
-    const NUM_BATCHES = Math.ceil(input.numberOfQuestions / BATCH_SIZE) + 2; // +2 for extra attempts
+    const BATCH_SIZE = 10;
+    const NUM_BATCHES = Math.ceil(input.numberOfQuestions / BATCH_SIZE) + 2;
 
     const generationPromises = [];
 
     for (let i = 0; i < NUM_BATCHES; i++) {
         const promise = prompt({
             ...flowInput,
-            material: fullMaterial, // CRITICAL: Use the FULL material every time
+            material: fullMaterial,
             numberOfQuestions: BATCH_SIZE,
-            previousQuestions: [], // Let the final filter handle uniqueness
+            previousQuestions: [],
         }).catch(err => {
             console.error(`Batch ${i+1} failed to generate:`, err);
-            return null; // Don't let one failed promise crash the whole process
+            return null;
         });
         generationPromises.push(promise);
     }
@@ -489,23 +319,20 @@ const generateMCQsFlow = ai.defineFlow(
 
     console.log(`Generated a raw total of ${allGeneratedMCQs.length} questions across ${NUM_BATCHES} batches.`);
 
-    // Now, filter this large pool of questions
     let finalMCQs: (typeof MCQSchema._type)[] = [];
 
-    // 1. Filter for schema validity and uniqueness
     const uniqueValidMCQs: (typeof MCQSchema._type)[] = [];
     const tempQuestionSet = new Set<string>();
 
     for (const mcq of allGeneratedMCQs) {
         if (MCQSchema.safeParse(mcq).success && !questionsToAvoid.has(mcq.question) && !tempQuestionSet.has(mcq.question)) {
-            uniqueValidMCQs.push(mcq);
+            uniqueValidMCQs.push({ ...mcq, topic: input.topic });
             tempQuestionSet.add(mcq.question);
         }
     }
     
     console.log(`Filtered down to ${uniqueValidMCQs.length} unique and valid questions.`);
 
-    // 2. Verify against material (if provided)
     if (fullMaterial && uniqueValidMCQs.length > 0) {
         const verificationPromises = uniqueValidMCQs.map(async (mcq) => {
             try {
@@ -528,8 +355,6 @@ const generateMCQsFlow = ai.defineFlow(
         finalMCQs = uniqueValidMCQs;
     }
 
-    // --- END: NEW PARALLEL BATCH GENERATION LOGIC ---
-
     if (finalMCQs.length === 0 && input.numberOfQuestions > 0) {
         throw new Error('The AI could not generate any valid questions. The source material might be too short or the topic too complex.');
     }
@@ -540,7 +365,6 @@ const generateMCQsFlow = ai.defineFlow(
 
     await runDeferred();
     
-    // Shuffle the final list and take the required number
     return { mcqs: shuffleArray(finalMCQs).slice(0, input.numberOfQuestions) };
   }
 );
