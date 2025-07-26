@@ -137,19 +137,23 @@ Now, based *only* on the study material, is the proposed answer correct? Provide
 
 const extractMCQsFromTextPrompt = ai.definePrompt({
     name: 'extractMCQsFromTextPrompt',
-    input: { schema: z.object({ textContent: z.string(), topicName: z.string(), numberOfQuestions: z.number() }) },
+    input: { schema: z.object({ textContent: z.string(), topicName: z.string(), numberOfQuestions: z.number(), language: z.string().optional().default('English') }) },
     output: { schema: GenerateMCQsOutputSchema },
     model: 'googleai/gemini-1.5-flash',
     prompt: `You are an expert at parsing and formatting multiple-choice questions (MCQs).
 
-Your task is to extract exactly {{numberOfQuestions}} unique questions from the 'TEXT CONTENT' provided below.
+Your task is to extract exactly {{numberOfQuestions}} unique questions from the 'TEXT CONTENT' provided below and format them according to the user's requested language.
+
+**CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
+**IMPORTANT RULE FOR TAMIL/HINDI:** When translating to Tamil or Hindi, you MUST keep all technical postal terms, scheme names, and abbreviations (e.g., "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office") in English.
 
 **Process:**
 1.  Read the 'TEXT CONTENT' and identify all distinct multiple-choice questions.
 2.  For each question, accurately extract the full question text, all four of its options, the indicated correct answer, and the step-by-step solution if provided.
-3.  For EACH extracted question, you MUST add a 'topic' field with the value "{{topicName}}".
-4.  If a solution is not found for a question, the 'solution' field MUST be an empty string ("").
-5.  Randomly select {{numberOfQuestions}} of these extracted questions to include in your output.
+3.  **Translate** the entire extracted content for each question into the specified '{{language}}'.
+4.  For EACH extracted question, you MUST add a 'topic' field with the value "{{topicName}}".
+5.  If a solution is not found for a question, the 'solution' field MUST be an empty string ("").
+6.  Randomly select {{numberOfQuestions}} of these extracted and translated questions to include in your output.
 
 **CRITICAL RULE:** The 'correctAnswer' field in your output MUST be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
 **TRIMMING RULE:** If an option in the text starts with a letter followed by a period or parenthesis (e.g., "a.", "B)", "c."), you MUST trim this prefix from the option text before including it in the output. For example, "a. The quick brown fox" should become "The quick brown fox".
@@ -158,7 +162,7 @@ Your task is to extract exactly {{numberOfQuestions}} unique questions from the 
 {{{textContent}}}
 --- END TEXT CONTENT ---
 
-Your final output must be a single, valid JSON object containing an 'mcqs' array with exactly {{numberOfQuestions}} questions. Each question object MUST include the 'topic' and 'solution' fields.
+Your final output must be a single, valid JSON object containing an 'mcqs' array with exactly {{numberOfQuestions}} questions. Each question object MUST include the 'topic' and 'solution' fields and be in the correct language.
 `
 });
 
@@ -241,6 +245,7 @@ const generateMCQsFlow = ai.defineFlow(
                 textContent: combinedContent,
                 topicName: input.topic,
                 numberOfQuestions: input.numberOfQuestions,
+                language: input.language,
             });
 
             if (extractedOutput && extractedOutput.mcqs && extractedOutput.mcqs.length > 0) {
