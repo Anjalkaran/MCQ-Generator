@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { useDashboard } from '@/app/dashboard/layout';
@@ -15,6 +15,7 @@ import type { LiveTest } from '@/lib/types';
 import { normalizeDate } from '@/lib/utils';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { Badge } from '@/components/ui/badge';
+import { getExamHistoryForUser } from '@/lib/firestore';
 
 const blueprintMap = {
     MTS: MTS_BLUEPRINT,
@@ -27,17 +28,41 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
     const { toast } = useToast();
     const router = useRouter();
     const [isGenerating, setIsGenerating] = useState(false);
+    const [hasTakenPractice, setHasTakenPractice] = useState(false);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
     const startTime = normalizeDate(test.startTime);
     const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
-    const hasTakenTest = userData?.liveTestsTaken?.includes(test.id);
+    const hasTakenLiveTest = userData?.liveTestsTaken?.includes(test.id);
+
+    useEffect(() => {
+        const checkPracticeHistory = async () => {
+            if (!user) {
+                setIsLoadingHistory(false);
+                return;
+            }
+            try {
+                const history = await getExamHistoryForUser(user.uid);
+                const practiceQuizId = `live-test-${test.id}`;
+                const hasTaken = history.some(item => item.topicId === practiceQuizId);
+                setHasTakenPractice(hasTaken);
+            } catch (error) {
+                console.error("Failed to check practice test history:", error);
+            } finally {
+                setIsLoadingHistory(false);
+            }
+        };
+        checkPracticeHistory();
+    }, [user, test.id]);
+    
+    const hasAttempted = hasTakenLiveTest || hasTakenPractice;
 
     const startTest = async () => {
         // Safeguard: Prevent non-admins from retaking the test
-        if (hasTakenTest && !isAdmin) {
+        if (hasAttempted && !isAdmin) {
             toast({
                 title: "Already Attempted",
-                description: "You have already completed this live test and cannot retake it.",
+                description: "You have already completed this test and cannot retake it.",
                 variant: "destructive",
             });
             return;
@@ -87,7 +112,7 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
                 <CardDescription>
                     Conducted on: {startTime?.toLocaleDateString()}
                 </CardDescription>
-                 {hasTakenTest && (
+                 {hasAttempted && (
                     <Badge variant="secondary" className="w-fit mt-2">
                         <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
                         Attempted
@@ -97,7 +122,12 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
             <CardContent className="flex-grow space-y-4">
             </CardContent>
             <CardFooter className="flex-col items-stretch gap-2">
-                {hasTakenTest && !isAdmin ? (
+                {isLoadingHistory ? (
+                    <Button disabled>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Checking History...
+                    </Button>
+                ) : hasAttempted && !isAdmin ? (
                      <Button disabled>
                         <Ban className="mr-2 h-4 w-4" />
                         Already Attempted
@@ -112,7 +142,7 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
                         ) : (
                             <>
                                 <PlayCircle className="mr-2 h-4 w-4" />
-                                {isAdmin && hasTakenTest ? 'Re-take Test (Admin)' : 'Practice Test'}
+                                {isAdmin && hasAttempted ? 'Re-take Test (Admin)' : 'Practice Test'}
                             </>
                         )}
                     </Button>
