@@ -329,7 +329,61 @@ const generateMCQsFlow = ai.defineFlow(
         }
     }
 
-    // --- Special Handling for Basic Arithmetics ---
+    // --- HYBRID LOGIC: Check for uploaded MCQs first ---
+    const uploadedMCQs = await getTopicMCQs(input.topicId);
+    if (uploadedMCQs && uploadedMCQs.length > 0) {
+        // Combine content from all documents for the topic
+        const combinedContent = uploadedMCQs.map(doc => doc.content).join('\n\n---\n\n');
+        
+        const { output: extractedOutput } = await extractMCQsFromTextPrompt({
+            textContent: combinedContent,
+            numberOfQuestions: input.numberOfQuestions
+        });
+        
+        if (extractedOutput && extractedOutput.mcqs && extractedOutput.mcqs.length > 0) {
+            // For Arithmetic, trust the uploaded content and skip verification
+            if (input.category === "Basic Arithmetics") {
+                 await runDeferred();
+                 return { mcqs: extractedOutput.mcqs };
+            }
+
+            // For other topics, verify each extracted question against the material
+            if (flowInput.material) {
+                const verificationPromises = extractedOutput.mcqs.map(async (mcq) => {
+                    try {
+                        const verificationResponse = await verificationPrompt({
+                            material: flowInput.material!,
+                            question: mcq.question,
+                            answer: mcq.correctAnswer,
+                        });
+                        if (verificationResponse.output?.isCorrect) {
+                            return { ...mcq, solution: verificationResponse.output.justification }; // Use justification as solution
+                        } else {
+                            console.warn(`Filtering out incorrect MCQ from uploaded doc. Q: "${mcq.question}", A: "${mcq.correctAnswer}". Justification: ${verificationResponse.output?.justification}`);
+                            return null;
+                        }
+                    } catch (e) {
+                        console.error("Error during uploaded MCQ verification:", e);
+                        return null;
+                    }
+                });
+                const verifiedMCQs = (await Promise.all(verificationPromises)).filter(mcq => mcq !== null);
+                if (verifiedMCQs.length > 0) {
+                     await runDeferred();
+                     return { mcqs: verifiedMCQs as any[] };
+                }
+            } else {
+                 // If no material to verify against (e.g., General Awareness), just return the extracted MCQs
+                 await runDeferred();
+                 return { mcqs: extractedOutput.mcqs };
+            }
+        }
+        // If extraction fails, fall through to AI generation
+    }
+    // --- END HYBRID LOGIC ---
+
+
+    // --- Special Handling for Basic Arithmetics (if no uploaded file) ---
     if (input.category === "Basic Arithmetics") {
         const generatedMCQs: (typeof MCQSchema._type)[] = [];
         const existingQuestions = new Set(previousQuestions);
@@ -401,53 +455,6 @@ const generateMCQsFlow = ai.defineFlow(
         return { mcqs: generatedMCQs.slice(0, input.numberOfQuestions) };
     }
     // --- End Special Handling ---
-
-    // --- HYBRID LOGIC: Check for uploaded MCQs first ---
-    const uploadedMCQs = await getTopicMCQs(input.topicId);
-    if (uploadedMCQs && uploadedMCQs.length > 0) {
-        // Combine content from all documents for the topic
-        const combinedContent = uploadedMCQs.map(doc => doc.content).join('\n\n---\n\n');
-        
-        const { output: extractedOutput } = await extractMCQsFromTextPrompt({
-            textContent: combinedContent,
-            numberOfQuestions: input.numberOfQuestions
-        });
-        
-        if (extractedOutput && extractedOutput.mcqs && extractedOutput.mcqs.length > 0) {
-            // Now, verify each extracted question against the material
-            if (flowInput.material) {
-                const verificationPromises = extractedOutput.mcqs.map(async (mcq) => {
-                    try {
-                        const verificationResponse = await verificationPrompt({
-                            material: flowInput.material!,
-                            question: mcq.question,
-                            answer: mcq.correctAnswer,
-                        });
-                        if (verificationResponse.output?.isCorrect) {
-                            return { ...mcq, solution: verificationResponse.output.justification }; // Use justification as solution
-                        } else {
-                            console.warn(`Filtering out incorrect MCQ from uploaded doc. Q: "${mcq.question}", A: "${mcq.correctAnswer}". Justification: ${verificationResponse.output?.justification}`);
-                            return null;
-                        }
-                    } catch (e) {
-                        console.error("Error during uploaded MCQ verification:", e);
-                        return null;
-                    }
-                });
-                const verifiedMCQs = (await Promise.all(verificationPromises)).filter(mcq => mcq !== null);
-                if (verifiedMCQs.length > 0) {
-                     await runDeferred();
-                     return { mcqs: verifiedMCQs as any[] };
-                }
-            } else {
-                 // If no material to verify against, just return the extracted MCQs
-                 await runDeferred();
-                 return { mcqs: extractedOutput.mcqs };
-            }
-        }
-        // If extraction fails, fall through to generation
-    }
-    // --- END HYBRID LOGIC ---
 
     // --- START: NEW PARALLEL BATCH GENERATION LOGIC ---
     console.log(`Starting parallel batch generation for ${input.numberOfQuestions} questions.`);
@@ -537,5 +544,3 @@ const generateMCQsFlow = ai.defineFlow(
     return { mcqs: shuffleArray(finalMCQs).slice(0, input.numberOfQuestions) };
   }
 );
-
-    
