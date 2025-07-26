@@ -104,10 +104,16 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
         }
 
         try {
-            const { mcqs } = await generateLiveMockTest({ 
+            const result = await generateLiveMockTest({ 
                 liveTestId: test.questionPaperId,
                 language: selectedLanguage,
             });
+
+            if (!result || !result.mcqs) {
+                 throw new Error("The AI failed to generate the test questions. Please try again later.");
+            }
+            const { mcqs } = result;
+
             const blueprint = blueprintMap[test.examCategory];
             const quizId = `live-test-${test.id}`;
             const quizData = {
@@ -136,7 +142,8 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
 
         } catch (error: any) {
             console.error("Error generating live test:", error);
-            toast({ title: 'Error', description: error.message || 'Could not generate the test. Please try again.', variant: 'destructive' });
+            toast({ title: 'Error Generating Test', description: error.message || 'Could not generate the test. Please try again.', variant: 'destructive' });
+        } finally {
             setIsGenerating(false);
         }
     };

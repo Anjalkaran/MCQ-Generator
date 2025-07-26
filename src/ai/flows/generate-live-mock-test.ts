@@ -113,7 +113,7 @@ const generateLiveMockTestFlow = ai.defineFlow(
     });
     
     if (!output || !output.questions || output.questions.length === 0) {
-        throw new Error(`Could not extract any verifiable questions from the live test paper: ${questionPaper.fileName}.`);
+        throw new Error(`The live test question paper '${questionPaper.fileName}' could not be processed. It might be empty, in an incorrect format, or the AI model is currently unavailable. Please try again later or contact an administrator.`);
     }
 
     return { mcqs: output.questions };
