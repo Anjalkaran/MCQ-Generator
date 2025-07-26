@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { useDashboard } from '@/app/dashboard/layout';
-import { Loader2, PlayCircle, Lock, CheckCircle, TimerOff, Trophy, Gem } from 'lucide-react';
+import { Loader2, PlayCircle, Lock, CheckCircle, TimerOff, Trophy, Gem, Ban } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -16,6 +16,7 @@ import { markLiveTestAsTaken } from '@/lib/firestore';
 import { normalizeDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { ADMIN_EMAILS, RAZORPAY_KEY_ID } from '@/lib/constants';
+import { formatDistanceToNowStrict } from 'date-fns';
 
 declare global {
     interface Window {
@@ -36,60 +37,53 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [isPaying, setIsPaying] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState('');
-    const [testState, setTestState] = useState<'upcoming' | 'live' | 'ended' | 'completed' | 'loading'>('loading');
+    const [testState, setTestState] = useState<'upcoming' | 'live' | 'ended' | 'completed' | 'loading' | 'entryClosed'>('loading');
 
     const startTime = useMemo(() => normalizeDate(test.startTime), [test.startTime]);
     const endTime = useMemo(() => normalizeDate(test.endTime), [test.endTime]);
+    const entryCutoffTime = useMemo(() => {
+        if (!startTime) return null;
+        const cutoff = new Date(startTime);
+        cutoff.setMinutes(cutoff.getMinutes() + 10);
+        return cutoff;
+    }, [startTime]);
     
     const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
     const proValidUntilDate = normalizeDate(userData?.proValidUntil);
     const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
-    const liveTestsTakenCount = userData?.liveTestsTaken?.length || 0;
-    const isFirstTestFree = !isPro && liveTestsTakenCount === 0;
+    const hasTakenTest = userData?.liveTestsTaken?.includes(test.id);
 
     useEffect(() => {
-        if (!startTime || !endTime) return;
+        if (!startTime || !endTime || !entryCutoffTime) return;
 
         const interval = setInterval(() => {
-            // Check if user has already completed this specific test
-            if (userData?.liveTestsTaken?.includes(test.id)) {
+            if (hasTakenTest && !isAdmin) {
                 if(testState !== 'completed') setTestState('completed');
-                clearInterval(interval);
-                return;
-            }
-            
-            if (testState === 'ended') {
                 clearInterval(interval);
                 return;
             }
             
             const now = new Date();
 
-            if (now >= startTime && now <= endTime) {
-                 if (testState !== 'live') setTestState('live');
-                const totalSeconds = Math.floor((endTime.getTime() - now.getTime()) / 1000);
-                const hours = Math.floor(totalSeconds / 3600);
-                const minutes = Math.floor((totalSeconds % 3600) / 60);
-                const seconds = totalSeconds % 60;
-                setTimeRemaining(`${hours}h ${minutes}m ${seconds}s remaining`);
-
-            } else if (now > endTime) {
+            if (now < startTime) {
+                if (testState !== 'upcoming') setTestState('upcoming');
+                setTimeRemaining(formatDistanceToNowStrict(startTime));
+            } else if (now >= startTime && now <= entryCutoffTime) {
+                if (testState !== 'live') setTestState('live');
+                setTimeRemaining(formatDistanceToNowStrict(entryCutoffTime));
+            } else if (now > entryCutoffTime && now <= endTime) {
+                 if (testState !== 'entryClosed') setTestState('entryClosed');
+                 setTimeRemaining('Entry window has closed.');
+                 clearInterval(interval);
+            } else {
                 if (testState !== 'ended') setTestState('ended');
                 setTimeRemaining('This live test has ended.');
                 clearInterval(interval);
-            } else {
-                if (testState !== 'upcoming') setTestState('upcoming');
-                const totalSeconds = Math.floor((startTime.getTime() - now.getTime()) / 1000);
-                const days = Math.floor(totalSeconds / (3600 * 24));
-                const hours = Math.floor((totalSeconds % (3600 * 24)) / 3600);
-                const minutes = Math.floor((totalSeconds % 3600) / 60);
-                const seconds = totalSeconds % 60;
-                setTimeRemaining(`${days}d ${hours}h ${minutes}m ${seconds}s`);
             }
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [startTime, endTime, testState, userData, test.id]);
+    }, [startTime, endTime, entryCutoffTime, testState, hasTakenTest, isAdmin]);
 
     const startTest = async () => {
         setIsGenerating(true);
@@ -119,10 +113,11 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
 
             localStorage.setItem(`quiz-${quizId}`, JSON.stringify(quizData));
             
-            await markLiveTestAsTaken(user.uid, test.id);
-
-            // Optimistically update local user data state
-            setUserData(prev => prev ? ({ ...prev, liveTestsTaken: [...(prev.liveTestsTaken || []), test.id] }) : null);
+            if (!isAdmin) {
+                await markLiveTestAsTaken(user.uid, test.id);
+                // Optimistically update local user data state
+                setUserData(prev => prev ? ({ ...prev, liveTestsTaken: [...(prev.liveTestsTaken || []), test.id] }) : null);
+            }
 
             router.push(`/quiz/${quizId}`);
 
@@ -184,32 +179,26 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
         if (testState === 'upcoming') return <Button disabled className="w-full"><Lock className="mr-2 h-4 w-4" />Starts In: {timeRemaining}</Button>;
         if (testState === 'completed') return <Button disabled className="w-full"><CheckCircle className="mr-2 h-4 w-4" />Test Already Attempted</Button>;
         if (testState === 'ended') return <Button disabled className="w-full"><TimerOff className="mr-2 h-4 w-4" />Test Has Ended</Button>;
+        if (testState === 'entryClosed') return <Button disabled className="w-full"><Ban className="mr-2 h-4 w-4" />Entry Window Closed</Button>;
 
         // Test is 'live'
         if (isPro) {
             return <Button onClick={startTest} disabled={isGenerating} className="w-full bg-green-600 hover:bg-green-700">
                 {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
-                Start Live Test
+                Start Live Test {isAdmin && "(Admin)"}
             </Button>;
         }
         
-        if (isFirstTestFree) {
-            return <Button onClick={startTest} disabled={isGenerating} className="w-full bg-green-600 hover:bg-green-700">
-                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
-                Start First Free Test
-            </Button>;
-        }
-
-        // It's a subsequent test for a free user
+        // Non-pro user, test requires payment
         return (
             <div className="w-full space-y-2">
                 <Button onClick={handlePaymentAndStart} disabled={isPaying || isGenerating} className="w-full">
                     {isPaying || isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
-                    Pay ₹{test.price} and Start Test
+                    Pay ₹{test.price} and Start
                 </Button>
                 <Button variant="outline" asChild className="w-full">
                     <Link href="/dashboard/upgrade">
-                        <Gem className="mr-2 h-4 w-4" /> Upgrade to Pro for Unlimited Access
+                        <Gem className="mr-2 h-4 w-4" /> Upgrade to Pro
                     </Link>
                 </Button>
             </div>
@@ -222,27 +211,21 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
 
     return (
         <Card className="border-primary border-2 shadow-lg relative overflow-hidden">
-             {isFirstTestFree && (
-                <Badge className="absolute -top-2 -right-2 transform rotate-12 text-base px-3 py-1">
-                    First Test Free!
-                </Badge>
-            )}
             <CardHeader className="text-center">
-                <CardTitle className="text-2xl text-primary">{test.title}</CardTitle>
+                <CardTitle className="text-xl text-primary">{test.title}</CardTitle>
                 <CardDescription>
-                    Starts: {startTime.toLocaleString()} | Ends: {endTime.toLocaleString()}
+                    {startTime.toLocaleString()}
                 </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
                 <div className="p-4 bg-muted rounded-lg mb-4">
                     <p className="text-sm text-muted-foreground">
-                        {testState === 'upcoming' ? 'Time Remaining to Start' : 'Test Window is Live!'}
+                        {testState === 'upcoming' ? 'Starts in' : 'Entry closes in'}
                     </p>
-                    <p className="text-3xl font-bold tracking-tighter">
+                    <p className="text-2xl font-bold tracking-tighter">
                         {timeRemaining}
                     </p>
                 </div>
-                <p className="text-xs text-muted-foreground px-4">You can start the {blueprintMap[test.examCategory].totalDurationMinutes}-minute test anytime within the 2-hour window. You only have one attempt.</p>
             </CardContent>
             <CardFooter>
                 {getButton()}

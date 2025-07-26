@@ -135,5 +135,5 @@ export interface LiveTest {
     startTime: Timestamp;
     endTime: Timestamp;
     questionPaperId: string; // Document ID from the 'liveTestBank' collection
-    price?: number; // Price for the test for non-pro users
+    price: number; // Price for the test for non-pro users
 }

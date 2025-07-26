@@ -467,23 +467,27 @@ export const getLiveTestQuestionPaper = async (liveTestId: string): Promise<Bank
     } as BankedQuestion;
 };
 
-export const getLiveTests = async (): Promise<LiveTest[]> => {
+export const addLiveTest = async (testData: Omit<LiveTest, 'id'>): Promise<DocumentReference> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    return await addDoc(collection(db, 'liveTests'), testData);
+};
+
+export const getLiveTests = async (fetchAll: boolean = false): Promise<LiveTest[]> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     const testsCollection = collection(db, 'liveTests');
-    const now = new Date();
-    // Query for tests where the end time is in the future
-    const q = query(testsCollection, where('endTime', '>', now));
+    let q;
+    if (fetchAll) {
+        q = query(testsCollection, orderBy('startTime', 'desc'));
+    } else {
+        const now = new Date();
+        q = query(testsCollection, where('endTime', '>', now), orderBy('endTime', 'asc'));
+    }
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-            id: doc.id,
-            ...data,
-            startTime: data.startTime,
-            endTime: data.endTime,
-        } as LiveTest;
-    }).sort((a, b) => a.startTime.toDate().getTime() - b.startTime.toDate().getTime());
+        return { id: doc.id, ...doc.data() } as LiveTest;
+    });
 };
 
 export const markLiveTestAsTaken = async (userId: string, liveTestId: string): Promise<void> => {

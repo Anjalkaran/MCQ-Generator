@@ -12,27 +12,30 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Eye, Trash2 } from 'lucide-react';
-import { deleteLiveTestBankDocument } from '@/lib/firestore';
-import type { BankedQuestion } from '@/lib/types';
+import { Loader2, Upload, Eye, Trash2, Calendar as CalendarIcon } from 'lucide-react';
+import { deleteLiveTestBankDocument, addLiveTest } from '@/lib/firestore';
+import type { BankedQuestion, LiveTest } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { Timestamp } from 'firebase/firestore';
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 
-const liveTestBankSchema = z.object({
-  examCategory: z.enum(examCategories, {
-    required_error: 'You must select an exam category.',
-  }),
-  file: z
-    .instanceof(File)
-    .refine((file) => file.size > 0, 'Please upload a file.')
-    .refine(
-        (file) => file.size <= 4 * 1024 * 1024,
-        `File size must be less than 4MB.`
-    ),
+const scheduleSchema = z.object({
+  title: z.string().min(3, "Title is required."),
+  questionPaperId: z.string().min(1, "You must select a question paper."),
+  examCategory: z.enum(examCategories),
+  price: z.coerce.number().min(0, "Price must be a positive number."),
+  startTime: z.date({ required_error: "A start date and time is required." }),
+  endTime: z.date({ required_error: "An end date and time is required." })
+}).refine(data => data.endTime > data.startTime, {
+    message: "End time must be after start time.",
+    path: ["endTime"],
 });
 
 interface LiveTestManagementProps {
@@ -40,188 +43,226 @@ interface LiveTestManagementProps {
 }
 
 export function LiveTestManagement({ initialLiveTestBank }: LiveTestManagementProps) {
-  const [isUploading, setIsUploading] = useState(false);
-  const [liveTestBank, setLiveTestBank] = useState<BankedQuestion[]>(initialLiveTestBank);
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [liveTestBank] = useState<BankedQuestion[]>(initialLiveTestBank);
   const { toast } = useToast();
 
-  const form = useForm<z.infer<typeof liveTestBankSchema>>({
-    resolver: zodResolver(liveTestBankSchema),
-    defaultValues: {
-        examCategory: undefined,
-        file: undefined,
-    }
+  const form = useForm<z.infer<typeof scheduleSchema>>({
+    resolver: zodResolver(scheduleSchema),
   });
 
-  const onSubmit = async (values: z.infer<typeof liveTestBankSchema>) => {
-    setIsUploading(true);
-    const formData = new FormData();
-    formData.append('examCategory', values.examCategory);
-    formData.append('file', values.file);
-
+  const onSubmit = async (values: z.infer<typeof scheduleSchema>) => {
+    setIsScheduling(true);
     try {
-      const response = await fetch('/api/live-test-bank/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to upload file.');
-      }
-
-      const { newDocument } = await response.json();
-      setLiveTestBank(prev => [newDocument, ...prev]);
-
-      toast({ title: 'Success', description: 'Live test paper uploaded successfully.' });
-      form.reset();
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      if (fileInput) fileInput.value = '';
-
+        const liveTestData: Omit<LiveTest, 'id'> = {
+            ...values,
+            startTime: Timestamp.fromDate(values.startTime),
+            endTime: Timestamp.fromDate(values.endTime),
+        };
+        await addLiveTest(liveTestData);
+        toast({ title: 'Success', description: 'Live test scheduled successfully.' });
+        form.reset();
     } catch (error: any) {
-      console.error("Live test upload error:", error);
-      toast({ title: 'Upload Failed', description: error.message || 'Could not process the file.', variant: 'destructive' });
+      console.error("Live test scheduling error:", error);
+      toast({ title: 'Scheduling Failed', description: error.message, variant: 'destructive' });
     } finally {
-      setIsUploading(false);
+      setIsScheduling(false);
     }
   };
-
-  const handleDelete = async (docId: string) => {
-    try {
-        await deleteLiveTestBankDocument(docId);
-        setLiveTestBank(prev => prev.filter(bq => bq.id !== docId));
-        toast({ title: "Success", description: "Live test paper deleted." });
-    } catch (error) {
-        console.error("Failed to delete live test paper", error);
-        toast({ title: "Error", description: "Could not delete the live test paper.", variant: "destructive" });
-    }
-  }
+  
+  const selectedCategory = form.watch('examCategory');
+  const filteredPapers = selectedCategory 
+    ? liveTestBank.filter(p => p.examCategory === selectedCategory) 
+    : [];
 
   return (
     <div className="space-y-6">
         <Card>
         <CardHeader>
-            <CardTitle>Upload Live Test Question Paper</CardTitle>
-            <CardDescription>Upload a single DOCX file for an upcoming live test. This will be stored in a separate collection from the general question bank.</CardDescription>
+            <CardTitle>Schedule a New Live Test</CardTitle>
+            <CardDescription>Select a pre-uploaded question paper and set the schedule for the live test.</CardDescription>
         </CardHeader>
         <CardContent>
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                control={form.control}
-                name="examCategory"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Exam Category</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select an exam category" />
-                        </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                        {examCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="file"
-                render={({ field: { onChange, value, ...rest } }) => (
-                    <FormItem>
-                    <FormLabel>Question Paper File (.docx)</FormLabel>
-                    <FormControl>
-                        <Input 
-                        type="file" 
-                        accept=".docx"
-                        onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
-                        {...rest}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     <FormField
+                        control={form.control}
+                        name="title"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Test Title</FormLabel>
+                            <FormControl>
+                                <Input placeholder="e.g., All India MTS Mock Test" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="examCategory"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Exam Category</FormLabel>
+                            <Select onValueChange={(value) => {
+                                field.onChange(value);
+                                form.resetField('questionPaperId');
+                            }} value={field.value}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select an exam category" />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                {examCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
                         />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <Button type="submit" disabled={isUploading}>
-                {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                Upload Live Test Paper
+                     <FormField
+                        control={form.control}
+                        name="questionPaperId"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Question Paper</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCategory}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder={!selectedCategory ? "Select category first" : "Select a paper"} />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                {filteredPapers.map(p => <SelectItem key={p.id} value={p.id}>{p.fileName}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                    <FormField
+                        control={form.control}
+                        name="price"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Price (INR)</FormLabel>
+                             <FormControl>
+                                <Input type="number" placeholder="e.g., 29" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                    <FormField
+                    control={form.control}
+                    name="startTime"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                        <FormLabel>Start Date & Time</FormLabel>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <FormControl>
+                                <Button
+                                variant={"outline"}
+                                className={cn(
+                                    "pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                )}
+                                >
+                                {field.value ? (
+                                    format(field.value, "PPP HH:mm")
+                                ) : (
+                                    <span>Pick a date and time</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                            </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) => date < new Date() || date < new Date("1900-01-01")}
+                                initialFocus
+                            />
+                            <div className="p-2 border-t border-border">
+                               <Input 
+                                 type="time" 
+                                 onChange={(e) => {
+                                     const [hours, minutes] = e.target.value.split(':').map(Number);
+                                     const newDate = new Date(field.value || new Date());
+                                     newDate.setHours(hours, minutes);
+                                     field.onChange(newDate);
+                                 }}
+                               />
+                            </div>
+                            </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                     <FormField
+                    control={form.control}
+                    name="endTime"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                        <FormLabel>End Date & Time</FormLabel>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <FormControl>
+                                <Button
+                                variant={"outline"}
+                                className={cn(
+                                    "pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                )}
+                                >
+                                {field.value ? (
+                                    format(field.value, "PPP HH:mm")
+                                ) : (
+                                    <span>Pick a date and time</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                            </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) => date < (form.getValues('startTime') || new Date())}
+                                initialFocus
+                            />
+                             <div className="p-2 border-t border-border">
+                               <Input 
+                                 type="time" 
+                                 onChange={(e) => {
+                                     const [hours, minutes] = e.target.value.split(':').map(Number);
+                                     const newDate = new Date(field.value || new Date());
+                                     newDate.setHours(hours, minutes);
+                                     field.onChange(newDate);
+                                 }}
+                               />
+                            </div>
+                            </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                </div>
+                <Button type="submit" disabled={isScheduling}>
+                {isScheduling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                Schedule Live Test
                 </Button>
             </form>
             </Form>
         </CardContent>
-        </Card>
-
-        <Card>
-            <CardHeader>
-                <CardTitle>Uploaded Live Test Papers</CardTitle>
-                <CardDescription>View and manage previously uploaded papers. You will use the Document ID from this table to schedule a live test.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                 <div className="border rounded-md">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>File Name</TableHead>
-                                <TableHead>Document ID</TableHead>
-                                <TableHead>Exam</TableHead>
-                                <TableHead>Uploaded At</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {liveTestBank.length > 0 ? (
-                                liveTestBank.map((bq) => (
-                                    <TableRow key={bq.id}>
-                                        <TableCell className="font-medium">{bq.fileName}</TableCell>
-                                        <TableCell><code className="text-xs">{bq.id}</code></TableCell>
-                                        <TableCell>{bq.examCategory}</TableCell>
-                                        <TableCell>{format(new Date(bq.uploadedAt), "PPP p")}</TableCell>
-                                        <TableCell className="text-right space-x-2">
-                                            <Dialog>
-                                                <DialogTrigger asChild>
-                                                    <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
-                                                </DialogTrigger>
-                                                <DialogContent className="max-w-3xl">
-                                                    <DialogHeader>
-                                                        <DialogTitle>{bq.fileName}</DialogTitle>
-                                                        <DialogDescription>Content for {bq.examCategory}</DialogDescription>
-                                                    </DialogHeader>
-                                                    <ScrollArea className="h-96 w-full rounded-md border p-4">
-                                                        <pre className="text-sm whitespace-pre-wrap">{bq.content}</pre>
-                                                    </ScrollArea>
-                                                </DialogContent>
-                                            </Dialog>
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                    <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                        <AlertDialogDescription>This will permanently delete the live test paper "{bq.fileName}". This action cannot be undone.</AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => handleDelete(bq.id)}>Delete</AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="h-24 text-center">
-                                        No live test papers uploaded yet.
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                 </div>
-            </CardContent>
         </Card>
     </div>
   );
