@@ -28,7 +28,7 @@ export type GenerateMCQsInput = z.infer<typeof GenerateMCQsInputSchema>;
 
 const MCQSchema = z.object({
       question: z.string().describe('The multiple-choice question.'),
-      options: z.array(z.string()).length(4).describe('An array of four possible answers.'),
+      options: z.array(z.string()).length(4).describe('An array of four possible answers, with the full text for each option.'),
       correctAnswer: z.string().describe('The full text of the correct answer, which MUST be an exact match to one of the four strings in the `options` array.'),
       solution: z.string().optional().describe('A step-by-step solution for arithmetic problems, or a detailed explanation for other topics.'),
     });
@@ -157,7 +157,7 @@ const prompt = ai.definePrompt({
 
 --- MOST IMPORTANT RULE ---
 For every question you generate, you MUST follow this two-step process:
-1.  First, generate an array of four distinct strings for the 'options' field.
+1.  First, generate an array of four distinct strings for the 'options' field. Each string must contain the full text of the answer option.
 2.  Second, from that exact array, select the single correct option and use its full text for the 'correctAnswer' field. The 'correctAnswer' string must be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
 
 You MUST generate questions that can be answered with one of the four options. Do NOT create open-ended questions that ask to "Explain...", "Describe...", "What is...", or "List...".
