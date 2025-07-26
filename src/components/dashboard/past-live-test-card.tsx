@@ -14,6 +14,7 @@ import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-bluep
 import type { LiveTest } from '@/lib/types';
 import { normalizeDate } from '@/lib/utils';
 import { ADMIN_EMAILS } from '@/lib/constants';
+import { Badge } from '@/components/ui/badge';
 
 const blueprintMap = {
     MTS: MTS_BLUEPRINT,
@@ -75,7 +76,7 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
                     Conducted on: {startTime?.toLocaleDateString()}
                 </CardDescription>
                  {hasTakenTest && !isAdmin && (
-                    <Badge variant="secondary" className="w-fit">
+                    <Badge variant="secondary" className="w-fit mt-2">
                         <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
                         Attempted
                     </Badge>
