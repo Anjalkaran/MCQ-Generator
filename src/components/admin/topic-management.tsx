@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { addCategory, addTopic, deleteTopic, addMaterialToTopic, deleteCategory, updateCategory, updateTopic } from '@/lib/firestore';
 import type { Topic, Category } from '@/lib/types';
-import { Loader2, PlusCircle, Trash2, Upload, Edit, Paperclip } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Upload, Edit, Paperclip, Search } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
   AlertDialog,
@@ -85,6 +85,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingTopic, setEditingTopic] = useState<Topic | null>(null);
   const [uploadCategoryId, setUploadCategoryId] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState('');
   
   const { toast } = useToast();
 
@@ -251,6 +252,18 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
   const getCategoryName = (categoryId: string) => {
     return categories.find(c => c.id === categoryId)?.name || 'N/A';
   }
+
+  const filteredTopics = useMemo(() => {
+    if (!searchTerm) {
+      return topics;
+    }
+    const lowercasedFilter = searchTerm.toLowerCase();
+    return topics.filter(topic =>
+      topic.title.toLowerCase().includes(lowercasedFilter) ||
+      getCategoryName(topic.categoryId).toLowerCase().includes(lowercasedFilter)
+    );
+  }, [searchTerm, topics, categories]);
+
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -551,6 +564,15 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
             <CardHeader>
                 <CardTitle>Manage Content</CardTitle>
                 <CardDescription>View, edit, or delete existing categories and topics.</CardDescription>
+                <div className="relative pt-2">
+                    <Search className="absolute left-2.5 top-4 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search topics by title or category..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-8 w-full"
+                    />
+                </div>
             </CardHeader>
             <CardContent className="space-y-6">
                  <div className="border rounded-md">
@@ -614,8 +636,8 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {topics.length > 0 ? (
-                                topics.map((topic) => (
+                            {filteredTopics.length > 0 ? (
+                                filteredTopics.map((topic) => (
                                     <TableRow key={topic.id}>
                                         <TableCell className="font-medium">{topic.title}<br/><span className="text-xs text-muted-foreground">{getCategoryName(topic.categoryId)}</span></TableCell>
                                         <TableCell><Badge variant="outline">{topic.part}</Badge></TableCell>
@@ -649,7 +671,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                             ) : (
                                 <TableRow>
                                     <TableCell colSpan={4} className="h-24 text-center">
-                                        No topics created yet.
+                                        No topics found.
                                     </TableCell>
                                 </TableRow>
                             )}
