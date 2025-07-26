@@ -139,6 +139,11 @@ function LiveTestLeaderboard({ pastLiveTests }: { pastLiveTests: LiveTest[] }) {
         fetchLeaderboard();
     }, [selectedTestId]);
 
+    const getFormattedDate = (date: any) => {
+        const normalized = normalizeDate(date);
+        return normalized ? format(normalized, 'PPP') : 'Invalid Date';
+    };
+
     return (
         <div className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
@@ -150,7 +155,7 @@ function LiveTestLeaderboard({ pastLiveTests }: { pastLiveTests: LiveTest[] }) {
                     <SelectContent>
                         {pastLiveTests.map(test => (
                             <SelectItem key={test.id} value={test.id}>
-                                {test.title} ({format(normalizeDate(test.startTime)!, 'PPP')})
+                                {test.title} ({getFormattedDate(test.startTime)})
                             </SelectItem>
                         ))}
                     </SelectContent>
