@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, MessageCircle, Send } from "lucide-react";
+import { Mail, MessageCircle, Send, Users } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { MainHeader } from "@/components/main-header";
@@ -46,10 +46,20 @@ export default function SupportPage() {
                   </div>
                 </div>
                 <div className="flex items-start gap-4 p-4 border rounded-lg">
+                  <Users className="h-6 w-6 text-primary mt-1" />
+                  <div>
+                    <h3 className="font-semibold">Telegram Community</h3>
+                    <p className="text-muted-foreground">Join our community for updates and discussions.</p>
+                    <Button variant="link" asChild className="p-0 h-auto">
+                      <a href="https://t.me/anjalkaran" target="_blank" rel="noopener noreferrer">@anjalkaran</a>
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-start gap-4 p-4 border rounded-lg">
                   <Send className="h-6 w-6 text-primary mt-1" />
                   <div>
-                    <h3 className="font-semibold">Telegram</h3>
-                    <p className="text-muted-foreground">Join our community for updates and discussions.</p>
+                    <h3 className="font-semibold">Telegram Chat</h3>
+                    <p className="text-muted-foreground">For individual chat and direct support.</p>
                     <Button variant="link" asChild className="p-0 h-auto">
                       <a href="https://t.me/Anjalkaranacademy" target="_blank" rel="noopener noreferrer">@Anjalkaranacademy</a>
                     </Button>
