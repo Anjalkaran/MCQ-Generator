@@ -12,8 +12,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Clock, Trash2, Edit, CalendarIcon } from 'lucide-react';
-import { addLiveTest, updateLiveTest, deleteLiveTest } from '@/lib/firestore';
+import { Loader2, Clock, Trash2, Edit, CalendarIcon, Upload, Eye } from 'lucide-react';
+import { addLiveTest, updateLiveTest, deleteLiveTest, deleteLiveTestBankDocument } from '@/lib/firestore';
 import type { BankedQuestion, LiveTest } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -23,8 +23,14 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn, normalizeDate } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
+
+const uploadSchema = z.object({
+  examCategory: z.enum(examCategories),
+  file: z.instanceof(File).refine(file => file.size > 0, 'Please upload a file.'),
+});
 
 const scheduleSchema = z.object({
   title: z.string().min(3, "Title is required."),
@@ -45,19 +51,24 @@ interface LiveTestManagementProps {
 
 export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: LiveTestManagementProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [liveTestBank] = useState<BankedQuestion[]>(initialLiveTestBank);
+  const [isUploading, setIsUploading] = useState(false);
+  const [liveTestBank, setLiveTestBank] = useState<BankedQuestion[]>(initialLiveTestBank);
   const [liveTests, setLiveTests] = useState<LiveTest[]>(initialLiveTests);
   const [editingTest, setEditingTest] = useState<LiveTest | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
 
-  const form = useForm<z.infer<typeof scheduleSchema>>({
+  const scheduleForm = useForm<z.infer<typeof scheduleSchema>>({
     resolver: zodResolver(scheduleSchema),
+  });
+
+  const uploadForm = useForm<z.infer<typeof uploadSchema>>({
+    resolver: zodResolver(uploadSchema),
   });
   
   useEffect(() => {
     if (editingTest) {
-        form.reset({
+        scheduleForm.reset({
             title: editingTest.title,
             questionPaperId: editingTest.questionPaperId,
             examCategory: editingTest.examCategory,
@@ -66,7 +77,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
             endTime: normalizeDate(editingTest.endTime)!,
         });
     } else {
-        form.reset({
+        scheduleForm.reset({
           title: '',
           questionPaperId: undefined,
           examCategory: undefined,
@@ -75,9 +86,9 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
           endTime: undefined,
         });
     }
-  }, [editingTest, form]);
+  }, [editingTest, scheduleForm]);
 
-  const onSubmit = async (values: z.infer<typeof scheduleSchema>) => {
+  const onScheduleSubmit = async (values: z.infer<typeof scheduleSchema>) => {
     setIsLoading(true);
     try {
         const liveTestData = {
@@ -99,7 +110,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
             setLiveTests(prev => [newLiveTest, ...prev].sort((a,b) => normalizeDate(b.startTime)!.getTime() - normalizeDate(a.startTime)!.getTime()));
             toast({ title: 'Success', description: 'Live test scheduled successfully.' });
         }
-        form.reset();
+        scheduleForm.reset();
         setIsDialogOpen(false);
         setEditingTest(null);
     } catch (error: any) {
@@ -110,7 +121,36 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
     }
   };
   
-  const handleDelete = async (testId: string) => {
+  const onUploadSubmit = async (values: z.infer<typeof uploadSchema>) => {
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('file', values.file);
+    formData.append('examCategory', values.examCategory);
+
+    try {
+        const response = await fetch('/api/live-test-bank/upload', {
+            method: 'POST',
+            body: formData,
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to upload.');
+        }
+        const { newDocument } = await response.json();
+        setLiveTestBank(prev => [newDocument, ...prev]);
+        toast({ title: 'Success', description: 'File uploaded successfully.' });
+        uploadForm.reset();
+        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+        if(fileInput) fileInput.value = '';
+
+    } catch (error: any) {
+        toast({ title: 'Upload Failed', description: error.message, variant: 'destructive' });
+    } finally {
+        setIsUploading(false);
+    }
+  }
+
+  const handleDeleteTest = async (testId: string) => {
     try {
         await deleteLiveTest(testId);
         setLiveTests(prev => prev.filter(t => t.id !== testId));
@@ -119,13 +159,23 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
         toast({ title: "Error", description: "Failed to delete live test.", variant: "destructive" });
     }
   }
+  
+  const handleDeletePaper = async (paperId: string) => {
+    try {
+        await deleteLiveTestBankDocument(paperId);
+        setLiveTestBank(prev => prev.filter(p => p.id !== paperId));
+        toast({ title: "Success", description: "Question paper deleted." });
+    } catch (error) {
+        toast({ title: "Error", description: "Failed to delete question paper.", variant: "destructive" });
+    }
+  }
 
   const handleOpenDialog = (test: LiveTest | null) => {
     setEditingTest(test);
     setIsDialogOpen(true);
   }
   
-  const selectedCategory = form.watch('examCategory');
+  const selectedCategory = scheduleForm.watch('examCategory');
   const filteredPapers = selectedCategory 
     ? liveTestBank.filter(p => p.examCategory === selectedCategory) 
     : [];
@@ -146,6 +196,90 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
 
   return (
     <div className="space-y-6">
+        <div className="grid gap-6 lg:grid-cols-2">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Upload Live Test Papers</CardTitle>
+                    <CardDescription>Upload DOCX question papers for live tests.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Form {...uploadForm}>
+                        <form onSubmit={uploadForm.handleSubmit(onUploadSubmit)} className="space-y-4">
+                             <FormField
+                                control={uploadForm.control}
+                                name="examCategory"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Exam Category</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                        <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                        {examCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                            <FormField
+                                control={uploadForm.control}
+                                name="file"
+                                render={({ field: { onChange, ...rest } }) => (
+                                    <FormItem>
+                                    <FormLabel>Question Paper File</FormLabel>
+                                    <FormControl>
+                                        <Input 
+                                        type="file" 
+                                        accept=".docx"
+                                        onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
+                                        {...rest}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                            <Button type="submit" disabled={isUploading}>
+                                {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                                Upload Paper
+                            </Button>
+                        </form>
+                    </Form>
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader>
+                    <CardTitle>Uploaded Papers</CardTitle>
+                    <CardDescription>Manage your uploaded live test question papers.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <div className="border rounded-md h-64 overflow-y-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow><TableHead>File Name</TableHead><TableHead className="text-right">Actions</TableHead></TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {liveTestBank.length > 0 ? (
+                                    liveTestBank.map(p => (
+                                        <TableRow key={p.id}>
+                                            <TableCell>{p.fileName}</TableCell>
+                                            <TableCell className="text-right">
+                                                 <Dialog><DialogTrigger asChild><Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button></DialogTrigger><DialogContent className="max-w-3xl"><DialogHeader><DialogTitle>{p.fileName}</DialogTitle></DialogHeader><ScrollArea className="h-96 w-full rounded-md border p-4"><pre className="text-sm whitespace-pre-wrap">{p.content}</pre></ScrollArea></DialogContent></Dialog>
+                                                 <AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will delete "{p.fileName}". This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePaper(p.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow><TableCell colSpan={2} className="h-24 text-center">No papers uploaded.</TableCell></TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
         <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { setIsDialogOpen(isOpen); if (!isOpen) setEditingTest(null); }}>
              <DialogTrigger asChild>
                 <Button onClick={() => handleOpenDialog(null)}>
@@ -158,11 +292,11 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                     <DialogTitle>{editingTest ? 'Edit Live Test' : 'Schedule a New Live Test'}</DialogTitle>
                     <DialogDescription>Select a question paper and set the schedule for the live test.</DialogDescription>
                 </DialogHeader>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <Form {...scheduleForm}>
+                    <form onSubmit={scheduleForm.handleSubmit(onScheduleSubmit)} className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FormField
-                                control={form.control}
+                                control={scheduleForm.control}
                                 name="title"
                                 render={({ field }) => (
                                     <FormItem>
@@ -175,14 +309,14 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                 )}
                             />
                             <FormField
-                                control={form.control}
+                                control={scheduleForm.control}
                                 name="examCategory"
                                 render={({ field }) => (
                                     <FormItem>
                                     <FormLabel>Exam Category</FormLabel>
                                     <Select onValueChange={(value) => {
                                         field.onChange(value);
-                                        form.resetField('questionPaperId');
+                                        scheduleForm.resetField('questionPaperId');
                                     }} value={field.value}>
                                         <FormControl>
                                         <SelectTrigger>
@@ -198,7 +332,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                 )}
                                 />
                             <FormField
-                                control={form.control}
+                                control={scheduleForm.control}
                                 name="questionPaperId"
                                 render={({ field }) => (
                                     <FormItem>
@@ -218,7 +352,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                 )}
                                 />
                             <FormField
-                                control={form.control}
+                                control={scheduleForm.control}
                                 name="price"
                                 render={({ field }) => (
                                     <FormItem>
@@ -231,7 +365,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                 )}
                                 />
                             <FormField
-                            control={form.control}
+                            control={scheduleForm.control}
                             name="startTime"
                             render={({ field }) => (
                                 <FormItem className="flex flex-col">
@@ -281,7 +415,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                             )}
                             />
                             <FormField
-                            control={form.control}
+                            control={scheduleForm.control}
                             name="endTime"
                             render={({ field }) => (
                                 <FormItem className="flex flex-col">
@@ -310,7 +444,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                         mode="single"
                                         selected={field.value}
                                         onSelect={field.onChange}
-                                        disabled={(date) => date < (form.getValues('startTime') || new Date())}
+                                        disabled={(date) => date < (scheduleForm.getValues('startTime') || new Date())}
                                         initialFocus
                                     />
                                     <div className="p-2 border-t border-border">
@@ -385,7 +519,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                                     </AlertDialogHeader>
                                                     <AlertDialogFooter>
                                                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => handleDelete(test.id)}>Delete</AlertDialogAction>
+                                                        <AlertDialogAction onClick={() => handleDeleteTest(test.id)}>Delete</AlertDialogAction>
                                                     </AlertDialogFooter>
                                                 </AlertDialogContent>
                                             </AlertDialog>
