@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,13 +12,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Calendar as CalendarIcon, Clock, Trash2 } from 'lucide-react';
-import { addLiveTest } from '@/lib/firestore';
+import { Loader2, Clock, Trash2, Edit } from 'lucide-react';
+import { addLiveTest, updateLiveTest, deleteLiveTest } from '@/lib/firestore';
 import type { BankedQuestion, LiveTest } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn, normalizeDate } from '@/lib/utils';
@@ -45,51 +44,86 @@ interface LiveTestManagementProps {
 }
 
 export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: LiveTestManagementProps) {
-  const [isScheduling, setIsScheduling] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [liveTestBank] = useState<BankedQuestion[]>(initialLiveTestBank);
   const [liveTests, setLiveTests] = useState<LiveTest[]>(initialLiveTests);
+  const [editingTest, setEditingTest] = useState<LiveTest | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof scheduleSchema>>({
     resolver: zodResolver(scheduleSchema),
-    defaultValues: {
-      title: '',
-      questionPaperId: undefined,
-      examCategory: undefined,
-      price: 0,
-      startTime: undefined,
-      endTime: undefined,
-    }
   });
+  
+  useEffect(() => {
+    if (editingTest) {
+        form.reset({
+            title: editingTest.title,
+            questionPaperId: editingTest.questionPaperId,
+            examCategory: editingTest.examCategory,
+            price: editingTest.price,
+            startTime: normalizeDate(editingTest.startTime)!,
+            endTime: normalizeDate(editingTest.endTime)!,
+        });
+    } else {
+        form.reset({
+          title: '',
+          questionPaperId: undefined,
+          examCategory: undefined,
+          price: 0,
+          startTime: undefined,
+          endTime: undefined,
+        });
+    }
+  }, [editingTest, form]);
 
   const onSubmit = async (values: z.infer<typeof scheduleSchema>) => {
-    setIsScheduling(true);
+    setIsLoading(true);
     try {
-        const liveTestData: Omit<LiveTest, 'id'> = {
+        const liveTestData = {
             ...values,
             startTime: Timestamp.fromDate(values.startTime),
             endTime: Timestamp.fromDate(values.endTime),
         };
-        const newDocRef = await addLiveTest(liveTestData);
         
-        const newLiveTest: LiveTest = {
-          id: newDocRef.id,
-          ...values,
-          startTime: Timestamp.fromDate(values.startTime),
-          endTime: Timestamp.fromDate(values.endTime),
+        if (editingTest) {
+            await updateLiveTest(editingTest.id, liveTestData);
+            setLiveTests(prev => prev.map(t => t.id === editingTest.id ? { id: editingTest.id, ...liveTestData } : t));
+            toast({ title: 'Success', description: 'Live test updated successfully.' });
+        } else {
+            const newDocRef = await addLiveTest(liveTestData);
+            const newLiveTest: LiveTest = {
+                id: newDocRef.id,
+                ...liveTestData,
+            }
+            setLiveTests(prev => [newLiveTest, ...prev].sort((a,b) => normalizeDate(b.startTime)!.getTime() - normalizeDate(a.startTime)!.getTime()));
+            toast({ title: 'Success', description: 'Live test scheduled successfully.' });
         }
-        
-        setLiveTests(prev => [newLiveTest, ...prev].sort((a,b) => normalizeDate(b.startTime)!.getTime() - normalizeDate(a.startTime)!.getTime()));
-        
-        toast({ title: 'Success', description: 'Live test scheduled successfully.' });
         form.reset();
+        setIsDialogOpen(false);
+        setEditingTest(null);
     } catch (error: any) {
       console.error("Live test scheduling error:", error);
-      toast({ title: 'Scheduling Failed', description: error.message, variant: 'destructive' });
+      toast({ title: 'Operation Failed', description: error.message, variant: 'destructive' });
     } finally {
-      setIsScheduling(false);
+      setIsLoading(false);
     }
   };
+  
+  const handleDelete = async (testId: string) => {
+    try {
+        await deleteLiveTest(testId);
+        setLiveTests(prev => prev.filter(t => t.id !== testId));
+        toast({ title: "Success", description: "Live test deleted successfully." });
+    } catch (error) {
+        toast({ title: "Error", description: "Failed to delete live test.", variant: "destructive" });
+    }
+  }
+
+  const handleOpenDialog = (test: LiveTest | null) => {
+    setEditingTest(test);
+    setIsDialogOpen(true);
+  }
   
   const selectedCategory = form.watch('examCategory');
   const filteredPapers = selectedCategory 
@@ -111,194 +145,205 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-        <CardHeader>
-            <CardTitle>Schedule a New Live Test</CardTitle>
-            <CardDescription>Select a question paper and set the schedule for the live test.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                     <FormField
-                        control={form.control}
-                        name="title"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Test Title</FormLabel>
-                            <FormControl>
-                                <Input placeholder="e.g., All India MTS Mock Test" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                     <FormField
-                        control={form.control}
-                        name="examCategory"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Exam Category</FormLabel>
-                            <Select onValueChange={(value) => {
-                                field.onChange(value);
-                                form.resetField('questionPaperId');
-                            }} value={field.value}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select an exam category" />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                {examCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                     <FormField
-                        control={form.control}
-                        name="questionPaperId"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Question Paper</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCategory}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder={!selectedCategory ? "Select category first" : "Select a paper"} />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                {filteredPapers.map(p => <SelectItem key={p.id} value={p.id}>{p.fileName}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                    <FormField
-                        control={form.control}
-                        name="price"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Price (INR)</FormLabel>
-                             <FormControl>
-                                <Input type="number" placeholder="e.g., 29" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                    <FormField
-                    control={form.control}
-                    name="startTime"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                        <FormLabel>Start Date & Time</FormLabel>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                            <FormControl>
-                                <Button
-                                variant={"outline"}
-                                className={cn(
-                                    "pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                )}
-                                >
-                                {field.value ? (
-                                    format(field.value, "PPP HH:mm")
-                                ) : (
-                                    <span>Pick a date and time</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                            </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={(date) => date < new Date() || date < new Date("1900-01-01")}
-                                initialFocus
-                            />
-                            <div className="p-2 border-t border-border">
-                               <Input 
-                                 type="time" 
-                                 onChange={(e) => {
-                                     const [hours, minutes] = e.target.value.split(':').map(Number);
-                                     const newDate = new Date(field.value || new Date());
-                                     newDate.setHours(hours, minutes);
-                                     field.onChange(newDate);
-                                 }}
-                               />
-                            </div>
-                            </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                     <FormField
-                    control={form.control}
-                    name="endTime"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                        <FormLabel>End Date & Time</FormLabel>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                            <FormControl>
-                                <Button
-                                variant={"outline"}
-                                className={cn(
-                                    "pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                )}
-                                >
-                                {field.value ? (
-                                    format(field.value, "PPP HH:mm")
-                                ) : (
-                                    <span>Pick a date and time</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                            </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={(date) => date < (form.getValues('startTime') || new Date())}
-                                initialFocus
-                            />
-                             <div className="p-2 border-t border-border">
-                               <Input 
-                                 type="time" 
-                                 onChange={(e) => {
-                                     const [hours, minutes] = e.target.value.split(':').map(Number);
-                                     const newDate = new Date(field.value || new Date());
-                                     newDate.setHours(hours, minutes);
-                                     field.onChange(newDate);
-                                 }}
-                               />
-                            </div>
-                            </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                </div>
-                <Button type="submit" disabled={isScheduling}>
-                {isScheduling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Clock className="mr-2 h-4 w-4" />}
-                Schedule Live Test
+    <div className="space-y-6">
+        <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { setIsDialogOpen(isOpen); if (!isOpen) setEditingTest(null); }}>
+             <DialogTrigger asChild>
+                <Button onClick={() => handleOpenDialog(null)}>
+                    <Clock className="mr-2 h-4 w-4" />
+                    Schedule New Live Test
                 </Button>
-            </form>
-            </Form>
-        </CardContent>
-        </Card>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>{editingTest ? 'Edit Live Test' : 'Schedule a New Live Test'}</DialogTitle>
+                    <DialogDescription>Select a question paper and set the schedule for the live test.</DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <FormField
+                                control={form.control}
+                                name="title"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Test Title</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="e.g., All India MTS Mock Test" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="examCategory"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Exam Category</FormLabel>
+                                    <Select onValueChange={(value) => {
+                                        field.onChange(value);
+                                        form.resetField('questionPaperId');
+                                    }} value={field.value}>
+                                        <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select an exam category" />
+                                        </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                        {examCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                            <FormField
+                                control={form.control}
+                                name="questionPaperId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Question Paper</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCategory}>
+                                        <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={!selectedCategory ? "Select category first" : "Select a paper"} />
+                                        </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                        {filteredPapers.map(p => <SelectItem key={p.id} value={p.id}>{p.fileName}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                            <FormField
+                                control={form.control}
+                                name="price"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Price (INR)</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" placeholder="e.g., 29" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                            <FormField
+                            control={form.control}
+                            name="startTime"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                <FormLabel>Start Date & Time</FormLabel>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                    <FormControl>
+                                        <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "pl-3 text-left font-normal",
+                                            !field.value && "text-muted-foreground"
+                                        )}
+                                        >
+                                        {field.value ? (
+                                            format(field.value, "PPP HH:mm")
+                                        ) : (
+                                            <span>Pick a date and time</span>
+                                        )}
+                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                    </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={field.value}
+                                        onSelect={field.onChange}
+                                        disabled={(date) => date < new Date("1900-01-01")}
+                                        initialFocus
+                                    />
+                                    <div className="p-2 border-t border-border">
+                                    <Input 
+                                        type="time" 
+                                        onChange={(e) => {
+                                            const [hours, minutes] = e.target.value.split(':').map(Number);
+                                            const newDate = new Date(field.value || new Date());
+                                            newDate.setHours(hours, minutes);
+                                            field.onChange(newDate);
+                                        }}
+                                    />
+                                    </div>
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                            <FormField
+                            control={form.control}
+                            name="endTime"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                <FormLabel>End Date & Time</FormLabel>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                    <FormControl>
+                                        <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "pl-3 text-left font-normal",
+                                            !field.value && "text-muted-foreground"
+                                        )}
+                                        >
+                                        {field.value ? (
+                                            format(field.value, "PPP HH:mm")
+                                        ) : (
+                                            <span>Pick a date and time</span>
+                                        )}
+                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                    </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={field.value}
+                                        onSelect={field.onChange}
+                                        disabled={(date) => date < (form.getValues('startTime') || new Date())}
+                                        initialFocus
+                                    />
+                                    <div className="p-2 border-t border-border">
+                                    <Input 
+                                        type="time" 
+                                        onChange={(e) => {
+                                            const [hours, minutes] = e.target.value.split(':').map(Number);
+                                            const newDate = new Date(field.value || new Date());
+                                            newDate.setHours(hours, minutes);
+                                            field.onChange(newDate);
+                                        }}
+                                    />
+                                    </div>
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                        </div>
+                        <DialogFooter>
+                             <DialogClose asChild>
+                                <Button type="button" variant="outline">Cancel</Button>
+                            </DialogClose>
+                            <Button type="submit" disabled={isLoading}>
+                                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Clock className="mr-2 h-4 w-4" />}
+                                {editingTest ? 'Update Test' : 'Schedule Test'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
         
         <Card>
             <CardHeader>
@@ -314,6 +359,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                 <TableHead>Start Time</TableHead>
                                 <TableHead>End Time</TableHead>
                                 <TableHead>Status</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -324,11 +370,31 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                         <TableCell>{format(normalizeDate(test.startTime)!, "dd/MM/yy hh:mm a")}</TableCell>
                                         <TableCell>{format(normalizeDate(test.endTime)!, "dd/MM/yy hh:mm a")}</TableCell>
                                         <TableCell>{getStatus(test)}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(test)}>
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                             <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                        <AlertDialogDescription>This action will permanently delete the live test "{test.title}". This cannot be undone.</AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDelete(test.id)}>Delete</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </TableCell>
                                     </TableRow>
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="h-24 text-center">No live tests scheduled yet.</TableCell>
+                                    <TableCell colSpan={5} className="h-24 text-center">No live tests scheduled yet.</TableCell>
                                 </TableRow>
                             )}
                         </TableBody>

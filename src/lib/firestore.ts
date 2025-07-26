@@ -473,6 +473,20 @@ export const addLiveTest = async (testData: Omit<LiveTest, 'id'>): Promise<Docum
     return await addDoc(collection(db, 'liveTests'), testData);
 };
 
+export const updateLiveTest = async (testId: string, testData: Omit<LiveTest, 'id'>): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const testRef = doc(db, 'liveTests', testId);
+    await updateDoc(testRef, testData);
+};
+
+export const deleteLiveTest = async (testId: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const testRef = doc(db, 'liveTests', testId);
+    await deleteDoc(testRef);
+};
+
 export const getLiveTests = async (fetchAll: boolean = false): Promise<LiveTest[]> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
