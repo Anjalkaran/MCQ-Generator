@@ -137,18 +137,19 @@ Now, based *only* on the study material, is the proposed answer correct? Provide
 
 const extractMCQsFromTextPrompt = ai.definePrompt({
     name: 'extractMCQsFromTextPrompt',
-    input: { schema: z.object({ textContent: z.string(), topicName: z.string() }) },
+    input: { schema: z.object({ textContent: z.string(), topicName: z.string(), numberOfQuestions: z.number() }) },
     output: { schema: GenerateMCQsOutputSchema },
     model: 'googleai/gemini-1.5-flash',
     prompt: `You are an expert at parsing and formatting multiple-choice questions (MCQs).
 
-Your task is to extract ALL unique questions from the 'TEXT CONTENT' provided below.
+Your task is to extract exactly {{numberOfQuestions}} unique questions from the 'TEXT CONTENT' provided below.
 
 **Process:**
 1.  Read the 'TEXT CONTENT' and identify all distinct multiple-choice questions.
 2.  For each question, accurately extract the full question text, all four of its options, the indicated correct answer, and the step-by-step solution if provided.
 3.  For EACH extracted question, you MUST add a 'topic' field with the value "{{topicName}}".
 4.  If a solution is not found for a question, the 'solution' field MUST be an empty string ("").
+5.  Randomly select {{numberOfQuestions}} of these extracted questions to include in your output.
 
 **CRITICAL RULE:** The 'correctAnswer' field in your output MUST be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
 **TRIMMING RULE:** If an option in the text starts with a letter followed by a period or parenthesis (e.g., "a.", "B)", "c."), you MUST trim this prefix from the option text before including it in the output. For example, "a. The quick brown fox" should become "The quick brown fox".
@@ -157,7 +158,7 @@ Your task is to extract ALL unique questions from the 'TEXT CONTENT' provided be
 {{{textContent}}}
 --- END TEXT CONTENT ---
 
-Your final output must be a single, valid JSON object containing an 'mcqs' array with all the questions you could find. Each question object MUST include the 'topic' and 'solution' fields.
+Your final output must be a single, valid JSON object containing an 'mcqs' array with exactly {{numberOfQuestions}} questions. Each question object MUST include the 'topic' and 'solution' fields.
 `
 });
 
@@ -233,70 +234,20 @@ const generateMCQsFlow = ai.defineFlow(
 
     const uploadedMCQs = await getTopicMCQs(input.topicId);
     if (uploadedMCQs && uploadedMCQs.length > 0) {
-        const combinedContent = uploadedMCQs.map(doc => doc.content).join('\n\n---\n\n');
-        
-        const { output: extractedOutput } = await extractMCQsFromTextPrompt({
-            textContent: combinedContent,
-            topicName: input.topic,
-        });
-        
-        if (extractedOutput && extractedOutput.mcqs && extractedOutput.mcqs.length > 0) {
-            const allBankedMCQs = extractedOutput.mcqs.map(mcq => ({
-                ...mcq,
-                topic: mcq.topic || input.topic
-            }));
-            
-            const previousQuestionSet = new Set(previousQuestions);
-            const unseenMCQs = allBankedMCQs.filter(mcq => !previousQuestionSet.has(mcq.question));
-            
-            // **CRITICAL FIX**: If the category is Basic Arithmetics, ALWAYS use the uploaded document.
-            // Do not verify it. Trust the user's uploaded content completely.
-            if (input.category === "Basic Arithmetics") {
-                console.log("Basic Arithmetics category detected with uploaded document. Using document content directly.");
-                await runDeferred();
-                const questionsToReturn = unseenMCQs.length >= input.numberOfQuestions ? unseenMCQs : allBankedMCQs;
-                return { mcqs: shuffleArray(questionsToReturn).slice(0, input.numberOfQuestions) };
+        if (input.category === "Basic Arithmetics") {
+            console.log("Basic Arithmetics category detected with uploaded document. Using document content directly.");
+            const combinedContent = uploadedMCQs.map(doc => doc.content).join('\n\n---\n\n');
+            const { output: extractedOutput } = await extractMCQsFromTextPrompt({
+                textContent: combinedContent,
+                topicName: input.topic,
+                numberOfQuestions: input.numberOfQuestions,
+            });
+
+            if (extractedOutput && extractedOutput.mcqs && extractedOutput.mcqs.length > 0) {
+                 await runDeferred();
+                 return { mcqs: extractedOutput.mcqs };
             }
-
-            // If all banked questions have been seen, reset and use all of them
-            if (unseenMCQs.length < input.numberOfQuestions) {
-                console.log("Not enough unseen questions, using all available questions from the document.");
-            }
-
-            const questionsToUse = unseenMCQs.length >= input.numberOfQuestions ? unseenMCQs : allBankedMCQs;
-
-            if (questionsToUse.length > 0) {
-                if (fullMaterial) {
-                    const verificationPromises = questionsToUse.map(async (mcq) => {
-                        try {
-                            const verificationResponse = await verificationPrompt({
-                                material: fullMaterial!,
-                                question: mcq.question,
-                                answer: mcq.correctAnswer,
-                            });
-                            if (verificationResponse.output?.isCorrect) {
-                                return { ...mcq, solution: mcq.solution || verificationResponse.output.justification };
-                            } else {
-                                console.warn(`Filtering out incorrect MCQ from uploaded doc. Q: "${mcq.question}", A: "${mcq.correctAnswer}". Justification: ${verificationResponse.output?.justification}`);
-                                return null;
-                            }
-                        } catch (e) {
-                            console.error("Error during uploaded MCQ verification:", e);
-                            return null;
-                        }
-                    });
-                    const verifiedMCQs = (await Promise.all(verificationPromises)).filter(mcq => mcq !== null);
-
-                    if (verifiedMCQs.length > 0) {
-                        await runDeferred();
-                        return { mcqs: shuffleArray(verifiedMCQs as any[]).slice(0, input.numberOfQuestions) };
-                    }
-                    console.warn("All banked questions were filtered out after verification. Falling back to AI generation.");
-                } else {
-                    await runDeferred();
-                    return { mcqs: shuffleArray(questionsToUse).slice(0, input.numberOfQuestions) };
-                }
-            }
+             console.warn("Could not extract MCQs from the Arithmetic document. Falling back to AI generation.");
         }
     }
 
@@ -346,27 +297,7 @@ const generateMCQsFlow = ai.defineFlow(
     
     console.log(`Filtered down to ${uniqueValidMCQs.length} unique and valid questions.`);
 
-    if (fullMaterial && uniqueValidMCQs.length > 0) {
-        const verificationPromises = uniqueValidMCQs.map(async (mcq) => {
-            try {
-                const verificationResponse = await verificationPrompt({
-                    material: fullMaterial,
-                    question: mcq.question,
-                    answer: mcq.correctAnswer,
-                });
-                return verificationResponse.output?.isCorrect ? mcq : null;
-            } catch (e) {
-                console.error("Error during batch MCQ verification:", e);
-                return null;
-            }
-        });
-
-        const verifiedResults = await Promise.all(verificationPromises);
-        finalMCQs = verifiedResults.filter(mcq => mcq !== null) as (typeof MCQSchema._type)[];
-        console.log(`Verified down to ${finalMCQs.length} factually correct questions.`);
-    } else {
-        finalMCQs = uniqueValidMCQs;
-    }
+    finalMCQs = uniqueValidMCQs;
 
     if (finalMCQs.length === 0 && input.numberOfQuestions > 0) {
         throw new Error('The AI could not generate any valid questions. The source material might be too short or the topic too complex.');
