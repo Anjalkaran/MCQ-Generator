@@ -17,6 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import { ADMIN_EMAILS } from "@/lib/constants";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import React from "react";
 
 function AnalyticsTab({ qnaUsage }: { qnaUsage: QnAUsage[] }) {
     const uniqueUsers = useMemo(() => {
@@ -159,27 +161,25 @@ export default function AdminPage() {
           </p>
         </div>
         
-        <Card>
-            <CardHeader>
-                <CardTitle>Select a Section</CardTitle>
-                <CardDescription>Choose a section below to manage.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Select
-                    value={activeSection}
-                    onValueChange={(value) => setActiveSection(value as AdminSection)}
-                >
-                    <SelectTrigger id="admin-section">
-                        <SelectValue placeholder="Select a section to manage..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {adminSections.map(({ value, label }) => (
-                            <SelectItem key={value} value={value}>{label}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </CardContent>
-        </Card>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {adminSections.map((section) => (
+            <Card
+              key={section.value}
+              onClick={() => setActiveSection(section.value)}
+              className={cn(
+                "cursor-pointer transition-all hover:shadow-md",
+                activeSection === section.value && "border-primary ring-2 ring-primary"
+              )}
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {section.label}
+                </CardTitle>
+                {React.createElement(section.icon, { className: "h-4 w-4 text-muted-foreground" })}
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
 
         <div className="mt-6">
             {renderContent()}
