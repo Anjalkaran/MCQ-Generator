@@ -16,7 +16,6 @@ import { getLiveTestQuestionPaper, getTopics } from '@/lib/firestore';
 
 const GenerateLiveMockTestInputSchema = z.object({
   liveTestId: z.string().describe('The ID of the live test paper document in Firestore.'),
-  language: z.string().optional().default('English').describe('The language for the generated test (e.g., "English", "Tamil", "Hindi").'),
 });
 export type GenerateLiveMockTestInput = z.infer<typeof GenerateLiveMockTestInputSchema>;
 
@@ -39,7 +38,6 @@ const verifyAndFormatQuestionPaperPrompt = ai.definePrompt({
         schema: z.object({
             questionPaperContent: z.string(),
             studyMaterial: z.string(),
-            language: z.string().optional().default('English'),
         })
     },
     output: {
@@ -48,30 +46,23 @@ const verifyAndFormatQuestionPaperPrompt = ai.definePrompt({
         })
     },
     model: 'googleai/gemini-1.5-flash',
-    prompt: `You are an expert Question Processor for the Indian Postal Department exams.
+    prompt: `You are an expert Question Verifier for the Indian Postal Department exams.
 
-Your task is to process the 'QUESTION PAPER' provided below and output a clean, translated, and formatted list of EXACTLY 50 questions in JSON format.
-
-**CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution' (if generated), MUST be in {{{language}}}. Every single field must be in the requested language.**
-**IMPORTANT RULE FOR TAMIL/HINDI:** When translating to Tamil or Hindi, you MUST keep all technical postal terms, scheme names, and abbreviations (e.g., "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office") in English.
+Your task is to process the entire 'QUESTION PAPER' provided below, verify each question against the 'STUDY MATERIAL', and output a clean, verified list of questions in JSON format.
 
 **Process:**
 
-1.  **Read and Parse:** Go through the entire 'QUESTION PAPER' text and identify all 50 multiple-choice questions. For each question, you MUST extract the full text of the question, the **full text for all four of its options**, and the indicated correct answer.
-2.  **Assign Topic:** For each question, identify its specific topic from the study material (e.g., "Profit and loss", "Methods of address") and specify it in the 'topic' field.
-
-{{#ifEquals language "English"}}
---- ENGLISH LANGUAGE INSTRUCTIONS ---
-3.  **Verify Answers:** For each question, use the 'STUDY MATERIAL' to verify the correct answer. The 'correctAnswer' field in the output must contain the full, correct option text. If a question is ambiguous, make a reasonable interpretation.
-{{else}}
---- NON-ENGLISH LANGUAGE INSTRUCTIONS ---
-3.  **Translate Reliably:** Your primary goal is to translate the question, all four options, and the correct answer accurately into {{{language}}}. Do NOT attempt to verify the answer against the study material, as this can interfere with the translation. Trust the correct answer provided in the source 'QUESTION PAPER'.
-{{/ifEquals}}
-
+1.  **Read and Parse:** Go through the entire 'QUESTION PAPER' text and identify all the multiple-choice questions. For each question, you MUST extract the full text of the question and the **full text for all four of its options**.
+2.  **Verify & Correct:**
+    *   For each question found, you MUST use the 'STUDY MATERIAL' as the single source of truth to verify the correct answer.
+    *   If the answer in the question paper is correct, keep it.
+    *   If the answer is INCORRECT, you MUST correct it based on the study material. The 'correctAnswer' field in the output must contain the full, correct option text.
+    *   If a question is ambiguous, make a reasonable interpretation rather than skipping it.
+3.  **Assign Topic:** For each verified question, identify its specific topic from the study material (e.g., "Profit and loss", "Methods of address") and specify it in the 'topic' field.
 
 **Content Sources:**
 
---- STUDY MATERIAL (For Topic Assignment and English Verification) ---
+--- STUDY MATERIAL (Primary Source of Truth) ---
 {{{studyMaterial}}}
 --- END STUDY MATERIAL ---
 
@@ -81,9 +72,8 @@ Your task is to process the 'QUESTION PAPER' provided below and output a clean, 
 
 **CRITICAL INSTRUCTIONS:**
 *   Your final output MUST be a single, valid JSON object containing a 'questions' array with EXACTLY 50 questions.
-*   Do NOT skip questions. Process all 50 questions from the source paper.
 *   The 'options' array for each question MUST contain four strings, each being the complete text of an answer option.
-*   The 'correctAnswer' field MUST be an exact, translated match of one of the four options.
+*   Do NOT invent new questions. All questions must originate from the 'QUESTION PAPER'.
 `,
 });
 
@@ -115,7 +105,6 @@ const generateLiveMockTestFlow = ai.defineFlow(
     const { output } = await verifyAndFormatQuestionPaperPrompt({
         questionPaperContent: questionPaper.content,
         studyMaterial: allStudyMaterial,
-        language: input.language,
     });
     
     if (!output || !output.questions || output.questions.length === 0) {
