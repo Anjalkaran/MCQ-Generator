@@ -16,6 +16,7 @@ import { getLiveTestQuestionPaper, getTopics } from '@/lib/firestore';
 
 const GenerateLiveMockTestInputSchema = z.object({
   liveTestId: z.string().describe('The ID of the live test paper document in Firestore.'),
+  language: z.string().optional().default('English').describe('The language for the generated test (e.g., "English", "Tamil", "Hindi").'),
 });
 export type GenerateLiveMockTestInput = z.infer<typeof GenerateLiveMockTestInputSchema>;
 
@@ -38,6 +39,7 @@ const verifyAndFormatQuestionPaperPrompt = ai.definePrompt({
         schema: z.object({
             questionPaperContent: z.string(),
             studyMaterial: z.string(),
+            language: z.string().optional().default('English'),
         })
     },
     output: {
@@ -49,6 +51,9 @@ const verifyAndFormatQuestionPaperPrompt = ai.definePrompt({
     prompt: `You are an expert Question Verifier for the Indian Postal Department exams.
 
 Your task is to process the 'QUESTION PAPER' provided below, verify each question against the 'STUDY MATERIAL', and output a clean, verified list of EXACTLY 50 questions in JSON format.
+
+**CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution' (if generated), MUST be in {{language}}. Every single field must be in the requested language.**
+**IMPORTANT RULE FOR TAMIL/HINDI:** When translating to Tamil or Hindi, you MUST keep all technical postal terms, scheme names, and abbreviations (e.g., "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office") in English.
 
 **Process:**
 
@@ -106,6 +111,7 @@ const generateLiveMockTestFlow = ai.defineFlow(
     const { output } = await verifyAndFormatQuestionPaperPrompt({
         questionPaperContent: questionPaper.content,
         studyMaterial: allStudyMaterial,
+        language: input.language,
     });
     
     if (!output || !output.questions || output.questions.length === 0) {

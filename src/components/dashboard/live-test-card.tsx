@@ -17,6 +17,8 @@ import { normalizeDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { ADMIN_EMAILS, RAZORPAY_KEY_ID } from '@/lib/constants';
 import { formatDistanceToNowStrict } from 'date-fns';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 declare global {
     interface Window {
@@ -30,6 +32,13 @@ const blueprintMap = {
     PA: PA_BLUEPRINT,
 };
 
+const languages = [
+    { value: 'English', label: 'English' },
+    { value: 'Tamil', label: 'தமிழ்' },
+    { value: 'Hindi', label: 'हिन्दी' },
+] as const;
+
+
 export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const { user, userData, setUserData } = useDashboard();
     const { toast } = useToast();
@@ -38,6 +47,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const [isPaying, setIsPaying] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState('');
     const [testState, setTestState] = useState<'upcoming' | 'live' | 'ended' | 'completed' | 'loading' | 'entryClosed'>('loading');
+    const [selectedLanguage, setSelectedLanguage] = useState('English');
 
     const startTime = useMemo(() => normalizeDate(test.startTime), [test.startTime]);
     const endTime = useMemo(() => normalizeDate(test.endTime), [test.endTime]);
@@ -94,7 +104,10 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
         }
 
         try {
-            const { mcqs } = await generateLiveMockTest({ liveTestId: test.questionPaperId });
+            const { mcqs } = await generateLiveMockTest({ 
+                liveTestId: test.questionPaperId,
+                language: selectedLanguage,
+            });
             const blueprint = blueprintMap[test.examCategory];
             const quizId = `live-test-${test.id}`;
             const quizData = {
@@ -217,14 +230,27 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
                     {startTime.toLocaleString()}
                 </CardDescription>
             </CardHeader>
-            <CardContent className="text-center">
-                <div className="p-4 bg-muted rounded-lg mb-4">
+            <CardContent className="text-center space-y-4">
+                <div className="p-4 bg-muted rounded-lg">
                     <p className="text-sm text-muted-foreground">
                         {testState === 'upcoming' ? 'Starts in' : 'Entry closes in'}
                     </p>
                     <p className="text-2xl font-bold tracking-tighter">
                         {timeRemaining}
                     </p>
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor={`lang-${test.id}`}>Select Language</Label>
+                    <Select value={selectedLanguage} onValueChange={setSelectedLanguage} disabled={testState !== 'live'}>
+                        <SelectTrigger id={`lang-${test.id}`}>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {languages.map(lang => (
+                                <SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
             </CardContent>
             <CardFooter>
