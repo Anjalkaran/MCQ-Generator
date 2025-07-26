@@ -15,6 +15,8 @@ import type { LiveTest } from '@/lib/types';
 import { normalizeDate } from '@/lib/utils';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 const blueprintMap = {
     MTS: MTS_BLUEPRINT,
@@ -22,11 +24,18 @@ const blueprintMap = {
     PA: PA_BLUEPRINT,
 };
 
+const languages = [
+    { value: 'English', label: 'English' },
+    { value: 'Tamil', label: 'தமிழ்' },
+    { value: 'Hindi', label: 'हिन्दी' },
+] as const;
+
 export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
     const { user, userData } = useDashboard();
     const { toast } = useToast();
     const router = useRouter();
     const [isGenerating, setIsGenerating] = useState(false);
+    const [selectedLanguage, setSelectedLanguage] = useState('English');
 
     const startTime = normalizeDate(test.startTime);
     const hasTakenTest = userData?.liveTestsTaken?.includes(test.id);
@@ -41,7 +50,10 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
         }
 
         try {
-            const { mcqs } = await generateLiveMockTest({ liveTestId: test.questionPaperId });
+            const { mcqs } = await generateLiveMockTest({ 
+                liveTestId: test.questionPaperId,
+                language: selectedLanguage,
+             });
             const blueprint = blueprintMap[test.examCategory];
             const quizId = `live-test-${test.id}`;
             const quizData = {
@@ -82,8 +94,20 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
                     </Badge>
                 )}
             </CardHeader>
-            <CardContent className="flex-grow">
-                {/* You can add more details here if needed */}
+            <CardContent className="flex-grow space-y-4">
+                 <div className="space-y-2">
+                    <Label htmlFor={`lang-past-${test.id}`}>Select Language</Label>
+                    <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                        <SelectTrigger id={`lang-past-${test.id}`}>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {languages.map(lang => (
+                                <SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
             </CardContent>
             <CardFooter className="flex-col items-stretch gap-2">
                 <Button onClick={startTest} disabled={isGenerating}>
