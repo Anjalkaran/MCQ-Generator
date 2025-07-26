@@ -87,8 +87,17 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
             </CardContent>
             <CardFooter className="flex-col items-stretch gap-2">
                 <Button onClick={startTest} disabled={isGenerating}>
-                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
-                    Practice Test
+                    {isGenerating ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Loading... Please wait
+                        </>
+                    ) : (
+                        <>
+                            <PlayCircle className="mr-2 h-4 w-4" />
+                            Practice Test
+                        </>
+                    )}
                 </Button>
                  <Button variant="outline" asChild>
                     <Link href={`/dashboard/leaderboard?liveTestId=${test.id}`}>
