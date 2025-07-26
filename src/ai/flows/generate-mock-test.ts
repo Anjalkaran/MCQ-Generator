@@ -25,17 +25,23 @@ const arithmeticSolverPrompt = ai.definePrompt({
     input: { schema: z.object({ problem: z.string(), language: z.string().optional().default('English') }) },
     output: { schema: ArithmeticSolutionSchema },
     model: 'googleai/gemini-1.5-flash',
-    prompt: `You are a precise mathematical solver AI. Your sole purpose is to solve the given word problem and provide a step-by-step solution and an exact final answer.
+    prompt: `You are a precise mathematical solver AI. Your sole purpose is to solve the given word problem or equation and provide a step-by-step solution and an exact final answer.
+
 Your output MUST be a valid JSON object. Do not include any text, apologies, or explanations outside of the JSON structure itself.
-The language of the solution MUST be {{language}}.
+
+The language of the solution steps and the final answer MUST be {{language}}.
+
 The JSON object must have two keys:
-1.  "steps": An array of strings. Each string must be a single, clear step in the calculation. For work-rate problems like this, use the LCM (Least Common Multiple) method. For BODMAS problems, show each operation in order.
-2.  "final_answer": A string containing only the final, mathematically exact answer. Express it as a fraction or a decimal if necessary (e.g., "18.75 days" or "75/4 days" or "18").
+1.  "steps": An array of strings. Each string must be a single, clear step in the calculation. For work-rate problems, use the LCM (Least Common Multiple) method. For BODMAS problems, show each operation in order.
+2.  "final_answer": A string containing only the final, mathematically exact answer. Express it as a fraction, a decimal, or a whole number as appropriate (e.g., "18.75 days", "75/4 days", "37").
+
 CRITICAL INSTRUCTIONS:
 -   Do NOT mention or analyze any multiple-choice options that might be in the problem description. Ignore them completely.
 -   Do NOT guess or select the "closest" answer. Calculate and provide only the true mathematical result.
 -   Do NOT use conversational language. Stick to formal, mathematical steps.
+
 Now, solve the following problem according to all the rules above:
+
 Problem: "{{problem}}"`,
 });
 
@@ -170,6 +176,8 @@ const generateMockTestFlow = ai.defineFlow(
                     const solutionResponse = await arithmeticSolverPrompt({ problem: mcq.question, language: input.language });
                     if (solutionResponse.output) {
                         mcq.solution = solutionResponse.output.steps.join('\n');
+                        // IMPORTANT: Correct the answer based on the solver's result
+                        mcq.correctAnswer = solutionResponse.output.final_answer;
                     }
                 } catch (e) {
                     console.error("Failed to generate a detailed solution for a mock test question:", e);
@@ -183,7 +191,5 @@ const generateMockTestFlow = ai.defineFlow(
     return { mcqs: allQuestions };
   }
 );
-
-      
 
     
