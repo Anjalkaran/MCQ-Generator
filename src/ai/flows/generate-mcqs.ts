@@ -60,7 +60,7 @@ For every question you generate, you MUST follow this two-step process:
 
 You MUST generate questions that can be answered with one of the four options. Do NOT create open-ended questions that ask to "Explain...", "Describe...", "What is...", or "List...".
 
-CRITICAL INSTRUCTION: Do not start questions or explanations with phrases like "According to the...", "Based on the material...", "The provided material states that...", or any similar introductory text. Questions and explanations should be direct. Furthermore, do not generate questions that are logically flawed, whose correct answer is debatable, or where the correct answer is not present in the options. For example, a question like "What essential information is missing if a letter is returned to the sender?" is ambiguous. A better question would be "What is the most likely reason a letter cannot be delivered to the recipient, causing it to be returned to the sender?". Ensure your questions are clear and have one single, undisputed correct answer based on the provided material or general postal knowledge.
+CRITICAL INSTRUCTION: Do not start questions or explanations with phrases like "According to the...", "Based on the material...", "The provided material states that...", or any similar introductory text. Questions and explanations should be direct. Furthermore, do not generate questions that are logically flawed, whose correct answer is debatable, or where the correct answer is not present in the options. For example, a question like "What is the essential information missing if a letter is returned to the sender?" is ambiguous. A better question would be "What is the most likely reason a letter cannot be delivered to the recipient, causing it to be returned to the sender?". Ensure your questions are clear and have one single, undisputed correct answer based on the provided material or general postal knowledge.
 
 SPECIAL INSTRUCTION FOR POSTAL TERMS: When generating questions about mail offices, you MUST adhere to these definitions: A 'Sorting Mail Office' opens and sorts mail bags. A 'Transit Mail Office' only receives and dispatches closed bags without sorting them.
 
@@ -241,22 +241,30 @@ const generateMCQsFlow = ai.defineFlow(
         });
         
         if (extractedOutput && extractedOutput.mcqs && extractedOutput.mcqs.length > 0) {
+            const allBankedMCQs = extractedOutput.mcqs.map(mcq => ({
+                ...mcq,
+                topic: mcq.topic || input.topic
+            }));
+            
             const previousQuestionSet = new Set(previousQuestions);
-            const unseenMCQs = extractedOutput.mcqs.filter(mcq => !previousQuestionSet.has(mcq.question));
+            let unseenMCQs = allBankedMCQs.filter(mcq => !previousQuestionSet.has(mcq.question));
+            
+            // If all banked questions have been seen, reset and use all of them
+            if (unseenMCQs.length < input.numberOfQuestions) {
+                console.log("Not enough unseen questions, using all available questions from the document.");
+                unseenMCQs = allBankedMCQs;
+            }
 
-            if (unseenMCQs.length >= input.numberOfQuestions) {
-                const mcqsWithTopic = unseenMCQs.map(mcq => ({
-                    ...mcq,
-                    topic: mcq.topic || input.topic
-                }));
-
+            if (unseenMCQs.length > 0) {
+                // For Arithmetic, trust the uploaded content and skip verification
                 if (input.category === "Basic Arithmetics") {
                     await runDeferred();
-                    return { mcqs: shuffleArray(mcqsWithTopic).slice(0, input.numberOfQuestions) };
+                    return { mcqs: shuffleArray(unseenMCQs).slice(0, input.numberOfQuestions) };
                 }
-
+                
+                // For other topics, verify against material if it exists
                 if (fullMaterial) {
-                    const verificationPromises = mcqsWithTopic.map(async (mcq) => {
+                    const verificationPromises = unseenMCQs.map(async (mcq) => {
                         try {
                             const verificationResponse = await verificationPrompt({
                                 material: fullMaterial!,
@@ -275,13 +283,17 @@ const generateMCQsFlow = ai.defineFlow(
                         }
                     });
                     const verifiedMCQs = (await Promise.all(verificationPromises)).filter(mcq => mcq !== null);
-                    if (verifiedMCQs.length >= input.numberOfQuestions) {
+
+                    if (verifiedMCQs.length > 0) {
                         await runDeferred();
                         return { mcqs: shuffleArray(verifiedMCQs as any[]).slice(0, input.numberOfQuestions) };
                     }
+                    // If all verified MCQs are filtered out, fall through to AI generation as a last resort
+                    console.warn("All banked questions were filtered out after verification. Falling back to AI generation.");
                 } else {
+                    // If no material, just return the shuffled unseen MCQs
                     await runDeferred();
-                    return { mcqs: shuffleArray(mcqsWithTopic).slice(0, input.numberOfQuestions) };
+                    return { mcqs: shuffleArray(unseenMCQs).slice(0, input.numberOfQuestions) };
                 }
             }
         }
