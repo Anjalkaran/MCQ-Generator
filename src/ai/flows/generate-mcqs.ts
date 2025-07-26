@@ -246,6 +246,7 @@ Your task is to extract exactly {{numberOfQuestions}} unique questions from the 
 3.  Randomly select {{numberOfQuestions}} of these extracted questions to include in your output.
 
 **CRITICAL RULE:** The 'correctAnswer' field in your output MUST be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
+**TRIMMING RULE:** If an option in the text starts with a letter followed by a period or parenthesis (e.g., "a.", "B)", "c."), you MUST trim this prefix from the option text before including it in the output. For example, "a. The quick brown fox" should become "The quick brown fox".
 
 --- TEXT CONTENT ---
 {{{textContent}}}
