@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Gem, Download, Loader2, RefreshCw } from 'lucide-react';
+import { Gem, Download, Loader2, RefreshCw, Trophy } from 'lucide-react';
 import type { UserData } from '@/lib/types';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -29,39 +29,47 @@ interface ReportsManagementProps {
     allUsers: UserData[];
 }
 
-type ExamCategory = 'MTS' | 'POSTMAN' | 'PA' | 'all';
-type ProStatus = 'all' | 'pro' | 'free';
-
 function DataReconciliationCard() {
-    const [isReconciling, setIsReconciling] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [reconciliationType, setReconciliationType] = useState<'counts' | 'leaderboard' | null>(null);
     const { toast } = useToast();
 
-    const handleReconcile = async () => {
-        setIsReconciling(true);
+    const handleReconcile = async (type: 'counts' | 'leaderboard') => {
+        setIsLoading(true);
+        setReconciliationType(type);
+        
+        const endpoint = type === 'counts' ? '/api/admin/reconcile-counts' : '/api/admin/reconcile-leaderboard';
+        const successTitle = type === 'counts' ? 'Reconciliation Complete' : 'Leaderboard Cleaned';
+        
         try {
-            const response = await fetch('/api/admin/reconcile-counts', {
+            const response = await fetch(endpoint, {
                 method: 'POST',
             });
             const result = await response.json();
 
             if (!response.ok) {
-                throw new Error(result.error || 'Failed to reconcile counts.');
+                throw new Error(result.error || 'Failed to reconcile data.');
             }
             
+            const description = type === 'counts' 
+                ? `${result.updatedCount} user exam counts have been successfully updated.`
+                : `${result.deletedCount} duplicate leaderboard entries have been removed.`;
+
             toast({
-                title: 'Reconciliation Complete',
-                description: `${result.updatedCount} user exam counts have been successfully updated.`,
+                title: successTitle,
+                description: description,
             });
 
         } catch (error: any) {
             console.error('Reconciliation error:', error);
             toast({
-                title: 'Reconciliation Failed',
+                title: 'Operation Failed',
                 description: error.message,
                 variant: 'destructive',
             });
         } finally {
-            setIsReconciling(false);
+            setIsLoading(false);
+            setReconciliationType(null);
         }
     };
 
@@ -70,10 +78,10 @@ function DataReconciliationCard() {
             <CardHeader>
                 <CardTitle>Data Reconciliation</CardTitle>
                 <CardDescription>
-                    Fix inconsistencies in user data. This is useful for correcting data after a bug fix.
+                    Fix inconsistencies in user and exam data. This is useful for correcting data after a bug fix or import.
                 </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                     <div>
                         <h3 className="font-semibold">Reconcile Exam Counts</h3>
@@ -83,9 +91,9 @@ function DataReconciliationCard() {
                     </div>
                      <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button variant="outline">
-                                <RefreshCw className="mr-2 h-4 w-4" />
-                                Reconcile
+                            <Button variant="outline" disabled={isLoading}>
+                                {isLoading && reconciliationType === 'counts' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                                Reconcile Counts
                             </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
@@ -97,9 +105,40 @@ function DataReconciliationCard() {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleReconcile} disabled={isReconciling}>
-                                    {isReconciling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <AlertDialogAction onClick={() => handleReconcile('counts')} disabled={isLoading}>
+                                    {isLoading && reconciliationType === 'counts' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Yes, Reconcile Counts
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
+                 <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                        <h3 className="font-semibold">Reconcile Live Test Leaderboard</h3>
+                        <p className="text-sm text-muted-foreground">
+                            Removes duplicate entries for any user in a live test, keeping only their best attempt (highest score, then fastest time).
+                        </p>
+                    </div>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="outline" disabled={isLoading}>
+                                {isLoading && reconciliationType === 'leaderboard' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trophy className="mr-2 h-4 w-4" />}
+                                Reconcile Leaderboard
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                   This will scan all live test history and permanently delete any duplicate entries for users. This action cannot be undone.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleReconcile('leaderboard')} disabled={isLoading}>
+                                    {isLoading && reconciliationType === 'leaderboard' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Yes, Reconcile Leaderboard
                                 </AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
