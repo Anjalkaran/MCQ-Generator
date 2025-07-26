@@ -12,7 +12,7 @@ export default function SupportPage() {
         <div className="container px-4 md:px-6">
           <div className="space-y-6 max-w-2xl mx-auto">
             <div className="space-y-0.5 text-center">
-              <h1 className="text-3xl font-bold tracking-tight">Support</h1>
+              <h1 className="text-3xl font-bold tracking-tight">Contact Us</h1>
               <p className="text-muted-foreground">
                 Get in touch with us for any questions or issues.
               </p>
