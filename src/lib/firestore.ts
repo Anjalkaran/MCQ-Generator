@@ -714,36 +714,31 @@ export const getDashboardData = async (userId: string, isAdmin: boolean = false)
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
 
-    let onlineUserCount = 0;
     if (isAdmin) {
-        const twoMinutesAgo = Timestamp.fromMillis(Date.now() - 2 * 60 * 1000);
-        const usersRef = collection(db, 'users');
-        const onlineQuery = query(usersRef, where('lastSeen', '>', twoMinutesAgo));
-        const onlineSnapshot = await getDocs(onlineQuery);
-        onlineUserCount = onlineSnapshot.size;
+        const [categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, topicMCQs] = await Promise.all([
+            getCategories(),
+            getTopics(),
+            getQuestionBankDocuments(),
+            getLiveTestBankDocuments(),
+            getQnAUsage(),
+            getAdminNotifications(),
+            getTopicMCQs(),
+        ]);
+        return { userData: null, categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, topicMCQs };
     }
 
-    const [categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, topicMCQs] = await Promise.all([
+    const [userData, categories, topics] = await Promise.all([
+        getUserData(userId),
         getCategories(),
         getTopics(),
-        isAdmin ? getQuestionBankDocuments() : [],
-        isAdmin ? getLiveTestBankDocuments() : [],
-        isAdmin ? getQnAUsage() : [],
-        isAdmin ? getAdminNotifications() : [],
-        isAdmin ? getTopicMCQs() : [],
     ]);
-    
-    if (isAdmin) {
-        return { userData: null, categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, onlineUserCount, topicMCQs };
-    }
 
-    const userData = await getUserData(userId);
     if (!userData) {
-        return { userData: null, categories: [], topics: [], bankedQuestions: [], liveTestBank: [], qnaUsage: [], notifications: [], onlineUserCount: 0, topicMCQs: [] };
+        return { userData: null, categories: [], topics: [], bankedQuestions: [], liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [] };
     }
 
-    return { userData, categories, topics, bankedQuestions, liveTestBank: [], qnaUsage: [], notifications: [], onlineUserCount: 0, topicMCQs: [] };
-}
+    return { userData, categories, topics, bankedQuestions: [], liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [] };
+};
 
 
 // ANALYTICS

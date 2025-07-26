@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { Timestamp } from 'firebase-admin/firestore';
+import type { UserData } from '@/lib/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,10 +18,19 @@ export async function GET(req: NextRequest) {
         const onlineQuery = usersRef.where('lastSeen', '>', twoMinutesAgo);
         const onlineSnapshot = await onlineQuery.get();
         
-        return NextResponse.json({ onlineUserCount: onlineSnapshot.size });
+        const onlineUsers = onlineSnapshot.docs.map(doc => {
+            const data = doc.data() as UserData;
+            return {
+                uid: doc.id,
+                name: data.name,
+                email: data.email,
+            };
+        });
+        
+        return NextResponse.json({ onlineUsers });
 
     } catch (error: any) {
-        console.error("Error fetching online user count:", error);
-        return NextResponse.json({ error: 'Failed to fetch online user count.' }, { status: 500 });
+        console.error("Error fetching online users:", error);
+        return NextResponse.json({ error: 'Failed to fetch online users.' }, { status: 500 });
     }
 }

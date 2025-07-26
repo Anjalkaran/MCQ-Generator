@@ -19,7 +19,15 @@ import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
 import packageJson from '../../../package.json';
 import { AdminNotifications } from '@/components/dashboard/admin-notifications';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
+interface OnlineUser {
+    uid: string;
+    name: string;
+    email: string;
+}
 interface DashboardContextType {
   user: User | null;
   userData: UserData | null;
@@ -30,7 +38,7 @@ interface DashboardContextType {
   liveTestBank: BankedQuestion[];
   qnaUsage: QnAUsage[];
   notifications: Notification[];
-  onlineUserCount: number;
+  onlineUsers: OnlineUser[];
   isLoading: boolean;
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>;
 }
@@ -75,7 +83,7 @@ function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
-  const { user, userData, isLoading, onlineUserCount } = useDashboard();
+  const { user, userData, isLoading, onlineUsers } = useDashboard();
   const { setOpenMobile } = useSidebar();
 
   const handleLogout = useCallback(async (authInstance = getFirebaseAuth(), showToast = true) => {
@@ -234,13 +242,49 @@ function AppSidebar() {
       <SidebarFooter>
         {isAdmin && (
             <div className="p-2 border-t group-data-[collapsible=icon]:hidden">
-                <div className="flex items-center justify-between text-sm px-2">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                        <Users className="h-4 w-4" />
-                        <span>Online Users</span>
-                    </div>
-                    <span className="font-semibold text-primary">{onlineUserCount}</span>
-                </div>
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button variant="ghost" className="w-full justify-between text-sm">
+                             <div className="flex items-center gap-2 text-muted-foreground">
+                                <Users className="h-4 w-4" />
+                                <span>Online Users</span>
+                            </div>
+                            <span className="font-semibold text-primary">{onlineUsers.length}</span>
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Online Users ({onlineUsers.length})</DialogTitle>
+                            <DialogDescription>
+                                This list shows users who have been active in the last two minutes.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <ScrollArea className="h-72">
+                             <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Email</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {onlineUsers.length > 0 ? (
+                                        onlineUsers.map(u => (
+                                            <TableRow key={u.uid}>
+                                                <TableCell>{u.name}</TableCell>
+                                                <TableCell>{u.email}</TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={2} className="text-center">No users are currently online.</TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </ScrollArea>
+                    </DialogContent>
+                </Dialog>
             </div>
         )}
         <div className="p-2">
@@ -275,7 +319,7 @@ export default function DashboardLayout({
   const [liveTestBank, setLiveTestBank] = useState<BankedQuestion[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [onlineUserCount, setOnlineUserCount] = useState(0);
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const handleLogout = useCallback(async (authInstance = getFirebaseAuth(), showToast = true) => {
@@ -328,10 +372,10 @@ export default function DashboardLayout({
                 const response = await fetch('/api/admin/online-users');
                 if (response.ok) {
                     const data = await response.json();
-                    setOnlineUserCount(data.onlineUserCount);
+                    setOnlineUsers(data.onlineUsers);
                 }
             } catch (error) {
-                console.error("Failed to fetch online user count:", error);
+                console.error("Failed to fetch online users:", error);
             }
         };
         // Fetch immediately and then set interval
@@ -372,7 +416,7 @@ export default function DashboardLayout({
                     mockTestsTaken: 0,
                     isPro: true,
                 };
-                const { categories, topics, bankedQuestions, topicMCQs, liveTestBank, qnaUsage, notifications, onlineUserCount } = await getDashboardData(currentUser.uid, true);
+                const { categories, topics, bankedQuestions, topicMCQs, liveTestBank, qnaUsage, notifications } = await getDashboardData(currentUser.uid, true);
                 setUserData(adminUserData);
                 setCategories(categories);
                 setTopics(topics);
@@ -381,8 +425,7 @@ export default function DashboardLayout({
                 setLiveTestBank(liveTestBank);
                 setQnaUsage(qnaUsage);
                 setNotifications(notifications);
-                setOnlineUserCount(onlineUserCount);
-
+                
             } else {
                 const { userData: fetchedUserData, categories, topics, bankedQuestions } = await getDashboardData(currentUser.uid);
                 if (!fetchedUserData) {
@@ -399,7 +442,7 @@ export default function DashboardLayout({
                 setLiveTestBank([]);
                 setQnaUsage([]); // Non-admins don't need this data
                 setNotifications([]);
-                setOnlineUserCount(0);
+                setOnlineUsers([]);
             }
 
             if (pathname.startsWith('/dashboard/admin') && !userIsAdmin) {
@@ -421,7 +464,7 @@ export default function DashboardLayout({
         setLiveTestBank([]);
         setQnaUsage([]);
         setNotifications([]);
-        setOnlineUserCount(0);
+        setOnlineUsers([]);
         if (!pathname.startsWith('/auth')) {
             router.push('/auth/login');
         }
@@ -432,7 +475,7 @@ export default function DashboardLayout({
     
   }, [router, toast, handleLogout, pathname]);
   
-  const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, qnaUsage, notifications, onlineUserCount, isLoading, setUserData };
+  const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, qnaUsage, notifications, onlineUsers, isLoading, setUserData };
 
   return (
     <DashboardContext.Provider value={contextValue}>
