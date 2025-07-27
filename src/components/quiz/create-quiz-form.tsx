@@ -41,6 +41,8 @@ const languages = [
     { value: 'English', label: 'English' },
     { value: 'Tamil', label: 'தமிழ்' },
     { value: 'Hindi', label: 'हिन्दी' },
+    { value: 'Telugu', label: 'తెలుగు' },
+    { value: 'Kannada', label: 'ಕನ್ನಡ' },
 ] as const;
 
 
