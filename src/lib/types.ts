@@ -1,4 +1,3 @@
-
 import type { LucideIcon } from 'lucide-react';
 import type { Timestamp } from 'firebase/firestore';
 
@@ -136,4 +135,16 @@ export interface LiveTest {
     endTime: Timestamp;
     questionPaperId: string; // Document ID from the 'liveTestBank' collection
     price: number; // Price for the test for non-pro users
+}
+
+export interface ReasoningQuestion {
+  id: string;
+  questionImage: string; // Base64 Data URI
+  options: string[];
+  correctAnswer: string;
+  solutionImage?: string; // Base64 Data URI
+  solutionText?: string;
+  examCategories: ('MTS' | 'POSTMAN' | 'PA')[];
+  isForLiveTest: boolean;
+  uploadedAt: Date;
 }

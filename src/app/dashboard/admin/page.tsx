@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -9,10 +8,11 @@ import { QuestionBankManagement } from '@/components/admin/question-bank-managem
 import { TopicMCQManagement } from '@/components/admin/topic-mcq-management';
 import { LiveTestManagement } from '@/components/admin/live-test-management';
 import { ReportsManagement } from '@/components/admin/reports-management';
+import { ReasoningBankManagement } from '@/components/admin/reasoning-bank-management';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion } from "lucide-react";
-import { getAllUsers, getQnAUsage, getLiveTests } from "@/lib/firestore";
-import type { UserData, QnAUsage, LiveTest } from "@/lib/types";
+import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, BrainCircuit } from "lucide-react";
+import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions } from "@/lib/firestore";
+import type { UserData, QnAUsage, LiveTest, ReasoningQuestion } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { ADMIN_EMAILS } from "@/lib/constants";
 import { Label } from "@/components/ui/label";
@@ -57,6 +57,7 @@ const adminSections = [
     { value: 'topics', label: 'Topic Management', icon: BookCopy },
     { value: 'topic-mcq', label: 'MCQ Bank', icon: FileQuestion },
     { value: 'question-bank', label: 'Question Bank', icon: FileText },
+    { value: 'reasoning-bank', label: 'Reasoning Bank', icon: BrainCircuit },
     { value: 'live-test', label: 'Live Test', icon: Trophy },
     { value: 'analytics', label: 'Analytics', icon: BarChart3 },
     { value: 'reports', label: 'Reports', icon: Download },
@@ -69,6 +70,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [allLiveTests, setAllLiveTests] = useState<LiveTest[]>([]);
+  const [reasoningQuestions, setReasoningQuestions] = useState<ReasoningQuestion[]>([]);
   const [isLoadingAdminData, setIsLoadingAdminData] = useState(true);
   const [activeSection, setActiveSection] = useState<AdminSection>('users');
   const { toast } = useToast();
@@ -76,16 +78,18 @@ export default function AdminPage() {
   useEffect(() => {
     const fetchAdminData = async () => {
       try {
-        const [fetchedUsers, fetchedQnAUsage, fetchedLiveTests] = await Promise.all([
+        const [fetchedUsers, fetchedQnAUsage, fetchedLiveTests, fetchedReasoningQuestions] = await Promise.all([
             getAllUsers(),
             getQnAUsage(),
             getLiveTests(true), // Fetch all live tests
+            getReasoningQuestions(),
         ]);
         
         const regularUsers = fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email));
         setUsers(regularUsers);
         setQnaUsage(fetchedQnAUsage);
         setAllLiveTests(fetchedLiveTests);
+        setReasoningQuestions(fetchedReasoningQuestions);
 
       } catch (error) {
         console.error("Failed to fetch admin data:", error);
@@ -141,6 +145,8 @@ export default function AdminPage() {
             return <TopicMCQManagement initialTopics={topics} initialTopicMCQs={topicMCQs} />;
         case 'question-bank':
             return <QuestionBankManagement initialBankedQuestions={bankedQuestions} />;
+        case 'reasoning-bank':
+            return <ReasoningBankManagement initialQuestions={reasoningQuestions} />;
         case 'live-test':
             return <LiveTestManagement initialLiveTestBank={liveTestBank} initialLiveTests={allLiveTests} />;
         case 'analytics':
@@ -161,7 +167,7 @@ export default function AdminPage() {
           </p>
         </div>
         
-        <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-7">
+        <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-8">
           {adminSections.map((section) => (
             <Card
               key={section.value}
