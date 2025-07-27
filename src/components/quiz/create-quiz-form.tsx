@@ -131,7 +131,6 @@ export function CreateQuizForm() {
           topic: selectedTopic.title,
           category: selectedCategory.name,
           numberOfQuestions: values.numberOfQuestions,
-          difficulty: "Moderate", // Defaulting to moderate
           examCategory: values.examType,
           part: selectedTopic.part,
           material: selectedTopic.material,
@@ -154,8 +153,12 @@ export function CreateQuizForm() {
 
       const { mcqs } = result;
       
-      const timeLimit = values.numberOfQuestions * 45; // Average of 45 seconds per question
-
+      let timeLimit;
+      if (selectedCategory.name === "Basic Arithmetics") {
+        timeLimit = values.numberOfQuestions * 120; // 2 minutes per question
+      } else {
+        timeLimit = values.numberOfQuestions * 45; // 45 seconds for others
+      }
 
       const topicId = values.topicId;
       const quizData = {
