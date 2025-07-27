@@ -33,7 +33,7 @@ The language of the solution steps and the final answer MUST be {{language}}.
 
 The JSON object must have two keys:
 1.  "steps": An array of strings. Each string must be a single, clear step in the calculation. For work-rate problems, use the LCM (Least Common Multiple) method. For BODMAS problems, show each operation in order.
-2.  "final_answer": A string containing only the final, mathematically exact answer. Express it as a fraction, a decimal, or a whole number as appropriate (e.g., "18.75 days", "75/4 days", "37").
+2.  "final_answer": A string containing only the final, mathematically exact answer. Express it as a fraction, a decimal, or a whole number as appropriate (e.g., "18.75 days", "75/4 days", "37", "6").
 
 CRITICAL INSTRUCTIONS:
 -   Do NOT mention or analyze any multiple-choice options that might be in the problem description. Ignore them completely.
@@ -176,8 +176,26 @@ const generateMockTestFlow = ai.defineFlow(
                     const solutionResponse = await arithmeticSolverPrompt({ problem: mcq.question, language: input.language });
                     if (solutionResponse.output) {
                         mcq.solution = solutionResponse.output.steps.join('\n');
-                        // IMPORTANT: Correct the answer based on the solver's result
-                        mcq.correctAnswer = solutionResponse.output.final_answer;
+                        // IMPORTANT: Correct the answer and one of the options based on the solver's result
+                        const correctAnswer = solutionResponse.output.final_answer;
+                        
+                        // Check if the correct answer is already in the options.
+                        const isCorrectAnswerPresent = mcq.options.some(option => option === correctAnswer);
+
+                        if (!isCorrectAnswerPresent) {
+                            // Find the index of the original (incorrect) answer.
+                            const incorrectAnswerIndex = mcq.options.findIndex(opt => opt === mcq.correctAnswer);
+                            
+                            if (incorrectAnswerIndex !== -1) {
+                                // If the incorrect answer is found, replace it with the correct one.
+                                mcq.options[incorrectAnswerIndex] = correctAnswer;
+                            } else {
+                                // If the original incorrect answer isn't even in the options,
+                                // just replace the first option. This is a fallback.
+                                mcq.options[0] = correctAnswer;
+                            }
+                        }
+                         mcq.correctAnswer = correctAnswer;
                     }
                 } catch (e) {
                     console.error("Failed to generate a detailed solution for a mock test question:", e);
@@ -191,5 +209,3 @@ const generateMockTestFlow = ai.defineFlow(
     return { mcqs: allQuestions };
   }
 );
-
-    
