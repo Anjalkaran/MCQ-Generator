@@ -66,7 +66,7 @@ const fileToDataUri = (file: File): Promise<string> => {
 export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManagementProps) {
   const [questions, setQuestions] = useState<ReasoningQuestion[]>(initialQuestions);
   const [isUploading, setIsUploading] = useState(false);
-  const [formKey, setFormKey] = useState(Date.now()); // To reset the form including file inputs
+  const [formKey, setFormKey] = useState(Date.now()); // State to force re-render
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -117,8 +117,9 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
         const { newDocument } = await response.json();
         setQuestions(prev => [newDocument, ...prev]);
         toast({ title: 'Success', description: 'Reasoning question uploaded successfully.' });
-        form.reset();
-        setFormKey(Date.now()); // Force re-mount of the form
+        
+        // Change the key to force a re-render of the form, resetting all fields correctly
+        setFormKey(Date.now());
 
     } catch (error: any) {
         console.error("Reasoning upload error:", error);
