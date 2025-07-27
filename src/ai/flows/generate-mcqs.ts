@@ -51,7 +51,7 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert in generating multiple-choice questions (MCQs). Your goal is to create {{numberOfQuestions}} questions for the "{{examCategory}}" exam, specifically for "{{part}}". The questions should be on the topic of "{{topic}}" with a "{{difficulty}}" difficulty level.
 
 **CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
-**IMPORTANT RULE FOR TAMIL/HINDI/TELUGU/KANNADA:** When translating to Tamil, Hindi, Telugu, or Kannada, you MUST keep all technical postal terms, scheme names, and abbreviations (e.g., "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office") in English.
+**CRITICAL RULE FOR TRANSLATION:** When translating to any language other than English (e.g., Tamil, Hindi, Telugu, Kannada), you MUST keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", "Head Office", "Sub Office", etc.
 
 --- MOST IMPORTANT RULE ---
 For every question you generate, you MUST follow this two-step process:
@@ -114,7 +114,7 @@ const extractMCQsFromTextPrompt = ai.definePrompt({
 Your task is to extract exactly {{numberOfQuestions}} unique questions from the 'TEXT CONTENT' provided below and format them according to the user's requested language.
 
 **CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
-**IMPORTANT RULE FOR TAMIL/HINDI/TELUGU/KANNADA:** When translating to Tamil, Hindi, Telugu, or Kannada, you MUST keep all technical postal terms, scheme names, and abbreviations (e.g., "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office") in English.
+**CRITICAL RULE FOR TRANSLATION:** When translating to any language other than English (e.g., Tamil, Hindi, Telugu, Kannada), you MUST keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", "Head Office", "Sub Office", etc.
 
 **Process:**
 1.  Read the 'TEXT CONTENT' and identify all distinct multiple-choice questions.
