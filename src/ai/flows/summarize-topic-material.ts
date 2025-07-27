@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Summarizes topic material to provide users with a quick overview before taking an MCQ.
@@ -6,6 +7,9 @@
  * - SummarizeTopicMaterialInput - The input type for the summarizeTopicMaterial function.
  * - SummarizeTopicMaterialOutput - The return type for the summarizeTopicMaterial function.
  */
+
+import { config } from 'dotenv';
+config();
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';

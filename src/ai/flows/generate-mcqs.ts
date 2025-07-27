@@ -7,6 +7,9 @@
  * - generateMCQs - A function that handles the MCQ generation process.
  * - GenerateMCQsOutput - The return type for the generateMCQs function.
  */
+import { config } from 'dotenv';
+config();
+
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { getUserTopicProgress, updateUserTopicProgress, getTopicMCQs } from '@/lib/firestore';

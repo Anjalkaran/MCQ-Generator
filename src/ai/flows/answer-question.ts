@@ -8,6 +8,9 @@
  * - AnswerQuestionOutput - The return type for the answerQuestion function.
  */
 
+import { config } from 'dotenv';
+config();
+
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { logQnAUSage } from '@/lib/firestore';
