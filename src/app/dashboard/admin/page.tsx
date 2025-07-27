@@ -12,8 +12,8 @@ import { ReportsManagement } from '@/components/admin/reports-management';
 import { ReasoningBankManagement } from '@/components/admin/reasoning-bank-management';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, BrainCircuit } from "lucide-react";
-import { getAllUsers, getQnAUsage, getLiveTests } from "@/lib/firestore";
-import type { UserData, QnAUsage, LiveTest } from "@/lib/types";
+import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions } from "@/lib/firestore";
+import type { UserData, QnAUsage, LiveTest, ReasoningQuestion } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { ADMIN_EMAILS } from "@/lib/constants";
 import { Label } from "@/components/ui/label";
@@ -71,25 +71,26 @@ export default function AdminPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [allLiveTests, setAllLiveTests] = useState<LiveTest[]>([]);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
-  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(true);
-  const [isLoadingLiveTests, setIsLoadingLiveTests] = useState(true);
+  const [reasoningQuestions, setReasoningQuestions] = useState<ReasoningQuestion[]>([]);
+  const [isLoadingAdminData, setIsLoadingAdminData] = useState(true);
   const [activeSection, setActiveSection] = useState<AdminSection>('users');
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchAdminData = async () => {
       try {
-        const [fetchedUsers, fetchedQnAUsage, fetchedLiveTests] = await Promise.all([
+        const [fetchedUsers, fetchedQnAUsage, fetchedLiveTests, fetchedReasoningQuestions] = await Promise.all([
             getAllUsers(),
             getQnAUsage(),
-            getLiveTests(true) // Fetch all live tests
+            getLiveTests(true), // Fetch all live tests
+            getReasoningQuestions(),
         ]);
         
         const regularUsers = fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email));
         setUsers(regularUsers);
         setQnaUsage(fetchedQnAUsage);
         setAllLiveTests(fetchedLiveTests);
+        setReasoningQuestions(fetchedReasoningQuestions);
 
       } catch (error) {
         console.error("Failed to fetch admin data:", error);
@@ -99,22 +100,18 @@ export default function AdminPage() {
           variant: "destructive"
         });
       } finally {
-        setIsLoadingUsers(false);
-        setIsLoadingAnalytics(false);
-        setIsLoadingLiveTests(false);
+        setIsLoadingAdminData(false);
       }
     };
 
     if (userData?.email && ADMIN_EMAILS.includes(userData.email)) {
         fetchAdminData();
     } else {
-        setIsLoadingUsers(false);
-        setIsLoadingAnalytics(false);
-        setIsLoadingLiveTests(false);
+        setIsLoadingAdminData(false);
     }
   }, [userData, toast]);
 
-  if (isDashboardLoading || isLoadingUsers || isLoadingAnalytics || isLoadingLiveTests) {
+  if (isDashboardLoading || isLoadingAdminData) {
     return (
        <div className="flex h-[50vh] w-full items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -148,7 +145,7 @@ export default function AdminPage() {
         case 'topic-mcq':
             return <TopicMCQManagement initialTopics={topics} initialTopicMCQs={topicMCQs} />;
         case 'reasoning-bank':
-            return <ReasoningBankManagement />;
+            return <ReasoningBankManagement initialQuestions={reasoningQuestions} />;
         case 'question-bank':
             return <QuestionBankManagement initialBankedQuestions={bankedQuestions} />;
         case 'live-test':

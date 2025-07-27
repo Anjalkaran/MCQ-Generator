@@ -13,11 +13,12 @@ export interface MCQ {
 export interface ReasoningQuestion {
     id: string;
     questionImageUrl: string;
-    questionText?: string;
+    questionText: string | null;
     optionImageUrls: string[];
     correctAnswerIndex: number;
-    solutionImageUrl?: string;
-    uploadedAt: Date;
+    solutionImageUrl: string | null;
+    examCategories: ('MTS' | 'POSTMAN' | 'PA')[];
+    uploadedAt: Timestamp;
 }
 
 export interface Material {

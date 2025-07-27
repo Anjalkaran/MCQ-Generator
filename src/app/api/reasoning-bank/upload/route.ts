@@ -7,7 +7,18 @@ export const runtime = 'nodejs';
 
 // Helper to get the Storage bucket
 const getBucket = () => {
-    return admin.storage().bucket(`gs://${process.env.FIREBASE_PROJECT_ID}.appspot.com`);
+    // Check if the default app is initialized and has a bucket.
+    if (!admin.apps[0]?.options.storageBucket) {
+        // If not, try to use the project ID to construct the bucket name.
+        const projectId = process.env.FIREBASE_PROJECT_ID;
+        if (!projectId) {
+            throw new Error("Firebase project ID is not configured. Cannot determine storage bucket.");
+        }
+        const bucketName = `gs://${projectId}.appspot.com`;
+        console.log(`Default storage bucket not found, attempting to use bucket: ${bucketName}`);
+        return admin.storage().bucket(bucketName);
+    }
+    return admin.storage().bucket();
 };
 
 async function uploadImage(file: File): Promise<string> {
@@ -42,8 +53,9 @@ export async function POST(req: NextRequest) {
         const optionImage4 = formData.get('optionImage4') as File | null;
         const solutionImage = formData.get('solutionImage') as File | null;
         const correctAnswerIndex = formData.get('correctAnswerIndex') as string | null;
+        const examCategories = formData.getAll('examCategories') as string[];
 
-        if (!questionImage || !optionImage1 || !optionImage2 || !optionImage3 || !optionImage4 || correctAnswerIndex === null) {
+        if (!questionImage || !optionImage1 || !optionImage2 || !optionImage3 || !optionImage4 || correctAnswerIndex === null || examCategories.length === 0) {
             return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
         }
 
@@ -61,19 +73,20 @@ export async function POST(req: NextRequest) {
             uploadImage(optionImage2),
             uploadImage(optionImage3),
             uploadImage(optionImage4),
-            solutionImage ? uploadImage(solutionImage) : Promise.resolve(undefined)
+            solutionImage ? uploadImage(solutionImage) : Promise.resolve(null)
         ]);
 
         const newQuestionData = {
             questionImageUrl,
             questionText: questionText || null,
             optionImageUrls: [optionImageUrl1, optionImageUrl2, optionImageUrl3, optionImageUrl4],
-            solutionImageUrl: solutionImageUrl || null,
+            solutionImageUrl: solutionImageUrl,
             correctAnswerIndex: parseInt(correctAnswerIndex, 10),
+            examCategories: examCategories,
             uploadedAt: admin.firestore.FieldValue.serverTimestamp(),
         };
 
-        const docRef = await adminDb.collection('reasoningQuestions').add(newQuestionData);
+        const docRef = await adminDb.collection('reasoningBank').add(newQuestionData);
 
         return NextResponse.json({ 
             message: 'Reasoning question uploaded successfully.', 

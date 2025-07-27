@@ -1,35 +1,61 @@
 
 "use client";
 
+import { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BrainCircuit, Loader2 } from "lucide-react";
+import { BrainCircuit } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { useDashboard } from '@/app/dashboard/layout';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ADMIN_EMAILS } from '@/lib/constants';
+
+const examCategories = ["MTS", "POSTMAN", "PA"] as const;
+
+const formSchema = z.object({
+  examCategory: z.enum(examCategories, {
+    required_error: 'Please select an exam category.',
+  }),
+});
+
+type FormValues = z.infer<typeof formSchema>;
 
 export default function ReasoningTestPage() {
-    const [isGenerating, setIsGenerating] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
+    const { userData } = useDashboard();
 
-    const handleStartTest = async () => {
-        setIsGenerating(true);
-        toast({ title: "Coming Soon!", description: "This feature is under development and will be available shortly." });
-        // In the future, this will generate and start the test.
-        // For now, it just shows a toast.
-        // Example of future logic:
-        // try {
-        //   const { questions } = await generateReasoningTest({ numberOfQuestions: 10 });
-        //   const quizId = `reasoning-${Date.now()}`;
-        //   localStorage.setItem(`quiz-${quizId}`, JSON.stringify({ questions, timeLimit: 600 }));
-        //   router.push(`/quiz/reasoning/${quizId}`);
-        // } catch (error) {
-        //   toast({ title: "Error", description: "Could not start the test.", variant: "destructive" });
-        // } finally {
-        //   setIsGenerating(false);
-        // }
-        setIsGenerating(false);
+    const form = useForm<FormValues>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            examCategory: userData?.examCategory,
+        }
+    });
+
+    const availableExams = useMemo(() => {
+        if (!userData) return [];
+        if (userData.email && ADMIN_EMAILS.includes(userData.email)) return examCategories;
+        switch (userData.examCategory) {
+            case 'PA': return ['PA', 'POSTMAN', 'MTS'];
+            case 'POSTMAN': return ['POSTMAN', 'MTS'];
+            case 'MTS': return ['MTS'];
+            default: return [];
+        }
+    }, [userData]);
+
+    const onSubmit = async (values: FormValues) => {
+        const quizId = `reasoning-${values.examCategory}-${Date.now()}`;
+        const quizSettings = {
+            examCategory: values.examCategory,
+            numberOfQuestions: 10, // A fixed number for reasoning tests
+        };
+        localStorage.setItem(`quizSettings-${quizId}`, JSON.stringify(quizSettings));
+        router.push(`/quiz/reasoning/${quizId}`);
     };
 
     return (
@@ -41,20 +67,42 @@ export default function ReasoningTestPage() {
                 </p>
             </div>
             <Card>
-                <CardHeader className="items-center text-center">
-                    <div className="p-3 bg-primary/10 rounded-full">
-                       <BrainCircuit className="h-8 w-8 text-primary" />
-                    </div>
-                    <CardTitle>Start Your Practice Session</CardTitle>
-                    <CardDescription>
-                        Click the button below to start a reasoning test with 10 questions.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button onClick={handleStartTest} disabled={isGenerating} className="w-full">
-                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Start Reasoning Test"}
-                    </Button>
-                </CardContent>
+                 <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)}>
+                        <CardHeader className="items-center text-center">
+                            <div className="p-3 bg-primary/10 rounded-full">
+                               <BrainCircuit className="h-8 w-8 text-primary" />
+                            </div>
+                            <CardTitle>Start Your Practice Session</CardTitle>
+                            <CardDescription>
+                                Select your exam category to begin a reasoning test.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="max-w-xs mx-auto">
+                             <FormField
+                                control={form.control}
+                                name="examCategory"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Exam Category</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value} defaultValue={userData?.examCategory}>
+                                            <FormControl>
+                                                <SelectTrigger><SelectValue placeholder="Select an exam" /></SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {availableExams.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <Button type="submit" className="w-full mt-6">
+                                Start Reasoning Test
+                            </Button>
+                        </CardContent>
+                    </form>
+                </Form>
             </Card>
         </div>
     );
