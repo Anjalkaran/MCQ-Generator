@@ -66,7 +66,7 @@ const fileToDataUri = (file: File): Promise<string> => {
 export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManagementProps) {
   const [questions, setQuestions] = useState<ReasoningQuestion[]>(initialQuestions);
   const [isUploading, setIsUploading] = useState(false);
-  const [formKey, setFormKey] = useState(Date.now()); // State to force form re-render
+  const [formKey, setFormKey] = useState(Date.now());
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -409,4 +409,3 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
     </div>
   );
 }
-
