@@ -1,7 +1,7 @@
 
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ } from './types';
 import { ADMIN_EMAILS } from './constants';
 import { normalizeDate } from './utils';
 
@@ -557,36 +557,6 @@ export const deleteTopicMCQDocument = async (docId: string): Promise<void> => {
     if (!db) throw new Error("Firestore is not initialized");
     await deleteDoc(doc(db, 'topicMCQs', docId));
 };
-
-// REASONING BANK MANAGEMENT
-export const getReasoningQuestions = async (): Promise<ReasoningQuestion[]> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    const bankCollection = collection(db, 'reasoningBank');
-    const q = query(bankCollection, orderBy('uploadedAt', 'desc'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ReasoningQuestion));
-}
-
-export const getReasoningQuestionsForTest = async (examCategory: string, numberOfQuestions: number): Promise<ReasoningQuestion[]> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    const bankCollection = collection(db, 'reasoningBank');
-    const q = query(bankCollection, where('examCategories', 'array-contains', examCategory));
-    const snapshot = await getDocs(q);
-    const allQuestions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ReasoningQuestion));
-    
-    // Shuffle and pick
-    const shuffled = allQuestions.sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, numberOfQuestions);
-}
-
-export const deleteReasoningQuestion = async (questionId: string): Promise<void> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    await deleteDoc(doc(db, 'reasoningBank', questionId));
-}
-
 
 // CONSOLIDATED DASHBOARD DATA FETCHING
 export const getDashboardData = async (userId: string, isAdmin: boolean = false) => {

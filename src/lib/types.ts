@@ -10,17 +10,6 @@ export interface MCQ {
   topic?: string;
 }
 
-export interface ReasoningQuestion {
-    id: string;
-    questionImageUrl: string;
-    questionText: string | null;
-    optionImageUrls: string[];
-    correctAnswerIndex: number;
-    solutionImageUrl: string | null;
-    examCategories: ('MTS' | 'POSTMAN' | 'PA')[];
-    uploadedAt: Timestamp;
-}
-
 export interface Material {
   name: string;
   content: string;
