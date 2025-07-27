@@ -24,13 +24,10 @@ const formSchema = z.object({
   examType: z.string().min(1, 'Please select an exam type.'),
   part: z.string().min(1, 'Please select a part.'),
   numberOfQuestions: z.coerce.number().min(5).max(50),
-  difficulty: z.string().min(1, 'Please select a difficulty level.'),
   language: z.string().min(1, 'Please select a language.'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
-type DifficultyLevel = 'Easy' | 'Moderate' | 'Difficult';
-const difficultyLevels: DifficultyLevel[] = ['Easy', 'Moderate', 'Difficult'];
 const parts = ["Part A"] as const;
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 const languages = [
@@ -53,7 +50,6 @@ export function PartwiseQuizForm() {
       examType: '',
       part: '',
       numberOfQuestions: 10,
-      difficulty: 'Moderate',
       language: 'English',
     },
   });
@@ -97,7 +93,7 @@ export function PartwiseQuizForm() {
           examCategory: values.examType,
           part: values.part as 'Part A' | 'Part B',
           numberOfQuestions: values.numberOfQuestions,
-          difficulty: values.difficulty,
+          difficulty: 'Moderate', // Defaulting to moderate
           userId: user.uid,
           language: values.language,
       });
@@ -243,30 +239,6 @@ export function PartwiseQuizForm() {
                         </FormItem>
                     )}
                     />
-                     <FormField
-                    control={form.control}
-                    name="difficulty"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Difficulty Level</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={!form.getValues('part')}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select difficulty" />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                            {difficultyLevels.map((level) => (
-                                <SelectItem key={level} value={level}>
-                                {level}
-                                </SelectItem>
-                            ))}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
                     <FormField
                     control={form.control}
                     name="numberOfQuestions"
@@ -302,5 +274,3 @@ export function PartwiseQuizForm() {
     </Card>
   );
 }
-
-    

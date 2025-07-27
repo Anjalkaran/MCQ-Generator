@@ -43,7 +43,6 @@ const generateQuestionsForTopicsPrompt = ai.definePrompt({
         schema: z.object({
             examCategory: z.string(),
             part: z.string(),
-            difficulty: z.string(),
             topics: z.string(),
             questionCount: z.number(),
             previousQuestions: z.array(z.string()).optional(),
@@ -61,7 +60,7 @@ const generateQuestionsForTopicsPrompt = ai.definePrompt({
 **CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
 **CRITICAL RULE FOR TRANSLATION:** When translating to any language other than English (e.g., Tamil, Hindi, Telugu, Kannada), you MUST keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", "Head Office", "Sub Office", etc.
 
-Your task is to generate EXACTLY **{{questionCount}}** questions for **{{part}}** with a **"{{difficulty}}"** difficulty level.
+Your task is to generate EXACTLY **{{questionCount}}** questions for **{{part}}**.
 
 The questions must cover the following topics. Distribute the questions evenly across the topics.
 {{{topics}}}
@@ -91,7 +90,7 @@ const generatePartwiseMCQsFlow = ai.defineFlow(
     outputSchema: GeneratePartwiseMCQsOutputSchema,
   },
   async input => {
-    const { examCategory, part, numberOfQuestions, difficulty, userId, language } = input;
+    const { examCategory, part, numberOfQuestions, userId, language } = input;
 
     const topicsForPart = await getTopicsByPartAndExam(part, examCategory);
     if (topicsForPart.length === 0) {
@@ -104,7 +103,6 @@ const generatePartwiseMCQsFlow = ai.defineFlow(
     const { output } = await generateQuestionsForTopicsPrompt({
         examCategory,
         part,
-        difficulty,
         topics: topicsString,
         questionCount: numberOfQuestions,
         previousQuestions: previousQuestions,
@@ -120,5 +118,3 @@ const generatePartwiseMCQsFlow = ai.defineFlow(
     return { mcqs: output.questions };
   }
 );
-
-    

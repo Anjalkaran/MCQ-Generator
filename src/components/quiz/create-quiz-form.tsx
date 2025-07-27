@@ -14,9 +14,8 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, AlertTriangle, Gem } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getAllUserQuestions } from '@/lib/firestore';
 import type { Category, Topic } from '@/lib/types';
-import { cn, normalizeDate } from '@/lib/utils';
+import { normalizeDate } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { FREE_EXAM_LIMIT, ADMIN_EMAILS } from '@/lib/constants';
 import Link from 'next/link';
@@ -28,13 +27,10 @@ const formSchema = z.object({
   categoryId: z.string().min(1, 'Please select a category.'),
   topicId: z.string().min(1, 'Please select a topic.'),
   numberOfQuestions: z.coerce.number().min(3).max(25),
-  difficulty: z.string().min(1, 'Please select a difficulty level.'),
   language: z.string().min(1, 'Please select a language.'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
-type DifficultyLevel = 'Easy' | 'Moderate' | 'Difficult';
-const difficultyLevels: DifficultyLevel[] = ['Easy', 'Moderate', 'Difficult'];
 const parts = ["Part A", "Part B"] as const;
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 const languages = [
@@ -60,7 +56,6 @@ export function CreateQuizForm() {
       categoryId: '',
       topicId: '',
       numberOfQuestions: 5,
-      difficulty: 'Moderate',
       language: 'English',
     },
   });
@@ -92,7 +87,6 @@ export function CreateQuizForm() {
   const selectedExamType = form.watch('examType');
   const selectedPart = form.watch('part');
   const selectedCategoryId = form.watch('categoryId');
-  const selectedDifficulty = form.watch('difficulty');
 
   // Effect to reset dependent fields when a parent selection changes
   useEffect(() => {
@@ -109,12 +103,6 @@ export function CreateQuizForm() {
   useEffect(() => {
     form.resetField('topicId', { defaultValue: '' });
   }, [selectedCategoryId, form]);
-
-  useEffect(() => {
-    if (selectedPart === 'Part A') {
-      form.setValue('difficulty', 'Moderate', { shouldValidate: true });
-    }
-  }, [selectedPart, form]);
 
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
@@ -143,7 +131,7 @@ export function CreateQuizForm() {
           topic: selectedTopic.title,
           category: selectedCategory.name,
           numberOfQuestions: values.numberOfQuestions,
-          difficulty: values.difficulty,
+          difficulty: "Moderate", // Defaulting to moderate
           examCategory: values.examType,
           part: selectedTopic.part,
           material: selectedTopic.material,
@@ -165,13 +153,8 @@ export function CreateQuizForm() {
       }
 
       const { mcqs } = result;
-
-      const timePerQuestion: Record<DifficultyLevel, number> = {
-        Easy: 30,
-        Moderate: 45,
-        Difficult: 60,
-      };
-      const timeLimit = values.numberOfQuestions * timePerQuestion[values.difficulty as DifficultyLevel];
+      
+      const timeLimit = values.numberOfQuestions * 45; // Average of 45 seconds per question
 
 
       const topicId = values.topicId;
@@ -375,36 +358,6 @@ export function CreateQuizForm() {
                         </FormItem>
                     )}
                     />
-                    {selectedPart === 'Part B' && (
-                        <FormField
-                        control={form.control}
-                        name="difficulty"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Difficulty Level</FormLabel>
-                            <FormControl>
-                                <div className="grid grid-cols-3 gap-2">
-                                {difficultyLevels.map((level) => (
-                                    <Card
-                                    key={level}
-                                    onClick={() => form.setValue('difficulty', level, { shouldValidate: true })}
-                                    className={cn(
-                                        'cursor-pointer p-2 text-center transition-all',
-                                        selectedDifficulty === level
-                                        ? 'border-primary ring-2 ring-primary bg-accent'
-                                        : 'hover:bg-muted/50'
-                                    )}
-                                    >
-                                    <CardTitle className="text-base font-medium">{level}</CardTitle>
-                                    </Card>
-                                ))}
-                                </div>
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                    )}
                     <FormField
                     control={form.control}
                     name="numberOfQuestions"
