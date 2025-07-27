@@ -66,6 +66,7 @@ const fileToDataUri = (file: File): Promise<string> => {
 export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManagementProps) {
   const [questions, setQuestions] = useState<ReasoningQuestion[]>(initialQuestions);
   const [isUploading, setIsUploading] = useState(false);
+  const [formKey, setFormKey] = useState(Date.now()); // State to force form re-render
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -117,24 +118,8 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
         setQuestions(prev => [newDocument, ...prev]);
         toast({ title: 'Success', description: 'Reasoning question uploaded successfully.' });
         
-        // Reset form fields manually to avoid issues with file inputs
-        form.reset({
-            questionText: '',
-            option1: '',
-            option2: '',
-            option3: '',
-            option4: '',
-            correctAnswer: undefined,
-            solutionText: '',
-            examCategories: [],
-            isForLiveTest: false,
-        });
-
-        // Clear file inputs safely
-        const questionImageInput = document.getElementById('questionImage') as HTMLInputElement;
-        if (questionImageInput) questionImageInput.value = '';
-        const solutionImageInput = document.getElementById('solutionImage') as HTMLInputElement;
-        if (solutionImageInput) solutionImageInput.value = '';
+        // Change the key to force a re-mount of the form, which safely resets all fields
+        setFormKey(Date.now());
 
     } catch (error: any) {
         console.error("Reasoning upload error:", error);
@@ -163,7 +148,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                 <CardDescription>Create a new image-based reasoning question. Images are saved directly in the database.</CardDescription>
             </CardHeader>
             <CardContent>
-                <Form {...form}>
+                <Form {...form} key={formKey}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                         <FormField
                             control={form.control}
