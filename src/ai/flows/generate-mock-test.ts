@@ -15,36 +15,6 @@ import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-bluep
 import type { MCQ } from '@/lib/types';
 import { getAllUserQuestions } from '@/lib/firestore';
 
-const ArithmeticSolutionSchema = z.object({
-    steps: z.array(z.string()).describe("An array of strings, where each string is a single step in the calculation using the LCM method. For BODMAS problems, show each operation in order."),
-    final_answer: z.string().describe("A string containing only the final, mathematically exact answer."),
-});
-
-const arithmeticSolverPrompt = ai.definePrompt({
-    name: 'arithmeticSolverPrompt',
-    input: { schema: z.object({ problem: z.string(), language: z.string().optional().default('English') }) },
-    output: { schema: ArithmeticSolutionSchema },
-    model: 'googleai/gemini-1.5-flash',
-    prompt: `You are a precise mathematical solver AI. Your sole purpose is to solve the given word problem or equation and provide a step-by-step solution and an exact final answer.
-
-Your output MUST be a valid JSON object. Do not include any text, apologies, or explanations outside of the JSON structure itself.
-
-The language of the solution steps and the final answer MUST be {{language}}.
-
-The JSON object must have two keys:
-1.  "steps": An array of strings. Each string must be a single, clear step in the calculation. For work-rate problems, use the LCM (Least Common Multiple) method. For BODMAS problems, show each operation in order.
-2.  "final_answer": A string containing only the final, mathematically exact answer. Express it as a fraction, a decimal, or a whole number as appropriate (e.g., "18.75 days", "75/4 days", "37", "6").
-
-CRITICAL INSTRUCTIONS:
--   Do NOT mention or analyze any multiple-choice options that might be in the problem description. Ignore them completely.
--   Do NOT guess or select the "closest" answer. Calculate and provide only the true mathematical result.
--   Do NOT use conversational language. Stick to formal, mathematical steps.
-
-Now, solve the following problem according to all the rules above:
-
-Problem: "{{problem}}"`,
-});
-
 const GenerateMockTestInputSchema = z.object({
   examCategory: z.string().describe('The exam category (e.g., MTS, POSTMAN, PA).'),
   userId: z.string().describe('The ID of the user requesting the quiz.'),
@@ -94,7 +64,7 @@ These questions must cover the following topics:
 {{{topics}}}
 
 For each generated question, you MUST specify its topic in the 'topic' field from the list above.
-For any arithmetic questions, the 'solution' field MUST be an empty string ("").
+For any arithmetic questions, provide a detailed step-by-step explanation in the 'solution' field.
 
 {{#if previousQuestions}}
   IMPORTANT: Do NOT repeat any of the following questions. Ensure the new questions are unique and different from this list:
@@ -163,47 +133,6 @@ const generateMockTestFlow = ai.defineFlow(
     const totalExpectedQuestions = blueprint.parts.reduce((sum, part) => sum + part.totalQuestions, 0);
     if (allQuestions.length !== totalExpectedQuestions) { 
         console.warn(`Generated question count mismatch. Expected ${totalExpectedQuestions}, but got ${allQuestions.length}.`);
-    }
-
-    const arithmeticSection = blueprint.parts.flatMap(p => p.sections).find(s => s.sectionName.includes('Arithmetic'));
-    if (arithmeticSection) {
-        const arithmeticTopicNames = arithmeticSection.topics.map((t: any) => (typeof t === 'string' ? t : t.name));
-        
-        const solutionPromises = allQuestions
-            .filter(mcq => mcq.topic && arithmeticTopicNames.includes(mcq.topic))
-            .map(async (mcq) => {
-                try {
-                    const solutionResponse = await arithmeticSolverPrompt({ problem: mcq.question, language: input.language });
-                    if (solutionResponse.output) {
-                        mcq.solution = solutionResponse.output.steps.join('\n');
-                        // IMPORTANT: Correct the answer and one of the options based on the solver's result
-                        const correctAnswer = solutionResponse.output.final_answer;
-                        
-                        // Check if the correct answer is already in the options.
-                        const isCorrectAnswerPresent = mcq.options.some(option => option === correctAnswer);
-
-                        if (!isCorrectAnswerPresent) {
-                            // Find the index of the original (incorrect) answer.
-                            const incorrectAnswerIndex = mcq.options.findIndex(opt => opt === mcq.correctAnswer);
-                            
-                            if (incorrectAnswerIndex !== -1) {
-                                // If the incorrect answer is found, replace it with the correct one.
-                                mcq.options[incorrectAnswerIndex] = correctAnswer;
-                            } else {
-                                // If the original incorrect answer isn't even in the options,
-                                // just replace the first option. This is a fallback.
-                                mcq.options[0] = correctAnswer;
-                            }
-                        }
-                         mcq.correctAnswer = correctAnswer;
-                    }
-                } catch (e) {
-                    console.error("Failed to generate a detailed solution for a mock test question:", e);
-                    mcq.solution = "A detailed solution could not be generated for this problem.";
-                }
-            });
-        
-        await Promise.all(solutionPromises);
     }
     
     return { mcqs: allQuestions };

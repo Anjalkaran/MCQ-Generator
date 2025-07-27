@@ -10,7 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { getQuestionBankByCategory, getUserTopicProgress, updateUserTopicProgress, getTopicMCQs, getAllUserQuestions } from '@/lib/firestore';
+import { getUserTopicProgress, updateUserTopicProgress, getTopicMCQs } from '@/lib/firestore';
 
 const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
@@ -38,71 +38,6 @@ const GenerateMCQsOutputSchema = z.object({
   mcqs: z.array(MCQSchema).describe('The generated multiple-choice questions.'),
 });
 export type GenerateMCQsOutput = z.infer<typeof GenerateMCQsOutputSchema>;
-
-const prompt = ai.definePrompt({
-  name: 'generateMCQsPrompt',
-  input: {schema: z.object({
-      ...GenerateMCQsInputSchema.shape,
-      previousQuestions: z.array(z.string()).optional(),
-      bankedQuestions: z.string().optional(),
-  })},
-  output: {schema: GenerateMCQsOutputSchema},
-  model: 'googleai/gemini-1.5-flash',
-  prompt: `You are an expert in generating multiple-choice questions (MCQs). Your goal is to create {{numberOfQuestions}} questions for the "{{examCategory}}" exam, specifically for "{{part}}". The questions should be on the topic of "{{topic}}" with a "{{difficulty}}" difficulty level.
-
-**CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
-**CRITICAL RULE FOR TRANSLATION:** When translating to any language other than English (e.g., Tamil, Hindi, Telugu, Kannada), you MUST keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", "Head Office", "Sub Office", etc.
-
---- MOST IMPORTANT RULE ---
-For every question you generate, you MUST follow this two-step process:
-1.  First, generate an array of four distinct strings for the 'options' field. Each string must contain the full text of the answer option.
-2.  Second, from that exact array, select the single correct option and use its full text for the 'correctAnswer' field. The 'correctAnswer' string must be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
-
-You MUST generate questions that can be answered with one of the four options. Do NOT create open-ended questions that ask to "Explain...", "Describe...", "What is...", or "List...".
-
-CRITICAL INSTRUCTION: Do not start questions or explanations with phrases like "According to the...", "Based on the material...", "The provided material states that...", or any similar introductory text. Questions and explanations should be direct. Furthermore, do not generate questions that are logically flawed, whose correct answer is debatable, or where the correct answer is not present in the options. For example, a question like "What is the essential information missing if a letter is returned to the sender?" is ambiguous. A better question would be "What is the most likely reason a letter cannot be delivered to the recipient, causing it to be returned to the sender?". Ensure your questions are clear and have one single, undisputed correct answer based on the provided material or general postal knowledge.
-
-SPECIAL INSTRUCTION FOR POSTAL TERMS: When generating questions about mail offices, you MUST adhere to these definitions: A 'Sorting Mail Office' opens and sorts mail bags. A 'Transit Mail Office' only receives and dispatches closed bags without sorting them.
-
---- PRIMARY RULE: SOURCE OF TRUTH ---
-{{#if material}}
-  Your PRIMARY source of truth is the 'MATERIAL' provided below. All questions MUST be based on it. For each question, provide a detailed, step-by-step explanation in the 'solution' field based on the material, clarifying why the correct answer is right and why the others are wrong.
-  
-  {{#ifEquals difficulty "Difficult"}}
-    Generate statement-based questions and questions that test conceptual understanding based on the material. These questions should require deeper analysis rather than simple fact recall.
-  {{else}}
-    Generate direct questions based on the facts and information presented in the material.
-  {{/ifEquals}}
----
---- MATERIAL START ---
-{{{material}}}
---- MATERIAL END ---
-{{else}}
---- GENERATION RULES (NO MATERIAL PROVIDED) ---
-  {{#ifEquals topic "Current Affairs"}}
-    For "Current Affairs", please refer to materials from reputable coaching centers like Suresh IAS Academy and SSA Adda to ensure the questions are relevant and of high quality. Focus on the period between January 2024 to June 2025. Use the 'REFERENCE QUESTIONS' below for style and format, if available. For each question, provide a detailed explanation for why the answer is correct in the 'solution' field.
-  {{else}}
-    For this topic, generate new questions. Use the 'REFERENCE QUESTIONS' below for style, format, and difficulty. Ensure the new questions are unique. For each question, provide a detailed explanation for the correct answer in the 'solution' field.
-  {{/ifEquals}}
----
-{{/if}}
-
---- REFERENCE & UNIQUENESS ---
-{{#if bankedQuestions}}
-  Use the following PREVIOUS YEARS' EXAM QUESTIONS as a reference for phrasing, style, format, and difficulty. Generate NEW questions inspired by these, but DO NOT copy them directly.
-  ---REFERENCE QUESTIONS START---
-  {{{bankedQuestions}}}
-  ---REFERENCE QUESTIONS END---
-{{/if}}
-
-{{#if previousQuestions}}
-  IMPORTANT: Do NOT repeat any of the following questions. Ensure the new questions are unique and different from this list:
-  {{#each previousQuestions}}
-  - "{{this}}"
-  {{/each}}
-{{/if}}
-  `,
-});
 
 const extractMCQsFromTextPrompt = ai.definePrompt({
     name: 'extractMCQsFromTextPrompt',
@@ -169,15 +104,7 @@ const generateMCQsFlow = ai.defineFlow(
     if (!input.userId) {
       throw new Error("A user ID must be provided to generate a quiz.");
     }
-    
-    const previousQuestions = await getAllUserQuestions(input.userId);
 
-    let flowInput = { 
-        ...input,
-        previousQuestions: previousQuestions,
-        bankedQuestions: undefined as string | undefined
-    };
-    
     // Defer user progress update to the end of the flow
     const updateUserProgress = async (contentSource: string) => {
         const userProgress = await getUserTopicProgress(input.userId, input.topicId);
@@ -197,98 +124,26 @@ const generateMCQsFlow = ai.defineFlow(
     };
 
     const uploadedMCQs = await getTopicMCQs(input.topicId);
-    if (uploadedMCQs && uploadedMCQs.length > 0) {
-        console.log("Uploaded MCQ document found for topic. Using it as the primary source.");
-        
-        const combinedContent = uploadedMCQs.map(doc => doc.content).join('\n\n---\n\n');
-        const contentChunk = await updateUserProgress(combinedContent);
 
-        const { output: extractedOutput } = await extractMCQsFromTextPrompt({
-            textContent: contentChunk,
-            topicName: input.topic,
-            numberOfQuestions: input.numberOfQuestions,
-            language: input.language,
-        });
-
-        if (extractedOutput && extractedOutput.mcqs && extractedOutput.mcqs.length > 0) {
-             await runDeferred();
-             return { mcqs: extractedOutput.mcqs };
-        }
-        console.warn("Could not extract MCQs from the uploaded document chunk. Falling back to AI generation.");
+    if (!uploadedMCQs || uploadedMCQs.length === 0) {
+        throw new Error(`No MCQ document has been uploaded for the topic "${input.topic}". Please upload a document in the admin panel.`);
     }
 
-    // Fallback to study material or general AI generation if no MCQ doc is found
-    const fullMaterial = flowInput.material;
-    if (fullMaterial) {
-        flowInput.material = await updateUserProgress(fullMaterial);
-    }
-    
-    if (input.examCategory) {
-        const categoryForBank = input.examCategory === 'POSTMAN' ? 'MTS' : input.examCategory;
-        const bankedQuestions = await getQuestionBankByCategory(categoryForBank as 'MTS' | 'POSTMAN' | 'PA');
-        if (bankedQuestions) {
-            flowInput.bankedQuestions = bankedQuestions;
-        }
-    }
+    const combinedContent = uploadedMCQs.map(doc => doc.content).join('\n\n---\n\n');
+    const contentChunk = await updateUserProgress(combinedContent);
 
-    console.log(`Starting parallel batch generation for ${input.numberOfQuestions} questions.`);
-
-    const questionsToAvoid = new Set(previousQuestions);
-    const BATCH_SIZE = 10;
-    const NUM_BATCHES = Math.ceil(input.numberOfQuestions / BATCH_SIZE) + 2;
-
-    const generationPromises = [];
-
-    for (let i = 0; i < NUM_BATCHES; i++) {
-        const promise = prompt({
-            ...flowInput,
-            material: fullMaterial, // Use full material for better context in generation
-            numberOfQuestions: BATCH_SIZE,
-            previousQuestions: [],
-        }).catch(err => {
-            console.error(`Batch ${i+1} failed to generate:`, err);
-            return null;
-        });
-        generationPromises.push(promise);
-    }
-
-    const allResults = await Promise.all(generationPromises);
-
-    let allGeneratedMCQs: (typeof MCQSchema._type)[] = [];
-    allResults.forEach(result => {
-        if (result && result.output && result.output.mcqs) {
-            allGeneratedMCQs.push(...result.output.mcqs);
-        }
+    const { output: extractedOutput } = await extractMCQsFromTextPrompt({
+        textContent: contentChunk,
+        topicName: input.topic,
+        numberOfQuestions: input.numberOfQuestions,
+        language: input.language,
     });
 
-    console.log(`Generated a raw total of ${allGeneratedMCQs.length} questions across ${NUM_BATCHES} batches.`);
-
-    let finalMCQs: (typeof MCQSchema._type)[] = [];
-
-    const uniqueValidMCQs: (typeof MCQSchema._type)[] = [];
-    const tempQuestionSet = new Set<string>();
-
-    for (const mcq of allGeneratedMCQs) {
-        if (MCQSchema.safeParse(mcq).success && !questionsToAvoid.has(mcq.question) && !tempQuestionSet.has(mcq.question)) {
-            uniqueValidMCQs.push({ ...mcq, topic: input.topic });
-            tempQuestionSet.add(mcq.question);
-        }
+    if (!extractedOutput || !extractedOutput.mcqs || extractedOutput.mcqs.length === 0) {
+        throw new Error(`Could not extract any valid questions from the uploaded document for "${input.topic}". Please check the document format.`);
     }
     
-    console.log(`Filtered down to ${uniqueValidMCQs.length} unique and valid questions.`);
-
-    finalMCQs = uniqueValidMCQs;
-
-    if (finalMCQs.length === 0 && input.numberOfQuestions > 0) {
-        throw new Error('The AI could not generate any valid questions. The source material might be too short or the topic too complex.');
-    }
-    
-    if (finalMCQs.length < input.numberOfQuestions) {
-        console.warn(`Warning: Could only generate ${finalMCQs.length} out of ${input.numberOfQuestions} requested valid questions.`);
-    }
-
     await runDeferred();
-    
-    return { mcqs: shuffleArray(finalMCQs).slice(0, input.numberOfQuestions) };
+    return { mcqs: shuffleArray(extractedOutput.mcqs) };
   }
 );
