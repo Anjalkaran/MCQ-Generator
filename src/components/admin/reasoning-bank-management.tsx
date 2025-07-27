@@ -33,6 +33,7 @@ const fileSchema = z.instanceof(File)
     .optional();
 
 const formSchema = z.object({
+  questionText: z.string().min(1, 'Question text is required.'),
   questionImage: z.instanceof(File).refine(file => file.size > 0, 'Question image is required.'),
   option1: z.string().min(1, 'Option 1 is required.'),
   option2: z.string().min(1, 'Option 2 is required.'),
@@ -70,6 +71,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+        questionText: '',
         option1: '',
         option2: '',
         option3: '',
@@ -90,6 +92,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
         const options = [values.option1, values.option2, values.option3, values.option4];
         
         const payload = {
+            questionText: values.questionText,
             questionImage: questionImageUri,
             options,
             correctAnswer: values.correctAnswer,
@@ -145,6 +148,19 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
             <CardContent>
                 <Form {...form} key={formKey}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                        <FormField
+                            control={form.control}
+                            name="questionText"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Question Text*</FormLabel>
+                                    <FormControl>
+                                        <Textarea placeholder="Enter the question text here..." {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                         <FormField
                             control={form.control}
                             name="questionImage"
@@ -327,6 +343,10 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                                                         <DialogTitle>Question Details</DialogTitle>
                                                     </DialogHeader>
                                                     <div className="space-y-4">
+                                                        <div>
+                                                            <h3 className="font-semibold mb-2">Question Text:</h3>
+                                                            <p className="text-sm text-muted-foreground p-2 border rounded-md">{q.questionText}</p>
+                                                        </div>
                                                         <div>
                                                             <h3 className="font-semibold mb-2">Question Image:</h3>
                                                             <Image src={q.questionImage} alt="Question" width={400} height={400} className="rounded-md object-contain mx-auto" />

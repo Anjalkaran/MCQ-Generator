@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     
     const { 
+        questionText,
         questionImage, 
         options, 
         correctAnswer, 
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
     } = body;
 
     // --- Robust Server-Side Validation ---
-    if (!questionImage || !options || !correctAnswer || !examCategories) {
+    if (!questionText || !questionImage || !options || !correctAnswer || !examCategories) {
         return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
     }
     if (!Array.isArray(options) || options.length !== 4) {
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
     // --- End Validation ---
 
     const newQuestionData: Omit<ReasoningQuestion, 'id'> = {
+        questionText,
         questionImage,
         options,
         correctAnswer,

@@ -139,6 +139,7 @@ export interface LiveTest {
 
 export interface ReasoningQuestion {
   id: string;
+  questionText: string;
   questionImage: string; // Base64 Data URI
   options: string[];
   correctAnswer: string;
