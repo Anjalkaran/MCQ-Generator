@@ -61,6 +61,7 @@ Your task is to extract exactly {{numberOfQuestions}} unique questions from the 
 
 **CRITICAL RULE:** The 'correctAnswer' field in your output MUST be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
 **TRIMMING RULE:** If an option in the text starts with a letter followed by a period or parenthesis (e.g., "a.", "B)", "c."), you MUST trim this prefix from the option text before including it in the output. For example, "a. The quick brown fox" should become "The quick brown fox".
+**CRITICAL CONTENT RULE:** You MUST extract the actual text content for all fields. NEVER output the literal word "string" as a value for any field.
 
 --- TEXT CONTENT ---
 {{{textContent}}}
@@ -143,7 +144,19 @@ const generateMCQsFlow = ai.defineFlow(
         throw new Error(`Could not extract any valid questions from the uploaded document for "${input.topic}". Please check the document format.`);
     }
     
+    // **CRITICAL FIX**: Filter out any questions where the AI mistakenly returned "string" as content.
+    const validMcqs = extractedOutput.mcqs.filter(mcq => {
+        const questionText = mcq.question.trim().toLowerCase();
+        const hasValidQuestion = questionText !== "string" && questionText.length > 1;
+        const hasValidOptions = mcq.options.every(opt => opt.trim().toLowerCase() !== "string" && opt.trim().length > 0);
+        return hasValidQuestion && hasValidOptions;
+    });
+    
+    if (validMcqs.length === 0) {
+        throw new Error(`Failed to extract valid questions from the document for "${input.topic}". The document may contain formatting issues.`);
+    }
+    
     await runDeferred();
-    return { mcqs: shuffleArray(extractedOutput.mcqs) };
+    return { mcqs: shuffleArray(validMcqs) };
   }
 );
