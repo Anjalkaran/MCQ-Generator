@@ -66,7 +66,6 @@ const fileToDataUri = (file: File): Promise<string> => {
 export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManagementProps) {
   const [questions, setQuestions] = useState<ReasoningQuestion[]>(initialQuestions);
   const [isUploading, setIsUploading] = useState(false);
-  const [formKey, setFormKey] = useState(Date.now()); // State to force re-render
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -118,8 +117,24 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
         setQuestions(prev => [newDocument, ...prev]);
         toast({ title: 'Success', description: 'Reasoning question uploaded successfully.' });
         
-        // Change the key to force a re-render of the form, resetting all fields correctly
-        setFormKey(Date.now());
+        // Reset form fields manually to avoid issues with file inputs
+        form.reset({
+            questionText: '',
+            option1: '',
+            option2: '',
+            option3: '',
+            option4: '',
+            correctAnswer: undefined,
+            solutionText: '',
+            examCategories: [],
+            isForLiveTest: false,
+        });
+
+        // Clear file inputs safely
+        const questionImageInput = document.getElementById('questionImage') as HTMLInputElement;
+        if (questionImageInput) questionImageInput.value = '';
+        const solutionImageInput = document.getElementById('solutionImage') as HTMLInputElement;
+        if (solutionImageInput) solutionImageInput.value = '';
 
     } catch (error: any) {
         console.error("Reasoning upload error:", error);
@@ -148,7 +163,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                 <CardDescription>Create a new image-based reasoning question. Images are saved directly in the database.</CardDescription>
             </CardHeader>
             <CardContent>
-                <Form {...form} key={formKey}>
+                <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                         <FormField
                             control={form.control}
@@ -171,6 +186,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                                     <FormLabel>Question Image*</FormLabel>
                                     <FormControl>
                                         <Input 
+                                            id="questionImage"
                                             type="file" 
                                             accept="image/*"
                                             onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
@@ -224,6 +240,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                                         <FormLabel>Solution Image (Optional)</FormLabel>
                                         <FormControl>
                                             <Input 
+                                                id="solutionImage"
                                                 type="file" 
                                                 accept="image/*"
                                                 onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
