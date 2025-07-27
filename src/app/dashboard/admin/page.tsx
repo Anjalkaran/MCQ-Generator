@@ -9,8 +9,9 @@ import { QuestionBankManagement } from '@/components/admin/question-bank-managem
 import { TopicMCQManagement } from '@/components/admin/topic-mcq-management';
 import { LiveTestManagement } from '@/components/admin/live-test-management';
 import { ReportsManagement } from '@/components/admin/reports-management';
+import { ReasoningBankManagement } from '@/components/admin/reasoning-bank-management';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion } from "lucide-react";
+import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, BrainCircuit } from "lucide-react";
 import { getAllUsers, getQnAUsage, getLiveTests } from "@/lib/firestore";
 import type { UserData, QnAUsage, LiveTest } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -56,6 +57,7 @@ const adminSections = [
     { value: 'users', label: 'User Management', icon: Shield },
     { value: 'topics', label: 'Topic Management', icon: BookCopy },
     { value: 'topic-mcq', label: 'MCQ Bank', icon: FileQuestion },
+    { value: 'reasoning-bank', label: 'Reasoning Bank', icon: BrainCircuit },
     { value: 'question-bank', label: 'Question Bank', icon: FileText },
     { value: 'live-test', label: 'Live Test', icon: Trophy },
     { value: 'analytics', label: 'Analytics', icon: BarChart3 },
@@ -145,6 +147,8 @@ export default function AdminPage() {
             return <TopicManagement initialCategories={categories} initialTopics={topics} />;
         case 'topic-mcq':
             return <TopicMCQManagement initialTopics={topics} initialTopicMCQs={topicMCQs} />;
+        case 'reasoning-bank':
+            return <ReasoningBankManagement />;
         case 'question-bank':
             return <QuestionBankManagement initialBankedQuestions={bankedQuestions} />;
         case 'live-test':
@@ -167,7 +171,7 @@ export default function AdminPage() {
           </p>
         </div>
         
-        <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-7">
+        <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-8">
           {adminSections.map((section) => (
             <Card
               key={section.value}

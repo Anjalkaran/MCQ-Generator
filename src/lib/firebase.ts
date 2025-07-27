@@ -1,6 +1,8 @@
+
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getStorage, type FirebaseStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCgHVZAjOL5p2i_CJNY4MOvj6h8RjSg-Bc",
@@ -14,12 +16,14 @@ const firebaseConfig = {
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
+let storage: FirebaseStorage | null = null;
 
 function initializeFirebase() {
   if (getApps().length > 0) {
     app = getApp();
     auth = getAuth(app);
     db = getFirestore(app);
+    storage = getStorage(app);
     return;
   }
   
@@ -36,6 +40,7 @@ function initializeFirebase() {
         app = initializeApp(firebaseConfig);
         auth = getAuth(app);
         db = getFirestore(app);
+        storage = getStorage(app);
     } catch (e) {
         console.error("Error initializing Firebase", e);
     }
@@ -58,4 +63,11 @@ function getFirebaseDb(): Firestore | null {
   return db;
 }
 
-export { getFirebaseAuth, getFirebaseDb };
+function getFirebaseStorage(): FirebaseStorage | null {
+  if (!storage) {
+    initializeFirebase();
+  }
+  return storage;
+}
+
+export { getFirebaseAuth, getFirebaseDb, getFirebaseStorage };

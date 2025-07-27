@@ -10,6 +10,15 @@ export interface MCQ {
   topic?: string;
 }
 
+export interface ReasoningQuestion {
+    id: string;
+    questionImageUrl: string;
+    optionImageUrls: string[];
+    correctAnswerIndex: number;
+    solutionImageUrl?: string;
+    uploadedAt: Date;
+}
+
 export interface Material {
   name: string;
   content: string;
