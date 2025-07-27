@@ -188,9 +188,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
 
               return (
                 <li key={index}>
-                  <p className="font-semibold mb-2">
-                    {index + 1}. {mcq.question}
-                  </p>
+                  <div className="font-semibold mb-2" dangerouslySetInnerHTML={{ __html: `${index + 1}. ${mcq.question}` }} />
                    {quizData.isMockTest && mcq.topic && (
                        <Badge variant="outline" className="mb-2">Topic: {mcq.topic}</Badge>
                    )}
@@ -230,9 +228,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
                                 </div>
                             </AccordionTrigger>
                             <AccordionContent>
-                                <div className="p-4 bg-muted/50 rounded-lg border prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
-                                    {mcq.solution}
-                                </div>
+                                <div className="p-4 bg-muted/50 rounded-lg border prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: mcq.solution }}/>
                             </AccordionContent>
                         </AccordionItem>
                     </Accordion>

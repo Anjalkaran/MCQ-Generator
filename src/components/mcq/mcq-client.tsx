@@ -205,7 +205,7 @@ export function MCQClient({ topicId }: MCQClientProps) {
         <Progress value={progress} className="mt-4" />
       </CardHeader>
       <CardContent>
-        <p className="font-semibold text-lg mb-6">{currentQuestion.question}</p>
+        <div className="font-semibold text-lg mb-6" dangerouslySetInnerHTML={{ __html: currentQuestion.question }} />
         <RadioGroup
           key={currentQuestionIndex}
           value={selectedAnswers[currentQuestionIndex]}
