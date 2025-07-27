@@ -73,7 +73,6 @@ const generateMCQsFromScratchPrompt = ai.definePrompt({
     input: {
         schema: z.object({
             topic: z.string(),
-            difficulty: z.string(),
             examCategory: z.string().optional(),
             numberOfQuestions: z.number(),
             language: z.string().optional().default('English'),
@@ -86,7 +85,7 @@ const generateMCQsFromScratchPrompt = ai.definePrompt({
 **CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
 **CRITICAL RULE FOR TRANSLATION:** When translating to any language other than English (e.g., Tamil, Hindi, Telugu, Kannada), you MUST keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", "Head Office", "Sub Office", etc.
 
-Your task is to generate EXACTLY **{{numberOfQuestions}}** unique questions of **{{difficulty}}** difficulty based on the following topic:
+Your task is to generate EXACTLY **{{numberOfQuestions}}** unique questions based on the following topic:
 **Topic: "{{topic}}"**
 
 For each generated question:
@@ -138,14 +137,81 @@ const generateMCQsFlow = ai.defineFlow(
 
     const uploadedMCQs = await getTopicMCQs(input.topicId);
 
-    // If no document is uploaded, check if it's a "General Awareness" topic.
-    if (!uploadedMCQs || uploadedMCQs.length === 0) {
-      if (input.category === "General Awareness") {
-        // This is a knowledge-based topic, so generate questions from scratch.
+    // If a document is uploaded, always use it.
+    if (uploadedMCQs && uploadedMCQs.length > 0) {
+        // If we are here, it means a document was found, so we extract from it.
+        const combinedContent = uploadedMCQs.map(doc => doc.content).join('\n\n---\n\n');
+        const totalLength = combinedContent.length;
+
+        let collectedMCQs: z.infer<typeof MCQSchema>[] = [];
+        const collectedQuestionTexts = new Set<string>();
+        const userProgress = await getUserTopicProgress(input.userId, input.topicId);
+        let currentIndex = userProgress?.lastCharacterIndexUsed || 0;
+        
+        const maxIterations = Math.ceil(totalLength / MATERIAL_CHUNK_SIZE) + 2; 
+        
+        for (let i = 0; i < maxIterations && collectedMCQs.length < input.numberOfQuestions; i++) {
+            if (currentIndex >= totalLength) {
+                currentIndex = 0;
+            }
+
+            const endIndex = Math.min(currentIndex + MATERIAL_CHUNK_SIZE, totalLength);
+            const contentChunk = combinedContent.substring(currentIndex, endIndex);
+            
+            if (contentChunk.trim().length < 50) {
+                if (currentIndex === 0 && i > 0) break; 
+                currentIndex = endIndex;
+                continue;
+            }
+
+            const { output: extractedOutput } = await extractMCQsFromTextPrompt({
+                textContent: contentChunk,
+                topicName: input.topic,
+                numberOfQuestions: input.numberOfQuestions - collectedMCQs.length,
+                language: input.language,
+            });
+
+            if (extractedOutput && extractedOutput.mcqs) {
+                const validNewMcqs = extractedOutput.mcqs.filter(mcq => {
+                    const questionText = mcq.question.trim();
+                    const hasValidQuestion = questionText.toLowerCase() !== "string" && questionText.length > 1;
+                    const hasValidOptions = mcq.options.every(opt => opt.trim().toLowerCase() !== "string" && opt.trim().length > 0);
+                    const isNew = !collectedQuestionTexts.has(questionText);
+                    return hasValidQuestion && hasValidOptions && isNew;
+                });
+                
+                validNewMcqs.forEach(mcq => {
+                    collectedMCQs.push(mcq);
+                    collectedQuestionTexts.add(mcq.question.trim());
+                });
+            }
+            
+            currentIndex = endIndex;
+        }
+
+        let nextIndex = currentIndex >= totalLength ? 0 : currentIndex;
+        defer(async () => {
+            await updateUserTopicProgress(input.userId, input.topicId, nextIndex);
+        });
+
+        if (collectedMCQs.length < input.numberOfQuestions) {
+            console.warn(`Could only find ${collectedMCQs.length} unique questions for topic "${input.topic}" after scanning the material, though ${input.numberOfQuestions} were requested.`);
+        }
+        
+        if (collectedMCQs.length === 0) {
+        throw new Error(`Failed to extract any valid questions for "${input.topic}". Please check the document formatting and content.`);
+        }
+
+        await runDeferred();
+        
+        const finalMCQs = shuffleArray(collectedMCQs).slice(0, input.numberOfQuestions);
+
+        return { mcqs: finalMCQs };
+    } else {
+        // If no document is uploaded, assume it's a knowledge-based topic and generate from scratch.
         const { output } = await generateMCQsFromScratchPrompt({
             topic: input.topic,
             examCategory: input.examCategory,
-            difficulty: "Moderate",
             numberOfQuestions: input.numberOfQuestions,
             language: input.language,
         });
@@ -154,79 +220,6 @@ const generateMCQsFlow = ai.defineFlow(
             throw new Error(`The AI failed to generate questions for the topic "${input.topic}". Please try again.`);
         }
         return { mcqs: output.mcqs };
-      } else {
-        // For any other topic, an uploaded document is required.
-        throw new Error(`No MCQ document has been uploaded for the topic "${input.topic}". Please upload a document in the admin panel.`);
-      }
     }
-
-    // If we are here, it means a document was found, so we extract from it.
-    const combinedContent = uploadedMCQs.map(doc => doc.content).join('\n\n---\n\n');
-    const totalLength = combinedContent.length;
-
-    let collectedMCQs: z.infer<typeof MCQSchema>[] = [];
-    const collectedQuestionTexts = new Set<string>();
-    const userProgress = await getUserTopicProgress(input.userId, input.topicId);
-    let currentIndex = userProgress?.lastCharacterIndexUsed || 0;
-    
-    const maxIterations = Math.ceil(totalLength / MATERIAL_CHUNK_SIZE) + 2; 
-    
-    for (let i = 0; i < maxIterations && collectedMCQs.length < input.numberOfQuestions; i++) {
-        if (currentIndex >= totalLength) {
-            currentIndex = 0;
-        }
-
-        const endIndex = Math.min(currentIndex + MATERIAL_CHUNK_SIZE, totalLength);
-        const contentChunk = combinedContent.substring(currentIndex, endIndex);
-        
-        if (contentChunk.trim().length < 50) {
-            if (currentIndex === 0 && i > 0) break; 
-            currentIndex = endIndex;
-            continue;
-        }
-
-        const { output: extractedOutput } = await extractMCQsFromTextPrompt({
-            textContent: contentChunk,
-            topicName: input.topic,
-            numberOfQuestions: input.numberOfQuestions - collectedMCQs.length,
-            language: input.language,
-        });
-
-        if (extractedOutput && extractedOutput.mcqs) {
-            const validNewMcqs = extractedOutput.mcqs.filter(mcq => {
-                const questionText = mcq.question.trim();
-                const hasValidQuestion = questionText.toLowerCase() !== "string" && questionText.length > 1;
-                const hasValidOptions = mcq.options.every(opt => opt.trim().toLowerCase() !== "string" && opt.trim().length > 0);
-                const isNew = !collectedQuestionTexts.has(questionText);
-                return hasValidQuestion && hasValidOptions && isNew;
-            });
-            
-            validNewMcqs.forEach(mcq => {
-                collectedMCQs.push(mcq);
-                collectedQuestionTexts.add(mcq.question.trim());
-            });
-        }
-        
-        currentIndex = endIndex;
-    }
-
-    let nextIndex = currentIndex >= totalLength ? 0 : currentIndex;
-    defer(async () => {
-         await updateUserTopicProgress(input.userId, input.topicId, nextIndex);
-    });
-
-    if (collectedMCQs.length < input.numberOfQuestions) {
-        console.warn(`Could only find ${collectedMCQs.length} unique questions for topic "${input.topic}" after scanning the material, though ${input.numberOfQuestions} were requested.`);
-    }
-    
-    if (collectedMCQs.length === 0) {
-       throw new Error(`Failed to extract any valid questions for "${input.topic}". Please check the document formatting and content.`);
-    }
-
-    await runDeferred();
-    
-    const finalMCQs = shuffleArray(collectedMCQs).slice(0, input.numberOfQuestions);
-
-    return { mcqs: finalMCQs };
   }
 );
