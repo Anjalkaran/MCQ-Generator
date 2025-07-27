@@ -1,7 +1,7 @@
 
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion } from './types';
 import { ADMIN_EMAILS } from './constants';
 import { normalizeDate } from './utils';
 
@@ -557,6 +557,28 @@ export const deleteTopicMCQDocument = async (docId: string): Promise<void> => {
     if (!db) throw new Error("Firestore is not initialized");
     await deleteDoc(doc(db, 'topicMCQs', docId));
 };
+
+// REASONING BANK MANAGEMENT
+export const getReasoningQuestions = async (): Promise<ReasoningQuestion[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const q = query(collection(db, 'reasoningBank'), orderBy('uploadedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as ReasoningQuestion));
+};
+
+export const addReasoningQuestion = async (data: Omit<ReasoningQuestion, 'id'>): Promise<DocumentReference> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    return await addDoc(collection(db, 'reasoningBank'), data);
+};
+
+export const deleteReasoningQuestion = async (docId: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    await deleteDoc(doc(db, 'reasoningBank', docId));
+};
+
 
 // CONSOLIDATED DASHBOARD DATA FETCHING
 export const getDashboardData = async (userId: string, isAdmin: boolean = false) => {
