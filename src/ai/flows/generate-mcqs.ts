@@ -27,9 +27,9 @@ const GenerateMCQsInputSchema = z.object({
 export type GenerateMCQsInput = z.infer<typeof GenerateMCQsInputSchema>;
 
 const MCQSchema = z.object({
-      question: z.string().describe('The multiple-choice question text only. It must NOT contain the answer options.'),
-      options: z.array(z.string()).length(4).describe('An array of four possible answers, with the full text for each option.'),
-      correctAnswer: z.string().describe('The full text of the correct answer, which MUST be an exact match to one of the four strings in the `options` array.'),
+      question: z.string().min(1, "Question text cannot be empty.").describe('The multiple-choice question text only. It must NOT contain the answer options.'),
+      options: z.array(z.string().min(1, "Option text cannot be empty.")).length(4).describe('An array of four possible answers, with the full text for each option.'),
+      correctAnswer: z.string().min(1, "Correct answer cannot be empty.").describe('The full text of the correct answer, which MUST be an exact match to one of the four strings in the `options` array.'),
       solution: z.string().optional().describe('A step-by-step solution for arithmetic problems, or a detailed explanation for other topics.'),
       topic: z.string().optional().describe("The specific topic of the question."),
     });
