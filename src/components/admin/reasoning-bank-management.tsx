@@ -29,13 +29,16 @@ const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 const MAX_FILE_SIZE_MB = 2;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
+// Allow the file to be optional for the form, but require it for questionImage
 const fileSchema = z.instanceof(File)
     .refine(file => file.size <= MAX_FILE_SIZE_BYTES, `File size must be less than ${MAX_FILE_SIZE_MB}MB.`)
-    .optional();
+    .optional()
+    .nullable();
 
 const formSchema = z.object({
   questionText: z.string().min(1, 'Question text is required.'),
-  questionImage: z.instanceof(File).refine(file => file.size > 0, 'Question image is required.'),
+  // We make the file optional here to avoid issues with form reset, and handle validation in the submit handler if needed, or rely on the required attribute.
+  questionImage: z.instanceof(File, { message: 'Question image is required.' }).refine(file => file.size > 0, 'Question image is required.').refine(file => file.size <= MAX_FILE_SIZE_BYTES, `File size must be less than ${MAX_FILE_SIZE_MB}MB.`),
   option1: z.string().min(1, 'Option 1 is required.'),
   option2: z.string().min(1, 'Option 2 is required.'),
   option3: z.string().min(1, 'Option 3 is required.'),
@@ -66,7 +69,6 @@ const fileToDataUri = (file: File): Promise<string> => {
 export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManagementProps) {
   const [questions, setQuestions] = useState<ReasoningQuestion[]>(initialQuestions);
   const [isUploading, setIsUploading] = useState(false);
-  const [formKey, setFormKey] = useState(Date.now());
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -80,6 +82,8 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
         solutionText: '',
         examCategories: [],
         isForLiveTest: false,
+        questionImage: undefined,
+        solutionImage: undefined,
     },
   });
 
@@ -87,6 +91,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
     setIsUploading(true);
 
     try {
+        // Zod schema already validates that questionImage is a File.
         const questionImageUri = await fileToDataUri(values.questionImage);
         const solutionImageUri = values.solutionImage ? await fileToDataUri(values.solutionImage) : undefined;
         
@@ -118,8 +123,8 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
         setQuestions(prev => [newDocument, ...prev]);
         toast({ title: 'Success', description: 'Reasoning question uploaded successfully.' });
         
-        // Change the key to force a re-mount of the form, which safely resets all fields
-        setFormKey(Date.now());
+        // Reset the form to its default values
+        form.reset();
 
     } catch (error: any) {
         console.error("Reasoning upload error:", error);
@@ -148,7 +153,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                 <CardDescription>Create a new image-based reasoning question. Images are saved directly in the database.</CardDescription>
             </CardHeader>
             <CardContent>
-                <Form {...form} key={formKey}>
+                <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                         <FormField
                             control={form.control}
@@ -166,7 +171,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                         <FormField
                             control={form.control}
                             name="questionImage"
-                            render={({ field: { onChange, ...rest } }) => (
+                            render={({ field: { value, onChange, ...rest } }) => (
                                 <FormItem>
                                     <FormLabel>Question Image*</FormLabel>
                                     <FormControl>
@@ -220,7 +225,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                              <FormField
                                 control={form.control}
                                 name="solutionImage"
-                                render={({ field: { onChange, ...rest } }) => (
+                                render={({ field: { value, onChange, ...rest } }) => (
                                     <FormItem>
                                         <FormLabel>Solution Image (Optional)</FormLabel>
                                         <FormControl>
