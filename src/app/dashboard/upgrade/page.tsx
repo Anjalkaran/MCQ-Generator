@@ -77,7 +77,7 @@ export default function UpgradePage() {
 
     let price;
     if (userData.examCategory === 'PA') {
-        price = 1;
+        price = 799;
     } else if (userData.examCategory === 'POSTMAN') {
         price = 599;
     } else {
