@@ -27,7 +27,7 @@ const formSchema = z.object({
   examType: z.enum(examCategories, {
     required_error: 'Please select an exam type.',
   }),
-  numberOfQuestions: z.coerce.number().min(5).max(25),
+  numberOfQuestions: z.coerce.number().min(1).max(25),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -187,9 +187,9 @@ export function ReasoningTestForm() {
                     name="numberOfQuestions"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Number of Questions (5-25)</FormLabel>
+                        <FormLabel>Number of Questions (1-25)</FormLabel>
                         <FormControl>
-                            <Input type="number" min="5" max="25" {...field} />
+                            <Input type="number" min="1" max="25" {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
