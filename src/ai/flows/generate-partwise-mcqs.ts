@@ -18,7 +18,6 @@ const GeneratePartwiseMCQsInputSchema = z.object({
   examCategory: z.string().describe('The exam category (e.g., MTS, POSTMAN, PA).'),
   part: z.enum(['Part A', 'Part B']).describe('The syllabus part (Part A or Part B).'),
   numberOfQuestions: z.number().describe('The total number of questions to generate for the part.'),
-  difficulty: z.string().describe('The difficulty level for the questions.'),
   userId: z.string().describe('The ID of the user requesting the quiz.'),
   language: z.string().optional().default('English').describe('The language for the generated quiz (e.g., "English", "Tamil", "Hindi").'),
 });
