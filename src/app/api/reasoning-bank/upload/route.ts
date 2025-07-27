@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
     try {
         const formData = await req.formData();
         const questionImage = formData.get('questionImage') as File | null;
+        const questionText = formData.get('questionText') as string | null;
         const optionImage1 = formData.get('optionImage1') as File | null;
         const optionImage2 = formData.get('optionImage2') as File | null;
         const optionImage3 = formData.get('optionImage3') as File | null;
@@ -65,6 +66,7 @@ export async function POST(req: NextRequest) {
 
         const newQuestionData = {
             questionImageUrl,
+            questionText: questionText || null,
             optionImageUrls: [optionImageUrl1, optionImageUrl2, optionImageUrl3, optionImageUrl4],
             solutionImageUrl: solutionImageUrl || null,
             correctAnswerIndex: parseInt(correctAnswerIndex, 10),

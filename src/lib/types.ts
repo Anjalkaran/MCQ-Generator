@@ -13,6 +13,7 @@ export interface MCQ {
 export interface ReasoningQuestion {
     id: string;
     questionImageUrl: string;
+    questionText?: string;
     optionImageUrls: string[];
     correctAnswerIndex: number;
     solutionImageUrl?: string;

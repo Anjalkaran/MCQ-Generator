@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload, Image as ImageIcon, Check } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import Image from 'next/image';
+import { Textarea } from '../ui/textarea';
 
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
@@ -34,6 +35,7 @@ const optionalFileSchema = z.instanceof(File).optional().refine(
 
 const reasoningBankSchema = z.object({
   questionImage: fileSchema,
+  questionText: z.string().optional(),
   optionImage1: fileSchema,
   optionImage2: fileSchema,
   optionImage3: fileSchema,
@@ -66,6 +68,9 @@ export function ReasoningBankManagement() {
     setIsUploading(true);
     const formData = new FormData();
     formData.append('questionImage', values.questionImage);
+    if (values.questionText) {
+        formData.append('questionText', values.questionText);
+    }
     formData.append('optionImage1', values.optionImage1);
     formData.append('optionImage2', values.optionImage2);
     formData.append('optionImage3', values.optionImage3);
@@ -114,6 +119,20 @@ export function ReasoningBankManagement() {
                                         <Input type="file" accept="image/*" onChange={(e) => onChange(e.target.files?.[0])} {...rest} />
                                     </FormControl>
                                     <ImagePreview file={watchedFiles[0]} />
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        
+                        <FormField
+                            control={form.control}
+                            name="questionText"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Question Text (Optional)</FormLabel>
+                                    <FormControl>
+                                        <Textarea placeholder="If the question is text-based and refers to the image above, enter it here." {...field} />
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
