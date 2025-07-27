@@ -134,14 +134,13 @@ const generateMCQsFlow = ai.defineFlow(
     if (!input.userId) {
       throw new Error("A user ID must be provided to generate a quiz.");
     }
-    
-    // Check if the topic is NOT a material-based topic. If not, generate with AI.
-    const materialBasedCategories = [
-      "Post Office Guide Part I",
-      "Postal Manual Volume V",
-      "Basic Arithmetics",
-    ];
-    if (!input.category || !materialBasedCategories.includes(input.category)) {
+
+    const uploadedMCQs = await getTopicMCQs(input.topicId);
+
+    // If no document is uploaded, check if it's a "General Awareness" topic.
+    if (!uploadedMCQs || uploadedMCQs.length === 0) {
+      if (input.category === "General Awareness") {
+        // This is a knowledge-based topic, so generate questions from scratch.
         const { output } = await generateMCQsFromScratchPrompt({
             topic: input.topic,
             examCategory: input.examCategory,
@@ -153,13 +152,13 @@ const generateMCQsFlow = ai.defineFlow(
             throw new Error(`The AI failed to generate questions for the topic "${input.topic}". Please try again.`);
         }
         return { mcqs: output.mcqs };
+      } else {
+        // For any other topic, an uploaded document is required.
+        throw new Error(`No MCQ document has been uploaded for the topic "${input.topic}". Please upload a document in the admin panel.`);
+      }
     }
 
-    // For all other topics, extract from the uploaded MCQ bank
-    const uploadedMCQs = await getTopicMCQs(input.topicId);
-    if (!uploadedMCQs || uploadedMCQs.length === 0) {
-        throw new Error(`No MCQ document has been uploaded for the topic "${input.topic}". Please upload a document in the admin panel.`);
-    }
+    // If we are here, it means a document was found, so we extract from it.
     const combinedContent = uploadedMCQs.map(doc => doc.content).join('\n\n---\n\n');
     const totalLength = combinedContent.length;
 
