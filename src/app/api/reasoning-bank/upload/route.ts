@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { addReasoningQuestion } from '@/lib/firestore';
 import type { ReasoningQuestion } from '@/lib/types';
@@ -53,6 +54,15 @@ export async function POST(req: NextRequest) {
         examCategories,
         isForLiveTest: isForLiveTest || false,
         uploadedAt: new Date(),
+    }
+    
+    // Firestore does not allow 'undefined' values.
+    // We remove the keys if their values are falsy (e.g., undefined, null, empty string).
+    if (!newQuestionData.solutionImage) {
+        delete (newQuestionData as Partial<typeof newQuestionData>).solutionImage;
+    }
+    if (!newQuestionData.solutionText) {
+        delete (newQuestionData as Partial<typeof newQuestionData>).solutionText;
     }
     
     const newDocRef = await addReasoningQuestion(newQuestionData);
