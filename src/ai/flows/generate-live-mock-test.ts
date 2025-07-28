@@ -63,12 +63,15 @@ Your task is to meticulously parse the entire 'QUESTION PAPER' provided below an
     *   The solution, if one is provided.
     *   The topic of the question (e.g., "Profit and loss", "Methods of address").
 2.  **Format Correctly:** Ensure the extracted data fits the required JSON schema precisely.
+3.  **Verify Output:** Before finalizing, double-check that your entire output is a single, valid JSON object, starting with { and ending with }.
 
 **CRITICAL INSTRUCTIONS:**
 *   Your final output MUST be a single, valid JSON object containing a 'questions' array with EXACTLY {{questionCount}} questions.
+*   Your response must ONLY contain the JSON object. Do not include any other text, explanations, or formatting like markdown backticks.
 *   The 'correctAnswer' field MUST be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
+*   The 'options' array for each question MUST contain exactly four strings.
 *   Do NOT verify, correct, or change any of the content. Extract it exactly as it appears in the text.
-*   The 'options' array for each question MUST contain four strings.
+*   **TRIMMING RULE:** If an option in the text starts with a letter followed by a period or parenthesis (e.g., "a.", "B)", "c."), you MUST trim this prefix from the option text before including it in the output. For example, "a. The quick brown fox" should become "The quick brown fox".
 
 --- QUESTION PAPER ---
 {{{questionPaperContent}}}
