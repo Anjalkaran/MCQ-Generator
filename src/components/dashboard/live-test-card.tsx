@@ -204,10 +204,12 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
         if (testState === 'entryClosed') return <Button disabled className="w-full"><Ban className="mr-2 h-4 w-4" />Entry Window Closed</Button>;
 
         // Test is 'live'
-        if (isPro) {
+        const isFreeTest = test.price === 0;
+
+        if (isPro || isFreeTest) {
             return <Button onClick={startTest} disabled={isGenerating} className="w-full bg-green-600 hover:bg-green-700">
                 {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
-                Start Live Test
+                {isFreeTest && !isPro ? 'Start Free Test' : 'Start Live Test'}
             </Button>;
         }
         
