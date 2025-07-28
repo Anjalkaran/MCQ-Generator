@@ -117,6 +117,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
                 timeLimit: blueprint.totalDurationMinutes * 60,
                 isMockTest: true,
                 liveTestId: test.id,
+                examCategory: test.examCategory,
                 topic: {
                     id: quizId,
                     title: test.title,

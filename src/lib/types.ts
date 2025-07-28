@@ -53,6 +53,7 @@ export interface MCQData {
   timeLimit?: number;
   isMockTest?: boolean;
   liveTestId?: string; // Add liveTestId to quiz data
+  examCategory?: UserData['examCategory'];
 }
 
 export interface MCQHistory {

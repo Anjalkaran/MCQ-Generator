@@ -5,7 +5,7 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, XCircle, Award, Repeat, Home, BrainCircuit, Trophy } from "lucide-react";
-import type { MCQ, Topic } from "@/lib/types";
+import type { MCQ, Topic, UserData } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -29,6 +29,7 @@ interface StoredQuizData {
   isMockTest?: boolean;
   liveTestId?: string;
   durationInSeconds?: number;
+  examCategory?: UserData['examCategory'];
 }
 
 // Helper function to normalize answer strings for comparison
@@ -69,10 +70,10 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
         if (currentUser && !hasSavedHistory.current) {
             hasSavedHistory.current = true; // Prevent re-runs
             
-            const { answers, numberOfQuestions, mcqs, topic, isMockTest, liveTestId, durationInSeconds } = JSON.parse(savedState) as StoredQuizData;
+            const { answers, numberOfQuestions, mcqs, topic, isMockTest, liveTestId, durationInSeconds, examCategory } = JSON.parse(savedState) as StoredQuizData;
             setUserAnswers(answers);
             setQuizLength(numberOfQuestions);
-            setQuizData({ mcqs, topic, isMockTest, liveTestId });
+            setQuizData({ mcqs, topic, isMockTest, liveTestId, examCategory });
 
             let correctCount = 0;
             mcqs.forEach((mcq: MCQ, index: number) => {
@@ -119,9 +120,12 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
     return null; // or a loading spinner
   }
   
-  const { topic, mcqs: quizMcqs, isMockTest, liveTestId } = quizData;
-  const totalMarks = score * 2;
-  const maxMarks = quizLength * 2;
+  const { topic, mcqs: quizMcqs, isMockTest, liveTestId, examCategory } = quizData;
+  
+  const marksPerQuestion = (liveTestId && examCategory === 'PA') ? 1 : 2;
+  const totalMarks = score * marksPerQuestion;
+  const maxMarks = quizLength * marksPerQuestion;
+
 
   const handleRetake = () => {
     localStorage.removeItem(`quiz-${topicId}`);
