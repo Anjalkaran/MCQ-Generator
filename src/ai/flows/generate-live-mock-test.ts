@@ -92,6 +92,10 @@ const generateLiveMockTestFlow = ai.defineFlow(
 
     // If language is not English, translate the questions.
     if (input.language && input.language !== 'English') {
+        const CHUNK_SIZE = 10; // Translate 10 questions at a time
+        const MAX_RETRIES = 3;
+        let translatedMCQs: MCQ[] = [];
+
         const translationPrompt = ai.definePrompt({
             name: 'translateLiveTestPrompt',
             model: 'googleai/gemini-1.5-flash',
@@ -101,7 +105,7 @@ const generateLiveMockTestFlow = ai.defineFlow(
                     language: z.string(),
                 })
             },
-            output: { schema: GenerateLiveMockTestOutputSchema },
+            output: { schema: z.object({ mcqs: z.array(MCQSchema) }) },
             prompt: `You are an expert translator specializing in technical content for Indian Postal Department exams.
 
 Your task is to translate the provided array of multiple-choice questions (MCQs) into the specified target language: {{language}}.
@@ -124,15 +128,34 @@ Translate the following questions:
 `,
         });
 
-        const { output } = await translationPrompt({
-            questionsToTranslate: finalMCQs,
-            language: input.language
-        });
-        
-        if (!output || !output.mcqs || output.mcqs.length === 0) {
-            throw new Error(`Failed to translate the live test questions into ${input.language}.`);
+        for (let i = 0; i < finalMCQs.length; i += CHUNK_SIZE) {
+            const chunk = finalMCQs.slice(i, i + CHUNK_SIZE);
+            let success = false;
+            for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+                try {
+                    const { output } = await translationPrompt({
+                        questionsToTranslate: chunk,
+                        language: input.language
+                    });
+                    
+                    if (output && output.mcqs && output.mcqs.length > 0) {
+                        translatedMCQs.push(...output.mcqs);
+                        success = true;
+                        break; // Success, exit retry loop
+                    }
+                } catch (error) {
+                    console.error(`Translation attempt ${attempt} for chunk starting at index ${i} failed:`, error);
+                    if (attempt === MAX_RETRIES) {
+                        throw new Error(`Failed to translate a batch of questions into ${input.language} after ${MAX_RETRIES} attempts.`);
+                    }
+                }
+            }
+            if (!success) {
+                 throw new Error(`Failed to translate the live test questions into ${input.language}. An unrecoverable error occurred.`);
+            }
         }
-        finalMCQs = output.mcqs;
+        
+        finalMCQs = translatedMCQs;
     }
 
 
