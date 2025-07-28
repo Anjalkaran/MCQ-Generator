@@ -7,6 +7,76 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Loader2, BookCopy, FileText, Rss } from 'lucide-react';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { getLiveTests } from '@/lib/firestore';
+import type { LiveTest } from '@/lib/types';
+import { normalizeDate } from '@/lib/utils';
+import { format, formatDistanceToNowStrict } from 'date-fns';
+
+function UpcomingLiveTest() {
+    const [upcomingTest, setUpcomingTest] = useState<LiveTest | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [timeRemaining, setTimeRemaining] = useState('');
+
+    useEffect(() => {
+        const fetchAndSetTests = async () => {
+            try {
+                const allTests = await getLiveTests(true); // Fetch all tests
+                const now = new Date();
+                const nextTest = allTests
+                    .filter(test => normalizeDate(test.endTime)! > now)
+                    .sort((a, b) => normalizeDate(a.startTime)!.getTime() - normalizeDate(b.startTime)!.getTime())[0];
+                
+                setUpcomingTest(nextTest || null);
+            } catch (error) {
+                console.error("Failed to fetch live tests for dashboard:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchAndSetTests();
+    }, []);
+
+    useEffect(() => {
+        if (!upcomingTest) return;
+
+        const startTime = normalizeDate(upcomingTest.startTime);
+        if (!startTime) return;
+
+        const interval = setInterval(() => {
+            const now = new Date();
+            if (now < startTime) {
+                setTimeRemaining(formatDistanceToNowStrict(startTime, { addSuffix: true }));
+            } else {
+                setTimeRemaining('Live Now!');
+                clearInterval(interval);
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [upcomingTest]);
+
+    if (isLoading) {
+        return <Skeleton className="h-10 w-full" />;
+    }
+
+    if (!upcomingTest) {
+        return (
+             <CardDescription className="pt-4">
+                Participate in scheduled live tests that simulate real exam conditions, or practice with past live tests.
+            </CardDescription>
+        );
+    }
+    
+    const startTime = normalizeDate(upcomingTest.startTime);
+
+    return (
+        <div className="pt-4 text-center">
+            <p className="font-bold text-base text-primary">{upcomingTest.title}</p>
+            {startTime && <p className="text-sm text-muted-foreground">{format(startTime, 'P p')}</p>}
+            <p className="text-lg font-semibold mt-2">{timeRemaining}</p>
+        </div>
+    )
+}
 
 export default function DashboardPage() {
   const { user, userData, isLoading } = useDashboard();
@@ -47,9 +117,7 @@ export default function DashboardPage() {
               </div>
               <CardTitle>Live Mock Test</CardTitle>
             </div>
-            <CardDescription className="pt-4">
-              Participate in scheduled live tests that simulate real exam conditions, or practice with past live tests.
-            </CardDescription>
+            <UpcomingLiveTest />
           </CardHeader>
           <CardContent className="flex-grow flex items-end">
             <Button asChild className="w-full">
