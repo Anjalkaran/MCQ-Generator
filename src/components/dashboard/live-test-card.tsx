@@ -56,8 +56,13 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     useEffect(() => {
         if (!startTime || !endTime || !entryCutoffTime) return;
 
+        if (isAdmin) {
+            setTestState('live');
+            return;
+        }
+
         const interval = setInterval(() => {
-            if (hasTakenTest && !isAdmin) {
+            if (hasTakenTest) {
                 if(testState !== 'completed') setTestState('completed');
                 clearInterval(interval);
                 return;
@@ -185,17 +190,24 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
 
 
     const getButton = () => {
+        if (isAdmin) {
+             return <Button onClick={startTest} disabled={isGenerating} className="w-full bg-green-600 hover:bg-green-700">
+                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
+                Start Live Test (Admin)
+            </Button>;
+        }
+
         if (testState === 'loading') return <Button disabled className="w-full"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading Status...</Button>;
         if (testState === 'upcoming') return <Button disabled className="w-full"><Lock className="mr-2 h-4 w-4" />Starts In: {timeRemaining}</Button>;
-        if (testState === 'completed' && !isAdmin) return <Button disabled className="w-full"><CheckCircle className="mr-2 h-4 w-4" />Test Already Attempted</Button>;
+        if (testState === 'completed') return <Button disabled className="w-full"><CheckCircle className="mr-2 h-4 w-4" />Test Already Attempted</Button>;
         if (testState === 'ended') return <Button disabled className="w-full"><TimerOff className="mr-2 h-4 w-4" />Test Has Ended</Button>;
         if (testState === 'entryClosed') return <Button disabled className="w-full"><Ban className="mr-2 h-4 w-4" />Entry Window Closed</Button>;
 
-        // Test is 'live' or admin is retaking
-        if (isPro || isAdmin) {
+        // Test is 'live'
+        if (isPro) {
             return <Button onClick={startTest} disabled={isGenerating} className="w-full bg-green-600 hover:bg-green-700">
                 {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
-                Start Live Test {isAdmin && "(Admin)"}
+                Start Live Test
             </Button>;
         }
         
@@ -228,14 +240,16 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
                 </CardDescription>
             </CardHeader>
             <CardContent className="text-center space-y-4">
-                <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">
-                        {testState === 'upcoming' ? 'Starts in' : 'Entry closes in'}
-                    </p>
-                    <p className="text-2xl font-bold tracking-tighter">
-                        {timeRemaining}
-                    </p>
-                </div>
+                 {!isAdmin && (
+                     <div className="p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">
+                            {testState === 'upcoming' ? 'Starts in' : 'Entry closes in'}
+                        </p>
+                        <p className="text-2xl font-bold tracking-tighter">
+                            {timeRemaining}
+                        </p>
+                    </div>
+                 )}
             </CardContent>
             <CardFooter>
                 {getButton()}
