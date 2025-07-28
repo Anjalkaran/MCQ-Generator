@@ -29,8 +29,12 @@ const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 
 const uploadSchema = z.object({
   examCategory: z.enum(examCategories),
-  file: z.instanceof(File).refine(file => file.size > 0, 'Please upload a file.'),
+  file: z
+    .instanceof(File, { message: 'Please upload a file.' })
+    .refine(file => file.size > 0, 'Please upload a file.')
+    .refine(file => file.type === 'application/json', 'File must be a JSON document.'),
 });
+
 
 const scheduleSchema = z.object({
   title: z.string().min(3, "Title is required."),
@@ -176,22 +180,11 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
   }
 
   const handleDownload = (paper: BankedQuestion) => {
-    // Determine the file type and extension based on whether the content is JSON
-    let blob;
-    let fileName;
-    try {
-        JSON.parse(paper.content);
-        blob = new Blob([paper.content], { type: 'application/json;charset=utf-8;' });
-        fileName = paper.fileName.replace(/\.docx?$/i, '.json');
-    } catch (e) {
-        blob = new Blob([paper.content], { type: 'text/plain;charset=utf-8;' });
-        fileName = paper.fileName.replace(/\.docx?$/i, '.txt');
-    }
-    
+    const blob = new Blob([paper.content], { type: 'application/json;charset=utf-8;' });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", fileName);
+    link.setAttribute("download", paper.fileName);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -218,12 +211,9 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
 
   const getFormattedContent = (content: string) => {
     try {
-      // Try to parse it as JSON
       const jsonContent = JSON.parse(content);
-      // If successful, stringify it with formatting
       return JSON.stringify(jsonContent, null, 2);
     } catch (error) {
-      // If it fails, it's just plain text, so return it as is
       return content;
     }
   };
@@ -235,7 +225,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                 <CardHeader>
                     <CardTitle>Upload Live Test Papers</CardTitle>
                     <CardDescription>
-                        Upload DOCX files containing questions. The system will convert them to text.
+                        Upload question papers in a valid JSON format.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -264,11 +254,11 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                 name="file"
                                 render={({ field: { onChange, value, ...rest } }) => (
                                     <FormItem>
-                                    <FormLabel>Question Paper File (.docx)</FormLabel>
+                                    <FormLabel>Question Paper File (.json)</FormLabel>
                                     <FormControl>
                                         <Input 
                                         type="file" 
-                                        accept=".docx"
+                                        accept=".json"
                                         onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
                                         {...rest}
                                         />
@@ -576,5 +566,3 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
     </div>
   );
 }
-
-    
