@@ -96,7 +96,7 @@ const generateLiveMockTestFlow = ai.defineFlow(
             name: 'translateLiveTestPrompt',
             input: {
                 schema: z.object({
-                    mcqs: z.array(MCQSchema),
+                    mcqsAsJsonString: z.string(),
                     language: z.string(),
                 })
             },
@@ -114,12 +114,16 @@ Your task is to translate the provided array of multiple-choice questions (MCQs)
 
 Translate the following JSON object:
 \`\`\`json
-{{{JSONstringify mcqs}}}
+{{{mcqsAsJsonString}}}
 \`\`\`
 `,
         });
 
-        const { output } = await translationPrompt({ mcqs: finalMCQs, language: input.language });
+        const { output } = await translationPrompt({
+            mcqsAsJsonString: JSON.stringify(finalMCQs),
+            language: input.language
+        });
+        
         if (!output || !output.mcqs || output.mcqs.length === 0) {
             throw new Error(`Failed to translate the live test questions into ${input.language}.`);
         }
