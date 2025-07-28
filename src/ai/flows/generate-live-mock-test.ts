@@ -20,7 +20,6 @@ import { getLiveTestQuestionPaper, getReasoningQuestionsForLiveTest } from '@/li
 const GenerateLiveMockTestInputSchema = z.object({
   liveTestId: z.string().describe('The ID of the live test paper document in Firestore.'),
   examCategory: z.enum(["MTS", "POSTMAN", "PA"]).describe('The exam category for which the test is being generated.'),
-  language: z.string().optional().default('English').describe('The language for the generated quiz (e.g., "English", "Tamil", "Hindi").'),
 });
 export type GenerateLiveMockTestInput = z.infer<typeof GenerateLiveMockTestInputSchema>;
 
@@ -89,95 +88,7 @@ const generateLiveMockTestFlow = ai.defineFlow(
         
         finalMCQs = [...finalMCQs, ...formattedReasoningMCQs];
     }
-
-    // If language is not English, translate the questions.
-    if (input.language && input.language !== 'English') {
-        const CHUNK_SIZE = 10; // Translate 10 questions at a time
-        const MAX_RETRIES = 3;
-        let translatedMCQs: MCQ[] = [];
-
-        const translationPrompt = ai.definePrompt({
-            name: 'translateLiveTestPrompt',
-            model: 'googleai/gemini-1.5-flash',
-            input: {
-                schema: z.object({
-                    questionsToTranslate: z.array(MCQSchema),
-                    language: z.string(),
-                })
-            },
-            output: { schema: GenerateLiveMockTestOutputSchema },
-            prompt: `You are an expert translator specializing in technical content for Indian Postal Department exams.
-
-Your task is to translate the provided list of multiple-choice questions (MCQs) into the specified target language: {{language}}.
-
-**CRITICAL RULES:**
-1.  **Language:** The ENTIRE output (question, options, correctAnswer, solution) MUST be in {{language}}.
-2.  **Untranslated Terms:** You MUST keep all technical postal terms, scheme names, and abbreviations in English. Do not translate "Post Office", "Savings Bank", "PLI", "Postman", etc.
-3.  **HTML Tags:** If you see any HTML tags like \`<img ...>\`, you MUST preserve them exactly as they are in the output. DO NOT translate the content of HTML tags.
-4.  **Correct Answer:** The 'correctAnswer' field MUST be an EXACT, case-sensitive match to one of the four translated strings in the 'options' array.
-5.  **Output Format:** Your final output must be a single, valid JSON object that strictly adheres to the provided output schema.
-
-Here is the list of questions to translate:
-
-{{#each questionsToTranslate}}
-- Question: {{{question}}}
-  Options: [{{#each options}}"{{this}}"{{#unless @last}}, {{/unless}}{{/each}}]
-  Correct Answer: "{{{correctAnswer}}}"
-  Solution: "{{{solution}}}"
-  Topic: "{{{topic}}}"
----
-{{/each}}
-`,
-        });
-
-        for (let i = 0; i < finalMCQs.length; i += CHUNK_SIZE) {
-            const chunk = finalMCQs.slice(i, i + CHUNK_SIZE);
-            let success = false;
-            for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-                try {
-                    const { output } = await translationPrompt({
-                        questionsToTranslate: chunk,
-                        language: input.language
-                    });
-                    
-                    if (output && output.mcqs && output.mcqs.length === chunk.length) {
-                        // Post-process the translated chunk to guarantee correctness.
-                        const correctedMcqs = output.mcqs.map((translatedMcq, index) => {
-                            const originalMcq = chunk[index];
-                            
-                            // 1. Find the index of the correct answer from the ORIGINAL options.
-                            const correctAnswerIndex = originalMcq.options.indexOf(originalMcq.correctAnswer);
-
-                            // 2. If the index is valid, set the translated correctAnswer to the option at that same index.
-                            if (correctAnswerIndex !== -1 && translatedMcq.options[correctAnswerIndex]) {
-                                translatedMcq.correctAnswer = translatedMcq.options[correctAnswerIndex];
-                            } else {
-                                // If something went wrong (e.g., index out of bounds), log it and fall back.
-                                console.warn(`Could not find correct answer index for question: ${originalMcq.question}`);
-                            }
-                            return translatedMcq;
-                        });
-
-                        translatedMCQs.push(...correctedMcqs); // Push the corrected MCQs
-                        success = true;
-                        break; // Success, exit retry loop
-                    }
-                } catch (error) {
-                    console.error(`Translation attempt ${attempt} for chunk starting at index ${i} failed:`, error);
-                    if (attempt === MAX_RETRIES) {
-                        throw new Error(`Failed to translate a batch of questions into ${input.language} after ${MAX_RETRIES} attempts.`);
-                    }
-                }
-            }
-            if (!success) {
-                 throw new Error(`Failed to translate the live test questions into ${input.language}. An unrecoverable error occurred.`);
-            }
-        }
-        
-        finalMCQs = translatedMCQs;
-    }
-
-
+    
     return { mcqs: finalMCQs };
   }
 );

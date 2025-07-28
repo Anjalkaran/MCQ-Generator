@@ -31,15 +31,6 @@ const blueprintMap = {
     PA: PA_BLUEPRINT,
 };
 
-const languages = [
-    { value: 'English', label: 'English' },
-    { value: 'Tamil', label: 'தமிழ்' },
-    { value: 'Hindi', label: 'हिन्दी' },
-    { value: 'Telugu', label: 'తెలుగు' },
-    { value: 'Kannada', label: 'ಕನ್ನಡ' },
-] as const;
-
-
 export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const { user, userData, setUserData } = useDashboard();
     const { toast } = useToast();
@@ -48,7 +39,6 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const [isPaying, setIsPaying] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState('');
     const [testState, setTestState] = useState<'upcoming' | 'live' | 'ended' | 'completed' | 'loading' | 'entryClosed'>('loading');
-    const [selectedLanguage, setSelectedLanguage] = useState('');
 
     const startTime = useMemo(() => normalizeDate(test.startTime), [test.startTime]);
     const endTime = useMemo(() => normalizeDate(test.endTime), [test.endTime]);
@@ -113,7 +103,6 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
             const result = await generateLiveMockTest({ 
                 liveTestId: test.questionPaperId,
                 examCategory: test.examCategory,
-                language: selectedLanguage,
             });
 
             if (!result || !result.mcqs) {
@@ -203,7 +192,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
 
     const getButton = () => {
         if (isAdmin) {
-             return <Button onClick={startTest} disabled={isGenerating || !selectedLanguage} className="w-full bg-green-600 hover:bg-green-700">
+             return <Button onClick={startTest} disabled={isGenerating} className="w-full bg-green-600 hover:bg-green-700">
                 {isGenerating ? (
                     <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -226,7 +215,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
 
         // Test is 'live'
         if (test.price === 0 || isPro) {
-            return <Button onClick={startTest} disabled={isGenerating || !selectedLanguage} className="w-full bg-green-600 hover:bg-green-700">
+            return <Button onClick={startTest} disabled={isGenerating} className="w-full bg-green-600 hover:bg-green-700">
                 {isGenerating ? (
                     <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -244,7 +233,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
         // Non-pro user, test requires payment
         return (
             <div className="w-full space-y-2">
-                <Button onClick={handlePaymentAndStart} disabled={isPaying || isGenerating || !selectedLanguage} className="w-full">
+                <Button onClick={handlePaymentAndStart} disabled={isPaying || isGenerating} className="w-full">
                     {isPaying || isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
                     Pay ₹{test.price} and Start
                 </Button>
@@ -282,18 +271,6 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
                  )}
             </CardContent>
             <CardFooter className="flex flex-col gap-2">
-                {(testState === 'live' || isAdmin) && testState !== 'completed' && (
-                     <Select onValueChange={setSelectedLanguage} value={selectedLanguage}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select Language" />
-                        </SelectTrigger>
-                        <SelectContent>
-                        {languages.map((lang) => (
-                            <SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>
-                        ))}
-                        </SelectContent>
-                    </Select>
-                )}
                 {getButton()}
             </CardFooter>
         </Card>
