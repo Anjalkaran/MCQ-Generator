@@ -232,7 +232,7 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
                 <FormField
                 control={form.control}
                 name="file"
-                render={({ field: { onChange, value, ...rest } }) => (
+                render={({ field: { value, onChange, ...rest } }) => (
                     <FormItem>
                     <FormLabel>MCQ Document (.docx)</FormLabel>
                     <FormControl>
