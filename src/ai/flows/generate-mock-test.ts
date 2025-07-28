@@ -21,7 +21,6 @@ import { getAllUserQuestions } from '@/lib/firestore';
 const GenerateMockTestInputSchema = z.object({
   examCategory: z.string().describe('The exam category (e.g., MTS, POSTMAN, PA).'),
   userId: z.string().describe('The ID of the user requesting the quiz.'),
-  language: z.string().optional().default('English').describe('The language for the generated test (e.g., "English", "Tamil", "Hindi").'),
 });
 export type GenerateMockTestInput = z.infer<typeof GenerateMockTestInputSchema>;
 
@@ -47,7 +46,6 @@ const generateQuestionsForSectionPrompt = ai.definePrompt({
             topics: z.string(),
             questionCount: z.number(),
             previousQuestions: z.array(z.string()).optional().describe('A list of previously asked questions to avoid repetition.'),
-            language: z.string().optional().default('English'),
         })
     },
     output: {
@@ -58,10 +56,7 @@ const generateQuestionsForSectionPrompt = ai.definePrompt({
     model: 'googleai/gemini-1.5-flash',
     prompt: `You are an expert in creating mock test questions for the Indian Postal Department's {{examCategory}} exam.
 
-**CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
-**CRITICAL RULE FOR TRANSLATION:** When translating to any language other than English (e.g., Tamil, Hindi, Telugu, Kannada), you MUST keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", "Head Office", "Sub Office", etc.
-
-Your task is to generate EXACTLY **{{questionCount}}** questions for the section named **"{{sectionName}}"**.
+Your task is to generate EXACTLY **{{questionCount}}** questions for the section named **"{{sectionName}}"**. The language for the entire output must be in English.
 
 These questions must cover the following topics:
 {{{topics}}}
@@ -122,7 +117,6 @@ const generateMockTestFlow = ai.defineFlow(
                 topics: topicsString,
                 questionCount: currentChunkSize,
                 previousQuestions: [...previousQuestions, ...allQuestions.map(q => q.question)], // Include already generated questions
-                language: input.language,
             });
 
             if (output && output.questions) {
