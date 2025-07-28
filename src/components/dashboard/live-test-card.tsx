@@ -48,7 +48,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const [isPaying, setIsPaying] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState('');
     const [testState, setTestState] = useState<'upcoming' | 'live' | 'ended' | 'completed' | 'loading' | 'entryClosed'>('loading');
-    const [selectedLanguage, setSelectedLanguage] = useState('English');
+    const [selectedLanguage, setSelectedLanguage] = useState('');
 
     const startTime = useMemo(() => normalizeDate(test.startTime), [test.startTime]);
     const endTime = useMemo(() => normalizeDate(test.endTime), [test.endTime]);
@@ -203,7 +203,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
 
     const getButton = () => {
         if (isAdmin) {
-             return <Button onClick={startTest} disabled={isGenerating} className="w-full bg-green-600 hover:bg-green-700">
+             return <Button onClick={startTest} disabled={isGenerating || !selectedLanguage} className="w-full bg-green-600 hover:bg-green-700">
                 {isGenerating ? (
                     <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -225,9 +225,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
         if (testState === 'entryClosed') return <Button disabled className="w-full"><Ban className="mr-2 h-4 w-4" />Entry Window Closed</Button>;
 
         // Test is 'live'
-        const isFreeTest = test.price === 0;
-
-        if (isPro || isFreeTest) {
+        if (test.price === 0 || isPro) {
             return <Button onClick={startTest} disabled={isGenerating || !selectedLanguage} className="w-full bg-green-600 hover:bg-green-700">
                 {isGenerating ? (
                     <>
@@ -237,7 +235,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
                 ) : (
                     <>
                         <PlayCircle className="mr-2 h-4 w-4" />
-                        {isFreeTest && !isPro ? 'Start Free Test' : 'Start Live Test'}
+                        {test.price === 0 && !isPro ? 'Start Free Test' : 'Start Live Test'}
                     </>
                 )}
             </Button>;
@@ -285,7 +283,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
             </CardContent>
             <CardFooter className="flex flex-col gap-2">
                 {(testState === 'live' || isAdmin) && testState !== 'completed' && (
-                     <Select onValueChange={setSelectedLanguage} defaultValue={selectedLanguage}>
+                     <Select onValueChange={setSelectedLanguage} value={selectedLanguage}>
                         <SelectTrigger>
                             <SelectValue placeholder="Select Language" />
                         </SelectTrigger>
