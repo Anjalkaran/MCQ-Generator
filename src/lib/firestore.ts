@@ -559,6 +559,13 @@ export const addTopicMCQDocument = async (data: Omit<TopicMCQ, 'id'>): Promise<D
     }
 };
 
+export const updateTopicMCQDocument = async (docId: string, content: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const docRef = doc(db, 'topicMCQs', docId);
+    await updateDoc(docRef, { content });
+};
+
 export const deleteTopicMCQDocument = async (docId: string): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");

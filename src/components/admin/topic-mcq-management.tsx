@@ -12,17 +12,18 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Eye, Trash2, Search } from 'lucide-react';
-import { deleteTopicMCQDocument } from '@/lib/firestore';
+import { Loader2, Upload, Eye, Trash2, Search, Edit, Download } from 'lucide-react';
+import { deleteTopicMCQDocument, updateTopicMCQDocument } from '@/lib/firestore';
 import type { Topic, TopicMCQ } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from '@/lib/utils';
+import { Textarea } from '@/components/ui/textarea';
 
 const uploadSchema = z.object({
   topicId: z.string({
@@ -44,10 +45,14 @@ interface TopicMCQManagementProps {
 
 export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQManagementProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [topics] = useState<Topic[]>(initialTopics);
   const [topicMCQs, setTopicMCQs] = useState<TopicMCQ[]>(initialTopicMCQs || []);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingMCQ, setEditingMCQ] = useState<TopicMCQ | null>(null);
+  const [editedContent, setEditedContent] = useState('');
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof uploadSchema>>({
@@ -100,6 +105,41 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
         console.error("Failed to delete topic MCQ document", error);
         toast({ title: "Error", description: "Could not delete the document.", variant: "destructive" });
     }
+  }
+
+  const handleOpenEditDialog = (mcqDoc: TopicMCQ) => {
+    setEditingMCQ(mcqDoc);
+    setEditedContent(mcqDoc.content);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingMCQ) return;
+    setIsSaving(true);
+    try {
+        await updateTopicMCQDocument(editingMCQ.id, editedContent);
+        setTopicMCQs(prev => prev.map(q => q.id === editingMCQ.id ? { ...q, content: editedContent } : q));
+        toast({ title: "Success", description: "Document updated successfully." });
+        setIsEditDialogOpen(false);
+        setEditingMCQ(null);
+    } catch (error) {
+        console.error("Failed to update document", error);
+        toast({ title: "Error", description: "Could not update the document.", variant: "destructive" });
+    } finally {
+        setIsSaving(false);
+    }
+  };
+  
+  const handleDownload = (mcqDoc: TopicMCQ) => {
+    const blob = new Blob([mcqDoc.content], { type: 'text/plain;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    const safeFileName = mcqDoc.fileName.replace('.docx', '.txt');
+    link.setAttribute("download", safeFileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   const getTopicTitle = (topicId: string) => {
@@ -263,6 +303,12 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
                                                     </ScrollArea>
                                                 </DialogContent>
                                             </Dialog>
+                                            <Button variant="ghost" size="icon" onClick={() => handleDownload(tm)}>
+                                                <Download className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(tm)}>
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
                                                     <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
@@ -293,6 +339,31 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
                  </div>
             </CardContent>
         </Card>
+
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="max-w-3xl">
+                <DialogHeader>
+                    <DialogTitle>Edit: {editingMCQ?.fileName}</DialogTitle>
+                    <DialogDescription>
+                        Make changes to the text content below. This will directly update the document in the database.
+                    </DialogDescription>
+                </DialogHeader>
+                <Textarea
+                    value={editedContent}
+                    onChange={(e) => setEditedContent(e.target.value)}
+                    className="h-96 text-sm"
+                />
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button onClick={handleSaveEdit} disabled={isSaving}>
+                        {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save Changes
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }

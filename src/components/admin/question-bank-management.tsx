@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Eye, Trash2, Edit } from 'lucide-react';
+import { Loader2, Upload, Eye, Trash2, Edit, Download } from 'lucide-react';
 import { deleteQuestionBankDocument, updateQuestionBankDocument } from '@/lib/firestore';
 import type { BankedQuestion } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -125,6 +125,18 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
         setIsSaving(false);
     }
   };
+  
+  const handleDownload = (question: BankedQuestion) => {
+    const blob = new Blob([question.content], { type: 'text/plain;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    const safeFileName = question.fileName.replace('.docx', '.txt');
+    link.setAttribute("download", safeFileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 
   return (
     <div className="space-y-6">
@@ -222,6 +234,9 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                                                     </ScrollArea>
                                                 </DialogContent>
                                             </Dialog>
+                                            <Button variant="ghost" size="icon" onClick={() => handleDownload(bq)}>
+                                                <Download className="h-4 w-4" />
+                                            </Button>
                                             <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(bq)}>
                                                 <Edit className="h-4 w-4" />
                                             </Button>
