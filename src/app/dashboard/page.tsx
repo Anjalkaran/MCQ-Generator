@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { getLiveTests } from '@/lib/firestore';
 import type { LiveTest } from '@/lib/types';
 import { normalizeDate } from '@/lib/utils';
-import { format, formatDistanceToNowStrict } from 'date-fns';
+import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 
 function UpcomingLiveTest() {
@@ -45,8 +45,21 @@ function UpcomingLiveTest() {
 
         const interval = setInterval(() => {
             const now = new Date();
-            if (now < startTime) {
-                setTimeRemaining(formatDistanceToNowStrict(startTime, { addSuffix: true }));
+            const distance = startTime.getTime() - now.getTime();
+
+            if (distance > 0) {
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                let countdownString = '';
+                if (days > 0) {
+                    countdownString += `${days}d `;
+                }
+                countdownString += `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                
+                setTimeRemaining(countdownString);
             } else {
                 setTimeRemaining('Live Now!');
                 clearInterval(interval);
@@ -74,7 +87,7 @@ function UpcomingLiveTest() {
         <div className="pt-4 text-center">
             <p className="font-bold text-base text-primary">{upcomingTest.title}</p>
             {startTime && <p className="text-sm text-muted-foreground">{format(startTime, 'P p')}</p>}
-            <p className="text-lg font-semibold mt-2">{timeRemaining}</p>
+            <p className="text-lg font-semibold mt-2 tabular-nums tracking-wider">{timeRemaining}</p>
         </div>
     )
 }
