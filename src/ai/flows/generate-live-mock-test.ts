@@ -97,14 +97,14 @@ const generateLiveMockTestFlow = ai.defineFlow(
             model: 'googleai/gemini-1.5-flash',
             input: {
                 schema: z.object({
-                    mcqsAsJsonString: z.string(),
+                    questionsToTranslate: z.array(MCQSchema),
                     language: z.string(),
                 })
             },
-            output: { schema: z.object({ questions: z.array(MCQSchema) }) },
+            output: { schema: GenerateLiveMockTestOutputSchema },
             prompt: `You are an expert translator specializing in technical content for Indian Postal Department exams.
 
-Your task is to translate the provided array of multiple-choice questions (MCQs) into the specified target language.
+Your task is to translate the provided array of multiple-choice questions (MCQs) into the specified target language: {{language}}.
 
 **CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
 **CRITICAL RULE FOR TRANSLATION:** When translating to any language other than English (e.g., Tamil, Hindi, Telugu, Kannada), you MUST keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", "Head Office", "Sub Office", etc.
@@ -113,22 +113,26 @@ Your task is to translate the provided array of multiple-choice questions (MCQs)
 - Retain the original 'topic' field for each question.
 - If a 'solution' is provided, translate it accurately.
 
-Translate the following JSON object:
-\`\`\`json
-{{{mcqsAsJsonString}}}
-\`\`\`
+Translate the following questions:
+{{#each questionsToTranslate}}
+- Question: {{{question}}}
+  Options: {{{options}}}
+  Correct Answer: {{{correctAnswer}}}
+  Solution: {{{solution}}}
+  Topic: {{{topic}}}
+{{/each}}
 `,
         });
 
         const { output } = await translationPrompt({
-            mcqsAsJsonString: JSON.stringify({ questions: finalMCQs }),
+            questionsToTranslate: finalMCQs,
             language: input.language
         });
         
-        if (!output || !output.questions || output.questions.length === 0) {
+        if (!output || !output.mcqs || output.mcqs.length === 0) {
             throw new Error(`Failed to translate the live test questions into ${input.language}.`);
         }
-        finalMCQs = output.questions;
+        finalMCQs = output.mcqs;
     }
 
 
