@@ -59,9 +59,11 @@ Your task is to extract as many high-quality, unique questions as you can find f
 4.  For EACH extracted question, you MUST add a 'topic' field with the value "{{topicName}}".
 5.  If a solution is not found for a question, the 'solution' field MUST be an empty string ("").
 
-**CRITICAL RULE:** The 'correctAnswer' field in your output MUST be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
-**TRIMMING RULE:** If an option in the text starts with a letter followed by a period or parenthesis (e.g., "a.", "B)", "c."), you MUST trim this prefix from the option text before including it in the output. For example, "a. The quick brown fox" should become "The quick brown fox".
-**CRITICAL CONTENT RULE:** You MUST extract the actual text content for all fields. NEVER output the literal word "string" as a value for any field. Your goal is to extract up to {{numberOfQuestions}} questions if they are available in the text.
+**CRITICAL INSTRUCTIONS:**
+*   Do NOT verify, correct, or change any of the content. Extract it exactly as it appears in the text.
+*   The 'correctAnswer' field in your output MUST be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
+*   **TRIMMING RULE:** If an option in the text starts with a letter followed by a period or parenthesis (e.g., "a.", "B)", "c."), you MUST trim this prefix from the option text before including it in the output. For example, "a. The quick brown fox" should become "The quick brown fox".
+*   You MUST extract the actual text content for all fields. NEVER output the literal word "string" as a value for any field. Your goal is to extract up to {{numberOfQuestions}} questions if they are available in the text.
 
 --- TEXT CONTENT ---
 {{{textContent}}}
