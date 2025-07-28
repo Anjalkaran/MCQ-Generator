@@ -140,9 +140,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
         setLiveTestBank(prev => [newDocument, ...prev]);
         toast({ title: 'Success', description: 'File uploaded successfully.' });
         uploadForm.reset();
-        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-        if(fileInput) fileInput.value = '';
-
+        
     } catch (error: any) {
         toast({ title: 'Upload Failed', description: error.message, variant: 'destructive' });
     } finally {
@@ -226,7 +224,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                             <FormField
                                 control={uploadForm.control}
                                 name="file"
-                                render={({ field: { onChange, ...rest } }) => (
+                                render={({ field: { onChange, value, ...rest } }) => (
                                     <FormItem>
                                     <FormLabel>Question Paper File</FormLabel>
                                     <FormControl>
