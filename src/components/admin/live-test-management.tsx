@@ -437,7 +437,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                         )}
                                         >
                                         {field.value ? (
-                                            format(field.value, "PPP HH:mm")
+                                            format(field.value, "dd/MM/yyyy HH:mm")
                                         ) : (
                                             <span>Pick a date and time</span>
                                         )}
@@ -487,7 +487,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                         )}
                                         >
                                         {field.value ? (
-                                            format(field.value, "PPP HH:mm")
+                                            format(field.value, "dd/MM/yyyy HH:mm")
                                         ) : (
                                             <span>Pick a date and time</span>
                                         )}
@@ -557,8 +557,8 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                 liveTests.map((test) => (
                                     <TableRow key={test.id}>
                                         <TableCell className="font-medium">{test.title}<br/><span className="text-xs text-muted-foreground">{getQuestionPaperName(test.questionPaperId)}</span></TableCell>
-                                        <TableCell>{format(normalizeDate(test.startTime)!, "dd/MM/yy hh:mm a")}</TableCell>
-                                        <TableCell>{format(normalizeDate(test.endTime)!, "dd/MM/yy hh:mm a")}</TableCell>
+                                        <TableCell>{format(normalizeDate(test.startTime)!, "dd/MM/yyyy hh:mm a")}</TableCell>
+                                        <TableCell>{format(normalizeDate(test.endTime)!, "dd/MM/yyyy hh:mm a")}</TableCell>
                                         <TableCell>{getStatus(test)}</TableCell>
                                         <TableCell className="text-right">
                                             <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(test)}>

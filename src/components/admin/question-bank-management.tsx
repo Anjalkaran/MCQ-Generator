@@ -218,7 +218,7 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                                     <TableRow key={bq.id}>
                                         <TableCell className="font-medium">{bq.fileName}</TableCell>
                                         <TableCell>{bq.examCategory}</TableCell>
-                                        <TableCell>{format(new Date(bq.uploadedAt), "PPP p")}</TableCell>
+                                        <TableCell>{format(new Date(bq.uploadedAt), "dd/MM/yyyy p")}</TableCell>
                                         <TableCell className="text-right space-x-2">
                                             <Dialog>
                                                 <DialogTrigger asChild>

@@ -48,7 +48,7 @@ export function HistoryClient({ initialHistory }: HistoryClientProps) {
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.topicTitle}</TableCell>
                     <TableCell>{`${item.score} / ${item.totalQuestions}`}</TableCell>
-                    <TableCell>{format(item.takenAt, 'PPP p')}</TableCell>
+                    <TableCell>{format(item.takenAt, 'dd/MM/yyyy p')}</TableCell>
                     <TableCell className="text-right">
                       <Dialog>
                         <DialogTrigger asChild>
@@ -61,7 +61,7 @@ export function HistoryClient({ initialHistory }: HistoryClientProps) {
                           <DialogHeader>
                             <DialogTitle>Questions for: {item.topicTitle}</DialogTitle>
                             <DialogDescription>
-                              Exam taken on {format(item.takenAt, 'PPP p')}
+                              Exam taken on {format(item.takenAt, 'dd/MM/yyyy p')}
                             </DialogDescription>
                           </DialogHeader>
                           <ScrollArea className="h-72 w-full pr-4">

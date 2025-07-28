@@ -141,7 +141,7 @@ function LiveTestLeaderboard({ pastLiveTests }: { pastLiveTests: LiveTest[] }) {
 
     const getFormattedDate = (date: any) => {
         const normalized = normalizeDate(date);
-        return normalized ? format(normalized, 'PPP') : 'Invalid Date';
+        return normalized ? format(normalized, 'dd/MM/yyyy') : 'Invalid Date';
     };
 
     return (

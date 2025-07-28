@@ -16,6 +16,7 @@ import { normalizeDate } from '@/lib/utils';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { Badge } from '@/components/ui/badge';
 import { getExamHistoryForUser } from '@/lib/firestore';
+import { format } from 'date-fns';
 
 const blueprintMap = {
     MTS: MTS_BLUEPRINT,
@@ -90,7 +91,7 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
                 topic: {
                     id: quizId,
                     title: `${test.title} (Practice)`,
-                    description: `Practice session for the live test conducted on ${startTime?.toLocaleDateString()}.`,
+                    description: `Practice session for the live test conducted on ${startTime ? format(startTime, 'dd/MM/yyyy') : 'a past date'}.`,
                     icon: 'scroll-text',
                     categoryId: 'live-mock-test',
                 },
@@ -111,7 +112,7 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
             <CardHeader>
                 <CardTitle className="text-lg">{test.title}</CardTitle>
                 <CardDescription>
-                    Conducted on: {startTime?.toLocaleDateString()}
+                    Conducted on: {startTime ? format(startTime, 'dd/MM/yyyy') : 'N/A'}
                 </CardDescription>
                  {hasAttempted && (
                     <Badge variant="secondary" className="w-fit mt-2">

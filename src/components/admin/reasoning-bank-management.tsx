@@ -337,7 +337,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                                                 {q.examCategories.map(cat => <Badge key={cat} variant="secondary">{cat}</Badge>)}
                                             </div>
                                         </TableCell>
-                                        <TableCell>{format(new Date(q.uploadedAt), "PPP")}</TableCell>
+                                        <TableCell>{format(new Date(q.uploadedAt), "dd/MM/yyyy")}</TableCell>
                                         <TableCell className="text-right space-x-2">
                                             <Dialog>
                                                 <DialogTrigger asChild>

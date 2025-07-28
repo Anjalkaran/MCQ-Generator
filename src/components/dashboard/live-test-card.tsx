@@ -16,7 +16,7 @@ import { markLiveTestAsTaken } from '@/lib/firestore';
 import { normalizeDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { ADMIN_EMAILS, RAZORPAY_KEY_ID } from '@/lib/constants';
-import { formatDistanceToNowStrict } from 'date-fns';
+import { formatDistanceToNowStrict, format } from 'date-fns';
 
 declare global {
     interface Window {
@@ -257,7 +257,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
             <CardHeader className="text-center">
                 <CardTitle className="text-xl text-primary">{test.title}</CardTitle>
                 <CardDescription>
-                    {startTime.toLocaleString()}
+                    {format(startTime, 'dd/MM/yyyy p')}
                 </CardDescription>
             </CardHeader>
             <CardContent className="text-center space-y-4">

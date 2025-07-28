@@ -287,7 +287,7 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
                                     <TableRow key={tm.id}>
                                         <TableCell className="font-medium">{getTopicTitle(tm.topicId)}</TableCell>
                                         <TableCell>{tm.fileName}</TableCell>
-                                        <TableCell>{format(new Date(tm.uploadedAt), "PPP p")}</TableCell>
+                                        <TableCell>{format(new Date(tm.uploadedAt), "dd/MM/yyyy p")}</TableCell>
                                         <TableCell className="text-right space-x-2">
                                             <Dialog>
                                                 <DialogTrigger asChild>

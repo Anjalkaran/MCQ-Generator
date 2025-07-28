@@ -86,7 +86,7 @@ function UpcomingLiveTest() {
     return (
         <div className="pt-4 text-center">
             <p className="font-bold text-base text-primary">{upcomingTest.title}</p>
-            {startTime && <p className="text-sm text-muted-foreground">{format(startTime, 'P p')}</p>}
+            {startTime && <p className="text-sm text-muted-foreground">{format(startTime, 'dd/MM/yyyy p')}</p>}
             <p className="text-lg font-semibold mt-2 tabular-nums tracking-wider">{timeRemaining}</p>
         </div>
     )

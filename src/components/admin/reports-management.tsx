@@ -24,6 +24,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { normalizeDate } from '@/lib/utils';
+
+type ExamCategory = 'all' | 'MTS' | 'POSTMAN' | 'PA';
+type ProStatus = 'all' | 'pro' | 'free';
 
 interface ReportsManagementProps {
     allUsers: UserData[];
@@ -189,15 +193,19 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
             const headers = ["Name", "Email", "City", "Exam Category", "Status", "Exams Taken", "Registered On"];
             const csvContent = [
                 headers.join(','),
-                ...filteredUsers.map(user => [
-                    `"${user.name}"`,
-                    `"${user.email}"`,
-                    `"${user.city || 'N/A'}"`,
-                    `"${user.examCategory}"`,
-                    user.isPro ? "Pro" : "Free",
-                    (user.topicExamsTaken || 0) + (user.mockTestsTaken || 0),
-                    user.createdAt ? `"${format(new Date(user.createdAt.seconds * 1000), 'yyyy-MM-dd')}"` : "N/A"
-                ].join(','))
+                ...filteredUsers.map(user => {
+                    const createdAtDate = normalizeDate(user.createdAt);
+                    const formattedDate = createdAtDate ? format(createdAtDate, 'dd/MM/yyyy') : "N/A";
+                    return [
+                        `"${user.name}"`,
+                        `"${user.email}"`,
+                        `"${user.city || 'N/A'}"`,
+                        `"${user.examCategory}"`,
+                        user.isPro ? "Pro" : "Free",
+                        (user.topicExamsTaken || 0) + (user.mockTestsTaken || 0),
+                        `"${formattedDate}"`
+                    ].join(',')
+                })
             ].join('\n');
             
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
