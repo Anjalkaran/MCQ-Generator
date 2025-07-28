@@ -69,6 +69,7 @@ const fileToDataUri = (file: File): Promise<string> => {
 export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManagementProps) {
   const [questions, setQuestions] = useState<ReasoningQuestion[]>(initialQuestions);
   const [isUploading, setIsUploading] = useState(false);
+  const [formKey, setFormKey] = useState(Date.now()); // State to force form re-render
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -123,7 +124,8 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
         setQuestions(prev => [newDocument, ...prev]);
         toast({ title: 'Success', description: 'Reasoning question uploaded successfully.' });
         
-        // Reset the form to its default values
+        // Change the key to force re-render and reset the form
+        setFormKey(Date.now());
         form.reset();
 
     } catch (error: any) {
@@ -153,7 +155,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                 <CardDescription>Create a new image-based reasoning question. Images are saved directly in the database.</CardDescription>
             </CardHeader>
             <CardContent>
-                <Form {...form}>
+                <Form {...form} key={formKey}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                         <FormField
                             control={form.control}
@@ -178,7 +180,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                                         <Input 
                                             id="questionImage"
                                             type="file" 
-                                            accept="image/*"
+                                            accept="image/png, image/jpeg, image/webp"
                                             onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
                                             {...rest}
                                         />
@@ -232,7 +234,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                                             <Input 
                                                 id="solutionImage"
                                                 type="file" 
-                                                accept="image/*"
+                                                accept="image/png, image/jpeg, image/webp"
                                                 onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
                                                 {...rest}
                                             />
