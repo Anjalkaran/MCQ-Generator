@@ -52,7 +52,7 @@ const extractAndFormatLiveTestPaperPrompt = ai.definePrompt({
     model: 'googleai/gemini-1.5-flash',
     prompt: `You are an expert Question Extractor for Indian Postal Department exam papers.
 
-Your task is to meticulously parse the entire 'QUESTION PAPER' provided below and extract every multiple-choice question into a clean JSON format.
+Your task is to meticulously parse the entire 'QUESTION PAPER' provided below and extract every multiple-choice question into a clean, valid JSON format.
 
 **Process:**
 
@@ -62,7 +62,7 @@ Your task is to meticulously parse the entire 'QUESTION PAPER' provided below an
     *   The correct answer as indicated in the text.
     *   The solution, if one is provided.
     *   The topic of the question (e.g., "Profit and loss", "Methods of address").
-2.  **Format Correctly:** Ensure the extracted data fits the required JSON schema precisely.
+2.  **Format Correctly:** Ensure the extracted data fits the required JSON schema precisely as shown in the example.
 3.  **Verify Output:** Before finalizing, double-check that your entire output is a single, valid JSON object, starting with { and ending with }.
 
 **CRITICAL INSTRUCTIONS:**
@@ -71,7 +71,28 @@ Your task is to meticulously parse the entire 'QUESTION PAPER' provided below an
 *   The 'correctAnswer' field MUST be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
 *   The 'options' array for each question MUST contain exactly four strings.
 *   Do NOT verify, correct, or change any of the content. Extract it exactly as it appears in the text.
-*   **TRIMMING RULE:** If an option in the text starts with a letter followed by a period or parenthesis (e.g., "a.", "B)", "c."), you MUST trim this prefix from the option text before including it in the output. For example, "a. The quick brown fox" should become "The quick brown fox".
+*   **TRIMMING RULE:** If an option in the text starts with a letter followed by a period or parenthesis (e.g., "a.", "B)", "c."), you MUST trim this prefix from the option text. For example, "a. The quick brown fox" should become "The quick brown fox".
+
+--- JSON OUTPUT EXAMPLE ---
+{
+  "questions": [
+    {
+      "question": "What is the capital of France?",
+      "options": ["Berlin", "Madrid", "Paris", "Rome"],
+      "correctAnswer": "Paris",
+      "topic": "Geography",
+      "solution": "The capital of France is Paris, located on the river Seine."
+    },
+    {
+      "question": "What is 2 + 2?",
+      "options": ["3", "4", "5", "6"],
+      "correctAnswer": "4",
+      "topic": "Mathematics",
+      "solution": "Adding 2 and 2 results in 4."
+    }
+  ]
+}
+--- END JSON OUTPUT EXAMPLE ---
 
 --- QUESTION PAPER ---
 {{{questionPaperContent}}}
