@@ -178,14 +178,6 @@ function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/reasoning-test')} tooltip="Reasoning Test">
-                <Link href="/dashboard/reasoning-test" onClick={onLinkClick}>
-                  <BrainCircuit />
-                  <span>Reasoning Test</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/q-and-a')} tooltip="Ask Your Doubt">
                 <Link href="/dashboard/q-and-a" onClick={onLinkClick}>
                   <HelpCircle />
