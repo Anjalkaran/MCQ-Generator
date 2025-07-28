@@ -102,6 +102,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
             const result = await generateLiveMockTest({ 
                 liveTestId: test.questionPaperId,
                 examCategory: test.examCategory,
+                language: test.language || 'English',
             });
 
             if (!result || !result.mcqs) {

@@ -20,6 +20,7 @@ import { getLiveTestQuestionPaper, getReasoningQuestionsForLiveTest } from '@/li
 const GenerateLiveMockTestInputSchema = z.object({
   liveTestId: z.string().describe('The ID of the live test paper document in Firestore.'),
   examCategory: z.enum(["MTS", "POSTMAN", "PA"]).describe('The exam category for which the test is being generated.'),
+  language: z.string().optional().default('English').describe('The language for the generated quiz (e.g., "English", "Tamil", "Hindi").'),
 });
 export type GenerateLiveMockTestInput = z.infer<typeof GenerateLiveMockTestInputSchema>;
 
@@ -88,6 +89,43 @@ const generateLiveMockTestFlow = ai.defineFlow(
         
         finalMCQs = [...finalMCQs, ...formattedReasoningMCQs];
     }
+
+    // If language is not English, translate the questions.
+    if (input.language && input.language !== 'English') {
+        const translationPrompt = ai.definePrompt({
+            name: 'translateLiveTestPrompt',
+            input: {
+                schema: z.object({
+                    mcqs: z.array(MCQSchema),
+                    language: z.string(),
+                })
+            },
+            output: { schema: GenerateLiveMockTestOutputSchema },
+            prompt: `You are an expert translator specializing in technical content for Indian Postal Department exams.
+
+Your task is to translate the provided array of multiple-choice questions (MCQs) into the specified target language.
+
+**CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
+**CRITICAL RULE FOR TRANSLATION:** When translating to any language other than English (e.g., Tamil, Hindi, Telugu, Kannada), you MUST keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", "Head Office", "Sub Office", etc.
+
+- The 'correctAnswer' field in your output MUST be an EXACT, case-sensitive match to one of the four translated strings in the 'options' array.
+- Retain the original 'topic' field for each question.
+- If a 'solution' is provided, translate it accurately.
+
+Translate the following JSON object:
+\`\`\`json
+{{{JSONstringify mcqs}}}
+\`\`\`
+`,
+        });
+
+        const { output } = await translationPrompt({ mcqs: finalMCQs, language: input.language });
+        if (!output || !output.mcqs || output.mcqs.length === 0) {
+            throw new Error(`Failed to translate the live test questions into ${input.language}.`);
+        }
+        finalMCQs = output.mcqs;
+    }
+
 
     return { mcqs: finalMCQs };
   }

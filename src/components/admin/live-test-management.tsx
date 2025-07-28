@@ -26,6 +26,14 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
+const languages = [
+    { value: 'English', label: 'English' },
+    { value: 'Tamil', label: 'தமிழ்' },
+    { value: 'Hindi', label: 'हिन्दी' },
+    { value: 'Telugu', label: 'తెలుగు' },
+    { value: 'Kannada', label: 'ಕನ್ನಡ' },
+] as const;
+
 
 const uploadSchema = z.object({
   examCategory: z.enum(examCategories),
@@ -42,7 +50,8 @@ const scheduleSchema = z.object({
   examCategory: z.enum(examCategories),
   price: z.coerce.number().min(0, "Price must be a positive number.").optional().default(0),
   startTime: z.date({ required_error: "A start date and time is required." }),
-  endTime: z.date({ required_error: "An end date and time is required." })
+  endTime: z.date({ required_error: "An end date and time is required." }),
+  language: z.string().min(1, 'Please select a language.'),
 }).refine(data => data.endTime > data.startTime, {
     message: "End time must be after start time.",
     path: ["endTime"],
@@ -79,6 +88,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
             price: editingTest.price,
             startTime: normalizeDate(editingTest.startTime)!,
             endTime: normalizeDate(editingTest.endTime)!,
+            language: editingTest.language || 'English',
         });
     } else {
         scheduleForm.reset({
@@ -88,6 +98,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
           price: 0,
           startTime: undefined,
           endTime: undefined,
+          language: 'English',
         });
     }
   }, [editingTest, scheduleForm]);
@@ -391,6 +402,24 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                     </FormItem>
                                 )}
                                 />
+                             <FormField
+                                control={scheduleForm.control}
+                                name="language"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Language</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                        <SelectTrigger><SelectValue placeholder="Select Language" /></SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                        {languages.map(lang => <SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                             <FormField
                             control={scheduleForm.control}
                             name="startTime"

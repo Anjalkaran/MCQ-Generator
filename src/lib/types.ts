@@ -135,6 +135,7 @@ export interface LiveTest {
     endTime: Timestamp;
     questionPaperId: string; // Document ID from the 'liveTestBank' collection
     price: number; // Price for the test for non-pro users
+    language?: string;
 }
 
 export interface ReasoningQuestion {
