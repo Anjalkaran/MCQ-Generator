@@ -94,6 +94,7 @@ const generateLiveMockTestFlow = ai.defineFlow(
     if (input.language && input.language !== 'English') {
         const translationPrompt = ai.definePrompt({
             name: 'translateLiveTestPrompt',
+            model: 'googleai/gemini-1.5-flash',
             input: {
                 schema: z.object({
                     mcqsAsJsonString: z.string(),
@@ -120,7 +121,7 @@ Translate the following JSON object:
         });
 
         const { output } = await translationPrompt({
-            mcqsAsJsonString: JSON.stringify(finalMCQs),
+            mcqsAsJsonString: JSON.stringify({ questions: finalMCQs }),
             language: input.language
         });
         
