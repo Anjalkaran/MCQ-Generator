@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { useDashboard } from '@/app/dashboard/layout';
-import { Loader2, PlayCircle, Lock, CheckCircle, TimerOff, Trophy, Gem, Ban } from 'lucide-react';
+import { Loader2, PlayCircle, Lock, CheckCircle, TimerOff, Trophy, Gem, Ban, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -38,6 +38,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const [isPaying, setIsPaying] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState('');
     const [testState, setTestState] = useState<'upcoming' | 'live' | 'ended' | 'completed' | 'loading' | 'entryClosed'>('loading');
+    const [participantCount, setParticipantCount] = useState<number | null>(null);
 
     const startTime = useMemo(() => normalizeDate(test.startTime), [test.startTime]);
     const endTime = useMemo(() => normalizeDate(test.endTime), [test.endTime]);
@@ -52,6 +53,23 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const proValidUntilDate = normalizeDate(userData?.proValidUntil);
     const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
     const hasTakenTest = userData?.liveTestsTaken?.includes(test.id);
+    
+    useEffect(() => {
+        const fetchParticipantCount = async () => {
+            try {
+                const response = await fetch(`/api/live-test-participants/${test.id}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setParticipantCount(data.participantCount);
+                }
+            } catch (error) {
+                console.error("Failed to fetch participant count:", error);
+            }
+        };
+
+        fetchParticipantCount();
+    }, [test.id]);
+
 
     useEffect(() => {
         if (!startTime || !endTime || !entryCutoffTime) return;
@@ -252,6 +270,12 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
 
     return (
         <Card className="border-primary border-2 shadow-lg relative overflow-hidden">
+             {participantCount !== null && (
+                <Badge variant="secondary" className="absolute top-4 right-4 flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5" />
+                    {participantCount}
+                </Badge>
+            )}
             <CardHeader className="text-center">
                 <CardTitle className="text-xl text-primary">{test.title}</CardTitle>
                 <CardDescription>
