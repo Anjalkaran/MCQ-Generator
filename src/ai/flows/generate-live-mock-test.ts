@@ -36,71 +36,6 @@ const GenerateLiveMockTestOutputSchema = z.object({
 });
 export type GenerateLiveMockTestOutput = z.infer<typeof GenerateLiveMockTestOutputSchema>;
 
-const extractAndFormatLiveTestPaperPrompt = ai.definePrompt({
-    name: 'extractAndFormatLiveTestPaperPrompt',
-    input: {
-        schema: z.object({
-            questionPaperContent: z.string(),
-            questionCount: z.number(),
-        })
-    },
-    output: {
-        schema: z.object({
-            questions: z.array(MCQSchema)
-        })
-    },
-    model: 'googleai/gemini-1.5-flash',
-    prompt: `You are an expert Question Extractor for Indian Postal Department exam papers.
-
-Your task is to meticulously parse the entire 'QUESTION PAPER' provided below and extract every multiple-choice question into a clean, valid JSON format.
-
-**Process:**
-
-1.  **Read and Parse:** Go through the 'QUESTION PAPER' text and identify all multiple-choice questions. For each question, you MUST extract:
-    *   The full text of the question.
-    *   The full text for all four of its options.
-    *   The correct answer as indicated in the text.
-    *   The solution, if one is provided.
-    *   The topic of the question (e.g., "Profit and loss", "Methods of address").
-2.  **Format Correctly:** Ensure the extracted data fits the required JSON schema precisely as shown in the example.
-3.  **Verify Output:** Before finalizing, double-check that your entire output is a single, valid JSON object, starting with { and ending with }.
-
-**CRITICAL INSTRUCTIONS:**
-*   Your final output MUST be a single, valid JSON object containing a 'questions' array with EXACTLY {{questionCount}} questions.
-*   Your response must ONLY contain the JSON object. Do not include any other text, explanations, or formatting like markdown backticks.
-*   The 'correctAnswer' field MUST be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
-*   The 'options' array for each question MUST contain exactly four strings.
-*   Do NOT verify, correct, or change any of the content. Extract it exactly as it appears in the text.
-*   **TRIMMING RULE:** If an option in the text starts with a letter followed by a period or parenthesis (e.g., "a.", "B)", "c."), you MUST trim this prefix from the option text. For example, "a. The quick brown fox" should become "The quick brown fox".
-
---- JSON OUTPUT EXAMPLE ---
-{
-  "questions": [
-    {
-      "question": "What is the capital of France?",
-      "options": ["Berlin", "Madrid", "Paris", "Rome"],
-      "correctAnswer": "Paris",
-      "topic": "Geography",
-      "solution": "The capital of France is Paris, located on the river Seine."
-    },
-    {
-      "question": "What is 2 + 2?",
-      "options": ["3", "4", "5", "6"],
-      "correctAnswer": "4",
-      "topic": "Mathematics",
-      "solution": "Adding 2 and 2 results in 4."
-    }
-  ]
-}
---- END JSON OUTPUT EXAMPLE ---
-
---- QUESTION PAPER ---
-{{{questionPaperContent}}}
---- END QUESTION PAPER ---
-`,
-});
-
-
 export async function generateLiveMockTest(input: GenerateLiveMockTestInput): Promise<GenerateLiveMockTestOutput> {
   return generateLiveMockTestFlow(input);
 }
@@ -119,18 +54,19 @@ const generateLiveMockTestFlow = ai.defineFlow(
         throw new Error(`The live test question paper (${input.liveTestId}) could not be found. Please contact an administrator.`);
     }
     
-    const questionCount = input.examCategory === 'PA' ? 80 : 50;
-
-    const { output } = await extractAndFormatLiveTestPaperPrompt({
-        questionPaperContent: questionPaper.content,
-        questionCount: questionCount,
-    });
-    
-    if (!output || !output.questions || output.questions.length === 0) {
-        throw new Error(`The live test question paper '${questionPaper.fileName}' could not be processed. It might be empty, in an incorrect format, or the AI model is currently unavailable. Please try again later or contact an administrator.`);
+    let parsedMCQs: MCQ[];
+    try {
+        parsedMCQs = JSON.parse(questionPaper.content);
+    } catch (error) {
+        console.error("Failed to parse question paper content as JSON:", error);
+        throw new Error(`The question paper '${questionPaper.fileName}' is not in a valid JSON format. Please upload it again.`);
     }
 
-    let finalMCQs = output.questions;
+    if (!Array.isArray(parsedMCQs) || parsedMCQs.length === 0) {
+        throw new Error(`The live test question paper '${questionPaper.fileName}' is empty or incorrectly formatted. Please upload a valid JSON file with questions.`);
+    }
+
+    let finalMCQs = parsedMCQs;
     
     // For PA exam, fetch and append 20 reasoning questions
     if (input.examCategory === 'PA') {
@@ -152,7 +88,6 @@ const generateLiveMockTestFlow = ai.defineFlow(
         
         finalMCQs = [...finalMCQs, ...formattedReasoningMCQs];
     }
-
 
     return { mcqs: finalMCQs };
   }

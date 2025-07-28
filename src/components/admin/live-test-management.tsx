@@ -140,6 +140,8 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
         setLiveTestBank(prev => [newDocument, ...prev]);
         toast({ title: 'Success', description: 'File uploaded successfully.' });
         uploadForm.reset();
+        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
         
     } catch (error: any) {
         toast({ title: 'Upload Failed', description: error.message, variant: 'destructive' });
@@ -174,11 +176,11 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
   }
 
   const handleDownload = (paper: BankedQuestion) => {
-    const blob = new Blob([paper.content], { type: 'text/plain;charset=utf-8;' });
+    const blob = new Blob([paper.content], { type: 'application/json;charset=utf-8;' });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    const safeFileName = paper.fileName.replace('.docx', '.txt');
+    const safeFileName = paper.fileName.replace('.docx', '.json');
     link.setAttribute("download", safeFileName);
     document.body.appendChild(link);
     link.click();
@@ -210,7 +212,10 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
             <Card>
                 <CardHeader>
                     <CardTitle>Upload Live Test Papers</CardTitle>
-                    <CardDescription>Upload DOCX question papers for live tests.</CardDescription>
+                    <CardDescription>
+                        Upload JSON files containing questions. Re-uploading with the same file name will overwrite the existing paper.
+                        <a href="#" onClick={(e) => { e.preventDefault(); alert("Format: An array of objects, e.g., [{\"question\":\"...\", \"options\":[\"A\",\"B\",\"C\",\"D\"], \"correctAnswer\":\"A\", \"topic\":\"...\", \"solution\":\"...\"}]"); }} className="text-primary underline ml-1">View format</a>
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...uploadForm}>
@@ -238,11 +243,11 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                 name="file"
                                 render={({ field: { onChange, value, ...rest } }) => (
                                     <FormItem>
-                                    <FormLabel>Question Paper File</FormLabel>
+                                    <FormLabel>Question Paper File (.json)</FormLabel>
                                     <FormControl>
                                         <Input 
                                         type="file" 
-                                        accept=".docx"
+                                        accept=".json"
                                         onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
                                         {...rest}
                                         />
@@ -276,7 +281,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                         <TableRow key={p.id}>
                                             <TableCell>{p.fileName}</TableCell>
                                             <TableCell className="text-right">
-                                                 <Dialog><DialogTrigger asChild><Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button></DialogTrigger><DialogContent className="max-w-3xl"><DialogHeader><DialogTitle>{p.fileName}</DialogTitle></DialogHeader><ScrollArea className="h-96 w-full rounded-md border p-4"><pre className="text-sm whitespace-pre-wrap">{p.content}</pre></ScrollArea></DialogContent></Dialog>
+                                                 <Dialog><DialogTrigger asChild><Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button></DialogTrigger><DialogContent className="max-w-3xl"><DialogHeader><DialogTitle>{p.fileName}</DialogTitle></DialogHeader><ScrollArea className="h-96 w-full rounded-md border p-4"><pre className="text-sm whitespace-pre-wrap">{JSON.stringify(JSON.parse(p.content), null, 2)}</pre></ScrollArea></DialogContent></Dialog>
                                                  <Button variant="ghost" size="icon" onClick={() => handleDownload(p)}><Download className="h-4 w-4" /></Button>
                                                  <AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will delete "{p.fileName}". This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePaper(p.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
                                             </TableCell>

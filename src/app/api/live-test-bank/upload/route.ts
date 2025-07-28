@@ -1,10 +1,22 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import mammoth from 'mammoth';
 import { addLiveTestBankDocument } from '@/lib/firestore';
-import type { BankedQuestion } from '@/lib/types';
+import type { BankedQuestion, MCQ } from '@/lib/types';
+import { z } from 'zod';
 
 export const runtime = 'nodejs';
+
+// Define a schema for a single MCQ object for validation
+const MCQSchema = z.object({
+  question: z.string(),
+  options: z.array(z.string()).length(4),
+  correctAnswer: z.string(),
+  topic: z.string(),
+  solution: z.string().optional(),
+});
+
+// Define the schema for the entire JSON file (an array of MCQs)
+const JsonUploadSchema = z.array(MCQSchema);
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,24 +31,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Exam Category is missing.' }, { status: 400 });
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    let textContent: string;
-
-    if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-        const result = await mammoth.extractRawText({ buffer });
-        textContent = result.value;
-    } else {
-        return NextResponse.json({ error: 'Unsupported file type. Please upload a DOCX file.' }, { status: 415 });
+    if (file.type !== 'application/json') {
+      return NextResponse.json({ error: 'Unsupported file type. Please upload a JSON file.' }, { status: 415 });
     }
 
-    if (!textContent.trim()) {
-        return NextResponse.json({ error: 'Could not extract any text from the file.' }, { status: 400 });
+    const textContent = await file.text();
+    const jsonData = JSON.parse(textContent);
+
+    // Validate the JSON structure against our schema
+    const validationResult = JsonUploadSchema.safeParse(jsonData);
+    if (!validationResult.success) {
+        console.error("JSON validation error:", validationResult.error.errors);
+        return NextResponse.json({ error: 'Invalid JSON format. Please check the file structure.', details: validationResult.error.flatten() }, { status: 400 });
+    }
+
+    if (validationResult.data.some(q => !q.options.includes(q.correctAnswer))) {
+      return NextResponse.json({ error: "Data integrity issue: One or more questions have a `correctAnswer` that is not present in its `options` array." }, { status: 400 });
     }
     
+    // Store the validated JSON as a string in Firestore
     const newDocData: Omit<BankedQuestion, 'id'> = {
         examCategory: examCategory as any,
         fileName: file.name,
-        content: textContent,
+        content: JSON.stringify(validationResult.data), // Store as a string
         uploadedAt: new Date(),
     }
     
@@ -50,6 +67,9 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Error processing live test file:', error);
+    if (error instanceof SyntaxError) {
+        return NextResponse.json({ error: 'Invalid JSON file. Please check for syntax errors.' }, { status: 400 });
+    }
     return NextResponse.json({ error: 'Error processing file: ' + error.message }, { status: 500 });
   }
 }
