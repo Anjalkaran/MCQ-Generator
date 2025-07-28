@@ -10,6 +10,7 @@ import { Loader2, User, Gem } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { normalizeDate } from '@/lib/utils';
 import { ADMIN_EMAILS } from '@/lib/constants';
+import { format } from 'date-fns';
 
 export default function ProfilePage() {
     const { user, userData, isLoading } = useDashboard();
@@ -82,7 +83,7 @@ export default function ProfilePage() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <p>Your subscription is valid until: <span className="font-semibold">{proValidUntilDate?.toLocaleDateString()}</span></p>
+                <p>Your subscription is valid until: <span className="font-semibold">{proValidUntilDate ? format(proValidUntilDate, 'dd/MM/yyyy') : 'N/A'}</span></p>
             </CardContent>
         </Card>
       )}
