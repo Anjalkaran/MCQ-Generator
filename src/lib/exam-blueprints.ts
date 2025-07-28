@@ -257,7 +257,7 @@ export const PA_BLUEPRINT = {
         },
         {
           sectionName: "Basic Arithmetics",
-          questions: 20,
+          questions: 30,
           topics: [
             "BODMAS",
             "Percentage",
@@ -271,7 +271,7 @@ export const PA_BLUEPRINT = {
         },
         {
           sectionName: "Reasoning and Analytical Ability",
-          questions: 20,
+          questions: 10,
           topics: ["Reasoning and Analytical Ability (Non Verbal / Pictorial)"],
         },
       ],
