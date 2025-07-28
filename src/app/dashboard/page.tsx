@@ -11,6 +11,7 @@ import { getLiveTests } from '@/lib/firestore';
 import type { LiveTest } from '@/lib/types';
 import { normalizeDate } from '@/lib/utils';
 import { format, formatDistanceToNowStrict } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function UpcomingLiveTest() {
     const [upcomingTest, setUpcomingTest] = useState<LiveTest | null>(null);
