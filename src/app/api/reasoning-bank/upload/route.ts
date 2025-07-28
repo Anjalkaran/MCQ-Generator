@@ -4,15 +4,9 @@ import { addReasoningQuestion } from '@/lib/firestore';
 import type { ReasoningQuestion } from '@/lib/types';
 
 export const runtime = 'nodejs';
+// Increase the max duration for this function to handle larger uploads.
+export const maxDuration = 60; 
 
-// Increase the default body size limit for Vercel
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-  },
-};
 
 export async function POST(req: NextRequest) {
   try {
