@@ -15,8 +15,10 @@ const MCQSchema = z.object({
   solution: z.string().optional(),
 });
 
-// Define the schema for the entire JSON file (an array of MCQs)
-const JsonUploadSchema = z.array(MCQSchema);
+// Update the schema to expect an object with a 'questions' array
+const JsonUploadSchema = z.object({
+  questions: z.array(MCQSchema),
+});
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,14 +40,14 @@ export async function POST(req: NextRequest) {
     const textContent = await file.text();
     const jsonData = JSON.parse(textContent);
 
-    // Validate the JSON structure against our schema
+    // Validate the JSON structure against our updated schema
     const validationResult = JsonUploadSchema.safeParse(jsonData);
     if (!validationResult.success) {
         console.error("JSON validation error:", validationResult.error.errors);
-        return NextResponse.json({ error: 'Invalid JSON format. Please check the file structure.', details: validationResult.error.flatten() }, { status: 400 });
+        return NextResponse.json({ error: 'Invalid JSON format. The file must be an object with a "questions" array.', details: validationResult.error.flatten() }, { status: 400 });
     }
 
-    if (validationResult.data.some(q => !q.options.includes(q.correctAnswer))) {
+    if (validationResult.data.questions.some(q => !q.options.includes(q.correctAnswer))) {
       return NextResponse.json({ error: "Data integrity issue: One or more questions have a `correctAnswer` that is not present in its `options` array." }, { status: 400 });
     }
     
@@ -53,7 +55,7 @@ export async function POST(req: NextRequest) {
     const newDocData: Omit<BankedQuestion, 'id'> = {
         examCategory: examCategory as any,
         fileName: file.name,
-        content: JSON.stringify(validationResult.data), // Store as a string
+        content: JSON.stringify(validationResult.data), // Store the entire object as a string
         uploadedAt: new Date(),
     }
     

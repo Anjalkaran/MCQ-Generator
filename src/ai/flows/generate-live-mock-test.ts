@@ -27,7 +27,7 @@ const MCQSchema = z.object({
   question: z.string().describe('The multiple-choice question.'),
   options: z.array(z.string()).min(4, 'There must be four options.').max(4, 'There must be four options.').describe('Four possible answers, including the full text of each option.'),
   correctAnswer: z.string().describe('The correct answer to the question.'),
-  topic: z.string().describe('The topic the question belongs to.'),
+  topic: z.string().optional().describe('The topic the question belongs to.'),
   solution: z.string().optional().describe('A step-by-step solution, if available from the source text.'),
 });
 
@@ -54,19 +54,19 @@ const generateLiveMockTestFlow = ai.defineFlow(
         throw new Error(`The live test question paper (${input.liveTestId}) could not be found. Please contact an administrator.`);
     }
     
-    let parsedMCQs: MCQ[];
+    let parsedData: { questions: MCQ[] };
     try {
-        parsedMCQs = JSON.parse(questionPaper.content);
+        parsedData = JSON.parse(questionPaper.content);
     } catch (error) {
         console.error("Failed to parse question paper content as JSON:", error);
         throw new Error(`The question paper '${questionPaper.fileName}' is not in a valid JSON format. Please upload it again.`);
     }
 
-    if (!Array.isArray(parsedMCQs) || parsedMCQs.length === 0) {
-        throw new Error(`The live test question paper '${questionPaper.fileName}' is empty or incorrectly formatted. Please upload a valid JSON file with questions.`);
+    if (!parsedData.questions || !Array.isArray(parsedData.questions) || parsedData.questions.length === 0) {
+        throw new Error(`The live test question paper '${questionPaper.fileName}' is empty or incorrectly formatted. It must be a JSON object with a "questions" array.`);
     }
 
-    let finalMCQs = parsedMCQs;
+    let finalMCQs = parsedData.questions;
     
     // For PA exam, fetch and append 20 reasoning questions
     if (input.examCategory === 'PA') {
