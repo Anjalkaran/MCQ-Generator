@@ -108,19 +108,25 @@ const generateLiveMockTestFlow = ai.defineFlow(
             output: { schema: GenerateLiveMockTestOutputSchema },
             prompt: `You are an expert translator specializing in technical content for Indian Postal Department exams.
 
-Your task is to translate the provided array of multiple-choice questions (MCQs) found in the '--- JSON DATA TO TRANSLATE ---' section into the specified target language: {{language}}.
+Your task is to translate the provided list of multiple-choice questions (MCQs) into the specified target language: {{language}}.
 
-**CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
-**CRITICAL RULE FOR TRANSLATION:** When translating to any language other than English (e.g., Tamil, Hindi, Telugu, Kannada), you MUST keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", "Head Office", "Sub Office", etc.
+**CRITICAL RULES:**
+1.  **Language:** The ENTIRE output (question, options, correctAnswer, solution) MUST be in {{language}}.
+2.  **Untranslated Terms:** You MUST keep all technical postal terms, scheme names, and abbreviations in English. Do not translate "Post Office", "Savings Bank", "PLI", "Postman", etc.
+3.  **HTML Tags:** If you see any HTML tags like \`<img ...>\`, you MUST preserve them exactly as they are in the output. DO NOT translate the content of HTML tags.
+4.  **Correct Answer:** The 'correctAnswer' field MUST be an EXACT, case-sensitive match to one of the four translated strings in the 'options' array.
+5.  **Output Format:** Your final output must be a single, valid JSON object that strictly adheres to the provided output schema.
 
-- The 'correctAnswer' field in your output MUST be an EXACT, case-sensitive match to one of the four translated strings in the 'options' array.
-- Retain the original 'topic' field for each question.
-- If a 'solution' is provided, translate it accurately.
-- Your final output must be a single, valid JSON object that strictly adheres to the provided output schema.
+Here is the list of questions to translate:
 
---- JSON DATA TO TRANSLATE ---
-{{{JSONstringify questionsToTranslate}}}
---- END JSON DATA TO TRANSLATE ---
+{{#each questionsToTranslate}}
+- Question: {{{question}}}
+  Options: [{{#each options}}"{{this}}"{{#unless @last}}, {{/unless}}{{/each}}]
+  Correct Answer: "{{{correctAnswer}}}"
+  Solution: "{{{solution}}}"
+  Topic: "{{{topic}}}"
+---
+{{/each}}
 `,
         });
 
