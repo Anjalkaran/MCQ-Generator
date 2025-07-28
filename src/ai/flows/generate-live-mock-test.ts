@@ -101,7 +101,7 @@ const generateLiveMockTestFlow = ai.defineFlow(
                     language: z.string(),
                 })
             },
-            output: { schema: GenerateLiveMockTestOutputSchema },
+            output: { schema: z.object({ questions: z.array(MCQSchema) }) },
             prompt: `You are an expert translator specializing in technical content for Indian Postal Department exams.
 
 Your task is to translate the provided array of multiple-choice questions (MCQs) into the specified target language.
@@ -125,10 +125,10 @@ Translate the following JSON object:
             language: input.language
         });
         
-        if (!output || !output.mcqs || output.mcqs.length === 0) {
+        if (!output || !output.questions || output.questions.length === 0) {
             throw new Error(`Failed to translate the live test questions into ${input.language}.`);
         }
-        finalMCQs = output.mcqs;
+        finalMCQs = output.questions;
     }
 
 
