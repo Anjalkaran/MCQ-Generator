@@ -15,10 +15,11 @@ config();
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import type { MCQ } from '@/lib/types';
-import { getLiveTestQuestionPaper, getTopics } from '@/lib/firestore';
+import { getLiveTestQuestionPaper, getTopics, getReasoningQuestionsForLiveTest } from '@/lib/firestore';
 
 const GenerateLiveMockTestInputSchema = z.object({
   liveTestId: z.string().describe('The ID of the live test paper document in Firestore.'),
+  examCategory: z.enum(["MTS", "POSTMAN", "PA"]).describe('The exam category for which the test is being generated.'),
 });
 export type GenerateLiveMockTestInput = z.infer<typeof GenerateLiveMockTestInputSchema>;
 
@@ -41,6 +42,7 @@ const verifyAndFormatQuestionPaperPrompt = ai.definePrompt({
         schema: z.object({
             questionPaperContent: z.string(),
             studyMaterial: z.string(),
+            questionCount: z.number(),
         })
     },
     output: {
@@ -74,7 +76,7 @@ Your task is to process the entire 'QUESTION PAPER' provided below, verify each 
 --- END QUESTION PAPER ---
 
 **CRITICAL INSTRUCTIONS:**
-*   Your final output MUST be a single, valid JSON object containing a 'questions' array with EXACTLY 50 questions.
+*   Your final output MUST be a single, valid JSON object containing a 'questions' array with EXACTLY {{questionCount}} questions.
 *   The 'options' array for each question MUST contain four strings, each being the complete text of an answer option.
 *   Do NOT invent new questions. All questions must originate from the 'QUESTION PAPER'.
 `,
@@ -105,15 +107,42 @@ const generateLiveMockTestFlow = ai.defineFlow(
     // Combine all study material from all topics into one string
     const allStudyMaterial = allTopics.map(t => `Topic: ${t.title}\nMaterial: ${t.material || 'N/A'}`).join('\n\n---\n\n');
     
+    const questionCount = input.examCategory === 'PA' ? 80 : 50;
+
     const { output } = await verifyAndFormatQuestionPaperPrompt({
         questionPaperContent: questionPaper.content,
         studyMaterial: allStudyMaterial,
+        questionCount: questionCount,
     });
     
     if (!output || !output.questions || output.questions.length === 0) {
         throw new Error(`The live test question paper '${questionPaper.fileName}' could not be processed. It might be empty, in an incorrect format, or the AI model is currently unavailable. Please try again later or contact an administrator.`);
     }
 
-    return { mcqs: output.questions };
+    let finalMCQs = output.questions;
+    
+    // For PA exam, fetch and append 20 reasoning questions
+    if (input.examCategory === 'PA') {
+        const reasoningQuestions = await getReasoningQuestionsForLiveTest(input.examCategory);
+        if (reasoningQuestions.length < 20) {
+            throw new Error(`Could not find enough reasoning questions for the PA live test. Found ${reasoningQuestions.length}, but need 20. Please upload more.`);
+        }
+
+        // Shuffle and pick 20 random questions
+        const selectedReasoning = reasoningQuestions.sort(() => 0.5 - Math.random()).slice(0, 20);
+        
+        const formattedReasoningMCQs: MCQ[] = selectedReasoning.map(q => ({
+            question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
+            options: q.options,
+            correctAnswer: q.correctAnswer,
+            solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
+            topic: 'Reasoning',
+        }));
+        
+        finalMCQs = [...finalMCQs, ...formattedReasoningMCQs];
+    }
+
+
+    return { mcqs: finalMCQs };
   }
 );

@@ -78,6 +78,7 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
         try {
             const { mcqs } = await generateLiveMockTest({ 
                 liveTestId: test.questionPaperId,
+                examCategory: test.examCategory,
              });
             const blueprint = blueprintMap[test.examCategory];
             const quizId = `live-test-${test.id}`;

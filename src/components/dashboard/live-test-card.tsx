@@ -96,6 +96,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
         try {
             const result = await generateLiveMockTest({ 
                 liveTestId: test.questionPaperId,
+                examCategory: test.examCategory,
             });
 
             if (!result || !result.mcqs) {
