@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Clock, Trash2, Edit, CalendarIcon, Upload, Eye } from 'lucide-react';
+import { Loader2, Clock, Trash2, Edit, CalendarIcon, Upload, Eye, Download } from 'lucide-react';
 import { addLiveTest, updateLiveTest, deleteLiveTest, deleteLiveTestBankDocument } from '@/lib/firestore';
 import type { BankedQuestion, LiveTest } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -172,6 +172,18 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
     setEditingTest(test);
     setIsDialogOpen(true);
   }
+
+  const handleDownload = (paper: BankedQuestion) => {
+    const blob = new Blob([paper.content], { type: 'text/plain;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    const safeFileName = paper.fileName.replace('.docx', '.txt');
+    link.setAttribute("download", safeFileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
   
   const selectedCategory = scheduleForm.watch('examCategory');
   const filteredPapers = selectedCategory 
@@ -265,6 +277,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                             <TableCell>{p.fileName}</TableCell>
                                             <TableCell className="text-right">
                                                  <Dialog><DialogTrigger asChild><Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button></DialogTrigger><DialogContent className="max-w-3xl"><DialogHeader><DialogTitle>{p.fileName}</DialogTitle></DialogHeader><ScrollArea className="h-96 w-full rounded-md border p-4"><pre className="text-sm whitespace-pre-wrap">{p.content}</pre></ScrollArea></DialogContent></Dialog>
+                                                 <Button variant="ghost" size="icon" onClick={() => handleDownload(p)}><Download className="h-4 w-4" /></Button>
                                                  <AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will delete "{p.fileName}". This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePaper(p.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
                                             </TableCell>
                                         </TableRow>
