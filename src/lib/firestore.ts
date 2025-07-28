@@ -323,6 +323,13 @@ export const addQuestionBankDocument = async (data: Omit<BankedQuestion, 'id'>):
     return await addDoc(collection(db, 'questionBank'), data);
 };
 
+export const updateQuestionBankDocument = async (docId: string, content: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const docRef = doc(db, 'questionBank', docId);
+    await updateDoc(docRef, { content });
+};
+
 export const deleteQuestionBankDocument = async (docId: string): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");

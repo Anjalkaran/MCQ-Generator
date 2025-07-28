@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,13 +12,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Eye, Trash2 } from 'lucide-react';
-import { addQuestionBankDocument, deleteQuestionBankDocument } from '@/lib/firestore';
+import { Loader2, Upload, Eye, Trash2, Edit } from 'lucide-react';
+import { deleteQuestionBankDocument, updateQuestionBankDocument } from '@/lib/firestore';
 import type { BankedQuestion } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 
@@ -41,7 +42,11 @@ interface QuestionBankManagementProps {
 
 export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankManagementProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [bankedQuestions, setBankedQuestions] = useState<BankedQuestion[]>(initialBankedQuestions);
+  const [editingQuestion, setEditingQuestion] = useState<BankedQuestion | null>(null);
+  const [editedContent, setEditedContent] = useState('');
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof questionBankSchema>>({
@@ -97,6 +102,29 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
         toast({ title: "Error", description: "Could not delete the question paper.", variant: "destructive" });
     }
   }
+
+  const handleOpenEditDialog = (question: BankedQuestion) => {
+    setEditingQuestion(question);
+    setEditedContent(question.content);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingQuestion) return;
+    setIsSaving(true);
+    try {
+        await updateQuestionBankDocument(editingQuestion.id, editedContent);
+        setBankedQuestions(prev => prev.map(q => q.id === editingQuestion.id ? { ...q, content: editedContent } : q));
+        toast({ title: "Success", description: "Document updated successfully." });
+        setIsEditDialogOpen(false);
+        setEditingQuestion(null);
+    } catch (error) {
+        console.error("Failed to update document", error);
+        toast({ title: "Error", description: "Could not update the document.", variant: "destructive" });
+    } finally {
+        setIsSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -159,7 +187,7 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
         <Card>
             <CardHeader>
                 <CardTitle>Uploaded Question Papers</CardTitle>
-                <CardDescription>View and manage previously uploaded question papers.</CardDescription>
+                <CardDescription>View, edit, and manage previously uploaded question papers.</CardDescription>
             </CardHeader>
             <CardContent>
                  <div className="border rounded-md">
@@ -194,6 +222,9 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                                                     </ScrollArea>
                                                 </DialogContent>
                                             </Dialog>
+                                            <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(bq)}>
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
                                                     <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
@@ -224,6 +255,31 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                  </div>
             </CardContent>
         </Card>
+        
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="max-w-3xl">
+                <DialogHeader>
+                    <DialogTitle>Edit: {editingQuestion?.fileName}</DialogTitle>
+                    <DialogDescription>
+                        Make changes to the text content below. This will directly update the document in the database.
+                    </DialogDescription>
+                </DialogHeader>
+                <Textarea
+                    value={editedContent}
+                    onChange={(e) => setEditedContent(e.target.value)}
+                    className="h-96 text-sm"
+                />
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button onClick={handleSaveEdit} disabled={isSaving}>
+                        {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save Changes
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
