@@ -105,7 +105,7 @@ const generateLiveMockTestFlow = ai.defineFlow(
                     language: z.string(),
                 })
             },
-            output: { schema: z.object({ mcqs: z.array(MCQSchema) }) },
+            output: { schema: GenerateLiveMockTestOutputSchema },
             prompt: `You are an expert translator specializing in technical content for Indian Postal Department exams.
 
 Your task is to translate the provided array of multiple-choice questions (MCQs) into the specified target language: {{language}}.
@@ -118,13 +118,7 @@ Your task is to translate the provided array of multiple-choice questions (MCQs)
 - If a 'solution' is provided, translate it accurately.
 
 Translate the following questions:
-{{#each questionsToTranslate}}
-- Question: {{{question}}}
-  Options: {{{options}}}
-  Correct Answer: {{{correctAnswer}}}
-  Solution: {{{solution}}}
-  Topic: {{{topic}}}
-{{/each}}
+{{{JSONstringify questionsToTranslate}}}
 `,
         });
 
@@ -138,8 +132,25 @@ Translate the following questions:
                         language: input.language
                     });
                     
-                    if (output && output.mcqs && output.mcqs.length > 0) {
-                        translatedMCQs.push(...output.mcqs);
+                    if (output && output.mcqs && output.mcqs.length === chunk.length) {
+                        // Post-process the translated chunk to guarantee correctness.
+                        const correctedMcqs = output.mcqs.map((translatedMcq, index) => {
+                            const originalMcq = chunk[index];
+                            
+                            // 1. Find the index of the correct answer from the ORIGINAL options.
+                            const correctAnswerIndex = originalMcq.options.indexOf(originalMcq.correctAnswer);
+
+                            // 2. If the index is valid, set the translated correctAnswer to the option at that same index.
+                            if (correctAnswerIndex !== -1 && translatedMcq.options[correctAnswerIndex]) {
+                                translatedMcq.correctAnswer = translatedMcq.options[correctAnswerIndex];
+                            } else {
+                                // If something went wrong (e.g., index out of bounds), log it and fall back.
+                                console.warn(`Could not find correct answer index for question: ${originalMcq.question}`);
+                            }
+                            return translatedMcq;
+                        });
+
+                        translatedMCQs.push(...correctedMcqs); // Push the corrected MCQs
                         success = true;
                         break; // Success, exit retry loop
                     }
