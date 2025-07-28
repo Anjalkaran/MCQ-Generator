@@ -11,7 +11,7 @@ const MCQSchema = z.object({
   question: z.string(),
   options: z.array(z.string()).length(4),
   correctAnswer: z.string(),
-  topic: z.string(),
+  topic: z.string().optional(),
   solution: z.string().optional(),
 });
 
