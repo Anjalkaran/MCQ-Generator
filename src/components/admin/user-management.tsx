@@ -45,7 +45,12 @@ const userUpdateSchema = z.object({
 
 const userCreateSchema = z.object({
   name: z.string().min(1, { message: 'Username is required.' }),
-  email: z.string().email({ message: 'Invalid email address.' }),
+  email: z.string().email({ message: 'Invalid email address.' }).refine(
+    (email) => email.toLowerCase().endsWith('@gmail.com'),
+    {
+      message: "Only @gmail.com addresses are allowed for registration.",
+    }
+  ),
   city: z.string().min(2, { message: "City is required." }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
   examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA'>,
@@ -65,6 +70,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
   const [cityFilter, setCityFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -106,11 +112,15 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
         if (cityFilter === 'all') return true;
         return user.city?.trim().toLowerCase() === cityFilter.toLowerCase();
       })
+      .filter(user => {
+        if (categoryFilter === 'all') return true;
+        return user.examCategory === categoryFilter;
+      })
       .filter(user =>
         user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase())
       );
-  }, [users, searchTerm, filter, cityFilter]);
+  }, [users, searchTerm, filter, cityFilter, categoryFilter]);
 
 
   const updateUserForm = useForm<z.infer<typeof userUpdateSchema>>({
@@ -349,6 +359,19 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                     <TabsTrigger value="free">Free ({freeUsersCount})</TabsTrigger>
                 </TabsList>
             </Tabs>
+             <div className="w-full sm:w-auto">
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                        <SelectValue placeholder="Filter by category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Categories</SelectItem>
+                        <SelectItem value="MTS">MTS</SelectItem>
+                        <SelectItem value="POSTMAN">POSTMAN</SelectItem>
+                        <SelectItem value="PA">PA</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
              <div className="w-full sm:w-auto">
                 <Select value={cityFilter} onValueChange={setCityFilter}>
                     <SelectTrigger className="w-full sm:w-[180px]">
