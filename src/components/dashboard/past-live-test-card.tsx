@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { useDashboard } from '@/app/dashboard/layout';
-import { Loader2, PlayCircle, CheckCircle, Trophy, Ban } from 'lucide-react';
+import { Loader2, PlayCircle, CheckCircle, Trophy, Ban, Repeat } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -24,17 +24,18 @@ const blueprintMap = {
     PA: PA_BLUEPRINT,
 };
 
-export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
+const MAX_ATTEMPTS = 2;
+
+export const PastLiveTestCard = ({ test }: { test }: { test: LiveTest }) => {
     const { user, userData } = useDashboard();
     const { toast } = useToast();
     const router = useRouter();
     const [isGenerating, setIsGenerating] = useState(false);
-    const [hasTakenPractice, setHasTakenPractice] = useState(false);
+    const [practiceAttempts, setPracticeAttempts] = useState(0);
     const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
     const startTime = normalizeDate(test.startTime);
     const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
-    const hasTakenLiveTest = userData?.liveTestsTaken?.includes(test.id);
 
     useEffect(() => {
         const checkPracticeHistory = async () => {
@@ -45,8 +46,8 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
             try {
                 const history = await getExamHistoryForUser(user.uid);
                 const practiceQuizId = `live-test-${test.id}`;
-                const hasTaken = history.some(item => item.topicId === practiceQuizId);
-                setHasTakenPractice(hasTaken);
+                const attempts = history.filter(item => item.topicId === practiceQuizId).length;
+                setPracticeAttempts(attempts);
             } catch (error) {
                 console.error("Failed to check practice test history:", error);
             } finally {
@@ -56,14 +57,13 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
         checkPracticeHistory();
     }, [user, test.id]);
     
-    const hasAttempted = hasTakenLiveTest || hasTakenPractice;
+    const hasReachedLimit = practiceAttempts >= MAX_ATTEMPTS;
 
     const startTest = async () => {
-        // Safeguard: Prevent non-admins from retaking the test
-        if (hasAttempted && !isAdmin) {
+        if (hasReachedLimit && !isAdmin) {
             toast({
-                title: "Already Attempted",
-                description: "You have already completed this test and cannot retake it.",
+                title: "Attempt Limit Reached",
+                description: `You have already taken this practice test ${MAX_ATTEMPTS} times.`,
                 variant: "destructive",
             });
             return;
@@ -107,6 +107,51 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
         }
     };
     
+    const getButton = () => {
+        if (isLoadingHistory) {
+            return (
+                <Button disabled className="w-full">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Checking History...
+                </Button>
+            );
+        }
+
+        if (isAdmin) {
+            return (
+                 <Button onClick={startTest} disabled={isGenerating} className="w-full">
+                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Repeat className="mr-2 h-4 w-4" />}
+                    Re-take Test (Admin)
+                </Button>
+            );
+        }
+
+        if (hasReachedLimit) {
+            return (
+                <Button disabled className="w-full">
+                    <Ban className="mr-2 h-4 w-4" />
+                    Attempt Limit Reached
+                </Button>
+            );
+        }
+        
+        return (
+            <Button onClick={startTest} disabled={isGenerating} className="w-full">
+                {isGenerating ? (
+                    <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Loading... Please wait
+                    </>
+                ) : (
+                    <>
+                        <PlayCircle className="mr-2 h-4 w-4" />
+                        Practice Test ({practiceAttempts}/{MAX_ATTEMPTS})
+                    </>
+                )}
+            </Button>
+        );
+    }
+
     return (
         <Card className="flex flex-col">
             <CardHeader>
@@ -114,41 +159,17 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
                 <CardDescription>
                     Conducted on: {startTime ? format(startTime, 'dd/MM/yyyy') : 'N/A'}
                 </CardDescription>
-                 {hasAttempted && (
+                 {practiceAttempts > 0 && (
                     <Badge variant="secondary" className="w-fit mt-2">
                         <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                        Attempted
+                        Attempted {practiceAttempts} time(s)
                     </Badge>
                 )}
             </CardHeader>
             <CardContent className="flex-grow space-y-4">
             </CardContent>
             <CardFooter className="flex-col items-stretch gap-2">
-                {isLoadingHistory ? (
-                    <Button disabled>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Checking History...
-                    </Button>
-                ) : hasAttempted && !isAdmin ? (
-                     <Button disabled>
-                        <Ban className="mr-2 h-4 w-4" />
-                        Already Attempted
-                    </Button>
-                ) : (
-                    <Button onClick={startTest} disabled={isGenerating}>
-                        {isGenerating ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Loading... Please wait
-                            </>
-                        ) : (
-                            <>
-                                <PlayCircle className="mr-2 h-4 w-4" />
-                                {isAdmin && hasAttempted ? 'Re-take Test (Admin)' : 'Practice Test'}
-                            </>
-                        )}
-                    </Button>
-                )}
+                {getButton()}
                  <Button variant="outline" asChild>
                     <Link href={`/dashboard/leaderboard?liveTestId=${test.id}`}>
                         <Trophy className="mr-2 h-4 w-4" />
