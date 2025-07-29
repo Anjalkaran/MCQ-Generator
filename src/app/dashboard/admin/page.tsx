@@ -173,7 +173,7 @@ export default function AdminPage() {
               key={section.value}
               onClick={() => setActiveSection(section.value)}
               className={cn(
-                "cursor-pointer transition-all hover:shadow-md flex flex-col items-center justify-center aspect-square",
+                "cursor-pointer transition-all hover:shadow-md flex flex-col items-center justify-center h-28",
                 activeSection === section.value && "border-primary ring-2 ring-primary"
               )}
             >
