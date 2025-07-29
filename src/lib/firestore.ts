@@ -497,16 +497,6 @@ export const getLiveTestLeaderboardData = async (liveTestId: string): Promise<Le
             return (a.durationInSeconds || Infinity) - (b.durationInSeconds || Infinity);
         })
         .map((entry, index) => ({ ...entry, rank: index + 1 }));
-
-    const topPerformer = sortedLeaderboard[0];
-    if (topPerformer) {
-        const winnerData = userMap.get(topPerformer.userId);
-        const proValidUntilDate = normalizeDate(winnerData?.proValidUntil);
-        const isPro = !!(winnerData?.isPro && proValidUntilDate && proValidUntilDate > new Date());
-        if (winnerData && !isPro) {
-            await updateUserDocument(winnerData.uid, { isPro: true });
-        }
-    }
     
     return sortedLeaderboard;
 };
