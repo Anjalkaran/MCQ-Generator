@@ -459,7 +459,16 @@ export const getLiveTestsForLeaderboard = async (): Promise<LiveTest[]> => {
     const now = new Date();
     const q = query(collection(db, 'liveTests'), where('endTime', '<', now), orderBy('endTime', 'desc'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LiveTest));
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+            id: doc.id, 
+            ...data,
+            // Ensure Timestamps are converted to Dates
+            startTime: data.startTime.toDate(),
+            endTime: data.endTime.toDate(),
+        } as LiveTest;
+    });
 };
 
 export const getLiveTestLeaderboardData = async (liveTestId: string): Promise<LeaderboardEntry[]> => {
