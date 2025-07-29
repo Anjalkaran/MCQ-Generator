@@ -24,6 +24,9 @@ export async function POST(req: NextRequest) {
     if (typeof password !== 'string' || password.length < 6) {
         return NextResponse.json({ error: 'Password must be a string with at least 6 characters.' }, { status: 400 });
     }
+    if (!email.toLowerCase().endsWith('@gmail.com')) {
+        return NextResponse.json({ error: 'Only @gmail.com addresses are allowed for registration.' }, { status: 400 });
+    }
     // --- End Validation ---
 
     // 1. Create user in Firebase Authentication
