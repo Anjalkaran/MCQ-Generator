@@ -85,9 +85,6 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     setUsers(sortedUsers);
   }, [initialUsers]);
 
-  const proUsersCount = useMemo(() => users.filter(u => u.isPro).length, [users]);
-  const freeUsersCount = useMemo(() => users.filter(u => !u.isPro).length, [users]);
-
   const uniqueCities = useMemo(() => {
     const cityMap = new Map<string, string>();
     users.forEach(user => {
@@ -101,13 +98,8 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     return ['all', ...Array.from(cityMap.values()).sort()];
   }, [users]);
   
-  const filteredUsers = useMemo(() => {
+  const baseFilteredUsers = useMemo(() => {
     return users
-      .filter(user => {
-        if (filter === 'pro') return user.isPro;
-        if (filter === 'free') return !user.isPro;
-        return true;
-      })
       .filter(user => {
         if (cityFilter === 'all') return true;
         return user.city?.trim().toLowerCase() === cityFilter.toLowerCase();
@@ -120,7 +112,25 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
         user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase())
       );
-  }, [users, searchTerm, filter, cityFilter, categoryFilter]);
+  }, [users, searchTerm, cityFilter, categoryFilter]);
+
+  const filteredUsers = useMemo(() => {
+    return baseFilteredUsers.filter(user => {
+        if (filter === 'pro') return user.isPro;
+        if (filter === 'free') return !user.isPro;
+        return true;
+    });
+  }, [baseFilteredUsers, filter]);
+
+  const filteredCounts = useMemo(() => {
+    const proCount = baseFilteredUsers.filter(u => u.isPro).length;
+    const freeCount = baseFilteredUsers.filter(u => !u.isPro).length;
+    return {
+        all: baseFilteredUsers.length,
+        pro: proCount,
+        free: freeCount,
+    }
+  }, [baseFilteredUsers]);
 
 
   const updateUserForm = useForm<z.infer<typeof userUpdateSchema>>({
@@ -354,9 +364,9 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
             </div>
              <Tabs value={filter} onValueChange={setFilter} className="w-full sm:w-auto">
                 <TabsList>
-                    <TabsTrigger value="all">All ({users.length})</TabsTrigger>
-                    <TabsTrigger value="pro">Pro ({proUsersCount})</TabsTrigger>
-                    <TabsTrigger value="free">Free ({freeUsersCount})</TabsTrigger>
+                    <TabsTrigger value="all">All ({filteredCounts.all})</TabsTrigger>
+                    <TabsTrigger value="pro">Pro ({filteredCounts.pro})</TabsTrigger>
+                    <TabsTrigger value="free">Free ({filteredCounts.free})</TabsTrigger>
                 </TabsList>
             </Tabs>
              <div className="w-full sm:w-auto">
