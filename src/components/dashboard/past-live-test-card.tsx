@@ -26,7 +26,7 @@ const blueprintMap = {
 
 const MAX_ATTEMPTS = 2;
 
-export const PastLiveTestCard = ({ test }: { test }: { test: LiveTest }) => {
+export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
     const { user, userData } = useDashboard();
     const { toast } = useToast();
     const router = useRouter();
