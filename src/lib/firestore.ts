@@ -497,7 +497,7 @@ export const getLiveTestLeaderboardData = async (liveTestId: string): Promise<Le
             return (a.durationInSeconds || Infinity) - (b.durationInSeconds || Infinity);
         })
         .map((entry, index) => ({ ...entry, rank: index + 1 }));
-    
+
     return sortedLeaderboard;
 };
 

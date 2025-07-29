@@ -14,6 +14,7 @@ import { getLiveTestLeaderboardData } from '@/lib/firestore';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { normalizeDate } from '@/lib/utils';
 import { format } from 'date-fns';
+import { useSearchParams } from 'next/navigation';
 
 interface LeaderboardClientProps {
   initialTopicLeaderboards: Record<UserData['examCategory'], LeaderboardEntry[]>;
@@ -117,8 +118,8 @@ function CategorySelector({ selectedCategory, setSelectedCategory }: { selectedC
   );
 }
 
-function LiveTestLeaderboard({ pastLiveTests }: { pastLiveTests: LiveTest[] }) {
-    const [selectedTestId, setSelectedTestId] = useState<string | undefined>(pastLiveTests[0]?.id);
+function LiveTestLeaderboard({ pastLiveTests, initialTestId }: { pastLiveTests: LiveTest[], initialTestId?: string }) {
+    const [selectedTestId, setSelectedTestId] = useState<string | undefined>(initialTestId || pastLiveTests[0]?.id);
     const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -175,9 +176,13 @@ function LiveTestLeaderboard({ pastLiveTests }: { pastLiveTests: LiveTest[] }) {
 
 export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLeaderboards, pastLiveTests }: LeaderboardClientProps) {
   const [selectedCategory, setSelectedCategory] = useState<ExamCategory>('MTS');
+  const searchParams = useSearchParams();
+  const liveTestIdFromUrl = searchParams.get('liveTestId');
+  const initialTab = liveTestIdFromUrl ? "live" : "topic";
+
 
   return (
-    <Tabs defaultValue="topic" className="w-full">
+    <Tabs defaultValue={initialTab} className="w-full">
       <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger value="topic">Topic-wise</TabsTrigger>
         <TabsTrigger value="mock">Mock Test</TabsTrigger>
@@ -215,7 +220,7 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
           </CardHeader>
           <CardContent>
              {pastLiveTests.length > 0 ? (
-                <LiveTestLeaderboard pastLiveTests={pastLiveTests} />
+                <LiveTestLeaderboard pastLiveTests={pastLiveTests} initialTestId={liveTestIdFromUrl ?? undefined} />
              ) : (
                 <div className="text-center text-muted-foreground py-10">
                     No live tests have been completed yet.
