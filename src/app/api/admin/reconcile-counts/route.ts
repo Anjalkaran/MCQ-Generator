@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import type { UserData, MCQHistory } from '@/lib/types';
 import { ADMIN_EMAILS } from '@/lib/constants';
+import * as admin from 'firebase-admin';
 
 export const runtime = 'nodejs';
 
