@@ -174,7 +174,17 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
     }, [allUsers]);
 
     const filteredUsers = useMemo(() => {
-        return allUsers
+        const sortedUsers = [...allUsers].sort((a, b) => {
+            const dateA = normalizeDate(a.createdAt);
+            const dateB = normalizeDate(b.createdAt);
+            if (!dateA && !dateB) return 0;
+            if (!dateA) return 1;
+            if (!dateB) return -1;
+            return dateB.getTime() - dateA.getTime();
+        });
+
+        return sortedUsers
+            .slice(0, 5) // Take only the latest 5 users
             .filter(user => examCategoryFilter === 'all' || user.examCategory === examCategoryFilter)
             .filter(user => {
                 if (proStatusFilter === 'all') return true;
@@ -276,7 +286,7 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
                         </div>
 
                         <div className="flex justify-between items-center">
-                            <p className="text-sm text-muted-foreground">Showing {filteredUsers.length} of {allUsers.length} users.</p>
+                            <p className="text-sm text-muted-foreground">Showing latest {filteredUsers.length} of {allUsers.length} total users.</p>
                             <Button onClick={handleDownload} disabled={isLoading || filteredUsers.length === 0}>
                                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                                 Download CSV
