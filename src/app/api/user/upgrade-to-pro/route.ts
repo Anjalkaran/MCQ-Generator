@@ -51,8 +51,7 @@ export async function POST(req: NextRequest) {
         await userRef.update({
             isPro: true,
             proValidUntil: proValidUntil,
-            topicExamsTaken: 0,
-            mockTestsTaken: 0,
+            totalExamsTaken: 0, // Reset the exam counter upon upgrade
         });
         
         // After successfully upgrading, create the notification

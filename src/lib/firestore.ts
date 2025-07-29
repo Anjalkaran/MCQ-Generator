@@ -17,8 +17,7 @@ export const getUserData = async (userId: string): Promise<UserData | null> => {
         return {
             uid: userSnap.id,
             ...data,
-            topicExamsTaken: data.topicExamsTaken || 0,
-            mockTestsTaken: data.mockTestsTaken || 0,
+            totalExamsTaken: data.totalExamsTaken || 0,
             liveTestsTaken: data.liveTestsTaken || [],
         } as UserData;
     }
@@ -40,8 +39,7 @@ export const createUserDocument = async (userData: Omit<UserData, 'id'>): Promis
     
     await setDoc(userRef, {
       ...userData,
-      topicExamsTaken: 0,
-      mockTestsTaken: 0,
+      totalExamsTaken: 0,
       liveTestsTaken: [],
       isPro: false,
       proValidUntil: null,
@@ -54,7 +52,7 @@ export const updateUserDocument = async (userId: string, data: Partial<UserData>
     if (!db) throw new Error("Firestore is not initialized");
     const userRef = doc(db, 'users', userId);
     
-    const updateData: Partial<UserData> = { ...data };
+    const updateData: { [key: string]: any } = { ...data };
 
     if (data.isPro && !data.proValidUntil) {
         const proValidUntil = new Date();
@@ -64,6 +62,10 @@ export const updateUserDocument = async (userId: string, data: Partial<UserData>
         updateData.proValidUntil = null;
     }
     
+    // Remove deprecated fields if they are passed in
+    delete updateData.topicExamsTaken;
+    delete updateData.mockTestsTaken;
+
     await updateDoc(userRef, updateData);
 };
 
@@ -233,9 +235,9 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
     const historyRef = doc(collection(db, 'mcqHistory'));
     batch.set(historyRef, dataToSave);
 
+    // Use a single, unified counter for all exams
     const userRef = doc(db, 'users', userId);
-    const updateData = isMockTest ? { mockTestsTaken: increment(1) } : { topicExamsTaken: increment(1) };
-    batch.update(userRef, updateData);
+    batch.update(userRef, { totalExamsTaken: increment(1) });
     
     await batch.commit();
 };

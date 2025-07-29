@@ -216,7 +216,7 @@ export function CreateQuizForm() {
   const proValidUntilDate = normalizeDate(userData?.proValidUntil);
   const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
   
-  const totalExamsTaken = (userData?.topicExamsTaken || 0) + (userData?.mockTestsTaken || 0);
+  const totalExamsTaken = userData?.totalExamsTaken || 0;
   const hasExceededFreeLimit = !isPro && userData && totalExamsTaken >= FREE_EXAM_LIMIT;
   
   return (

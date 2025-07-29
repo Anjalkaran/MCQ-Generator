@@ -41,8 +41,7 @@ export async function POST(req: NextRequest) {
       email,
       city,
       examCategory,
-      topicExamsTaken: 0,
-      mockTestsTaken: 0,
+      totalExamsTaken: 0,
       isPro: isPro || false,
       createdAt: new Date(),
     };
@@ -65,8 +64,7 @@ export async function POST(req: NextRequest) {
         email: newUserForDb.email!,
         city: newUserForDb.city,
         examCategory: newUserForDb.examCategory!,
-        topicExamsTaken: newUserForDb.topicExamsTaken!,
-        mockTestsTaken: newUserForDb.mockTestsTaken!,
+        totalExamsTaken: newUserForDb.totalExamsTaken!,
         isPro: newUserForDb.isPro,
         // Convert dates to ISO string for safe JSON serialization
         proValidUntil: newUserForDb.proValidUntil ? newUserForDb.proValidUntil.toISOString() : undefined,

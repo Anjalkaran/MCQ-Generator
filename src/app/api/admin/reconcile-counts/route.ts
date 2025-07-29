@@ -43,20 +43,18 @@ export async function POST(req: NextRequest) {
 
             const userHistory = historyByUser.get(user.uid) || [];
 
-            const correctTopicExamsTaken = userHistory.filter(h => !h.isMockTest).length;
-            const correctMockTestsTaken = userHistory.filter(h => h.isMockTest).length;
+            // Calculate the single, unified total count
+            const correctTotalExamsTaken = userHistory.length;
             
-            const currentTopicExamsTaken = user.topicExamsTaken || 0;
-            const currentMockTestsTaken = user.mockTestsTaken || 0;
+            const currentTotalExamsTaken = user.totalExamsTaken || 0;
 
-            if (
-                correctTopicExamsTaken !== currentTopicExamsTaken ||
-                correctMockTestsTaken !== currentMockTestsTaken
-            ) {
+            if (correctTotalExamsTaken !== currentTotalExamsTaken) {
                 const userDocRef = usersRef.doc(user.uid);
                 batch.update(userDocRef, {
-                    topicExamsTaken: correctTopicExamsTaken,
-                    mockTestsTaken: correctMockTestsTaken,
+                    totalExamsTaken: correctTotalExamsTaken,
+                    // Ensure old fields are removed for cleanliness
+                    topicExamsTaken: admin.firestore.FieldValue.delete(),
+                    mockTestsTaken: admin.firestore.FieldValue.delete(),
                 });
                 updatedCount++;
             }

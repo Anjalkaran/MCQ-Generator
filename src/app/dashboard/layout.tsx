@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
@@ -118,7 +119,7 @@ function AppSidebar() {
         return `Welcome, ${userData.name}!`;
     }
 
-    const totalExamsTaken = (userData.topicExamsTaken || 0) + (userData.mockTestsTaken || 0);
+    const totalExamsTaken = userData.totalExamsTaken || 0;
     const examsRemaining = FREE_EXAM_LIMIT - totalExamsTaken;
     return `Welcome, ${userData.name}! You have ${examsRemaining > 0 ? examsRemaining : 0} free exam(s) remaining.`;
   }
@@ -410,8 +411,7 @@ export default function DashboardLayout({
                     name: currentUser.displayName || 'Admin',
                     email: currentUser.email!,
                     examCategory: 'PA', 
-                    topicExamsTaken: 0,
-                    mockTestsTaken: 0,
+                    totalExamsTaken: 0,
                     isPro: true,
                 };
                 const { categories, topics, bankedQuestions, topicMCQs, liveTestBank, qnaUsage, notifications } = await getDashboardData(currentUser.uid, true);

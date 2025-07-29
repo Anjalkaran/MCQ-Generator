@@ -1,3 +1,4 @@
+
 import type { LucideIcon } from 'lucide-react';
 import type { Timestamp } from 'firebase/firestore';
 
@@ -38,13 +39,15 @@ export interface UserData {
     email: string;
     city?: string;
     examCategory: 'MTS' | 'POSTMAN' | 'PA';
-    topicExamsTaken: number;
-    mockTestsTaken: number;
+    totalExamsTaken: number;
     liveTestsTaken?: string[]; // Array of liveTest IDs
     isPro?: boolean;
     proValidUntil?: any; 
     createdAt?: any;
     lastSeen?: any;
+    // Deprecated fields, kept for potential data migration
+    topicExamsTaken?: number;
+    mockTestsTaken?: number;
 }
 
 export interface MCQData {
