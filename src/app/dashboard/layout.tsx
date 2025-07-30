@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
@@ -414,6 +413,7 @@ export default function DashboardLayout({
                     totalExamsTaken: 0,
                     isPro: true,
                 };
+                // Admin needs ALL data
                 const { categories, topics, bankedQuestions, topicMCQs, liveTestBank, qnaUsage, notifications } = await getDashboardData(currentUser.uid, true);
                 setUserData(adminUserData);
                 setCategories(categories);
@@ -425,7 +425,8 @@ export default function DashboardLayout({
                 setNotifications(notifications);
                 
             } else {
-                const { userData: fetchedUserData, categories, topics, bankedQuestions } = await getDashboardData(currentUser.uid);
+                 // Regular user fetches only their relevant data
+                const { userData: fetchedUserData, categories, topics } = await getDashboardData(currentUser.uid);
                 if (!fetchedUserData) {
                      toast({ title: "Authentication Error", description: "Could not load user profile. Please log in again.", variant: "destructive" });
                      handleLogout(auth, false);
@@ -435,10 +436,11 @@ export default function DashboardLayout({
                 setUserData(fetchedUserData);
                 setCategories(categories);
                 setTopics(topics);
-                setBankedQuestions(bankedQuestions);
+                // Non-admins don't need this data, so set to empty arrays
+                setBankedQuestions([]);
                 setTopicMCQs([]);
                 setLiveTestBank([]);
-                setQnaUsage([]); // Non-admins don't need this data
+                setQnaUsage([]); 
                 setNotifications([]);
                 setOnlineUsers([]);
             }

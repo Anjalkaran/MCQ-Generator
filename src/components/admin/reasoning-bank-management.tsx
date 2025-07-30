@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -83,7 +82,12 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
   const reasoningTopics = useMemo(() => {
     const reasoningCategory = categories.find(c => c.name === "Reasoning and Analytical Ability");
     if (!reasoningCategory) return [];
-    return topics.filter(t => t.categoryId === reasoningCategory.id && t.part === 'Part B');
+    
+    return topics.filter(t => 
+        t.categoryId === reasoningCategory.id && 
+        t.part === 'Part B' &&
+        (t.examCategories.includes('POSTMAN') || t.examCategories.includes('PA'))
+    );
   }, [topics, categories]);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -273,7 +277,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                             name="correctAnswer"
                             render={({ field }) => (
                                 <FormItem className="space-y-3">
-                                <FormLabel>Options & Correct Answer*</FormLabel>
+                                <FormLabel>Options &amp; Correct Answer*</FormLabel>
                                 <FormControl>
                                     <RadioGroup
                                     onValueChange={field.onChange}
