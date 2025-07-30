@@ -668,7 +668,11 @@ export const getDashboardData = async (userId: string, isAdmin: boolean = false)
     if (!userData) {
         return { userData: null, categories: [], topics: [], bankedQuestions: [], liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [] };
     }
-    return { userData, categories, topics, bankedQuestions: [], liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [] };
+    const userCategories = categories.filter(c => c.examCategories && c.examCategories.includes(userData.examCategory));
+    const userCategoryIds = userCategories.map(c => c.id);
+    const userTopics = topics.filter(t => userCategoryIds.includes(t.categoryId));
+
+    return { userData, categories: userCategories, topics: userTopics, bankedQuestions: [], liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [] };
 };
 
 
