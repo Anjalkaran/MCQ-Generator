@@ -149,7 +149,6 @@ export interface ReasoningQuestion {
   correctAnswer: string;
   solutionImage?: string; // Base64 Data URI
   solutionText?: string;
-  examCategories: ('MTS' | 'POSTMAN' | 'PA')[];
   isForLiveTest: boolean;
   topic: string; // The specific topic (e.g., 'Non-verbal Reasoning')
   uploadedAt: Date;

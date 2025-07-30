@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,35 +11,40 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Trash2, PlusCircle, Eye } from 'lucide-react';
+import { Loader2, Upload, Trash2, PlusCircle, Eye, Edit } from 'lucide-react';
 import { deleteReasoningQuestion } from '@/lib/firestore';
 import type { ReasoningQuestion } from '@/lib/types';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import Image from 'next/image';
 import { format } from 'date-fns';
-import { Badge } from '@/components/ui/badge';
 import { useDashboard } from '@/app/dashboard/layout';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
-
-const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 
 const MAX_FILE_SIZE_MB = 2;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
-const fileSchema = z.instanceof(File)
-    .refine(file => file.size <= MAX_FILE_SIZE_BYTES, `File size must be less than ${MAX_FILE_SIZE_MB}MB.`)
-    .optional()
-    .nullable();
+const fileSchema = z.union([
+    z.instanceof(File),
+    z.string().url()
+])
+.refine(file => {
+    if (file instanceof File) {
+        return file.size <= MAX_FILE_SIZE_BYTES;
+    }
+    return true; // Assume URL is valid
+}, `File size must be less than ${MAX_FILE_SIZE_MB}MB.`)
+.optional()
+.nullable();
 
 const formSchema = z.object({
+  id: z.string().optional(),
   topic: z.string().min(1, 'Please select a topic.'),
   questionText: z.string().min(1, 'Question text is required.'),
-  questionImage: z.instanceof(File, { message: 'Question image is required.' }).refine(file => file.size > 0, 'Question image is required.').refine(file => file.size <= MAX_FILE_SIZE_BYTES, `File size must be less than ${MAX_FILE_SIZE_MB}MB.`),
+  questionImage: fileSchema,
   option1: z.string().min(1, 'Option 1 is required.'),
   option2: z.string().min(1, 'Option 2 is required.'),
   option3: z.string().min(1, 'Option 3 is required.'),
@@ -47,10 +52,10 @@ const formSchema = z.object({
   correctAnswer: z.string({ required_error: 'You must select a correct answer.'}),
   solutionImage: fileSchema,
   solutionText: z.string().optional(),
-  examCategories: z.array(z.string()).refine((value) => value.some((item) => item), {
-    message: "You have to select at least one exam category.",
-  }),
   isForLiveTest: z.boolean().default(false).optional(),
+}).refine(data => data.id || data.questionImage instanceof File, {
+    message: "Question image is required.",
+    path: ["questionImage"],
 });
 
 interface ReasoningBankManagementProps {
@@ -70,6 +75,8 @@ const fileToDataUri = (file: File): Promise<string> => {
 export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManagementProps) {
   const [questions, setQuestions] = useState<ReasoningQuestion[]>(initialQuestions);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<ReasoningQuestion | null>(null);
   const { toast } = useToast();
   const { topics, categories } = useDashboard();
 
@@ -81,31 +88,57 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-        topic: '',
-        questionText: '',
-        option1: '',
-        option2: '',
-        option3: '',
-        option4: '',
-        solutionText: '',
-        examCategories: [],
-        isForLiveTest: false,
-        questionImage: undefined,
-        solutionImage: undefined,
-    },
   });
+
+  useEffect(() => {
+    if (editingQuestion) {
+        form.reset({
+            id: editingQuestion.id,
+            topic: editingQuestion.topic,
+            questionText: editingQuestion.questionText,
+            option1: editingQuestion.options[0],
+            option2: editingQuestion.options[1],
+            option3: editingQuestion.options[2],
+            option4: editingQuestion.options[3],
+            correctAnswer: editingQuestion.correctAnswer,
+            solutionText: editingQuestion.solutionText || '',
+            isForLiveTest: editingQuestion.isForLiveTest,
+            questionImage: editingQuestion.questionImage,
+            solutionImage: editingQuestion.solutionImage,
+        });
+    } else {
+        form.reset({
+            id: undefined,
+            topic: '',
+            questionText: '',
+            option1: '',
+            option2: '',
+            option3: '',
+            option4: '',
+            correctAnswer: undefined,
+            solutionText: '',
+            isForLiveTest: false,
+            questionImage: undefined,
+            solutionImage: undefined,
+        });
+    }
+  }, [editingQuestion, form]);
+  
+  const handleOpenDialog = (question: ReasoningQuestion | null) => {
+    setEditingQuestion(question);
+    setIsDialogOpen(true);
+  }
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsUploading(true);
 
     try {
-        const questionImageUri = await fileToDataUri(values.questionImage);
-        const solutionImageUri = values.solutionImage ? await fileToDataUri(values.solutionImage) : undefined;
+        const questionImageUri = values.questionImage instanceof File ? await fileToDataUri(values.questionImage) : values.questionImage;
+        const solutionImageUri = values.solutionImage instanceof File ? await fileToDataUri(values.solutionImage) : values.solutionImage;
         
         const options = [values.option1, values.option2, values.option3, values.option4];
         
-        const payload = {
+        const payload: any = {
             topic: values.topic,
             questionText: values.questionText,
             questionImage: questionImageUri,
@@ -113,9 +146,11 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
             correctAnswer: values.correctAnswer,
             solutionImage: solutionImageUri,
             solutionText: values.solutionText,
-            examCategories: values.examCategories,
             isForLiveTest: values.isForLiveTest,
         };
+        if (values.id) {
+            payload.id = values.id;
+        }
         
         const response = await fetch('/api/reasoning-bank/upload', {
             method: 'POST',
@@ -125,18 +160,27 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to upload question.');
+            throw new Error(errorData.error || 'Failed to save question.');
         }
 
-        const { newDocument } = await response.json();
-        setQuestions(prev => [newDocument, ...prev]);
-        toast({ title: 'Success', description: 'Reasoning question uploaded successfully.' });
+        const { document: savedDocument } = await response.json();
+        
+        if (values.id) {
+            // Update existing question in state
+            setQuestions(prev => prev.map(q => q.id === values.id ? { ...q, ...savedDocument } : q));
+            toast({ title: 'Success', description: 'Question updated successfully.' });
+        } else {
+            // Add new question to state
+            setQuestions(prev => [savedDocument, ...prev]);
+            toast({ title: 'Success', description: 'Question uploaded successfully.' });
+        }
         
         form.reset();
+        setIsDialogOpen(false);
 
     } catch (error: any) {
         console.error("Reasoning upload error:", error);
-        toast({ title: 'Upload Failed', description: error.message, variant: 'destructive' });
+        toast({ title: 'Save Failed', description: error.message, variant: 'destructive' });
     } finally {
         setIsUploading(false);
     }
@@ -155,14 +199,20 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
 
   return (
     <div className="space-y-6">
-        <Card>
-            <CardHeader>
-                <CardTitle>Upload Reasoning Question</CardTitle>
-                <CardDescription>Create a new image-based reasoning question. Images are saved directly in the database.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+       <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { setIsDialogOpen(isOpen); if (!isOpen) setEditingQuestion(null); }}>
+          <DialogTrigger asChild>
+            <Button onClick={() => handleOpenDialog(null)}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Upload New Question
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-3xl">
+              <DialogHeader>
+                  <DialogTitle>{editingQuestion ? 'Edit Reasoning Question' : 'Upload Reasoning Question'}</DialogTitle>
+                  <DialogDescription>Create or update an image-based reasoning question. Images are saved directly in the database.</DialogDescription>
+              </DialogHeader>
+               <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-h-[80vh] overflow-y-auto pr-4">
                         <FormField
                             control={form.control}
                             name="topic"
@@ -213,6 +263,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                                             {...rest}
                                         />
                                     </FormControl>
+                                    {typeof value === 'string' && <Image src={value} alt="Current Question Image" width={100} height={100} className="mt-2 rounded-md" />}
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -267,6 +318,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                                                 {...rest}
                                             />
                                         </FormControl>
+                                         {typeof value === 'string' && <Image src={value} alt="Current Solution Image" width={100} height={100} className="mt-2 rounded-md" />}
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -288,41 +340,6 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
 
                         <FormField
                             control={form.control}
-                            name="examCategories"
-                            render={() => (
-                                <FormItem>
-                                    <FormLabel>Exam Categories*</FormLabel>
-                                    <div className="flex flex-wrap gap-4">
-                                        {examCategories.map((item) => (
-                                            <FormField
-                                                key={item}
-                                                control={form.control}
-                                                name="examCategories"
-                                                render={({ field }) => (
-                                                    <FormItem key={item} className="flex items-center space-x-2 space-y-0">
-                                                        <FormControl>
-                                                            <Checkbox
-                                                                checked={field.value?.includes(item)}
-                                                                onCheckedChange={(checked) => (
-                                                                    checked
-                                                                        ? field.onChange([...(field.value || []), item])
-                                                                        : field.onChange(field.value?.filter(v => v !== item))
-                                                                )}
-                                                            />
-                                                        </FormControl>
-                                                        <FormLabel className="font-normal">{item}</FormLabel>
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        ))}
-                                    </div>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <FormField
-                            control={form.control}
                             name="isForLiveTest"
                             render={({ field }) => (
                                 <FormItem className="flex items-center space-x-2">
@@ -334,15 +351,20 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                             )}
                         />
                         
-                        <Button type="submit" disabled={isUploading}>
-                            {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                            Upload Question
-                        </Button>
+                        <DialogFooter className="sticky bottom-0 bg-background pt-4">
+                          <DialogClose asChild>
+                            <Button type="button" variant="outline">Cancel</Button>
+                          </DialogClose>
+                          <Button type="submit" disabled={isUploading}>
+                              {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                              {editingQuestion ? 'Save Changes' : 'Upload Question'}
+                          </Button>
+                        </DialogFooter>
                     </form>
                 </Form>
-            </CardContent>
-        </Card>
-
+            </DialogContent>
+        </Dialog>
+        
         <Card>
             <CardHeader>
                 <CardTitle>Uploaded Reasoning Questions</CardTitle>
@@ -355,7 +377,6 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                             <TableRow>
                                 <TableHead>Question</TableHead>
                                 <TableHead>Topic</TableHead>
-                                <TableHead>Categories</TableHead>
                                 <TableHead>Uploaded</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
@@ -368,11 +389,6 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                                             <Image src={q.questionImage} alt="Question" width={60} height={60} className="rounded-md object-cover" />
                                         </TableCell>
                                         <TableCell>{q.topic}</TableCell>
-                                        <TableCell>
-                                            <div className="flex flex-wrap gap-1">
-                                                {q.examCategories.map(cat => <Badge key={cat} variant="secondary">{cat}</Badge>)}
-                                            </div>
-                                        </TableCell>
                                         <TableCell>{format(new Date(q.uploadedAt), "dd/MM/yyyy")}</TableCell>
                                         <TableCell className="text-right space-x-2">
                                             <Dialog>
@@ -383,7 +399,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                                                     <DialogHeader>
                                                         <DialogTitle>Question Details</DialogTitle>
                                                     </DialogHeader>
-                                                    <div className="space-y-4">
+                                                    <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-4">
                                                         <div>
                                                             <h3 className="font-semibold mb-2">Topic:</h3>
                                                             <p className="text-sm text-muted-foreground p-2 border rounded-md">{q.topic}</p>
@@ -417,6 +433,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                                                     </div>
                                                 </DialogContent>
                                             </Dialog>
+                                            <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(q)}><Edit className="h-4 w-4" /></Button>
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
                                                     <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
@@ -437,7 +454,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="h-24 text-center">
+                                    <TableCell colSpan={4} className="h-24 text-center">
                                         No reasoning questions uploaded yet.
                                     </TableCell>
                                 </TableRow>

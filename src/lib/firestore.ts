@@ -472,7 +472,6 @@ export const getLiveTestsForLeaderboard = async (): Promise<LiveTest[]> => {
         return { 
             id: doc.id, 
             ...data,
-            // Ensure Timestamps are converted to Dates
             startTime: normalizeDate(data.startTime),
             endTime: normalizeDate(data.endTime),
         } as LiveTest;
@@ -590,13 +589,27 @@ export const getReasoningQuestions = async (): Promise<ReasoningQuestion[]> => {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as ReasoningQuestion));
 };
 
+const getReasoningTopicTitlesForExam = async (examCategory: 'MTS' | 'POSTMAN' | 'PA'): Promise<string[]> => {
+    const allTopics = await getTopics();
+    const reasoningCategory = (await getCategories()).find(c => c.name === "Reasoning and Analytical Ability");
+    if (!reasoningCategory) return [];
+    
+    return allTopics
+        .filter(t => t.categoryId === reasoningCategory.id && t.examCategories.includes(examCategory))
+        .map(t => t.title);
+}
+
 export const getReasoningQuestionsForLiveTest = async (examCategory: 'MTS' | 'POSTMAN' | 'PA'): Promise<ReasoningQuestion[]> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
+    const relevantTopicTitles = await getReasoningTopicTitlesForExam(examCategory);
+
+    if (relevantTopicTitles.length === 0) return [];
+
     const q = query(
         collection(db, 'reasoningBank'), 
         where('isForLiveTest', '==', true),
-        where('examCategories', 'array-contains', examCategory)
+        where('topic', 'in', relevantTopicTitles)
     );
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as ReasoningQuestion));
@@ -605,9 +618,13 @@ export const getReasoningQuestionsForLiveTest = async (examCategory: 'MTS' | 'PO
 export const getReasoningQuestionsForPartwiseTest = async (examCategory: 'MTS' | 'POSTMAN' | 'PA'): Promise<ReasoningQuestion[]> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
+    const relevantTopicTitles = await getReasoningTopicTitlesForExam(examCategory);
+
+    if (relevantTopicTitles.length === 0) return [];
+    
     const q = query(
         collection(db, 'reasoningBank'), 
-        where('examCategories', 'array-contains', examCategory)
+        where('topic', 'in', relevantTopicTitles)
     );
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as ReasoningQuestion));
@@ -619,6 +636,14 @@ export const addReasoningQuestion = async (data: Omit<ReasoningQuestion, 'id'>):
     if (!db) throw new Error("Firestore is not initialized");
     return await addDoc(collection(db, 'reasoningBank'), data);
 };
+
+export const updateReasoningQuestion = async (docId: string, data: Partial<Omit<ReasoningQuestion, 'id' | 'uploadedAt'>>): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const docRef = doc(db, 'reasoningBank', docId);
+    await updateDoc(docRef, data);
+};
+
 
 export const deleteReasoningQuestion = async (docId: string): Promise<void> => {
     const db = getFirebaseDb();

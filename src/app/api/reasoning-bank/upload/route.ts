@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { addReasoningQuestion } from '@/lib/firestore';
+import { addReasoningQuestion, updateReasoningQuestion } from '@/lib/firestore';
 import type { ReasoningQuestion } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -13,19 +13,19 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     
     const { 
+        id, // For updates
         questionText,
         questionImage, 
         options, 
         correctAnswer, 
         solutionImage, 
         solutionText, 
-        examCategories, 
         isForLiveTest,
         topic,
     } = body;
 
     // --- Robust Server-Side Validation ---
-    if (!questionText || !questionImage || !options || !correctAnswer || !examCategories || !topic) {
+    if (!questionText || !questionImage || !options || !correctAnswer || !topic) {
         return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
     }
     if (!Array.isArray(options) || options.length !== 4) {
@@ -34,44 +34,45 @@ export async function POST(req: NextRequest) {
     if (!options.includes(correctAnswer)) {
         return NextResponse.json({ error: 'The correct answer must be one of the four options.' }, { status: 400 });
     }
-    if (!Array.isArray(examCategories) || examCategories.length === 0) {
-        return NextResponse.json({ error: 'At least one exam category must be selected.' }, { status: 400 });
-    }
     // --- End Validation ---
 
-    const newQuestionData: Omit<ReasoningQuestion, 'id'> = {
+    const questionData: Omit<ReasoningQuestion, 'id' | 'uploadedAt'> = {
         questionText,
         questionImage,
         options,
         correctAnswer,
         solutionImage: solutionImage || undefined,
         solutionText: solutionText || undefined,
-        examCategories,
         isForLiveTest: isForLiveTest || false,
         topic,
-        uploadedAt: new Date(),
     }
     
     // Firestore does not allow 'undefined' values.
-    // We remove the keys if their values are falsy (e.g., undefined, null, empty string).
-    if (!newQuestionData.solutionImage) {
-        delete (newQuestionData as Partial<typeof newQuestionData>).solutionImage;
-    }
-    if (!newQuestionData.solutionText) {
-        delete (newQuestionData as Partial<typeof newQuestionData>).solutionText;
-    }
-    
-    const newDocRef = await addReasoningQuestion(newQuestionData);
-    const newDocument = { id: newDocRef.id, ...newQuestionData };
+    if (!questionData.solutionImage) delete (questionData as Partial<typeof questionData>).solutionImage;
+    if (!questionData.solutionText) delete (questionData as Partial<typeof questionData>).solutionText;
 
-    return NextResponse.json({ 
-        message: 'Reasoning question uploaded successfully.', 
-        newDocument
-    }, { status: 201 });
+    if (id) {
+        // This is an update
+        await updateReasoningQuestion(id, questionData);
+        const updatedDocument = { id, ...questionData, uploadedAt: new Date() }; // uploadedAt won't be updated, but needed for type
+        return NextResponse.json({ 
+            message: 'Reasoning question updated successfully.', 
+            document: updatedDocument
+        }, { status: 200 });
+
+    } else {
+        // This is a new creation
+        const newQuestionDataWithDate = { ...questionData, uploadedAt: new Date() };
+        const newDocRef = await addReasoningQuestion(newQuestionDataWithDate);
+        const newDocument = { id: newDocRef.id, ...newQuestionDataWithDate };
+        return NextResponse.json({ 
+            message: 'Reasoning question uploaded successfully.', 
+            document: newDocument
+        }, { status: 201 });
+    }
 
   } catch (error: any) {
     console.error('Error processing reasoning question:', error);
-    // Check for specific JSON parsing errors
     if (error instanceof SyntaxError) {
         return NextResponse.json({ error: 'Invalid JSON format in request body. The file might be too large.' }, { status: 400 });
     }
