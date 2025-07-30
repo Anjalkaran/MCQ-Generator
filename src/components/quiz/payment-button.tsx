@@ -24,26 +24,35 @@ export default function PaymentButton({ user, amount, onPaymentSuccess }: Paymen
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
 
-    const handleSuccessfulPayment = async () => {
+    const handleSuccessfulPayment = async (paymentDetails: {
+        razorpay_payment_id: string;
+        razorpay_order_id: string;
+        razorpay_signature: string;
+    }) => {
         try {
-            const response = await fetch('/api/user/upgrade-to-pro', {
+            const response = await fetch('/api/payment/verify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: user.uid }),
+                body: JSON.stringify({
+                    userId: user.uid,
+                    ...paymentDetails,
+                }),
             });
 
+            const result = await response.json();
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to update user status.');
+                throw new Error(result.error || 'Failed to verify payment and upgrade account.');
             }
             // Call the parent component's success handler
             onPaymentSuccess();
+
         } catch (error: any) {
-            console.error("Error upgrading user:", error);
+            console.error("Error verifying payment and upgrading user:", error);
             toast({
                 title: "Upgrade Failed",
-                description: "Your payment was successful, but we couldn't update your account. Please contact support.",
-                variant: "destructive"
+                description: "Your payment was successful, but we had trouble updating your account. Please contact support with your payment details.",
+                variant: "destructive",
+                duration: 10000,
             });
         } finally {
             setLoading(false);
@@ -90,8 +99,12 @@ export default function PaymentButton({ user, amount, onPaymentSuccess }: Paymen
                 description: "1-Year Unlimited Exam Access",
                 order_id: order.id,
                 handler: function (response: any) {
-                    // Payment was successful, now update the user status
-                    handleSuccessfulPayment();
+                    // Payment was successful, now verify and update user status
+                    handleSuccessfulPayment({
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        razorpay_order_id: response.razorpay_order_id,
+                        razorpay_signature: response.razorpay_signature,
+                    });
                 },
                 prefill: {
                     name: user.name,
