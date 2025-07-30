@@ -53,7 +53,7 @@ const generateQuestionsForSectionPrompt = ai.definePrompt({
             questions: z.array(MCQSchema)
         })
     },
-    model: 'googleai/gemini-1.5-flash',
+    model: 'googleai/gemini-1.5-pro',
     prompt: `You are an expert in creating mock test questions for the Indian Postal Department's {{examCategory}} exam.
 
 Your task is to generate EXACTLY **{{questionCount}}** questions for the section named **"{{sectionName}}"**. The language for the entire output must be in English.

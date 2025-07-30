@@ -44,7 +44,7 @@ const extractMCQsFromTextPrompt = ai.definePrompt({
     name: 'extractMCQsFromTextPrompt',
     input: { schema: z.object({ textContent: z.string(), topicName: z.string(), numberOfQuestions: z.number(), language: z.string().optional().default('English') }) },
     output: { schema: GenerateMCQsOutputSchema },
-    model: 'googleai/gemini-1.5-flash',
+    model: 'googleai/gemini-1.5-pro',
     prompt: `You are an expert at parsing and formatting multiple-choice questions (MCQs).
 
 Your task is to extract as many high-quality, unique questions as you can find from the 'TEXT CONTENT' provided below and format them according to the user's requested language.
@@ -84,7 +84,7 @@ const generateMCQsFromScratchPrompt = ai.definePrompt({
         })
     },
     output: { schema: GenerateMCQsOutputSchema },
-    model: 'googleai/gemini-1.5-flash',
+    model: 'googleai/gemini-1.5-pro',
     prompt: `You are an expert in creating multiple-choice questions for the Indian Postal Department's {{examCategory}} exam.
 
 **CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**

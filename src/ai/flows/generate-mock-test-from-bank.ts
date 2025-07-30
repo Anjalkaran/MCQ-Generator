@@ -47,7 +47,7 @@ const extractMCQsFromBankPrompt = ai.definePrompt({
             questions: z.array(MCQSchema)
         })
     },
-    model: 'googleai/gemini-1.5-flash',
+    model: 'googleai/gemini-1.5-pro',
     prompt: `You are an expert Question Extractor for Indian Postal Department exam papers.
 
 Your task is to meticulously parse the entire 'QUESTION PAPER' provided below and extract every multiple-choice question into a clean JSON format.

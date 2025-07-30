@@ -56,7 +56,7 @@ const generateQuestionsForTopicsPrompt = ai.definePrompt({
             questions: z.array(MCQSchema)
         })
     },
-    model: 'googleai/gemini-1.5-flash',
+    model: 'googleai/gemini-1.5-pro',
     prompt: `You are an expert in creating high-quality practice questions for the Indian Postal Department's {{examCategory}} exam.
 
 **CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
