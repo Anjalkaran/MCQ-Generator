@@ -172,7 +172,20 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
       };
 
       await updateUserDocument(selectedUser.uid, dataToUpdate);
-      setUsers(users.map(u => u.uid === selectedUser.uid ? { ...u, ...dataToUpdate } : u));
+
+      // --- CRITICAL FIX: Update local state with proValidUntil date ---
+      const updatedLocalUser = { ...selectedUser, ...dataToUpdate };
+      if (dataToUpdate.isPro && !selectedUser.isPro) {
+        const proValidUntil = new Date();
+        proValidUntil.setFullYear(proValidUntil.getFullYear() + 1);
+        updatedLocalUser.proValidUntil = proValidUntil;
+      } else if (!dataToUpdate.isPro) {
+        updatedLocalUser.proValidUntil = null;
+      }
+      
+      setUsers(users.map(u => u.uid === selectedUser.uid ? updatedLocalUser : u));
+      // --- END FIX ---
+
       toast({ title: 'Success', description: 'User updated successfully.' });
       setIsUpdateDialogOpen(false);
       setSelectedUser(null);
