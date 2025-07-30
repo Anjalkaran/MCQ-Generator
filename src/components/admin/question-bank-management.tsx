@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Eye, Trash2, Edit, Download } from 'lucide-react';
+import { Loader2, Upload, Eye, Trash2, Edit, Download, Search } from 'lucide-react';
 import { deleteQuestionBankDocument, updateQuestionBankDocument } from '@/lib/firestore';
 import type { BankedQuestion } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -47,6 +47,7 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
   const [editingQuestion, setEditingQuestion] = useState<BankedQuestion | null>(null);
   const [editedContent, setEditedContent] = useState('');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof questionBankSchema>>({
@@ -56,6 +57,18 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
         files: [],
     }
   });
+
+  const filteredQuestions = useMemo(() => {
+    if (!searchTerm) {
+      return bankedQuestions;
+    }
+    const lowercasedFilter = searchTerm.toLowerCase();
+    return bankedQuestions.filter(question =>
+      question.fileName.toLowerCase().includes(lowercasedFilter) ||
+      question.examCategory.toLowerCase().includes(lowercasedFilter) ||
+      question.content.toLowerCase().includes(lowercasedFilter)
+    );
+  }, [searchTerm, bankedQuestions]);
 
   const onSubmit = async (values: z.infer<typeof questionBankSchema>) => {
     setIsUploading(true);
@@ -200,6 +213,15 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
             <CardHeader>
                 <CardTitle>Uploaded Question Papers</CardTitle>
                 <CardDescription>View, edit, and manage previously uploaded question papers.</CardDescription>
+                 <div className="relative pt-2">
+                    <Search className="absolute left-2.5 top-4 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search by file name, category, or content..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-8 w-full"
+                    />
+                </div>
             </CardHeader>
             <CardContent>
                  <div className="border rounded-md">
@@ -213,8 +235,8 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {bankedQuestions.length > 0 ? (
-                                bankedQuestions.map((bq) => (
+                            {filteredQuestions.length > 0 ? (
+                                filteredQuestions.map((bq) => (
                                     <TableRow key={bq.id}>
                                         <TableCell className="font-medium">{bq.fileName}</TableCell>
                                         <TableCell>{bq.examCategory}</TableCell>
@@ -261,7 +283,7 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                             ) : (
                                 <TableRow>
                                     <TableCell colSpan={4} className="h-24 text-center">
-                                        No question papers uploaded yet.
+                                        No question papers found.
                                     </TableCell>
                                 </TableRow>
                             )}

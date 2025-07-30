@@ -153,7 +153,8 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
     const lowercasedFilter = searchTerm.toLowerCase();
     return topicMCQs.filter(tm => 
         getTopicTitle(tm.topicId).toLowerCase().includes(lowercasedFilter) ||
-        tm.fileName.toLowerCase().includes(lowercasedFilter)
+        tm.fileName.toLowerCase().includes(lowercasedFilter) ||
+        tm.content.toLowerCase().includes(lowercasedFilter)
     );
   }, [searchTerm, topicMCQs, topics]);
 
@@ -263,7 +264,7 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
                  <div className="relative pt-2">
                     <Search className="absolute left-2.5 top-4 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search by topic or file name..."
+                        placeholder="Search by topic, file name, or content..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-8 w-full"
@@ -330,7 +331,7 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
                             ) : (
                                 <TableRow>
                                     <TableCell colSpan={4} className="h-24 text-center">
-                                        No topic-specific MCQ documents uploaded yet.
+                                        No topic-specific MCQ documents found.
                                     </TableCell>
                                 </TableRow>
                             )}
