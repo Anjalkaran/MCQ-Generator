@@ -465,8 +465,8 @@ export const getLiveTestsForLeaderboard = async (): Promise<LiveTest[]> => {
             id: doc.id, 
             ...data,
             // Ensure Timestamps are converted to Dates
-            startTime: data.startTime.toDate(),
-            endTime: data.endTime.toDate(),
+            startTime: normalizeDate(data.startTime),
+            endTime: normalizeDate(data.endTime),
         } as LiveTest;
     });
 };
