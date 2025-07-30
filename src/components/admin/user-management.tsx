@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Trash2, Edit, Eye, PlusCircle, Gem, Search } from 'lucide-react';
+import { Loader2, Trash2, Edit, Eye, PlusCircle, Gem, Search, Calendar as CalendarIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { deleteUserDocument, updateUserDocument } from '@/lib/firestore';
 import type { UserData } from '@/lib/types';
@@ -33,7 +33,10 @@ import { Checkbox } from '../ui/checkbox';
 import { cn } from '@/lib/utils';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
 
 
 const userUpdateSchema = z.object({
@@ -41,6 +44,7 @@ const userUpdateSchema = z.object({
   city: z.string().min(2, { message: "City is required." }),
   examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA'>,
   isPro: z.boolean().default(false).optional(),
+  proValidUntil: z.date().optional().nullable(),
 });
 
 const userCreateSchema = z.object({
@@ -149,6 +153,8 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     }
   });
 
+  const isProWatcher = updateUserForm.watch('isPro');
+
   const handleOpenUpdateDialog = (user: UserData) => {
     setSelectedUser(user);
     updateUserForm.reset({
@@ -156,6 +162,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
       city: user.city || '',
       examCategory: user.examCategory,
       isPro: user.isPro || false,
+      proValidUntil: normalizeDate(user.proValidUntil),
     });
     setIsUpdateDialogOpen(true);
   };
@@ -169,22 +176,14 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
         city: values.city,
         examCategory: values.examCategory,
         isPro: values.isPro,
+        proValidUntil: values.proValidUntil,
       };
-
+      
       await updateUserDocument(selectedUser.uid, dataToUpdate);
-
-      // --- CRITICAL FIX: Update local state with proValidUntil date ---
+      
       const updatedLocalUser = { ...selectedUser, ...dataToUpdate };
-      if (dataToUpdate.isPro && !selectedUser.isPro) {
-        const proValidUntil = new Date();
-        proValidUntil.setFullYear(proValidUntil.getFullYear() + 1);
-        updatedLocalUser.proValidUntil = proValidUntil;
-      } else if (!dataToUpdate.isPro) {
-        updatedLocalUser.proValidUntil = null;
-      }
       
       setUsers(users.map(u => u.uid === selectedUser.uid ? updatedLocalUser : u));
-      // --- END FIX ---
 
       toast({ title: 'Success', description: 'User updated successfully.' });
       setIsUpdateDialogOpen(false);
@@ -559,6 +558,49 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                                 </FormItem>
                               )}
                             />
+                             {isProWatcher && (
+                                <FormField
+                                    control={updateUserForm.control}
+                                    name="proValidUntil"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-col">
+                                            <FormLabel>Pro Valid Until</FormLabel>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button
+                                                            variant={"outline"}
+                                                            className={cn(
+                                                                "w-full pl-3 text-left font-normal",
+                                                                !field.value && "text-muted-foreground"
+                                                            )}
+                                                        >
+                                                            {field.value ? (
+                                                                format(field.value, "PPP")
+                                                            ) : (
+                                                                <span>Pick a date</span>
+                                                            )}
+                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0" align="start">
+                                                    <Calendar
+                                                        mode="single"
+                                                        selected={field.value ?? undefined}
+                                                        onSelect={field.onChange}
+                                                        disabled={(date) =>
+                                                            date < new Date()
+                                                        }
+                                                        initialFocus
+                                                    />
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                             )}
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setIsUpdateDialogOpen(false)}>Cancel</Button>
                                 <Button type="submit" disabled={isLoading}>
