@@ -20,11 +20,12 @@ export async function POST(req: NextRequest) {
         solutionImage, 
         solutionText, 
         examCategories, 
-        isForLiveTest 
+        isForLiveTest,
+        topic,
     } = body;
 
     // --- Robust Server-Side Validation ---
-    if (!questionText || !questionImage || !options || !correctAnswer || !examCategories) {
+    if (!questionText || !questionImage || !options || !correctAnswer || !examCategories || !topic) {
         return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
     }
     if (!Array.isArray(options) || options.length !== 4) {
@@ -47,6 +48,7 @@ export async function POST(req: NextRequest) {
         solutionText: solutionText || undefined,
         examCategories,
         isForLiveTest: isForLiveTest || false,
+        topic,
         uploadedAt: new Date(),
     }
     

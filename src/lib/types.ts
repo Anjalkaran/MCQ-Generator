@@ -151,5 +151,6 @@ export interface ReasoningQuestion {
   solutionText?: string;
   examCategories: ('MTS' | 'POSTMAN' | 'PA')[];
   isForLiveTest: boolean;
+  topic: string; // The specific topic (e.g., 'Non-verbal Reasoning')
   uploadedAt: Date;
 }

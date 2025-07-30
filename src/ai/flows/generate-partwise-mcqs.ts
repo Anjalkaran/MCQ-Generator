@@ -14,8 +14,8 @@ config();
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { getTopicsByPartAndExam, getAllUserQuestions } from '@/lib/firestore';
-import type { MCQ } from '@/lib/types';
+import { getTopicsByPartAndExam, getAllUserQuestions, getReasoningQuestionsForPartwiseTest } from '@/lib/firestore';
+import type { MCQ, ReasoningQuestion } from '@/lib/types';
 
 const GeneratePartwiseMCQsInputSchema = z.object({
   examCategory: z.string().describe('The exam category (e.g., MTS, POSTMAN, PA).'),
@@ -98,25 +98,65 @@ const generatePartwiseMCQsFlow = ai.defineFlow(
     if (topicsForPart.length === 0) {
       throw new Error(`No topics found for ${examCategory} - ${part}.`);
     }
-
-    const topicsString = topicsForPart.map(topic => `- ${topic.title}`).join('\n');
-    const previousQuestions = await getAllUserQuestions(userId);
-
-    const { output } = await generateQuestionsForTopicsPrompt({
-        examCategory,
-        part,
-        topics: topicsString,
-        questionCount: numberOfQuestions,
-        previousQuestions: previousQuestions,
-        language,
-    });
     
-    if (!output || !output.questions || output.questions.length === 0) {
-        throw new Error('The AI could not generate questions for the selected part.');
+    let generatedMCQs: MCQ[] = [];
+    let questionsToGenerateFromPrompt = numberOfQuestions;
+
+    // If Part B, check for reasoning questions
+    if (part === 'Part B') {
+        const reasoningQuestions = await getReasoningQuestionsForPartwiseTest(examCategory);
+        const reasoningCategoryName = "Reasoning and Analytical Ability";
+        const reasoningTopics = topicsForPart.filter(t => t.categoryName === reasoningCategoryName);
+
+        if (reasoningTopics.length > 0 && reasoningQuestions.length > 0) {
+            // Allocate a portion of questions to reasoning, e.g., 20% or up to a max of 10
+            const numReasoningQuestions = Math.min(10, Math.floor(numberOfQuestions * 0.2));
+            
+            if (reasoningQuestions.length >= numReasoningQuestions) {
+                const selectedReasoning = reasoningQuestions.sort(() => 0.5 - Math.random()).slice(0, numReasoningQuestions);
+                
+                const formattedReasoningMCQs: MCQ[] = selectedReasoning.map((q: ReasoningQuestion) => ({
+                    question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
+                    options: q.options,
+                    correctAnswer: q.correctAnswer,
+                    solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
+                    topic: q.topic,
+                }));
+
+                generatedMCQs.push(...formattedReasoningMCQs);
+                questionsToGenerateFromPrompt -= numReasoningQuestions;
+            }
+        }
     }
 
-    // TODO: Add arithmetic solver logic if needed, similar to mock test flow.
+    // Filter out reasoning topics from the list for the prompt
+    const nonReasoningTopics = topicsForPart.filter(t => t.categoryName !== "Reasoning and Analytical Ability");
     
-    return { mcqs: output.questions };
+    if (questionsToGenerateFromPrompt > 0 && nonReasoningTopics.length > 0) {
+        const topicsString = nonReasoningTopics.map(topic => `- ${topic.title}`).join('\n');
+        const previousQuestions = await getAllUserQuestions(userId);
+
+        const { output } = await generateQuestionsForTopicsPrompt({
+            examCategory,
+            part,
+            topics: topicsString,
+            questionCount: questionsToGenerateFromPrompt,
+            previousQuestions: previousQuestions,
+            language,
+        });
+        
+        if (output && output.questions) {
+            generatedMCQs.push(...output.questions);
+        }
+    }
+    
+    if (generatedMCQs.length === 0) {
+        throw new Error('The AI could not generate any questions for the selected part.');
+    }
+
+    // Shuffle the final list of questions
+    const finalMCQs = generatedMCQs.sort(() => 0.5 - Math.random());
+    
+    return { mcqs: finalMCQs };
   }
 );

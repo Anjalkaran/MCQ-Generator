@@ -22,6 +22,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { useDashboard } from '@/app/dashboard/layout';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
@@ -35,6 +37,7 @@ const fileSchema = z.instanceof(File)
     .nullable();
 
 const formSchema = z.object({
+  topic: z.string().min(1, 'Please select a topic.'),
   questionText: z.string().min(1, 'Question text is required.'),
   questionImage: z.instanceof(File, { message: 'Question image is required.' }).refine(file => file.size > 0, 'Question image is required.').refine(file => file.size <= MAX_FILE_SIZE_BYTES, `File size must be less than ${MAX_FILE_SIZE_MB}MB.`),
   option1: z.string().min(1, 'Option 1 is required.'),
@@ -68,10 +71,18 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
   const [questions, setQuestions] = useState<ReasoningQuestion[]>(initialQuestions);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
+  const { topics, categories } = useDashboard();
+
+  const reasoningTopics = useMemo(() => {
+    const reasoningCategory = categories.find(c => c.name === "Reasoning and Analytical Ability");
+    if (!reasoningCategory) return [];
+    return topics.filter(t => t.categoryId === reasoningCategory.id && t.part === 'Part B');
+  }, [topics, categories]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+        topic: '',
         questionText: '',
         option1: '',
         option2: '',
@@ -95,6 +106,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
         const options = [values.option1, values.option2, values.option3, values.option4];
         
         const payload = {
+            topic: values.topic,
             questionText: values.questionText,
             questionImage: questionImageUri,
             options,
@@ -151,6 +163,28 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
             <CardContent>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                        <FormField
+                            control={form.control}
+                            name="topic"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Topic*</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a reasoning topic" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {reasoningTopics.map(topic => (
+                                                <SelectItem key={topic.id} value={topic.title}>{topic.title}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                         <FormField
                             control={form.control}
                             name="questionText"
@@ -320,6 +354,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Question</TableHead>
+                                <TableHead>Topic</TableHead>
                                 <TableHead>Categories</TableHead>
                                 <TableHead>Uploaded</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
@@ -332,6 +367,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                                         <TableCell>
                                             <Image src={q.questionImage} alt="Question" width={60} height={60} className="rounded-md object-cover" />
                                         </TableCell>
+                                        <TableCell>{q.topic}</TableCell>
                                         <TableCell>
                                             <div className="flex flex-wrap gap-1">
                                                 {q.examCategories.map(cat => <Badge key={cat} variant="secondary">{cat}</Badge>)}
@@ -348,6 +384,10 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                                                         <DialogTitle>Question Details</DialogTitle>
                                                     </DialogHeader>
                                                     <div className="space-y-4">
+                                                        <div>
+                                                            <h3 className="font-semibold mb-2">Topic:</h3>
+                                                            <p className="text-sm text-muted-foreground p-2 border rounded-md">{q.topic}</p>
+                                                        </div>
                                                         <div>
                                                             <h3 className="font-semibold mb-2">Question Text:</h3>
                                                             <p className="text-sm text-muted-foreground p-2 border rounded-md">{q.questionText}</p>
@@ -397,7 +437,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="h-24 text-center">
+                                    <TableCell colSpan={5} className="h-24 text-center">
                                         No reasoning questions uploaded yet.
                                     </TableCell>
                                 </TableRow>

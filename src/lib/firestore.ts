@@ -146,7 +146,15 @@ export const getTopicsByPartAndExam = async (part: string, examCategory: string)
         where('examCategories', 'array-contains', examCategory)
     );
     const topicSnapshot = await getDocs(q);
-    return topicSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Topic));
+    const topics = topicSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Topic));
+
+    // Fetch category names for topics
+    const categories = await getCategories();
+    const categoryMap = new Map(categories.map(c => [c.id, c.name]));
+     return topics.map(topic => ({
+        ...topic,
+        categoryName: categoryMap.get(topic.categoryId) || 'N/A'
+    }));
 };
 
 export const addTopic = async (topic: Omit<Topic, 'id'>): Promise<DocumentReference> => {
@@ -588,6 +596,17 @@ export const getReasoningQuestionsForLiveTest = async (examCategory: 'MTS' | 'PO
     const q = query(
         collection(db, 'reasoningBank'), 
         where('isForLiveTest', '==', true),
+        where('examCategories', 'array-contains', examCategory)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as ReasoningQuestion));
+};
+
+export const getReasoningQuestionsForPartwiseTest = async (examCategory: 'MTS' | 'POSTMAN' | 'PA'): Promise<ReasoningQuestion[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const q = query(
+        collection(db, 'reasoningBank'), 
         where('examCategories', 'array-contains', examCategory)
     );
     const snapshot = await getDocs(q);
