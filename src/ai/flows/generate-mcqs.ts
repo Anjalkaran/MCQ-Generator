@@ -141,6 +141,7 @@ const generateMCQsFlow = ai.defineFlow(
     // CRITICAL FIX: Check for reasoningBank source at the very beginning of the flow.
     if (input.source === 'reasoningBank') {
         const allQuestions = await getReasoningQuestions();
+        // Correctly filter by the 'topic' field which matches the topic title.
         const topicQuestions = allQuestions.filter(q => q.topic === input.topic);
 
         if (topicQuestions.length < input.numberOfQuestions) {
