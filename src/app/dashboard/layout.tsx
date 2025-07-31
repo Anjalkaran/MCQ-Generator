@@ -11,7 +11,7 @@ import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
-import { getDashboardData } from '@/lib/firestore';
+import { getDashboardData, updateUserDocument } from '@/lib/firestore';
 import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification } from "@/lib/types";
 import { ADMIN_EMAILS, FREE_EXAM_LIMIT } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
@@ -21,6 +21,7 @@ import { AdminNotifications } from '@/components/dashboard/admin-notifications';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface OnlineUser {
     uid: string;
@@ -328,6 +329,7 @@ export default function DashboardLayout({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showReasoningPopup, setShowReasoningPopup] = useState(false);
 
   const handleLogout = useCallback(async (authInstance = getFirebaseAuth(), showToast = true) => {
     if (!authInstance) {
@@ -445,6 +447,12 @@ export default function DashboardLayout({
                 setUserData(fetchedUserData);
                 setCategories(categories);
                 setTopics(topics);
+
+                // Check for reasoning update popup
+                if ((fetchedUserData.examCategory === 'PA' || fetchedUserData.examCategory === 'POSTMAN') && !fetchedUserData.hasSeenReasoningUpdate) {
+                    setShowReasoningPopup(true);
+                }
+
                 // Non-admins don't need this data, so set to empty arrays
                 setBankedQuestions([]);
                 setTopicMCQs([]);
@@ -483,6 +491,18 @@ export default function DashboardLayout({
     return () => unsubscribe();
     
   }, [router, toast, handleLogout, pathname]);
+
+  const handlePopupClose = async () => {
+    setShowReasoningPopup(false);
+    if (user && userData && !userData.hasSeenReasoningUpdate) {
+        try {
+            await updateUserDocument(user.uid, { hasSeenReasoningUpdate: true });
+            setUserData(prev => prev ? ({...prev, hasSeenReasoningUpdate: true}) : null);
+        } catch (error) {
+            console.error("Failed to mark reasoning update as seen:", error);
+        }
+    }
+  };
   
   const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, qnaUsage, notifications, onlineUsers, isLoading, setUserData };
 
@@ -498,7 +518,33 @@ export default function DashboardLayout({
                    <div className="flex h-full w-full items-center justify-center">
                       <Loader2 className="h-12 w-12 animate-spin text-primary" />
                    </div>
-              ) : children}
+              ) : (
+                <>
+                  {children}
+                   <Dialog open={showReasoningPopup} onOpenChange={(isOpen) => !isOpen && handlePopupClose()}>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-2">
+                            <BrainCircuit className="h-6 w-6 text-primary" />
+                            New Feature Added!
+                          </DialogTitle>
+                          <DialogDescription className="pt-2">
+                             We've just added a new **Image Base Reasoning Test** section to help you master non-verbal and analytical questions.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <Alert>
+                           <AlertTitle>Where to find it?</AlertTitle>
+                           <AlertDescription>
+                            You can find the new section on your main dashboard. Click the button below to go there now.
+                           </AlertDescription>
+                        </Alert>
+                         <Button asChild onClick={handlePopupClose}>
+                            <Link href="/dashboard">Got it, thanks!</Link>
+                         </Button>
+                      </DialogContent>
+                   </Dialog>
+                </>
+              )}
           </MainContent>
         </SidebarProvider>
       </div>

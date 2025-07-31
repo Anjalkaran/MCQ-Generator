@@ -46,6 +46,7 @@ export interface UserData {
     proValidUntil?: any; 
     createdAt?: any;
     lastSeen?: any;
+    hasSeenReasoningUpdate?: boolean; // New field for the popup
     // Deprecated fields, kept for potential data migration
     topicExamsTaken?: number;
     mockTestsTaken?: number;
