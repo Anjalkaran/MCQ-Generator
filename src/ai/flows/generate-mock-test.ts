@@ -40,19 +40,24 @@ export type GenerateMockTestOutput = z.infer<typeof GenerateMockTestOutputSchema
 
 const extractMCQsFromTextPrompt = ai.definePrompt({
     name: 'extractMCQsFromTextForMockTest',
-    input: { schema: z.object({ textContent: z.string(), topicName: z.string(), language: z.string().optional().default('English') }) },
+    input: { schema: z.object({ textContent: z.string(), topicNames: z.array(z.string()), language: z.string().optional().default('English') }) },
     output: { schema: z.object({ mcqs: z.array(MCQSchema) }) },
     model: 'googleai/gemini-1.5-pro',
     prompt: `You are an expert at parsing and formatting multiple-choice questions (MCQs).
-Your task is to extract **ALL** high-quality, unique questions you can find for the topic "{{topicName}}" from the 'TEXT CONTENT' provided below.
+Your task is to extract **ALL** high-quality, unique questions you can find for the topics listed below from the 'TEXT CONTENT' provided.
 
 **CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
 **CRITICAL RULE FOR TRANSLATION:** When translating to any language other than English (e.g., Tamil, Hindi, Telugu, Kannada), you MUST keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", "Head Office", "Sub Office", etc.
 
+**Topics to Extract:**
+{{#each topicNames}}
+- {{this}}
+{{/each}}
+
 **Process:**
-1.  Read the 'TEXT CONTENT' and identify all distinct multiple-choice questions relevant to the topic.
+1.  Read the 'TEXT CONTENT' and identify all distinct multiple-choice questions relevant to the topics above.
 2.  For each question, accurately extract the full question text, all four of its options, the indicated correct answer, and the step-by-step solution if provided.
-3.  For EACH extracted question, you MUST add a 'topic' field with the value "{{topicName}}".
+3.  For EACH extracted question, you MUST add a 'topic' field with the specific topic name it belongs to.
 4.  **Translate** the entire extracted content for each question into the specified '{{language}}'.
 
 **CRITICAL INSTRUCTIONS:**
@@ -117,46 +122,47 @@ const generateMockTestFlow = ai.defineFlow(
             sectionQuestions.push(...formattedReasoningMCQs);
         } else {
             // Default handling for all other sections - pull from MCQ Bank
-            const topicConfigs = section.topics.map(t => typeof t === 'string' ? { name: t, questions: 0 } : t);
+            const topicNamesInSection = section.topics.map(t => (typeof t === 'string' ? t : t.name));
+            const topicIdsInSection: string[] = [];
             
-            // Distribute questions per topic if specified, otherwise pull from all topics in section
-            let questionsPerTopic = Math.ceil(sectionQuestionsNeeded / topicConfigs.length);
-
-            for (const topicConfig of topicConfigs) {
-                const topicName = topicConfig.name;
-                const questionsToFetch = topicConfig.questions > 0 ? topicConfig.questions : questionsPerTopic;
-                
+            for (const topicName of topicNamesInSection) {
                 const topicInfo = topicMapByName.get(topicName.toLowerCase());
-                if (!topicInfo) {
+                if (topicInfo) {
+                    topicIdsInSection.push(topicInfo.id);
+                } else {
                     console.warn(`Blueprint topic "${topicName}" not found in Firestore. Skipping.`);
-                    continue;
                 }
-
-                const uploadedMCQs = await getTopicMCQs(topicInfo.id);
-                if (!uploadedMCQs || uploadedMCQs.length === 0) {
-                     throw new Error(`No questions uploaded for topic: "${topicName}". Please upload questions to the MCQ Bank for this topic.`);
-                }
-                
-                const combinedContent = uploadedMCQs.map(doc => doc.content).join('\\n\\n---\\n\\n');
-                
-                const { output } = await extractMCQsFromTextPrompt({
-                    textContent: combinedContent,
-                    topicName: topicName,
-                    language: input.language,
-                });
-
-                const allExtractedMcqs = output?.mcqs || [];
-                if (allExtractedMcqs.length < questionsToFetch) {
-                    throw new Error(`Could not find enough questions for topic "${topicName}". Found ${allExtractedMcqs.length}, but need ${questionsToFetch}. Please upload more to the MCQ Bank.`);
-                }
-                
-                // Shuffle all extracted questions and take the required number
-                const selectedMcqs = shuffleArray(allExtractedMcqs).slice(0, questionsToFetch);
-                sectionQuestions.push(...selectedMcqs);
             }
+
+            if (topicIdsInSection.length === 0) {
+                throw new Error(`No topics found in Firestore for section: "${section.sectionName}". Please check blueprint and topic names.`);
+            }
+
+            const allMcqDocsForSection = await Promise.all(topicIdsInSection.map(id => getTopicMCQs(id)));
+            const combinedContent = allMcqDocsForSection.flat().map(doc => doc.content).join('\n\n---\n\n');
+            
+            if (!combinedContent.trim()) {
+                throw new Error(`No MCQ documents have been uploaded for the topics in section: "${section.sectionName}". Please upload question files.`);
+            }
+
+            const { output } = await extractMCQsFromTextPrompt({
+                textContent: combinedContent,
+                topicNames: topicNamesInSection,
+                language: input.language,
+            });
+
+            const allExtractedMcqs = output?.mcqs || [];
+
+            if (allExtractedMcqs.length < sectionQuestionsNeeded) {
+                throw new Error(`Could not find enough questions for section "${section.sectionName}". Found ${allExtractedMcqs.length}, but need ${sectionQuestionsNeeded}. Please upload more questions for the topics in this section.`);
+            }
+
+            // Shuffle all extracted questions and take the required number for the whole section
+            const selectedMcqs = shuffleArray(allExtractedMcqs).slice(0, sectionQuestionsNeeded);
+            sectionQuestions.push(...selectedMcqs);
         }
         
-        allQuestions.push(...shuffleArray(sectionQuestions).slice(0, sectionQuestionsNeeded));
+        allQuestions.push(...sectionQuestions);
       }
     }
     
