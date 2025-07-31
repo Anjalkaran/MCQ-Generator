@@ -68,16 +68,20 @@ const generateLiveMockTestFlow = ai.defineFlow(
 
     let finalMCQs = parsedData.questions;
     
-    // For PA and POSTMAN exams, fetch and append reasoning questions
-    if (input.examCategory === 'PA' || input.examCategory === 'POSTMAN') {
-        const reasoningQuestionsNeeded = input.examCategory === 'PA' ? 10 : 5;
+    let reasoningQuestionsNeeded = 0;
+    if (input.examCategory === 'PA') {
+        reasoningQuestionsNeeded = 10;
+    } else if (input.examCategory === 'POSTMAN') {
+        reasoningQuestionsNeeded = 5;
+    }
+
+    if (reasoningQuestionsNeeded > 0) {
         const reasoningQuestions = await getReasoningQuestionsForLiveTest(input.examCategory);
         
         if (reasoningQuestions.length < reasoningQuestionsNeeded) {
             throw new Error(`Could not find enough reasoning questions for the ${input.examCategory} live test. Found ${reasoningQuestions.length}, but need ${reasoningQuestionsNeeded}. Please upload more.`);
         }
 
-        // Shuffle and pick the required number of random questions
         const selectedReasoning = reasoningQuestions.sort(() => 0.5 - Math.random()).slice(0, reasoningQuestionsNeeded);
         
         const formattedReasoningMCQs: MCQ[] = selectedReasoning.map(q => ({
