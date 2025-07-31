@@ -94,53 +94,42 @@ const generatePartwiseMCQsFlow = ai.defineFlow(
   async input => {
     const { examCategory, part, numberOfQuestions, userId, language } = input;
 
-    const topicsForPart = await getTopicsByPartAndExam(part, examCategory);
-    if (topicsForPart.length === 0) {
-      throw new Error(`No topics found for ${examCategory} - ${part}.`);
-    }
-    
     let generatedMCQs: MCQ[] = [];
-    let questionsToGenerateFromPrompt = numberOfQuestions;
 
-    // If Part B, check for reasoning questions
     if (part === 'Part B') {
+        // For Part B, exclusively use questions from the reasoning bank.
         const reasoningQuestions = await getReasoningQuestionsForPartwiseTest(examCategory);
-        const reasoningCategoryName = "Reasoning and Analytical Ability";
-        const reasoningTopics = topicsForPart.filter(t => t.categoryName === reasoningCategoryName);
-
-        if (reasoningTopics.length > 0 && reasoningQuestions.length > 0) {
-            // Allocate a portion of questions to reasoning, e.g., 20% or up to a max of 10
-            const numReasoningQuestions = Math.min(10, Math.floor(numberOfQuestions * 0.2));
-            
-            if (reasoningQuestions.length >= numReasoningQuestions) {
-                const selectedReasoning = reasoningQuestions.sort(() => 0.5 - Math.random()).slice(0, numReasoningQuestions);
-                
-                const formattedReasoningMCQs: MCQ[] = selectedReasoning.map((q: ReasoningQuestion) => ({
-                    question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
-                    options: q.options,
-                    correctAnswer: q.correctAnswer,
-                    solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
-                    topic: q.topic,
-                }));
-
-                generatedMCQs.push(...formattedReasoningMCQs);
-                questionsToGenerateFromPrompt -= numReasoningQuestions;
-            }
+        
+        if (reasoningQuestions.length < numberOfQuestions) {
+            throw new Error(`Not enough questions available for ${examCategory} - Part B. We have ${reasoningQuestions.length}, but you requested ${numberOfQuestions}. More questions will be uploaded soon.`);
         }
-    }
 
-    // Filter out reasoning topics from the list for the prompt
-    const nonReasoningTopics = topicsForPart.filter(t => t.categoryName !== "Reasoning and Analytical Ability");
-    
-    if (questionsToGenerateFromPrompt > 0 && nonReasoningTopics.length > 0) {
-        const topicsString = nonReasoningTopics.map(topic => `- ${topic.title}`).join('\n');
+        const selectedReasoning = reasoningQuestions.sort(() => 0.5 - Math.random()).slice(0, numberOfQuestions);
+        
+        const formattedReasoningMCQs: MCQ[] = selectedReasoning.map((q: ReasoningQuestion) => ({
+            question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
+            options: q.options,
+            correctAnswer: q.correctAnswer,
+            solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
+            topic: q.topic,
+        }));
+        generatedMCQs.push(...formattedReasoningMCQs);
+
+    } else {
+        // For Part A, generate questions using AI.
+        const topicsForPart = await getTopicsByPartAndExam(part, examCategory);
+        if (topicsForPart.length === 0) {
+            throw new Error(`No topics found for ${examCategory} - ${part}.`);
+        }
+        
+        const topicsString = topicsForPart.map(topic => `- ${topic.title}`).join('\n');
         const previousQuestions = await getAllUserQuestions(userId);
 
         const { output } = await generateQuestionsForTopicsPrompt({
             examCategory,
             part,
             topics: topicsString,
-            questionCount: questionsToGenerateFromPrompt,
+            questionCount: numberOfQuestions,
             previousQuestions: previousQuestions,
             language,
         });
@@ -151,12 +140,9 @@ const generatePartwiseMCQsFlow = ai.defineFlow(
     }
     
     if (generatedMCQs.length === 0) {
-        throw new Error('The AI could not generate any questions for the selected part.');
+        throw new Error('Could not generate or find any questions for the selected part. Please check the configuration or contact support.');
     }
-
-    // Shuffle the final list of questions
-    const finalMCQs = generatedMCQs.sort(() => 0.5 - Math.random());
     
-    return { mcqs: finalMCQs };
+    return { mcqs: generatedMCQs };
   }
 );
