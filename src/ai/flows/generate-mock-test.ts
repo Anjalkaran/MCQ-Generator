@@ -141,7 +141,7 @@ const generateMockTestFlow = ai.defineFlow(
                 if (!uploadedMCQs || uploadedMCQs.length === 0) {
                     throw new Error(`Questions for "Analytical Reasoning" are not uploaded yet. Please upload them in the MCQ Bank.`);
                 }
-                const combinedContent = uploadedMCQs.map(doc => doc.content).join('\n\n---\n\n');
+                const combinedContent = uploadedMCQs.map(doc => doc.content).join('\\n\\n---\\n\\n');
                 const { output } = await extractMCQsFromTextPrompt({
                     textContent: combinedContent,
                     topicName: analyticalTopic.name,
@@ -173,7 +173,7 @@ const generateMockTestFlow = ai.defineFlow(
                 }));
                 allQuestions.push(...formattedReasoningMCQs);
             }
-            continue; // Skip to next section
+            continue; // CRITICAL FIX: Skip the default AI generation for this section
         }
 
 
@@ -181,7 +181,7 @@ const generateMockTestFlow = ai.defineFlow(
         const topicsString = section.topics.map((topic: any) => {
           const topicName = (typeof topic === 'string') ? topic : topic.name;
           return `- ${topicName}`;
-        }).join('\n');
+        }).join('\\n');
         
         let questionsToGenerate = section.questions;
         
