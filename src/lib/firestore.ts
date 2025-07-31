@@ -447,7 +447,7 @@ export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategor
     const leaderboard: Omit<LeaderboardEntry, 'rank'>[] = [];
     userPerformance.forEach((perf, userId) => {
         const user = userMap.get(userId);
-        if (user && perf.totalExams > 5) {
+        if (user && perf.totalExams >= 1) {
             leaderboard.push({
                 userId,
                 userName: user.name,
@@ -591,11 +591,27 @@ export const getReasoningQuestions = async (): Promise<ReasoningQuestion[]> => {
 
 const getReasoningTopicTitlesForExam = async (examCategory: 'MTS' | 'POSTMAN' | 'PA'): Promise<string[]> => {
     const allTopics = await getTopics();
-    const reasoningCategory = (await getCategories()).find(c => c.name === "Reasoning and Analytical Ability");
-    if (!reasoningCategory) return [];
+    const allCategories = await getCategories();
+    
+    // Find categories whose names contain "Reasoning" or "Non verbal" (case-insensitive)
+    const reasoningCategoryIds = new Set(
+        allCategories
+            .filter(c => 
+                c.name.toLowerCase().includes("reasoning") || 
+                c.name.toLowerCase().includes("non-verbal") ||
+                c.name.toLowerCase().includes("non verbal")
+            )
+            .map(c => c.id)
+    );
+
+    if (reasoningCategoryIds.size === 0) return [];
     
     return allTopics
-        .filter(t => t.categoryId === reasoningCategory.id && t.examCategories.includes(examCategory))
+        .filter(t => 
+            reasoningCategoryIds.has(t.categoryId) && 
+            t.examCategories.includes(examCategory) &&
+            t.part === 'Part B'
+        )
         .map(t => t.title);
 }
 
