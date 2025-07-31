@@ -154,16 +154,14 @@ function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           {isAdmin && (
-            <>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin">
-                  <Link href="/dashboard/admin" onClick={onLinkClick}>
-                    <Shield />
-                    <span>Admin</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin">
+                <Link href="/dashboard/admin" onClick={onLinkClick}>
+                  <Shield />
+                  <span>Admin</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           )}
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/topic-wise-mcq')} tooltip="Practice MCQ">
@@ -199,14 +197,6 @@ function AppSidebar() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="WhatsApp Support">
-                <a href="https://wa.me/9003142899" target="_blank" rel="noopener noreferrer">
-                  <MessageCircle />
-                  <span>WhatsApp Support</span>
-                </a>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/dashboard/profile'} tooltip="Profile">
               <Link href="/dashboard/profile" onClick={onLinkClick}>
@@ -239,15 +229,23 @@ function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/feedback')} tooltip="Feedback">
-                <Link href="/dashboard/feedback" onClick={onLinkClick}>
-                  <Star />
-                  <span>Feedback</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            {showUpgradeButton && (
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/feedback')} tooltip="Feedback">
+              <Link href="/dashboard/feedback" onClick={onLinkClick}>
+                <Star />
+                <span>Feedback</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="WhatsApp Support">
+              <a href="https://wa.me/9003142899" target="_blank" rel="noopener noreferrer">
+                <MessageCircle />
+                <span>WhatsApp Support</span>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          {showUpgradeButton && (
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname === '/dashboard/upgrade'} variant="outline" className="text-primary hover:bg-primary/10 hover:text-primary border-primary/50" tooltip="Upgrade to Pro">
                 <Link href="/dashboard/upgrade" onClick={onLinkClick}>
