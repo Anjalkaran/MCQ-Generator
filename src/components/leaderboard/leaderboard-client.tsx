@@ -23,6 +23,8 @@ interface LeaderboardClientProps {
 }
 
 type ExamCategory = UserData['examCategory'];
+const examCategories: ExamCategory[] = ['MTS', 'POSTMAN', 'PA'];
+
 
 function LeaderboardTable({ data, type = 'general' }: { data: LeaderboardEntry[], type?: 'general' | 'live' }) {
   if (data.length === 0) {
@@ -100,7 +102,6 @@ function LeaderboardTable({ data, type = 'general' }: { data: LeaderboardEntry[]
 }
 
 function CategorySelector({ selectedCategory, setSelectedCategory }: { selectedCategory: ExamCategory, setSelectedCategory: (category: ExamCategory) => void }) {
-  const categories: ExamCategory[] = ['MTS', 'POSTMAN', 'PA'];
   return (
     <RadioGroup
       value={selectedCategory}
@@ -108,7 +109,7 @@ function CategorySelector({ selectedCategory, setSelectedCategory }: { selectedC
       className="flex items-center space-x-4 mb-4"
     >
       <Label>Exam Category:</Label>
-      {categories.map(cat => (
+      {examCategories.map(cat => (
         <div key={cat} className="flex items-center space-x-2">
           <RadioGroupItem value={cat} id={`cat-${cat}`} />
           <Label htmlFor={`cat-${cat}`}>{cat}</Label>
@@ -119,13 +120,39 @@ function CategorySelector({ selectedCategory, setSelectedCategory }: { selectedC
 }
 
 function LiveTestLeaderboard({ pastLiveTests, initialTestId }: { pastLiveTests: LiveTest[], initialTestId?: string }) {
-    const [selectedTestId, setSelectedTestId] = useState<string | undefined>(initialTestId || pastLiveTests[0]?.id);
+    const [selectedCategory, setSelectedCategory] = useState<ExamCategory>('MTS');
+    const [selectedTestId, setSelectedTestId] = useState<string | undefined>(undefined);
     const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
+    const filteredLiveTests = useMemo(() => {
+        return pastLiveTests.filter(test => test.examCategory === selectedCategory);
+    }, [pastLiveTests, selectedCategory]);
+
+    useEffect(() => {
+        if (initialTestId) {
+            const initialTest = pastLiveTests.find(t => t.id === initialTestId);
+            if (initialTest) {
+                setSelectedCategory(initialTest.examCategory);
+                setSelectedTestId(initialTestId);
+                return; // Early return to let the next effect handle fetching
+            }
+        }
+        // If no initialTestId or it's not found, default to the first test of the selected category
+        setSelectedTestId(filteredLiveTests[0]?.id);
+    }, [initialTestId, pastLiveTests, filteredLiveTests]);
+    
+     useEffect(() => {
+        // Reset test selection when category changes
+        setSelectedTestId(filteredLiveTests[0]?.id);
+    }, [selectedCategory, filteredLiveTests]);
+
     useEffect(() => {
         const fetchLeaderboard = async () => {
-            if (!selectedTestId) return;
+            if (!selectedTestId) {
+                setLeaderboardData([]);
+                return;
+            }
             setIsLoading(true);
             try {
                 const data = await getLiveTestLeaderboardData(selectedTestId);
@@ -147,27 +174,37 @@ function LiveTestLeaderboard({ pastLiveTests, initialTestId }: { pastLiveTests: 
 
     return (
         <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
-                <Label>Select a Live Test:</Label>
-                <Select value={selectedTestId} onValueChange={setSelectedTestId}>
-                    <SelectTrigger className="w-full sm:w-[300px]">
-                        <SelectValue placeholder="Select a past live test..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {pastLiveTests.map(test => (
-                            <SelectItem key={test.id} value={test.id}>
-                                {test.title} ({getFormattedDate(test.startTime)})
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+             <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
+                <div className="w-full sm:w-auto">
+                    <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} />
+                </div>
+                <div className="flex-grow">
+                    <Select value={selectedTestId} onValueChange={setSelectedTestId}>
+                        <SelectTrigger className="w-full sm:w-[300px]">
+                            <SelectValue placeholder="Select a past live test..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {filteredLiveTests.map(test => (
+                                <SelectItem key={test.id} value={test.id}>
+                                    {test.title} ({getFormattedDate(test.startTime)})
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
             {isLoading ? (
                 <div className="flex justify-center items-center py-10">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
             ) : (
-                <LeaderboardTable data={leaderboardData} type="live" />
+                filteredLiveTests.length > 0 && selectedTestId ? (
+                    <LeaderboardTable data={leaderboardData} type="live" />
+                ) : (
+                    <div className="text-center text-muted-foreground py-10">
+                        No past live tests found for the {selectedCategory} category.
+                    </div>
+                )
             )}
         </div>
     );
