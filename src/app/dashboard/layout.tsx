@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface OnlineUser {
     uid: string;
@@ -307,10 +308,31 @@ function AppSidebar() {
             </div>
         )}
         <div className="p-2">
-          <Button onClick={() => handleLogout()} variant="ghost" className="w-full justify-start">
-            <LogOut className="mr-2 h-4 w-4" />
-            <span className="group-data-[collapsible=icon]:hidden">Logout</span>
-          </Button>
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="ghost" className="w-full justify-start">
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span className="group-data-[collapsible=icon]:hidden">Logout</span>
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Your feedback helps us improve. Please consider sharing your thoughts before you go.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="sm:justify-between">
+                        <Button variant="outline" asChild>
+                           <Link href="/dashboard/feedback">Give Feedback</Link>
+                        </Button>
+                        <div className="flex gap-2 justify-end">
+                           <AlertDialogCancel>Stay Logged In</AlertDialogCancel>
+                           <AlertDialogAction onClick={() => handleLogout()}>Log Out</AlertDialogAction>
+                        </div>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
         <div className='p-4 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden'>
           <p>&copy; {new Date().getFullYear()} Anjalkaran | v{packageJson.version}</p>
