@@ -40,11 +40,11 @@ export type GenerateMockTestOutput = z.infer<typeof GenerateMockTestOutputSchema
 
 const extractMCQsFromTextPrompt = ai.definePrompt({
     name: 'extractMCQsFromTextForMockTest',
-    input: { schema: z.object({ textContent: z.string(), topicName: z.string(), numberOfQuestions: z.number(), language: z.string().optional().default('English') }) },
+    input: { schema: z.object({ textContent: z.string(), topicName: z.string(), language: z.string().optional().default('English') }) },
     output: { schema: z.object({ mcqs: z.array(MCQSchema) }) },
     model: 'googleai/gemini-1.5-pro',
     prompt: `You are an expert at parsing and formatting multiple-choice questions (MCQs).
-Your task is to extract up to {{numberOfQuestions}} high-quality, unique questions for the topic "{{topicName}}" from the 'TEXT CONTENT' provided below.
+Your task is to extract **ALL** high-quality, unique questions you can find for the topic "{{topicName}}" from the 'TEXT CONTENT' provided below.
 
 **CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
 **CRITICAL RULE FOR TRANSLATION:** When translating to any language other than English (e.g., Tamil, Hindi, Telugu, Kannada), you MUST keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", "Head Office", "Sub Office", etc.
@@ -142,16 +142,17 @@ const generateMockTestFlow = ai.defineFlow(
                 const { output } = await extractMCQsFromTextPrompt({
                     textContent: combinedContent,
                     topicName: topicName,
-                    numberOfQuestions: questionsToFetch,
                     language: input.language,
                 });
 
-                const extractedMcqs = output?.mcqs || [];
-                if (extractedMcqs.length < questionsToFetch) {
-                    throw new Error(`Could not find enough questions for topic "${topicName}". Found ${extractedMcqs.length}, but need ${questionsToFetch}. Please upload more to the MCQ Bank.`);
+                const allExtractedMcqs = output?.mcqs || [];
+                if (allExtractedMcqs.length < questionsToFetch) {
+                    throw new Error(`Could not find enough questions for topic "${topicName}". Found ${allExtractedMcqs.length}, but need ${questionsToFetch}. Please upload more to the MCQ Bank.`);
                 }
                 
-                sectionQuestions.push(...shuffleArray(extractedMcqs).slice(0, questionsToFetch));
+                // Shuffle all extracted questions and take the required number
+                const selectedMcqs = shuffleArray(allExtractedMcqs).slice(0, questionsToFetch);
+                sectionQuestions.push(...selectedMcqs);
             }
         }
         
