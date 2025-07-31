@@ -33,7 +33,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export default function ReasoningTestPage() {
+export function ReasoningTestForm() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, userData, isLoading } = useDashboard();
@@ -157,120 +157,106 @@ export default function ReasoningTestPage() {
 
   if (hasExceededFreeLimit) {
      return (
-        <div className="space-y-6 max-w-2xl mx-auto">
-            <Card>
-                <CardHeader className="text-center">
-                    <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit">
-                        <Gem className="h-8 w-8 text-primary" />
-                    </div>
-                    <CardTitle>Free Limit Reached</CardTitle>
-                    <CardDescription>
-                        You have used your free exam allocation. Please upgrade for unlimited access to all features, including Reasoning Tests.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button asChild className="w-full">
-                        <Link href="/dashboard/upgrade">
-                            Upgrade to Pro
-                        </Link>
-                    </Button>
-                </CardContent>
-            </Card>
-        </div>
+        <Card>
+            <CardHeader className="text-center">
+                <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit">
+                    <Gem className="h-8 w-8 text-primary" />
+                </div>
+                <CardTitle>Free Limit Reached</CardTitle>
+                <CardDescription>
+                    You have used your free exam allocation. Please upgrade for unlimited access to all features, including Reasoning Tests.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Button asChild className="w-full">
+                    <Link href="/dashboard/upgrade">
+                        Upgrade to Pro
+                    </Link>
+                </Button>
+            </CardContent>
+        </Card>
     );
   }
 
   return (
-     <div className="space-y-6 max-w-2xl mx-auto">
-        <div className="space-y-2 text-center">
-            <h1 className="text-3xl font-bold tracking-tight">Reasoning Test</h1>
-            <p className="text-muted-foreground">
-                Practice with questions from our curated Reasoning Bank.
-            </p>
-        </div>
-        <Card>
-            <CardHeader>
-                <CardTitle>Reasoning Test Setup</CardTitle>
-                <CardDescription>Select your exam type, a reasoning topic, and the number of questions to start.</CardDescription>
-            </CardHeader>
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <CardContent>
-                        <fieldset disabled={isGenerating || isLoading || isLoadingQuestions} className="space-y-6">
-                            <FormField
-                            control={form.control}
-                            name="examType"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Your Exam Type</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={!user}>
-                                    <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select Exam Type" />
-                                    </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                    {availableExams.map((exam) => (
-                                        <SelectItem key={exam} value={exam}>{exam}</SelectItem>
-                                    ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                            />
-                            <FormField
-                            control={form.control}
-                            name="topic"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Reasoning Topic</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={!selectedExamType || availableTopics.length === 0}>
-                                    <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={!selectedExamType ? "Select exam first" : "Select a topic"} />
-                                    </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                    {availableTopics.map((topic) => (
-                                        <SelectItem key={topic} value={topic}>{topic}</SelectItem>
-                                    ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                            />
-                            <FormField
-                            control={form.control}
-                            name="numberOfQuestions"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Number of Questions (1-25)</FormLabel>
+     <Card>
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <CardContent className="pt-6">
+                    <fieldset disabled={isGenerating || isLoading || isLoadingQuestions} className="space-y-6">
+                        <FormField
+                        control={form.control}
+                        name="examType"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Your Exam Type</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value} disabled={!user}>
                                 <FormControl>
-                                    <Input type="number" min="1" max="25" {...field} />
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Exam Type" />
+                                </SelectTrigger>
                                 </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                            />
-                        </fieldset>
-                    </CardContent>
-                    <CardFooter>
-                        <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading || isLoadingQuestions} className="w-full">
-                            {isGenerating || isLoadingQuestions ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    {isGenerating ? "Preparing Test..." : "Loading Topics..."}
-                                </>
-                            ) : (
-                                "Start Reasoning Test"
-                            )}
-                        </Button>
-                    </CardFooter>
-                </form>
-            </Form>
-        </Card>
-    </div>
+                                <SelectContent>
+                                {availableExams.map((exam) => (
+                                    <SelectItem key={exam} value={exam}>{exam}</SelectItem>
+                                ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                        <FormField
+                        control={form.control}
+                        name="topic"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Reasoning Topic</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value} disabled={!selectedExamType || availableTopics.length === 0}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder={!selectedExamType ? "Select exam first" : "Select a topic"} />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                {availableTopics.map((topic) => (
+                                    <SelectItem key={topic} value={topic}>{topic}</SelectItem>
+                                ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                        <FormField
+                        control={form.control}
+                        name="numberOfQuestions"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Number of Questions (1-25)</FormLabel>
+                            <FormControl>
+                                <Input type="number" min="1" max="25" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                    </fieldset>
+                </CardContent>
+                <CardFooter>
+                    <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading || isLoadingQuestions} className="w-full">
+                        {isGenerating || isLoadingQuestions ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                {isGenerating ? "Preparing Test..." : "Loading Topics..."}
+                            </>
+                        ) : (
+                            "Start Reasoning Test"
+                        )}
+                    </Button>
+                </CardFooter>
+            </form>
+        </Form>
+    </Card>
   );
 }
