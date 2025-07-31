@@ -37,17 +37,11 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [isPaying, setIsPaying] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState('');
-    const [testState, setTestState] = useState<'upcoming' | 'live' | 'ended' | 'completed' | 'loading' | 'entryClosed'>('loading');
+    const [testState, setTestState] = useState<'upcoming' | 'live' | 'ended' | 'completed' | 'loading'>('loading');
     const [participantCount, setParticipantCount] = useState<number | null>(null);
 
     const startTime = useMemo(() => normalizeDate(test.startTime), [test.startTime]);
     const endTime = useMemo(() => normalizeDate(test.endTime), [test.endTime]);
-    const entryCutoffTime = useMemo(() => {
-        if (!startTime) return null;
-        const cutoff = new Date(startTime);
-        cutoff.setMinutes(cutoff.getMinutes() + 10);
-        return cutoff;
-    }, [startTime]);
     
     const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
     const proValidUntilDate = normalizeDate(userData?.proValidUntil);
@@ -72,7 +66,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
 
 
     useEffect(() => {
-        if (!startTime || !endTime || !entryCutoffTime) return;
+        if (!startTime || !endTime) return;
 
         if (isAdmin) {
             setTestState('live');
@@ -91,13 +85,9 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
             if (now < startTime) {
                 if (testState !== 'upcoming') setTestState('upcoming');
                 setTimeRemaining(formatDistanceToNowStrict(startTime));
-            } else if (now >= startTime && now <= entryCutoffTime) {
+            } else if (now >= startTime && now <= endTime) {
                 if (testState !== 'live') setTestState('live');
-                setTimeRemaining(formatDistanceToNowStrict(entryCutoffTime));
-            } else if (now > entryCutoffTime && now <= endTime) {
-                 if (testState !== 'entryClosed') setTestState('entryClosed');
-                 setTimeRemaining('Entry window has closed.');
-                 clearInterval(interval);
+                setTimeRemaining(formatDistanceToNowStrict(endTime));
             } else {
                 if (testState !== 'ended') setTestState('ended');
                 setTimeRemaining('This live test has ended.');
@@ -106,7 +96,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [startTime, endTime, entryCutoffTime, testState, hasTakenTest, isAdmin]);
+    }, [startTime, endTime, testState, hasTakenTest, isAdmin]);
 
     const startTest = async () => {
         setIsGenerating(true);
@@ -229,7 +219,6 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
         if (testState === 'upcoming') return <Button disabled className="w-full"><Lock className="mr-2 h-4 w-4" />Starts In: {timeRemaining}</Button>;
         if (testState === 'completed') return <Button disabled className="w-full"><CheckCircle className="mr-2 h-4 w-4" />Test Already Attempted</Button>;
         if (testState === 'ended') return <Button disabled className="w-full"><TimerOff className="mr-2 h-4 w-4" />Test Has Ended</Button>;
-        if (testState === 'entryClosed') return <Button disabled className="w-full"><Ban className="mr-2 h-4 w-4" />Entry Window Closed</Button>;
 
         // Test is 'live'
         if (test.price === 0 || isPro) {
@@ -286,7 +275,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
                  {!isAdmin && (
                      <div className="p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">
-                            {testState === 'upcoming' ? 'Starts in' : 'Entry closes in'}
+                            {testState === 'upcoming' ? 'Starts in' : 'Ends in'}
                         </p>
                         <p className="text-2xl font-bold tracking-tighter">
                             {timeRemaining}
