@@ -98,10 +98,10 @@ const generatePartwiseMCQsFlow = ai.defineFlow(
 
     if (part === 'Part B') {
         // For Part B, exclusively use questions from the reasoning bank.
-        const reasoningQuestions = await getReasoningQuestionsForPartwiseTest(examCategory);
+        const reasoningQuestions = await getReasoningQuestionsForPartwiseTest(examCategory as 'MTS' | 'POSTMAN' | 'PA');
         
         if (reasoningQuestions.length < numberOfQuestions) {
-            throw new Error(`Not enough questions available for ${examCategory} - Part B. We have ${reasoningQuestions.length}, but you requested ${numberOfQuestions}. More questions will be uploaded soon.`);
+            throw new Error(`Not enough questions available for ${examCategory} - Part B. We have ${reasoningQuestions.length}, but you requested ${numberOfQuestions}. More questions are yet to be uploaded.`);
         }
 
         const selectedReasoning = reasoningQuestions.sort(() => 0.5 - Math.random()).slice(0, numberOfQuestions);
