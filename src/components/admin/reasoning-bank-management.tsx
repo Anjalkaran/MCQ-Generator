@@ -81,11 +81,17 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
   const { topics, categories } = useDashboard();
 
   const reasoningTopics = useMemo(() => {
-    const reasoningCategory = categories.find(c => c.name === "Reasoning and Analytical Ability");
-    if (!reasoningCategory) return [];
+    const reasoningCategories = categories.filter(c => 
+        c.name.toLowerCase().includes("reasoning") || 
+        c.name.toLowerCase().includes("non verbal") ||
+        c.name.toLowerCase().includes("non-verbal")
+    );
+    if (reasoningCategories.length === 0) return [];
     
+    const reasoningCategoryIds = new Set(reasoningCategories.map(c => c.id));
+
     return topics.filter(t => 
-        t.categoryId === reasoningCategory.id && 
+        reasoningCategoryIds.has(t.categoryId) &&
         t.part === 'Part B' &&
         (t.examCategories.includes('POSTMAN') || t.examCategories.includes('PA'))
     );
