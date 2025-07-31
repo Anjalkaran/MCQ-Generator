@@ -12,6 +12,7 @@ import type { LiveTest } from '@/lib/types';
 import { normalizeDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ADMIN_EMAILS } from '@/lib/constants';
 
 function UpcomingLiveTest() {
     const [upcomingTest, setUpcomingTest] = useState<LiveTest | null>(null);
@@ -116,6 +117,9 @@ export default function DashboardPage() {
     );
   }
 
+  const isAdmin = userData.email ? ADMIN_EMAILS.includes(userData.email) : false;
+  const canSeeReasoning = isAdmin || userData.examCategory === 'PA' || userData.examCategory === 'POSTMAN';
+
   return (
     <div className="space-y-6">
       <div className="space-y-2 text-center pt-4">
@@ -159,24 +163,26 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="flex flex-col">
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <div className="bg-primary/10 p-3 rounded-full">
-                <BrainCircuit className="h-6 w-6 text-primary" />
+        {canSeeReasoning && (
+          <Card className="flex flex-col">
+            <CardHeader>
+              <div className="flex items-center gap-4">
+                <div className="bg-primary/10 p-3 rounded-full">
+                  <BrainCircuit className="h-6 w-6 text-primary" />
+                </div>
+                <CardTitle>Image Base Reasoning Test</CardTitle>
               </div>
-              <CardTitle>Image Base Reasoning Test</CardTitle>
-            </div>
-            <CardDescription className="pt-4">
-              Practice image-based questions by selecting a topic from the reasoning question bank. Perfect for honing analytical skills.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex-grow flex items-end">
-            <Button asChild className="w-full">
-              <Link href="/dashboard/reasoning-test">Create Reasoning Test</Link>
-            </Button>
-          </CardContent>
-        </Card>
+              <CardDescription className="pt-4">
+                Practice image-based questions by selecting a topic from the reasoning question bank. Perfect for honing analytical skills.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow flex items-end">
+              <Button asChild className="w-full">
+                <Link href="/dashboard/reasoning-test">Create Reasoning Test</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="flex flex-col">
           <CardHeader>

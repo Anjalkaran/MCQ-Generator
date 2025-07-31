@@ -4,7 +4,7 @@
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageCircle, BrainCircuit } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageCircle, BrainCircuit, Star } from 'lucide-react';
 import Link from 'next/link';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
@@ -112,6 +112,7 @@ function AppSidebar() {
   ));
   
   const showUpgradeButton = userData && !isPro && !isAdmin;
+  const canSeeReasoning = isAdmin || userData?.examCategory === 'PA' || userData?.examCategory === 'POSTMAN';
 
   const getWelcomeMessage = () => {
     if (isLoading || !userData) return null;
@@ -171,14 +172,16 @@ function AppSidebar() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/reasoning-test')} tooltip="Image Base Reasoning">
-                <Link href="/dashboard/reasoning-test" onClick={onLinkClick}>
-                  <BrainCircuit />
-                  <span>Image Base Reasoning</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            {canSeeReasoning && (
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/reasoning-test')} tooltip="Image Base Reasoning">
+                  <Link href="/dashboard/reasoning-test" onClick={onLinkClick}>
+                    <BrainCircuit />
+                    <span>Image Base Reasoning</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
               <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/mock-test')} tooltip="Mock Test">
                 <Link href="/dashboard/mock-test" onClick={onLinkClick}>
@@ -235,6 +238,14 @@ function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/feedback')} tooltip="Feedback">
+                <Link href="/dashboard/feedback" onClick={onLinkClick}>
+                  <Star />
+                  <span>Feedback</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             {showUpgradeButton && (
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname === '/dashboard/upgrade'} variant="outline" className="text-primary hover:bg-primary/10 hover:text-primary border-primary/50" tooltip="Upgrade to Pro">
