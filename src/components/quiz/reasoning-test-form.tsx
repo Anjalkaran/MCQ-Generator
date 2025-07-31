@@ -21,17 +21,24 @@ import { getReasoningQuestions } from '@/lib/firestore';
 import type { ReasoningQuestion, MCQ } from '@/lib/types';
 import { ADMIN_EMAILS, FREE_EXAM_LIMIT } from '@/lib/constants';
 
-const examCategories = ["MTS", "POSTMAN", "PA"] as const;
+const examCategories = ["POSTMAN", "PA"] as const;
 
 const formSchema = z.object({
   examType: z.enum(examCategories, {
     required_error: 'Please select an exam type.',
   }),
-  topic: z.string().min(1, 'Please select a topic.'),
   numberOfQuestions: z.coerce.number().min(1).max(10),
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+function shuffleArray<T>(array: T[]): T[] {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
 
 export function ReasoningTestForm() {
   const router = useRouter();
@@ -45,7 +52,6 @@ export function ReasoningTestForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       examType: undefined,
-      topic: undefined,
       numberOfQuestions: 10,
     },
   });
@@ -68,7 +74,7 @@ export function ReasoningTestForm() {
 
   const availableExams = useMemo(() => {
     if (!userData) return [];
-    if (userData.email && ADMIN_EMAILS.includes(userData.email)) return ["POSTMAN", "PA"]; // Reasoning is not for MTS
+    if (userData.email && ADMIN_EMAILS.includes(userData.email)) return ["POSTMAN", "PA"];
     switch (userData.examCategory) {
         case 'PA':
             return ['PA', 'POSTMAN'];
@@ -79,16 +85,6 @@ export function ReasoningTestForm() {
     }
   }, [userData]);
 
-  const selectedExamType = form.watch('examType');
-
-  const availableTopics = useMemo(() => {
-    if (allReasoningQuestions.length === 0) return [];
-    const topicsForExam = allReasoningQuestions
-        .filter(q => q.topic) // Ensure topic exists
-        .map(q => q.topic);
-    return [...new Set(topicsForExam)].sort();
-  }, [allReasoningQuestions]);
-
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
     if (!user || !userData) {
@@ -98,19 +94,34 @@ export function ReasoningTestForm() {
     }
 
     try {
-      const filteredQuestions = allReasoningQuestions.filter(q => q.topic === values.topic);
-      
-      if (filteredQuestions.length < values.numberOfQuestions) {
-        toast({
-            title: "Not Enough Questions",
-            description: `We only have ${filteredQuestions.length} questions for the topic "${values.topic}". Please select a smaller number.`,
+      const questionsByTopic = allReasoningQuestions.reduce((acc, q) => {
+        if (!acc[q.topic]) {
+          acc[q.topic] = [];
+        }
+        acc[q.topic].push(q);
+        return acc;
+      }, {} as Record<string, ReasoningQuestion[]>);
+
+      const availableTopics = Object.keys(questionsByTopic);
+
+      if (availableTopics.length < values.numberOfQuestions) {
+         toast({
+            title: "Not Enough Topics",
+            description: `We only have ${availableTopics.length} reasoning topics available. Please select a smaller number of questions.`,
             variant: "destructive"
         });
         setIsGenerating(false);
         return;
       }
 
-      const selectedQuestions = filteredQuestions.sort(() => 0.5 - Math.random()).slice(0, values.numberOfQuestions);
+      const shuffledTopics = shuffleArray(availableTopics);
+      const selectedTopics = shuffledTopics.slice(0, values.numberOfQuestions);
+      
+      const selectedQuestions = selectedTopics.map(topic => {
+          const questionsInTopic = questionsByTopic[topic];
+          return questionsInTopic[Math.floor(Math.random() * questionsInTopic.length)];
+      });
+
 
       const mcqs: MCQ[] = selectedQuestions.map((q: ReasoningQuestion) => ({
         question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
@@ -120,7 +131,7 @@ export function ReasoningTestForm() {
         topic: q.topic,
       }));
 
-      const quizId = `reasoning-test-${values.topic.replace(/\s+/g, '-')}-${Date.now()}`;
+      const quizId = `reasoning-test-mixed-${Date.now()}`;
       const timeLimit = values.numberOfQuestions * 60; // 60 seconds per question
 
       const quizData = {
@@ -129,8 +140,8 @@ export function ReasoningTestForm() {
         isMockTest: true,
         topic: {
           id: quizId,
-          title: `Reasoning: ${values.topic}`,
-          description: `A practice test for ${values.topic}.`,
+          title: `Mixed Reasoning Test`,
+          description: `A practice test with mixed reasoning topics.`,
           icon: 'brain-circuit',
           categoryId: 'reasoning-test',
         },
@@ -206,28 +217,6 @@ export function ReasoningTestForm() {
                         />
                         <FormField
                         control={form.control}
-                        name="topic"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Reasoning Topic</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value} disabled={!selectedExamType || availableTopics.length === 0}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder={!selectedExamType ? "Select exam first" : "Select a topic"} />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                {availableTopics.map((topic) => (
-                                    <SelectItem key={topic} value={topic}>{topic}</SelectItem>
-                                ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                        <FormField
-                        control={form.control}
                         name="numberOfQuestions"
                         render={({ field }) => (
                             <FormItem>
@@ -235,6 +224,7 @@ export function ReasoningTestForm() {
                             <FormControl>
                                 <Input type="number" min="1" max="10" {...field} />
                             </FormControl>
+                            <FormDescription>A test will be created with one question from different random topics.</FormDescription>
                             <FormMessage />
                             </FormItem>
                         )}
@@ -246,7 +236,7 @@ export function ReasoningTestForm() {
                         {isGenerating || isLoadingQuestions ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                {isGenerating ? "Preparing Test..." : "Loading Topics..."}
+                                {isGenerating ? "Preparing Test..." : "Loading Questions..."}
                             </>
                         ) : (
                             "Start Reasoning Test"
