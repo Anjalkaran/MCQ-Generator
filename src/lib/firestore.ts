@@ -447,7 +447,7 @@ export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategor
     const leaderboard: Omit<LeaderboardEntry, 'rank'>[] = [];
     userPerformance.forEach((perf, userId) => {
         const user = userMap.get(userId);
-        if (user && perf.totalExams >= 1) {
+        if (user && perf.totalExams > 5) {
             leaderboard.push({
                 userId,
                 userName: user.name,
