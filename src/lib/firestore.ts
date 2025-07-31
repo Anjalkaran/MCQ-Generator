@@ -593,14 +593,13 @@ const getReasoningTopicTitlesForExam = async (examCategory: 'MTS' | 'POSTMAN' | 
     const allTopics = await getTopics();
     const allCategories = await getCategories();
     
-    // Find categories whose names contain "Reasoning" or "Non verbal" (case-insensitive)
+    // Find categories whose names contain "Reasoning" or "Non-verbal" (case-insensitive)
     const reasoningCategoryIds = new Set(
         allCategories
-            .filter(c => 
-                c.name.toLowerCase().includes("reasoning") || 
-                c.name.toLowerCase().includes("non-verbal") ||
-                c.name.toLowerCase().includes("non verbal")
-            )
+            .filter(c => {
+                const nameLower = c.name.toLowerCase();
+                return nameLower.includes("reasoning") || nameLower.includes("non verbal") || nameLower.includes("non-verbal");
+            })
             .map(c => c.id)
     );
 
