@@ -25,6 +25,7 @@ export interface Topic {
   material?: string;
   part: 'Part A' | 'Part B';
   examCategories: ('MTS' | 'POSTMAN' | 'PA')[];
+  source?: 'reasoningBank'; // Flag to identify virtual topics
 }
 
 export interface Category {

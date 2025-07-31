@@ -12,7 +12,8 @@ config();
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { getUserTopicProgress, updateUserTopicProgress, getTopicMCQs } from '@/lib/firestore';
+import { getUserTopicProgress, updateUserTopicProgress, getTopicMCQs, getReasoningQuestions } from '@/lib/firestore';
+import type { ReasoningQuestion, MCQ } from '@/lib/types';
 
 const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
@@ -24,6 +25,7 @@ const GenerateMCQsInputSchema = z.object({
   userId: z.string().describe('The ID of the user requesting the quiz.'),
   topicId: z.string().describe('The ID of the topic.'),
   language: z.string().optional().default('English').describe('The language for the generated quiz (e.g., "English", "Tamil", "Hindi").'),
+  source: z.string().optional().describe('A flag indicating if the topic is from a special source like the reasoningBank.'),
 });
 export type GenerateMCQsInput = z.infer<typeof GenerateMCQsInputSchema>;
 
@@ -138,6 +140,28 @@ const generateMCQsFlow = ai.defineFlow(
   async (input) => {
     if (!input.userId) {
       throw new Error("A user ID must be provided to generate a quiz.");
+    }
+    
+    // Check if the source is the reasoning bank
+    if (input.source === 'reasoningBank') {
+        const allQuestions = await getReasoningQuestions();
+        const topicQuestions = allQuestions.filter(q => q.topic === input.topic);
+
+        if (topicQuestions.length < input.numberOfQuestions) {
+            throw new Error(`Only ${topicQuestions.length} questions are available for the topic "${input.topic}". Please select a smaller number or upload more questions.`);
+        }
+        
+        const selectedQuestions = shuffleArray(topicQuestions).slice(0, input.numberOfQuestions);
+        
+        const formattedMCQs: MCQ[] = selectedQuestions.map((q: ReasoningQuestion) => ({
+            question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
+            options: q.options,
+            correctAnswer: q.correctAnswer,
+            solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
+            topic: q.topic,
+        }));
+
+        return { mcqs: formattedMCQs };
     }
 
     const uploadedMCQs = await getTopicMCQs(input.topicId);

@@ -679,13 +679,41 @@ export const getDashboardData = async (userId: string, isAdmin: boolean = false)
         return { userData: null, categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, topicMCQs };
     }
 
-    const [userData, categories, topics] = await Promise.all([ getUserData(userId), getCategories(), getTopics() ]);
+    const [userData, categories, allTopics] = await Promise.all([ getUserData(userId), getCategories(), getTopics() ]);
     if (!userData) {
         return { userData: null, categories: [], topics: [], bankedQuestions: [], liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [] };
     }
+
+    // Filter categories and topics based on the user's exam category
     const userCategories = categories.filter(c => c.examCategories && c.examCategories.includes(userData.examCategory));
-    const userCategoryIds = userCategories.map(c => c.id);
-    const userTopics = topics.filter(t => userCategoryIds.includes(t.categoryId));
+    const userCategoryIds = new Set(userCategories.map(c => c.id));
+    let userTopics = allTopics.filter(t => userCategoryIds.has(t.categoryId));
+    
+    // -- Logic to integrate Reasoning Bank topics --
+    const reasoningQuestions = await getReasoningQuestions();
+    const uniqueReasoningTopics = [...new Set(reasoningQuestions.map(q => q.topic))];
+
+    // Find the "Reasoning" category for the user's exam type
+    const reasoningCategory = userCategories.find(c => c.name.toLowerCase().includes('reasoning') || c.name.toLowerCase().includes('non-verbal'));
+    
+    if (reasoningCategory) {
+        uniqueReasoningTopics.forEach(topicTitle => {
+            // Check if a topic with this title already exists to avoid duplicates
+            if (!userTopics.some(t => t.title === topicTitle)) {
+                const virtualTopic: Topic = {
+                    id: `reasoning--${topicTitle.replace(/\s+/g, '-')}`, // Create a unique ID
+                    title: topicTitle,
+                    description: `Questions from the Reasoning Bank.`,
+                    icon: 'brain-circuit',
+                    categoryId: reasoningCategory.id,
+                    part: 'Part B',
+                    examCategories: reasoningCategory.examCategories, // Inherit from parent
+                    source: 'reasoningBank' // Special flag
+                };
+                userTopics.push(virtualTopic);
+            }
+        });
+    }
 
     return { userData, categories: userCategories, topics: userTopics, bankedQuestions: [], liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [] };
 };

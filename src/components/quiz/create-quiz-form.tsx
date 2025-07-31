@@ -137,6 +137,7 @@ export function CreateQuizForm() {
           userId: user.uid,
           topicId: selectedTopic.id,
           language: values.language,
+          source: selectedTopic.source, // Pass the source flag
       };
 
       const result = await generateMCQs(generationInput);
@@ -154,8 +155,10 @@ export function CreateQuizForm() {
       const { mcqs } = result;
       
       let timeLimit;
-      if (selectedCategory.name === "Basic Arithmetics") {
-        timeLimit = values.numberOfQuestions * 120; // 2 minutes per question
+      if (selectedCategory.name === "Basic Arithmetics" || selectedTopic.source === 'reasoningBank') {
+        // 2 minutes for Arithmetics, 1 minute for Reasoning
+        const secondsPerQuestion = selectedTopic.source === 'reasoningBank' ? 60 : 120;
+        timeLimit = values.numberOfQuestions * secondsPerQuestion;
       } else {
         timeLimit = values.numberOfQuestions * 45; // 45 seconds for others
       }
