@@ -2,7 +2,7 @@
 'use server';
 
 /**
- * @fileOverview Generates a mock test based on a detailed exam blueprint.
+ * @fileOverview Generates a mock test based on a detailed exam blueprint using questions from the MCQ and Reasoning Banks.
  *
  * - generateMockTest - A function that handles the mock test generation process.
  * - GenerateMockTestInput - The input type for the generateMockTest function.
@@ -15,8 +15,8 @@ config();
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-blueprints';
-import type { MCQ, ReasoningQuestion } from '@/lib/types';
-import { getAllUserQuestions, getTopicMCQs, getReasoningQuestionsForPartwiseTest } from '@/lib/firestore';
+import type { MCQ, ReasoningQuestion, Topic } from '@/lib/types';
+import { getTopicMCQs, getReasoningQuestionsForPartwiseTest, getTopics } from '@/lib/firestore';
 
 const GenerateMockTestInputSchema = z.object({
   examCategory: z.string().describe('The exam category (e.g., MTS, POSTMAN, PA).'),
@@ -38,60 +38,22 @@ const GenerateMockTestOutputSchema = z.object({
 });
 export type GenerateMockTestOutput = z.infer<typeof GenerateMockTestOutputSchema>;
 
-const generateQuestionsForSectionPrompt = ai.definePrompt({
-    name: 'generateQuestionsForSectionPrompt',
-    input: {
-        schema: z.object({
-            examCategory: z.string(),
-            sectionName: z.string(),
-            topics: z.string(),
-            questionCount: z.number(),
-            previousQuestions: z.array(z.string()).optional().describe('A list of previously asked questions to avoid repetition.'),
-            language: z.string().optional().default('English'),
-        })
-    },
-    output: {
-        schema: z.object({
-            questions: z.array(MCQSchema)
-        })
-    },
-    model: 'googleai/gemini-1.5-pro',
-    prompt: `You are an expert in creating mock test questions for the Indian Postal Department's {{examCategory}} exam.
-
-**CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
-**CRITICAL RULE FOR TRANSLATION:** When translating to any language other than English (e.g., Tamil, Hindi, Telugu, Kannada), you MUST keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", "Head Office", "Sub Office", etc.
-
-Your task is to generate EXACTLY **{{questionCount}}** questions for the section named **"{{sectionName}}"**.
-
-These questions must cover the following topics:
-{{{topics}}}
-
-For each generated question, you MUST specify its topic in the 'topic' field from the list above.
-For any arithmetic questions, provide a detailed step-by-step explanation in the 'solution' field.
-
-{{#if previousQuestions}}
-  IMPORTANT: Do NOT repeat any of the following questions. Ensure the new questions are unique and different from this list:
-  {{#each previousQuestions}}
-  - "{{this}}"
-  {{/each}}
-{{/if}}
-
-Your final output MUST be a single, valid JSON object containing a 'questions' array with EXACTLY {{questionCount}} questions.
-`,
-});
-
 const extractMCQsFromTextPrompt = ai.definePrompt({
     name: 'extractMCQsFromTextForMockTest',
-    input: { schema: z.object({ textContent: z.string(), topicName: z.string(), numberOfQuestions: z.number() }) },
+    input: { schema: z.object({ textContent: z.string(), topicName: z.string(), numberOfQuestions: z.number(), language: z.string().optional().default('English') }) },
     output: { schema: z.object({ mcqs: z.array(MCQSchema) }) },
     model: 'googleai/gemini-1.5-pro',
     prompt: `You are an expert at parsing and formatting multiple-choice questions (MCQs).
 Your task is to extract up to {{numberOfQuestions}} high-quality, unique questions for the topic "{{topicName}}" from the 'TEXT CONTENT' provided below.
 
+**CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
+**CRITICAL RULE FOR TRANSLATION:** When translating to any language other than English (e.g., Tamil, Hindi, Telugu, Kannada), you MUST keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", "Head Office", "Sub Office", etc.
+
 **Process:**
 1.  Read the 'TEXT CONTENT' and identify all distinct multiple-choice questions relevant to the topic.
 2.  For each question, accurately extract the full question text, all four of its options, the indicated correct answer, and the step-by-step solution if provided.
 3.  For EACH extracted question, you MUST add a 'topic' field with the value "{{topicName}}".
+4.  **Translate** the entire extracted content for each question into the specified '{{language}}'.
 
 **CRITICAL INSTRUCTIONS:**
 *   The 'correctAnswer' field in your output MUST be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
@@ -115,8 +77,6 @@ export async function generateMockTest(input: GenerateMockTestInput): Promise<Ge
   return generateMockTestFlow(input);
 }
 
-const CHUNK_SIZE = 10;
-
 const generateMockTestFlow = ai.defineFlow(
   {
     name: 'generateMockTestFlow',
@@ -129,94 +89,81 @@ const generateMockTestFlow = ai.defineFlow(
     else if (input.examCategory === 'POSTMAN') blueprint = POSTMAN_BLUEPRINT;
     else if (input.examCategory === 'PA') blueprint = PA_BLUEPRINT;
     else throw new Error(`No blueprint found for exam category: ${input.examCategory}`);
-    
-    const previousQuestions = await getAllUserQuestions(input.userId);
+
     const allQuestions: MCQ[] = [];
+    const allFirestoreTopics = await getTopics();
+    const topicMapByName: Map<string, Topic> = new Map(allFirestoreTopics.map(t => [t.title.toLowerCase(), t]));
 
     for (const part of blueprint.parts) {
       for (const section of part.sections) {
 
-        // Special handling for PA Reasoning section
-        if (input.examCategory === 'PA' && section.sectionName === "Reasoning and Analytical Ability") {
+        let sectionQuestionsNeeded = section.questions;
+        let sectionQuestions: MCQ[] = [];
+
+        // Special handling for Reasoning sections - pull from Reasoning Bank
+        if (section.sectionName.toLowerCase().includes("reasoning")) {
+            const reasoningBankQuestions = await getReasoningQuestionsForPartwiseTest(input.examCategory as 'MTS' | 'POSTMAN' | 'PA');
+            if (reasoningBankQuestions.length < sectionQuestionsNeeded) {
+                throw new Error(`Not enough questions in the Reasoning Bank for ${section.sectionName}. Found ${reasoningBankQuestions.length}, but need ${sectionQuestionsNeeded}. Please upload more.`);
+            }
+            const selectedReasoning = shuffleArray(reasoningBankQuestions).slice(0, sectionQuestionsNeeded);
+            const formattedReasoningMCQs: MCQ[] = selectedReasoning.map((q: ReasoningQuestion) => ({
+                question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
+                options: q.options,
+                correctAnswer: q.correctAnswer,
+                solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
+                topic: q.topic,
+            }));
+            sectionQuestions.push(...formattedReasoningMCQs);
+        } else {
+            // Default handling for all other sections - pull from MCQ Bank
+            const topicConfigs = section.topics.map(t => typeof t === 'string' ? { name: t, questions: 0 } : t);
             
-            // 1. Handle Analytical Reasoning from MCQ Bank
-            const analyticalTopic = section.topics.find(t => typeof t === 'object' && t.name === "Analytical Reasoning") as { name: string, questions: number, id: string } | undefined;
-            if (analyticalTopic) {
-                const uploadedMCQs = await getTopicMCQs(analyticalTopic.id);
-                if (!uploadedMCQs || uploadedMCQs.length === 0) {
-                    throw new Error(`Questions for "Analytical Reasoning" are not uploaded yet. Please upload them in the MCQ Bank.`);
+            // Distribute questions per topic if specified, otherwise pull from all topics in section
+            let questionsPerTopic = Math.ceil(sectionQuestionsNeeded / topicConfigs.length);
+
+            for (const topicConfig of topicConfigs) {
+                const topicName = topicConfig.name;
+                const questionsToFetch = topicConfig.questions > 0 ? topicConfig.questions : questionsPerTopic;
+                
+                const topicInfo = topicMapByName.get(topicName.toLowerCase());
+                if (!topicInfo) {
+                    console.warn(`Blueprint topic "${topicName}" not found in Firestore. Skipping.`);
+                    continue;
                 }
+
+                const uploadedMCQs = await getTopicMCQs(topicInfo.id);
+                if (!uploadedMCQs || uploadedMCQs.length === 0) {
+                     throw new Error(`No questions uploaded for topic: "${topicName}". Please upload questions to the MCQ Bank for this topic.`);
+                }
+                
                 const combinedContent = uploadedMCQs.map(doc => doc.content).join('\\n\\n---\\n\\n');
+                
                 const { output } = await extractMCQsFromTextPrompt({
                     textContent: combinedContent,
-                    topicName: analyticalTopic.name,
-                    numberOfQuestions: analyticalTopic.questions,
+                    topicName: topicName,
+                    numberOfQuestions: questionsToFetch,
+                    language: input.language,
                 });
+
                 const extractedMcqs = output?.mcqs || [];
-                if (extractedMcqs.length < analyticalTopic.questions) {
-                    throw new Error(`Could not find enough questions for "Analytical Reasoning". Found ${extractedMcqs.length}, but need ${analyticalTopic.questions}. Please upload more.`);
+                if (extractedMcqs.length < questionsToFetch) {
+                    throw new Error(`Could not find enough questions for topic "${topicName}". Found ${extractedMcqs.length}, but need ${questionsToFetch}. Please upload more to the MCQ Bank.`);
                 }
-                allQuestions.push(...shuffleArray(extractedMcqs).slice(0, analyticalTopic.questions));
+                
+                sectionQuestions.push(...shuffleArray(extractedMcqs).slice(0, questionsToFetch));
             }
-
-            // 2. Handle other reasoning topics from Reasoning Bank
-            const otherReasoningTopics = section.topics.filter(t => typeof t === 'object' && t.name !== "Analytical Reasoning") as { name: string, questions: number }[];
-            const totalOtherReasoningQuestions = otherReasoningTopics.reduce((sum, t) => sum + t.questions, 0);
-
-            if (totalOtherReasoningQuestions > 0) {
-                const reasoningBankQuestions = await getReasoningQuestionsForPartwiseTest('PA');
-                if (reasoningBankQuestions.length < totalOtherReasoningQuestions) {
-                    throw new Error(`Not enough questions in the Reasoning Bank for PA exam. Found ${reasoningBankQuestions.length}, but need ${totalOtherReasoningQuestions}. Please upload more.`);
-                }
-                const selectedReasoning = shuffleArray(reasoningBankQuestions).slice(0, totalOtherReasoningQuestions);
-                const formattedReasoningMCQs: MCQ[] = selectedReasoning.map((q: ReasoningQuestion) => ({
-                    question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
-                    options: q.options,
-                    correctAnswer: q.correctAnswer,
-                    solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
-                    topic: q.topic,
-                }));
-                allQuestions.push(...formattedReasoningMCQs);
-            }
-            continue; // CRITICAL FIX: Skip the default AI generation for this section
         }
-
-
-        // Default AI generation for all other sections
-        const topicsString = section.topics.map((topic: any) => {
-          const topicName = (typeof topic === 'string') ? topic : topic.name;
-          return `- ${topicName}`;
-        }).join('\\n');
         
-        let questionsToGenerate = section.questions;
-        
-        while(questionsToGenerate > 0) {
-            const currentChunkSize = Math.min(questionsToGenerate, CHUNK_SIZE);
-            
-            const { output } = await generateQuestionsForSectionPrompt({
-                examCategory: input.examCategory,
-                sectionName: section.sectionName,
-                topics: topicsString,
-                questionCount: currentChunkSize,
-                previousQuestions: [...previousQuestions, ...allQuestions.map(q => q.question)],
-                language: input.language,
-            });
-
-            if (output && output.questions) {
-                allQuestions.push(...output.questions);
-            }
-            questionsToGenerate -= currentChunkSize;
-        }
+        allQuestions.push(...shuffleArray(sectionQuestions).slice(0, sectionQuestionsNeeded));
       }
     }
     
     const totalExpectedQuestions = blueprint.parts.reduce((sum, part) => sum + part.totalQuestions, 0);
     if (allQuestions.length !== totalExpectedQuestions) { 
-        console.warn(`Generated question count mismatch. Expected ${totalExpectedQuestions}, but got ${allQuestions.length}.`);
+        console.warn(`Generated question count mismatch. Expected ${totalExpectedQuestions}, but got ${allQuestions.length}. Adjusting to expected count.`);
     }
     
-    return { mcqs: allQuestions };
+    return { mcqs: shuffleArray(allQuestions).slice(0, totalExpectedQuestions) };
   }
 );
-
-    
