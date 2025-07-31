@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
@@ -166,6 +167,14 @@ function AppSidebar() {
                 <Link href="/dashboard/topic-wise-mcq" onClick={onLinkClick}>
                   <BookCopy />
                   <span>Practice MCQ</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/reasoning-test')} tooltip="Reasoning Test">
+                <Link href="/dashboard/reasoning-test" onClick={onLinkClick}>
+                  <BrainCircuit />
+                  <span>Reasoning Test</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

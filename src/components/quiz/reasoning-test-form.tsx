@@ -68,14 +68,12 @@ export function ReasoningTestForm() {
 
   const availableExams = useMemo(() => {
     if (!userData) return [];
-    if (userData.email && ADMIN_EMAILS.includes(userData.email)) return examCategories;
+    if (userData.email && ADMIN_EMAILS.includes(userData.email)) return ["POSTMAN", "PA"]; // Reasoning is not for MTS
     switch (userData.examCategory) {
         case 'PA':
-            return ['PA', 'POSTMAN', 'MTS'];
+            return ['PA', 'POSTMAN'];
         case 'POSTMAN':
-            return ['POSTMAN', 'MTS'];
-        case 'MTS':
-            return ['MTS'];
+            return ['POSTMAN'];
         default:
             return [];
     }
@@ -84,12 +82,12 @@ export function ReasoningTestForm() {
   const selectedExamType = form.watch('examType');
 
   const availableTopics = useMemo(() => {
-    if (!selectedExamType || allReasoningQuestions.length === 0) return [];
+    if (allReasoningQuestions.length === 0) return [];
     const topicsForExam = allReasoningQuestions
         .filter(q => q.topic) // Ensure topic exists
         .map(q => q.topic);
     return [...new Set(topicsForExam)].sort();
-  }, [selectedExamType, allReasoningQuestions]);
+  }, [allReasoningQuestions]);
 
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
