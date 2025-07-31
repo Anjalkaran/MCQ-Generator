@@ -138,11 +138,7 @@ const generateMCQsFlow = ai.defineFlow(
     outputSchema: GenerateMCQsOutputSchema,
   },
   async (input) => {
-    if (!input.userId) {
-      throw new Error("A user ID must be provided to generate a quiz.");
-    }
-    
-    // Check if the source is the reasoning bank
+    // CRITICAL FIX: Check for reasoningBank source at the very beginning of the flow.
     if (input.source === 'reasoningBank') {
         const allQuestions = await getReasoningQuestions();
         const topicQuestions = allQuestions.filter(q => q.topic === input.topic);
@@ -164,6 +160,10 @@ const generateMCQsFlow = ai.defineFlow(
         return { mcqs: formattedMCQs };
     }
 
+    if (!input.userId) {
+      throw new Error("A user ID must be provided to generate a quiz.");
+    }
+    
     const uploadedMCQs = await getTopicMCQs(input.topicId);
 
     // If a document is uploaded, always use it.
@@ -252,3 +252,5 @@ const generateMCQsFlow = ai.defineFlow(
     }
   }
 );
+
+    
