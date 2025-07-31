@@ -127,7 +127,7 @@ export function CreateQuizForm() {
     }
 
     try {
-      const generationInput = {
+      const generationInput: any = {
           topic: selectedTopic.title,
           category: selectedCategory.name,
           numberOfQuestions: values.numberOfQuestions,
@@ -136,9 +136,14 @@ export function CreateQuizForm() {
           material: selectedTopic.material,
           userId: user.uid,
           topicId: selectedTopic.id,
-          language: values.language,
-          source: selectedTopic.source, // Pass the source flag
+          source: selectedTopic.source,
       };
+
+      // CRITICAL FIX: Only add language if the source is NOT the reasoning bank
+      if (selectedTopic.source !== 'reasoningBank') {
+          generationInput.language = values.language;
+      }
+
 
       const result = await generateMCQs(generationInput);
 
