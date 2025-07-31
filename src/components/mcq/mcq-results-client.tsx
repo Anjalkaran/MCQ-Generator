@@ -4,7 +4,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle, XCircle, Award, Repeat, Home, BrainCircuit, Trophy } from "lucide-react";
+import { CheckCircle, XCircle, Award, Repeat, Home, BrainCircuit, Trophy, Share2 } from "lucide-react";
 import type { MCQ, Topic, UserData } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -133,6 +133,12 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
     const destination = isMockTest ? '/dashboard/mock-test' : '/dashboard/topic-wise-mcq';
     router.push(destination);
   };
+
+  const handleShare = () => {
+    const message = `I scored ${totalMarks} out of ${maxMarks} in the ${topic.title} exam on Anjalkaran! Test your knowledge too. Download the app: https://anjalkaran.in`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
   
   const isArithmeticQuestion = (mcq: MCQ) => {
     return mcq.topic?.toLowerCase().includes('arithmetic');
@@ -153,7 +159,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
           <p className="text-xl text-muted-foreground mt-2">
             Total Marks out of {maxMarks}
           </p>
-          <div className="flex justify-center gap-4 mt-8">
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mt-8">
              {liveTestId && (
               <Button asChild>
                 <Link href={`/dashboard/leaderboard?liveTestId=${liveTestId}`}>
@@ -168,6 +174,10 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
                     New Exam
                 </Button>
             )}
+             <Button onClick={handleShare} variant="outline">
+                <Share2 className="mr-2 h-4 w-4" />
+                Share on WhatsApp
+            </Button>
             <Button variant="outline" asChild>
               <Link href="/dashboard">
                 <Home className="mr-2 h-4 w-4" />

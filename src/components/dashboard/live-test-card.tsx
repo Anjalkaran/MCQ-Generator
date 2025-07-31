@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { useDashboard } from '@/app/dashboard/layout';
-import { Loader2, PlayCircle, Lock, CheckCircle, TimerOff, Trophy, Gem, Ban, Users } from 'lucide-react';
+import { Loader2, PlayCircle, Lock, CheckCircle, TimerOff, Trophy, Gem, Ban, Users, Share2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -197,6 +197,13 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
         }
     };
 
+    const handleShare = () => {
+        const formattedDate = startTime ? format(startTime, 'dd/MM/yyyy p') : 'an upcoming date';
+        const message = `📢 *Anjalkaran ${test.examCategory} Live Mock Test!* 📢\n\nJoin the live test and compete with fellow aspirants.\n\n*Test:* ${test.title}\n*Date:* ${formattedDate}\n\nBoost your preparation now!\n\nGet the app: https://anjalkaran.in`;
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+    };
+
 
     const getButton = () => {
         if (isAdmin) {
@@ -284,7 +291,12 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
                  )}
             </CardContent>
             <CardFooter className="flex flex-col gap-2">
-                {getButton()}
+                <div className="flex w-full gap-2">
+                    <div className="flex-grow">{getButton()}</div>
+                    <Button onClick={handleShare} variant="outline" size="icon" aria-label="Share on WhatsApp">
+                        <Share2 className="h-5 w-5" />
+                    </Button>
+                </div>
             </CardFooter>
         </Card>
     );
