@@ -126,7 +126,9 @@ function LiveTestLeaderboard({ pastLiveTests, initialTestId }: { pastLiveTests: 
     const [isLoading, setIsLoading] = useState(false);
 
     const filteredLiveTests = useMemo(() => {
-        return pastLiveTests.filter(test => test.examCategory === selectedCategory);
+        return pastLiveTests
+            .filter(test => test.examCategory === selectedCategory)
+            .sort((a, b) => (normalizeDate(b.endTime)?.getTime() ?? 0) - (normalizeDate(a.endTime)?.getTime() ?? 0));
     }, [pastLiveTests, selectedCategory]);
 
     useEffect(() => {
@@ -135,15 +137,13 @@ function LiveTestLeaderboard({ pastLiveTests, initialTestId }: { pastLiveTests: 
             if (initialTest) {
                 setSelectedCategory(initialTest.examCategory);
                 setSelectedTestId(initialTestId);
-                return; // Early return to let the next effect handle fetching
+                return; 
             }
         }
-        // If no initialTestId or it's not found, default to the first test of the selected category
         setSelectedTestId(filteredLiveTests[0]?.id);
-    }, [initialTestId, pastLiveTests, filteredLiveTests]);
+    }, [initialTestId, pastLiveTests]);
     
      useEffect(() => {
-        // Reset test selection when category changes
         setSelectedTestId(filteredLiveTests[0]?.id);
     }, [selectedCategory, filteredLiveTests]);
 
