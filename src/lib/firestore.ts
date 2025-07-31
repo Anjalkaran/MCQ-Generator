@@ -467,7 +467,8 @@ export const getLiveTestsForLeaderboard = async (): Promise<LiveTest[]> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     const now = new Date();
-    const q = query(collection(db, 'liveTests'), where('endTime', '<=', now), orderBy('endTime', 'desc'));
+    // Show tests that have already started.
+    const q = query(collection(db, 'liveTests'), where('startTime', '<=', now), orderBy('startTime', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => {
         const data = doc.data();
