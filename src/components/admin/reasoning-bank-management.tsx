@@ -75,7 +75,7 @@ const fileToDataUri = (file: File): Promise<string> => {
 export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManagementProps) {
   const [questions, setQuestions] = useState<ReasoningQuestion[]>(initialQuestions);
   const [isUploading, setIsUploading] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<ReasoningQuestion | null>(null);
   const { toast } = useToast();
   const { topics, categories } = useDashboard();
@@ -83,8 +83,8 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
   const reasoningTopics = useMemo(() => {
     const reasoningCategories = categories.filter(c => 
         c.name.toLowerCase().includes("reasoning") || 
-        c.name.toLowerCase().includes("non verbal") ||
-        c.name.toLowerCase().includes("non-verbal")
+        c.name.toLowerCase().includes("non-verbal") ||
+        c.name.toLowerCase().includes("non verbal")
     );
     if (reasoningCategories.length === 0) return [];
     
@@ -99,6 +99,16 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    defaultValues: {
+        topic: '',
+        questionText: '',
+        option1: '',
+        option2: '',
+        option3: '',
+        option4: '',
+        solutionText: '',
+        isForLiveTest: false,
+    },
   });
 
   useEffect(() => {
@@ -135,9 +145,9 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
     }
   }, [editingQuestion, form]);
   
-  const handleOpenDialog = (question: ReasoningQuestion | null) => {
+  const handleOpenEditDialog = (question: ReasoningQuestion | null) => {
     setEditingQuestion(question);
-    setIsDialogOpen(true);
+    setIsEditDialogOpen(true);
   }
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -180,6 +190,8 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
             // Update existing question in state
             setQuestions(prev => prev.map(q => q.id === values.id ? { ...q, ...savedDocument } : q));
             toast({ title: 'Success', description: 'Question updated successfully.' });
+            setIsEditDialogOpen(false);
+            setEditingQuestion(null);
         } else {
             // Add new question to state
             setQuestions(prev => [savedDocument, ...prev]);
@@ -187,7 +199,6 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
         }
         
         form.reset();
-        setIsDialogOpen(false);
 
     } catch (error: any) {
         console.error("Reasoning upload error:", error);
@@ -210,17 +221,168 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
 
   return (
     <div className="space-y-6">
-       <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { setIsDialogOpen(isOpen); if (!isOpen) setEditingQuestion(null); }}>
-          <DialogTrigger asChild>
-            <Button onClick={() => handleOpenDialog(null)}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Upload New Question
-            </Button>
-          </DialogTrigger>
+        <Card>
+            <CardHeader>
+                <CardTitle>Upload New Reasoning Question</CardTitle>
+                <CardDescription>Create an image-based reasoning question. Images are saved directly in the database.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                        <FormField
+                            control={form.control}
+                            name="topic"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Topic*</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a reasoning topic" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {reasoningTopics.map(topic => (
+                                                <SelectItem key={topic.id} value={topic.title}>{topic.title}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="questionText"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Question Text*</FormLabel>
+                                    <FormControl>
+                                        <Textarea placeholder="Enter the question text here..." {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="questionImage"
+                            render={({ field: { value, onChange, ...rest } }) => (
+                                <FormItem>
+                                    <FormLabel>Question Image*</FormLabel>
+                                    <FormControl>
+                                        <Input 
+                                            id="questionImage"
+                                            type="file" 
+                                            accept="image/png, image/jpeg, image/webp"
+                                            onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
+                                            {...rest}
+                                        />
+                                    </FormControl>
+                                    {typeof value === 'string' && <Image src={value} alt="Current Question Image" width={100} height={100} className="mt-2 rounded-md" />}
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="correctAnswer"
+                            render={({ field }) => (
+                                <FormItem className="space-y-3">
+                                <FormLabel>Options &amp; Correct Answer*</FormLabel>
+                                <FormControl>
+                                    <RadioGroup
+                                    onValueChange={field.onChange}
+                                    value={field.value}
+                                    className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                                    >
+                                        {[1, 2, 3, 4].map(i => (
+                                            <FormField
+                                                key={i}
+                                                control={form.control}
+                                                name={`option${i}` as 'option1' | 'option2' | 'option3' | 'option4'}
+                                                render={({ field: optionField }) => (
+                                                    <FormItem className="flex items-center space-x-3 space-y-0 p-3 border rounded-md">
+                                                        <FormControl>
+                                                            <RadioGroupItem value={optionField.value} />
+                                                        </FormControl>
+                                                        <Input placeholder={`Option ${i}`} {...optionField} className="flex-1" />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        ))}
+                                    </RadioGroup>
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                             <FormField
+                                control={form.control}
+                                name="solutionImage"
+                                render={({ field: { value, onChange, ...rest } }) => (
+                                    <FormItem>
+                                        <FormLabel>Solution Image (Optional)</FormLabel>
+                                        <FormControl>
+                                            <Input 
+                                                id="solutionImage"
+                                                type="file" 
+                                                accept="image/png, image/jpeg, image/webp"
+                                                onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
+                                                {...rest}
+                                            />
+                                        </FormControl>
+                                         {typeof value === 'string' && <Image src={value} alt="Current Solution Image" width={100} height={100} className="mt-2 rounded-md" />}
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="solutionText"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Solution Text (Optional)</FormLabel>
+                                        <FormControl>
+                                            <Textarea placeholder="Explain the solution..." {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+
+                        <FormField
+                            control={form.control}
+                            name="isForLiveTest"
+                            render={({ field }) => (
+                                <FormItem className="flex items-center space-x-2">
+                                    <FormControl>
+                                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                    </FormControl>
+                                    <FormLabel>Mark for Live Test</FormLabel>
+                                </FormItem>
+                            )}
+                        />
+                        
+                        <div className="flex justify-end">
+                            <Button type="submit" disabled={isUploading}>
+                                {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                                Upload Question
+                            </Button>
+                        </div>
+                    </form>
+                </Form>
+            </CardContent>
+        </Card>
+
+        <Dialog open={isEditDialogOpen} onOpenChange={(isOpen) => { setIsEditDialogOpen(isOpen); if (!isOpen) setEditingQuestion(null); }}>
           <DialogContent className="max-w-3xl">
               <DialogHeader>
-                  <DialogTitle>{editingQuestion ? 'Edit Reasoning Question' : 'Upload Reasoning Question'}</DialogTitle>
-                  <DialogDescription>Create or update an image-based reasoning question. Images are saved directly in the database.</DialogDescription>
+                  <DialogTitle>Edit Reasoning Question</DialogTitle>
+                  <DialogDescription>Update the image-based reasoning question.</DialogDescription>
               </DialogHeader>
                <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-h-[80vh] overflow-y-auto pr-4">
@@ -368,7 +530,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                           </DialogClose>
                           <Button type="submit" disabled={isUploading}>
                               {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                              {editingQuestion ? 'Save Changes' : 'Upload Question'}
+                              Save Changes
                           </Button>
                         </DialogFooter>
                     </form>
@@ -444,7 +606,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                                                     </div>
                                                 </DialogContent>
                                             </Dialog>
-                                            <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(q)}><Edit className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(q)}><Edit className="h-4 w-4" /></Button>
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
                                                     <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
