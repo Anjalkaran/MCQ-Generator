@@ -202,11 +202,19 @@ export function CreateQuizForm() {
   
   const filteredTopics = useMemo(() => {
     if (!selectedCategoryId || !selectedPart || !selectedExamType) return [];
-    return topics.filter(topic => 
+    
+    let partTopics = topics.filter(topic => 
         topic.categoryId === selectedCategoryId && 
         topic.part === selectedPart &&
         topic.examCategories.includes(selectedExamType)
     );
+
+    if (selectedPart === 'Part B') {
+        partTopics = partTopics.filter(topic => topic.title === 'Analytical Reasoning');
+    }
+
+    return partTopics;
+
   }, [selectedCategoryId, selectedPart, selectedExamType, topics]);
   
   const filteredCategoriesByPart = useMemo(() => {
