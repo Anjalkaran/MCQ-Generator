@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
+import type { MCQHistory } from '@/lib/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic'; // Ensure fresh data on each request
@@ -22,9 +23,15 @@ export async function GET(
     const historyRef = adminDb.collection('mcqHistory');
     const q = historyRef.where('liveTestId', '==', testId);
     
-    // Using .count() for efficiency. This doesn't retrieve all documents.
-    const snapshot = await q.count().get();
-    const participantCount = snapshot.data().count;
+    const snapshot = await q.get();
+
+    if (snapshot.empty) {
+        return NextResponse.json({ testId, participantCount: 0 });
+    }
+    
+    // Get unique user IDs to get an accurate participant count
+    const uniqueUserIds = new Set(snapshot.docs.map(doc => (doc.data() as MCQHistory).userId));
+    const participantCount = uniqueUserIds.size;
 
     return NextResponse.json({ testId, participantCount });
 
