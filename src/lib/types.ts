@@ -155,3 +155,12 @@ export interface ReasoningQuestion {
   topic: string; // The specific topic (e.g., 'Non-verbal Reasoning')
   uploadedAt: Date;
 }
+
+export interface Feedback {
+  id: string;
+  userId: string;
+  userName: string;
+  rating: number;
+  comment: string;
+  createdAt: Date;
+}

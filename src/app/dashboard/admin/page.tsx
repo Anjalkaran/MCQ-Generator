@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -9,10 +10,11 @@ import { TopicMCQManagement } from '@/components/admin/topic-mcq-management';
 import { LiveTestManagement } from '@/components/admin/live-test-management';
 import { ReportsManagement } from '@/components/admin/reports-management';
 import { ReasoningBankManagement } from '@/components/admin/reasoning-bank-management';
+import { FeedbackManagement } from '@/components/admin/feedback-management';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, BrainCircuit } from "lucide-react";
-import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions } from "@/lib/firestore";
-import type { UserData, QnAUsage, LiveTest, ReasoningQuestion } from "@/lib/types";
+import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, BrainCircuit, MessageSquare } from "lucide-react";
+import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback } from "@/lib/firestore";
+import type { UserData, QnAUsage, LiveTest, ReasoningQuestion, Feedback } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { ADMIN_EMAILS } from "@/lib/constants";
 import { Label } from "@/components/ui/label";
@@ -60,6 +62,7 @@ const adminSections = [
     { value: 'reasoning-bank', label: 'Reasoning Bank', icon: BrainCircuit },
     { value: 'live-test', label: 'Live Test', icon: Trophy },
     { value: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { value: 'feedback', label: 'Feedback', icon: MessageSquare },
     { value: 'reports', label: 'Reports', icon: Download },
 ] as const;
 
@@ -71,6 +74,7 @@ export default function AdminPage() {
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [allLiveTests, setAllLiveTests] = useState<LiveTest[]>([]);
   const [reasoningQuestions, setReasoningQuestions] = useState<ReasoningQuestion[]>([]);
+  const [feedback, setFeedback] = useState<Feedback[]>([]);
   const [isLoadingAdminData, setIsLoadingAdminData] = useState(true);
   const [activeSection, setActiveSection] = useState<AdminSection>('users');
   const { toast } = useToast();
@@ -78,11 +82,12 @@ export default function AdminPage() {
   useEffect(() => {
     const fetchAdminData = async () => {
       try {
-        const [fetchedUsers, fetchedQnAUsage, fetchedLiveTests, fetchedReasoningQuestions] = await Promise.all([
+        const [fetchedUsers, fetchedQnAUsage, fetchedLiveTests, fetchedReasoningQuestions, fetchedFeedback] = await Promise.all([
             getAllUsers(),
             getQnAUsage(),
             getLiveTests(true), // Fetch all live tests
             getReasoningQuestions(),
+            getAllFeedback(),
         ]);
         
         const regularUsers = fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email));
@@ -90,6 +95,7 @@ export default function AdminPage() {
         setQnaUsage(fetchedQnAUsage);
         setAllLiveTests(fetchedLiveTests);
         setReasoningQuestions(fetchedReasoningQuestions);
+        setFeedback(fetchedFeedback);
 
       } catch (error) {
         console.error("Failed to fetch admin data:", error);
@@ -151,6 +157,8 @@ export default function AdminPage() {
             return <LiveTestManagement initialLiveTestBank={liveTestBank} initialLiveTests={allLiveTests} />;
         case 'analytics':
             return <AnalyticsTab qnaUsage={qnaUsage} />;
+        case 'feedback':
+            return <FeedbackManagement initialFeedback={feedback} />;
         case 'reports':
             return <ReportsManagement allUsers={users} />;
         default:
@@ -167,7 +175,7 @@ export default function AdminPage() {
           </p>
         </div>
         
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-8">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-9">
           {adminSections.map((section) => (
             <Card
               key={section.value}
