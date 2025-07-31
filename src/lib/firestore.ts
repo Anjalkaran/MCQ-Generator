@@ -243,9 +243,11 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
     const historyRef = doc(collection(db, 'mcqHistory'));
     batch.set(historyRef, dataToSave);
 
-    // Use a single, unified counter for all exams
-    const userRef = doc(db, 'users', userId);
-    batch.update(userRef, { totalExamsTaken: increment(1) });
+    // Only increment exam count if it is NOT a live test
+    if (!liveTestId) {
+        const userRef = doc(db, 'users', userId);
+        batch.update(userRef, { totalExamsTaken: increment(1) });
+    }
     
     await batch.commit();
 };
