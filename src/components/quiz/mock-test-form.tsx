@@ -106,7 +106,7 @@ export function MockTestForm() {
         topic: {
           id: quizId,
           title: `${blueprint.examName} Mock Test`,
-          description: `A full-length mock test based on the official ${values.examType} blueprint.`,
+          description: `A full-length mock test based on the official ${values.examType} syllabus.`,
           icon: 'scroll-text',
           categoryId: 'mock-test',
         },
@@ -126,7 +126,7 @@ export function MockTestForm() {
     <Card>
         <CardHeader>
             <CardTitle>Mock Test Setup</CardTitle>
-            <CardDescription>Select an exam to generate a full mock test based on the official blueprint.</CardDescription>
+            <CardDescription>Select an exam to generate a full mock test based on the official syllabus.</CardDescription>
         </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

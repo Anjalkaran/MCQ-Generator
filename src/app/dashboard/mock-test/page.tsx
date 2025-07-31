@@ -16,15 +16,15 @@ export default function MockTestPage() {
             <div className="space-y-2 text-center">
                 <h1 className="text-3xl font-bold tracking-tight">Practice Mock Test</h1>
                 <p className="text-muted-foreground">
-                    Generate a full mock test based on the official blueprint or from previous year's questions.
+                    Generate a full mock test based on the official syllabus or from previous year's questions.
                 </p>
             </div>
-            <Tabs defaultValue="blueprint" className="w-full">
+            <Tabs defaultValue="syllabus" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="blueprint">From Blueprint</TabsTrigger>
+                    <TabsTrigger value="syllabus">From Official Syllabus</TabsTrigger>
                     <TabsTrigger value="previous-year">From Previous Year</TabsTrigger>
                 </TabsList>
-                <TabsContent value="blueprint">
+                <TabsContent value="syllabus">
                     <MockTestForm />
                 </TabsContent>
                 <TabsContent value="previous-year">
