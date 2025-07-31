@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, AlertTriangle, Gem, Wrench } from 'lucide-react';
+import { Loader2, AlertTriangle, Gem } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { normalizeDate } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -28,7 +28,7 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
-const parts = ["Part A"] as const;
+const parts = ["Part A", "Part B"] as const;
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 const languages = [
     { value: 'English', label: 'English' },
@@ -251,11 +251,6 @@ export function PartwiseQuizForm() {
                         </FormItem>
                     )}
                     />
-                     <div className="text-center text-muted-foreground p-4 border-2 border-dashed rounded-lg">
-                        <Wrench className="mx-auto h-8 w-8 mb-2" />
-                        <p className="font-semibold">Part B is temporarily unavailable.</p>
-                        <p className="text-sm">We are updating the question bank and it will be back shortly!</p>
-                    </div>
                 </fieldset>
                 )}
              </CardContent>
