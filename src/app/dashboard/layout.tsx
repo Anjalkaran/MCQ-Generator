@@ -86,6 +86,7 @@ function AppSidebar() {
   const { toast } = useToast();
   const { user, userData, isLoading, onlineUsers } = useDashboard();
   const { setOpenMobile } = useSidebar();
+  const [isLogoutAlertOpen, setIsLogoutAlertOpen] = useState(false);
 
   const handleLogout = useCallback(async (authInstance = getFirebaseAuth(), showToast = true) => {
     if (!authInstance) {
@@ -104,6 +105,11 @@ function AppSidebar() {
   const onLinkClick = () => {
     setOpenMobile(false);
   }
+
+  const handleFeedbackClick = () => {
+    setIsLogoutAlertOpen(false);
+    router.push('/dashboard/feedback');
+  };
 
   const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
   const proValidUntilDate = normalizeDate(userData?.proValidUntil);
@@ -306,7 +312,7 @@ function AppSidebar() {
             </div>
         )}
         <div className="p-2">
-            <AlertDialog>
+            <AlertDialog open={isLogoutAlertOpen} onOpenChange={setIsLogoutAlertOpen}>
                 <AlertDialogTrigger asChild>
                     <Button variant="ghost" className="w-full justify-start">
                         <LogOut className="mr-2 h-4 w-4" />
@@ -321,8 +327,8 @@ function AppSidebar() {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="sm:justify-between">
-                        <Button variant="outline" asChild>
-                           <Link href="/dashboard/feedback">Give Feedback</Link>
+                        <Button variant="outline" onClick={handleFeedbackClick}>
+                           Give Feedback
                         </Button>
                         <div className="flex gap-2 justify-end">
                            <AlertDialogCancel>Stay Logged In</AlertDialogCancel>
