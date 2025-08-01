@@ -8,6 +8,8 @@ export interface MCQ {
   correctAnswer: string;
   solution?: string;
   topic?: string;
+  sourceLanguage?: string;
+  translations?: Record<string, MCQ>;
 }
 
 export interface Material {

@@ -1,7 +1,7 @@
 
 import { getFirebaseDb } from './firebase';
-import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback } from './types';
+import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion, runTransaction } from 'firebase/firestore';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ } from './types';
 import { ADMIN_EMAILS } from './constants';
 import { normalizeDate } from './utils';
 
@@ -467,7 +467,6 @@ export const getLiveTestsForLeaderboard = async (): Promise<LiveTest[]> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     const now = new Date();
-    // Show tests that have already started.
     const q = query(collection(db, 'liveTests'), where('startTime', '<=', now), orderBy('startTime', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => {
@@ -576,6 +575,53 @@ export const updateTopicMCQDocument = async (docId: string, content: string): Pr
     const docRef = doc(db, 'topicMCQs', docId);
     await updateDoc(docRef, { content });
 };
+
+export const updateTopicMCQWithTranslation = async (docId: string, originalQuestion: string, lang: string, translatedMcq: MCQ): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const docRef = doc(db, 'topicMCQs', docId);
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            const docSnap = await transaction.get(docRef);
+            if (!docSnap.exists()) {
+                throw "Document does not exist!";
+            }
+
+            const data = docSnap.data();
+            let content;
+            try {
+                content = JSON.parse(data.content);
+            } catch (e) {
+                console.error("Failed to parse existing content as JSON");
+                return; // Or handle non-JSON content
+            }
+            
+            if (!content.mcqs || !Array.isArray(content.mcqs)) {
+                return; // No mcqs array to update
+            }
+
+            const questionIndex = content.mcqs.findIndex((q: MCQ) => q.question === originalQuestion);
+            if (questionIndex === -1) {
+                console.warn("Original question not found in document, cannot save translation.");
+                return;
+            }
+            
+            if (!content.mcqs[questionIndex].translations) {
+                content.mcqs[questionIndex].translations = {};
+            }
+            
+            content.mcqs[questionIndex].translations[lang] = translatedMcq;
+
+            transaction.update(docRef, { content: JSON.stringify(content, null, 2) });
+        });
+        console.log(`Translation for '${originalQuestion.substring(0,30)}...' cached in ${lang}.`);
+    } catch (error) {
+        console.error("Transaction failed: ", error);
+        throw error;
+    }
+};
+
 
 export const deleteTopicMCQDocument = async (docId: string): Promise<void> => {
     const db = getFirebaseDb();

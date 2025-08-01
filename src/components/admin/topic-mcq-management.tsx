@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload, Eye, Trash2, Search, Edit, Download } from 'lucide-react';
 import { deleteTopicMCQDocument, updateTopicMCQDocument } from '@/lib/firestore';
-import type { Topic, TopicMCQ } from '@/lib/types';
+import type { Topic, TopicMCQ, MCQ } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -131,11 +131,11 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
   };
   
   const handleDownload = (mcqDoc: TopicMCQ) => {
-    const blob = new Blob([mcqDoc.content], { type: 'text/plain;charset=utf-8;' });
+    const blob = new Blob([mcqDoc.content], { type: 'application/json;charset=utf-8;' });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    const safeFileName = mcqDoc.fileName.replace('.docx', '.txt');
+    const safeFileName = mcqDoc.fileName.replace('.docx', '.json');
     link.setAttribute("download", safeFileName);
     document.body.appendChild(link);
     link.click();
@@ -145,6 +145,15 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
   const getTopicTitle = (topicId: string) => {
     return topics.find(t => t.id === topicId)?.title || 'Unknown Topic';
   }
+  
+  const getFormattedContent = (content: string) => {
+    try {
+      const jsonContent = JSON.parse(content);
+      return JSON.stringify(jsonContent, null, 2);
+    } catch (error) {
+      return content;
+    }
+  };
 
   const filteredTopicMCQs = useMemo(() => {
     if (!searchTerm) {
@@ -300,7 +309,7 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
                                                         <DialogDescription>Content for {getTopicTitle(tm.topicId)}</DialogDescription>
                                                     </DialogHeader>
                                                     <ScrollArea className="h-96 w-full rounded-md border p-4">
-                                                        <pre className="text-sm whitespace-pre-wrap">{tm.content}</pre>
+                                                        <pre className="text-sm whitespace-pre-wrap">{getFormattedContent(tm.content)}</pre>
                                                     </ScrollArea>
                                                 </DialogContent>
                                             </Dialog>
