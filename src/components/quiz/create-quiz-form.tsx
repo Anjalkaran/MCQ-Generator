@@ -136,13 +136,8 @@ export function CreateQuizForm() {
           material: selectedTopic.material,
           userId: user.uid,
           topicId: selectedTopic.id,
-          source: selectedTopic.source,
+          language: values.language,
       };
-
-      // CRITICAL FIX: Only add language if the source is NOT the reasoning bank
-      if (selectedTopic.source !== 'reasoningBank') {
-          generationInput.language = values.language;
-      }
 
 
       const result = await generateMCQs(generationInput);
@@ -160,10 +155,8 @@ export function CreateQuizForm() {
       const { mcqs } = result;
       
       let timeLimit;
-      if (selectedCategory.name === "Basic Arithmetics" || selectedTopic.source === 'reasoningBank') {
-        // 2 minutes for Arithmetics, 1 minute for Reasoning
-        const secondsPerQuestion = selectedTopic.source === 'reasoningBank' ? 60 : 120;
-        timeLimit = values.numberOfQuestions * secondsPerQuestion;
+      if (selectedCategory.name === "Basic Arithmetics") {
+        timeLimit = values.numberOfQuestions * 120; // 2 minutes for Arithmetics
       } else {
         timeLimit = values.numberOfQuestions * 45; // 45 seconds for others
       }
@@ -208,10 +201,6 @@ export function CreateQuizForm() {
         topic.part === selectedPart &&
         topic.examCategories.includes(selectedExamType)
     );
-
-    if (selectedPart === 'Part B') {
-        partTopics = partTopics.filter(topic => topic.title === 'Analytical Reasoning');
-    }
 
     return partTopics;
 
