@@ -49,38 +49,13 @@ export function MockTestForm() {
   const { user, userData, isLoading } = useDashboard();
   const [isGenerating, setIsGenerating] = useState(false);
   
-  const availableExams = useMemo(() => {
-    if (!userData) return [];
-    if (userData.email && ADMIN_EMAILS.includes(userData.email)) return examCategories;
-    switch (userData.examCategory) {
-        case 'PA':
-            return ['PA', 'POSTMAN', 'MTS'];
-        case 'POSTMAN':
-            return ['POSTMAN', 'MTS'];
-        case 'MTS':
-            return ['MTS'];
-        default:
-            return [];
-    }
-  }, [userData]);
-
-  const isMTSOnlyUser = useMemo(() => {
-    return availableExams.length === 1 && availableExams[0] === 'MTS';
-  }, [availableExams]);
-
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      examType: isMTSOnlyUser ? 'MTS' : undefined,
+      examType: 'MTS',
       language: 'English',
     },
   });
-
-  useEffect(() => {
-    if (isMTSOnlyUser) {
-        form.setValue('examType', 'MTS');
-    }
-  }, [isMTSOnlyUser, form]);
 
   const selectedExamType = form.watch('examType');
 
@@ -164,32 +139,29 @@ export function MockTestForm() {
                           </FormItem>
                       )}
                     />
-                    {!isMTSOnlyUser ? (
-                        <FormField
-                        control={form.control}
-                        name="examType"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Select Exam</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value} disabled={!user}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select Exam Type" />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                {availableExams.map((exam) => (
-                                    <SelectItem key={exam} value={exam}>{exam}</SelectItem>
-                                ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                    ) : (
-                         <Input type="hidden" {...form.register("examType")} />
+                    <FormField
+                    control={form.control}
+                    name="examType"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Select Exam (Testing MTS only)</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!user}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select Exam Type" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                <SelectItem value="MTS">MTS</SelectItem>
+                                <SelectItem value="POSTMAN" disabled>POSTMAN (Coming Soon)</SelectItem>
+                                <SelectItem value="PA" disabled>PA (Coming Soon)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
                     )}
+                    />
+                    
                     {selectedExamType && (
                         <Alert>
                             <AlertTriangle className="h-4 w-4" />
