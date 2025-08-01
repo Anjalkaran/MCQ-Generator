@@ -152,24 +152,33 @@ const generateMockTestFlow = ai.defineFlow(
 
             // Chunking logic to handle large documents
             for (let i = 0; i < combinedContent.length; i += MATERIAL_CHUNK_SIZE) {
-                if (allExtractedMcqs.length >= sectionQuestionsNeeded * 1.5) break; // Stop if we have plenty of questions
+                if (allExtractedMcqs.length >= sectionQuestionsNeeded * 1.5) break;
 
                 const contentChunk = combinedContent.substring(i, i + MATERIAL_CHUNK_SIZE);
 
-                const { output } = await extractMCQsFromTextPrompt({
-                    textContent: contentChunk,
-                    topicNames: topicNamesInSection,
-                    language: input.language,
-                });
+                try {
+                    const { output } = await extractMCQsFromTextPrompt({
+                        textContent: contentChunk,
+                        topicNames: topicNamesInSection,
+                        language: input.language,
+                    });
 
-                if (output && output.mcqs) {
-                    for (const mcq of output.mcqs) {
-                        const questionText = mcq.question.trim();
-                        if (!collectedQuestionTexts.has(questionText)) {
-                            allExtractedMcqs.push(mcq);
-                            collectedQuestionTexts.add(questionText);
+                    // ROBUST CHECK: Ensure BOTH 'output' and 'output.mcqs' exist before trying to use them.
+                    if (output && output.mcqs) {
+                        for (const mcq of output.mcqs) {
+                            const questionText = mcq.question.trim();
+                            if (!collectedQuestionTexts.has(questionText)) {
+                                allExtractedMcqs.push(mcq);
+                                collectedQuestionTexts.add(questionText);
+                            }
                         }
+                    } else {
+                        // Log a warning if the AI doesn't return the expected data.
+                        console.warn('AI prompt did not return valid MCQs for a chunk. Output was:', output);
                     }
+                } catch (error) {
+                    console.error('An error occurred during the AI prompt call:', error);
+                    // Continue to the next chunk
                 }
             }
 
