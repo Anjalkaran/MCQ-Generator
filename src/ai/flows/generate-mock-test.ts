@@ -17,6 +17,9 @@ import {z} from 'zod';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-blueprints';
 import type { MCQ, ReasoningQuestion, Topic } from '@/lib/types';
 import { getTopicMCQs, getReasoningQuestionsForPartwiseTest, getTopics } from '@/lib/firestore';
+import { generate } from '@genkit-ai/ai';
+import { gemini15Pro } from '@genkit-ai/googleai';
+
 
 const GenerateMockTestInputSchema = z.object({
   examCategory: z.string().describe('The exam category (e.g., MTS, POSTMAN, PA).'),
@@ -38,38 +41,6 @@ const GenerateMockTestOutputSchema = z.object({
 });
 export type GenerateMockTestOutput = z.infer<typeof GenerateMockTestOutputSchema>;
 
-const extractMCQsFromTextPrompt = ai.definePrompt({
-    name: 'extractMCQsFromTextForMockTest',
-    input: { schema: z.object({ textContent: z.string(), topicNames: z.array(z.string()), language: z.string().optional().default('English') }) },
-    output: { schema: z.object({ mcqs: z.array(MCQSchema) }) },
-    model: 'googleai/gemini-1.5-pro',
-    prompt: `You are an expert at parsing and formatting multiple-choice questions (MCQs).
-Your task is to extract **ALL** high-quality, unique questions you can find for the topics listed below from the 'TEXT CONTENT' provided.
-
-**CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
-**CRITICAL RULE FOR TRANSLATION:** When translating to any language other than English (e.g., Tamil, Hindi, Telugu, Kannada), you MUST keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", "Head Office", "Sub Office", etc.
-
-**Topics to Extract:**
-{{#each topicNames}}
-- {{this}}
-{{/each}}
-
-**Process:**
-1.  Read the 'TEXT CONTENT' and identify all distinct multiple-choice questions relevant to the topics above.
-2.  For each question, accurately extract the full question text, all four of its options, the indicated correct answer, and the step-by-step solution if provided.
-3.  For EACH extracted question, you MUST add a 'topic' field with the specific topic name it belongs to.
-4.  **Translate** the entire extracted content for each question into the specified '{{language}}'.
-
-**CRITICAL INSTRUCTIONS:**
-*   The 'correctAnswer' field in your output MUST be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
-*   **TRIMMING RULE:** If an option in the text starts with a letter followed by a period or parenthesis (e.g., "a.", "B)", "c."), you MUST trim this prefix.
-
---- TEXT CONTENT ---
-{{{textContent}}}
---- END TEXT CONTENT ---
-`
-});
-
 function shuffleArray<T>(array: T[]): T[] {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -82,7 +53,7 @@ export async function generateMockTest(input: GenerateMockTestInput): Promise<Ge
   return generateMockTestFlow(input);
 }
 
-const MATERIAL_CHUNK_SIZE = 8000; // Increased chunk size for better performance
+const MATERIAL_CHUNK_SIZE = 8000;
 
 const generateMockTestFlow = ai.defineFlow(
   {
@@ -107,7 +78,6 @@ const generateMockTestFlow = ai.defineFlow(
         let sectionQuestionsNeeded = section.questions;
         let sectionQuestions: MCQ[] = [];
 
-        // Special handling for Reasoning sections - pull from Reasoning Bank
         if (section.sectionName.toLowerCase().includes("reasoning")) {
             const reasoningBankQuestions = await getReasoningQuestionsForPartwiseTest(input.examCategory as 'MTS' | 'POSTMAN' | 'PA');
             if (reasoningBankQuestions.length < sectionQuestionsNeeded) {
@@ -123,7 +93,6 @@ const generateMockTestFlow = ai.defineFlow(
             }));
             sectionQuestions.push(...formattedReasoningMCQs);
         } else {
-            // Default handling for all other sections - pull from MCQ Bank
             const topicNamesInSection = section.topics.map(t => (typeof t === 'string' ? t : t.name));
             const topicIdsInSection: string[] = [];
             
@@ -150,22 +119,37 @@ const generateMockTestFlow = ai.defineFlow(
             let allExtractedMcqs: MCQ[] = [];
             const collectedQuestionTexts = new Set<string>();
 
-            // Chunking logic to handle large documents
             for (let i = 0; i < combinedContent.length; i += MATERIAL_CHUNK_SIZE) {
                 if (allExtractedMcqs.length >= sectionQuestionsNeeded * 1.5) break;
 
                 const contentChunk = combinedContent.substring(i, i + MATERIAL_CHUNK_SIZE);
 
-                try {
-                    const { output } = await extractMCQsFromTextPrompt({
-                        textContent: contentChunk,
-                        topicNames: topicNamesInSection,
-                        language: input.language,
-                    });
+                const prompt = `You are an expert at parsing and formatting multiple-choice questions (MCQs). Your task is to extract ALL high-quality, unique questions you can find for the topics listed below from the 'TEXT CONTENT' provided.
+CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in ${input.language}. Every single field must be in the requested language.
+CRITICAL RULE FOR TRANSLATION: When translating to any language other than English (e.g., Tamil, Hindi, Telugu, Kannada), you MUST keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", "Head Office", "Sub Office", etc.
+Topics to Extract:
+${topicNamesInSection.map(t => `- ${t}`).join('\n')}
+CRITICAL INSTRUCTIONS:
+*   The 'correctAnswer' field in your output MUST be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
+*   TRIMMING RULE: If an option in the text starts with a letter followed by a period or parenthesis (e.g., "a.", "B)", "c."), you MUST trim this prefix.
+--- TEXT CONTENT ---
+${contentChunk}
+--- END TEXT CONTENT ---`;
 
-                    // ROBUST CHECK: Ensure BOTH 'output' and 'output.mcqs' exist before trying to use them.
-                    if (output && output.mcqs) {
-                        for (const mcq of output.mcqs) {
+                try {
+                    const llmResponse = await generate({
+                        model: gemini15Pro,
+                        prompt: prompt,
+                        output: { format: 'json', schema: GenerateMockTestOutputSchema }, 
+                        config: { temperature: 0.1 }
+                    });
+                    
+                    console.log("Raw AI Response Text:", llmResponse.text);
+
+                    const parsedOutput = llmResponse.json();
+
+                    if (parsedOutput && parsedOutput.mcqs) {
+                         for (const mcq of parsedOutput.mcqs) {
                             const questionText = mcq.question.trim();
                             if (!collectedQuestionTexts.has(questionText)) {
                                 allExtractedMcqs.push(mcq);
@@ -173,12 +157,10 @@ const generateMockTestFlow = ai.defineFlow(
                             }
                         }
                     } else {
-                        // Log a warning if the AI doesn't return the expected data.
-                        console.warn('AI prompt did not return valid MCQs for a chunk. Output was:', output);
+                        console.warn('AI response was valid JSON but did not contain the "mcqs" property as expected.');
                     }
                 } catch (error) {
-                    console.error('An error occurred during the AI prompt call:', error);
-                    // Continue to the next chunk
+                    console.error('Failed to generate or parse AI response for a chunk:', error);
                 }
             }
 
@@ -186,7 +168,6 @@ const generateMockTestFlow = ai.defineFlow(
                 throw new Error(`Could not find enough questions for section "${section.sectionName}". Found ${allExtractedMcqs.length}, but need ${sectionQuestionsNeeded}. Please upload more questions for the topics in this section.`);
             }
 
-            // Shuffle all extracted questions and take the required number for the whole section
             const selectedMcqs = shuffleArray(allExtractedMcqs).slice(0, sectionQuestionsNeeded);
             sectionQuestions.push(...selectedMcqs);
         }
@@ -203,3 +184,5 @@ const generateMockTestFlow = ai.defineFlow(
     return { mcqs: shuffleArray(allQuestions).slice(0, totalExpectedQuestions) };
   }
 );
+
+    
