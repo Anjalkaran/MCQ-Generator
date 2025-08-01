@@ -84,26 +84,6 @@ export async function generateMockTest(input: GenerateMockTestInput): Promise<Ge
   return generateMockTestFlow(input);
 }
 
-const MATERIAL_CHUNK_SIZE = 8000;
-
-const extractMCQsFromTextPrompt = ai.definePrompt({
-    name: 'extractMCQsFromTextPrompt',
-    input: { schema: z.object({ textContent: z.string(), topicNames: z.array(z.string()) }) },
-    output: { schema: GenerateMockTestOutputSchema },
-    model: 'googleai/gemini-1.5-pro',
-    prompt: `You are an expert at parsing and formatting multiple-choice questions (MCQs). Your task is to extract ALL high-quality, unique questions you can find for the topics listed below from the 'TEXT CONTENT' provided.
-Topics to Extract:
-{{#each topicNames}}
-- {{this}}
-{{/each}}
-CRITICAL INSTRUCTIONS:
-*   The 'correctAnswer' field in your output MUST be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
-*   TRIMMING RULE: If an option in the text starts with a letter followed by a period or parenthesis (e.g., "a.", "B)", "c."), you MUST trim this prefix.
---- TEXT CONTENT ---
-{{{textContent}}}
---- END TEXT CONTENT ---`,
-});
-
 const generateMockTestFlow = ai.defineFlow(
   {
     name: 'generateMockTestFlow',
@@ -124,25 +104,70 @@ const generateMockTestFlow = ai.defineFlow(
 
     for (const part of blueprint.parts) {
       for (const section of part.sections) {
-
-        let sectionQuestionsNeeded = section.questions;
         let sectionQuestions: MCQ[] = [];
 
+        // This is the new, more granular logic for handling reasoning sections.
         if (section.sectionName.toLowerCase().includes("reasoning")) {
-            const reasoningBankQuestions = await getReasoningQuestionsForPartwiseTest(input.examCategory as 'MTS' | 'POSTMAN' | 'PA');
-            if (reasoningBankQuestions.length < sectionQuestionsNeeded) {
-                throw new Error(`Not enough questions in the Reasoning Bank for ${section.sectionName}. Found ${reasoningBankQuestions.length}, but need ${sectionQuestionsNeeded}. Please upload more.`);
+            const allReasoningBankQuestions = await getReasoningQuestionsForPartwiseTest(input.examCategory as 'MTS' | 'POSTMAN' | 'PA');
+
+            for (const topicDef of section.topics) {
+                const { name: topicName, questions: questionsNeeded } = typeof topicDef === 'string' ? { name: topicDef, questions: 0 } : topicDef;
+                
+                if (questionsNeeded === 0) continue;
+
+                if (topicName.toLowerCase() === 'analytical reasoning') {
+                    // Fetch text-based analytical reasoning from the main MCQ bank
+                    const topicInfo = topicMapByName.get(topicName.toLowerCase());
+                    if (!topicInfo) {
+                        throw new Error(`Topic "${topicName}" not found in Firestore for section "${section.sectionName}".`);
+                    }
+                    
+                    const mcqDocs = await getTopicMCQs(topicInfo.id);
+                    const canonicalQuestions: (MCQ & { sourceDocId: string, translations?: Record<string, MCQ> })[] = [];
+                    mcqDocs.forEach(doc => {
+                        try {
+                            const parsed = JSON.parse(doc.content);
+                            if (parsed.mcqs && Array.isArray(parsed.mcqs)) {
+                                parsed.mcqs.forEach((mcq: any) => {
+                                    canonicalQuestions.push({ ...mcq, sourceDocId: doc.id });
+                                });
+                            }
+                        } catch (e) { /* ignore non-json */ }
+                    });
+
+                    if (canonicalQuestions.length < questionsNeeded) {
+                        throw new Error(`Not enough questions for "${topicName}". Found ${canonicalQuestions.length}, but need ${questionsNeeded}.`);
+                    }
+                    
+                    const processedQuestions = await Promise.all(
+                        shuffleArray(canonicalQuestions).slice(0, questionsNeeded).map(async (cq) => {
+                            if (targetLang === 'English' || !targetLang) return cq;
+                            if (cq.translations && cq.translations[targetLang]) return cq.translations[targetLang];
+                            
+                            const translatedMcq = await translateMCQ(cq, targetLang);
+                            updateTopicMCQWithTranslation(cq.sourceDocId, cq.question, targetLang, translatedMcq).catch(err => console.error("Failed to save translation:", err));
+                            return translatedMcq;
+                        })
+                    );
+                    sectionQuestions.push(...processedQuestions);
+                } else {
+                    // Fetch image-based reasoning from the reasoning bank
+                    const topicQuestions = allReasoningBankQuestions.filter(q => q.topic.toLowerCase() === topicName.toLowerCase());
+                    if (topicQuestions.length < questionsNeeded) {
+                        throw new Error(`Not enough questions in Reasoning Bank for "${topicName}". Found ${topicQuestions.length}, but need ${questionsNeeded}.`);
+                    }
+                    const selectedReasoning = shuffleArray(topicQuestions).slice(0, questionsNeeded);
+                    const formattedReasoningMCQs: MCQ[] = selectedReasoning.map((q: ReasoningQuestion) => ({
+                        question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
+                        options: q.options,
+                        correctAnswer: q.correctAnswer,
+                        solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
+                        topic: q.topic,
+                    }));
+                    sectionQuestions.push(...formattedReasoningMCQs);
+                }
             }
-            const selectedReasoning = shuffleArray(reasoningBankQuestions).slice(0, sectionQuestionsNeeded);
-            const formattedReasoningMCQs: MCQ[] = selectedReasoning.map((q: ReasoningQuestion) => ({
-                question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
-                options: q.options,
-                correctAnswer: q.correctAnswer,
-                solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
-                topic: q.topic,
-            }));
-            sectionQuestions.push(...formattedReasoningMCQs);
-        } else {
+        } else { // Handle all other non-reasoning sections
             const topicNamesInSection = section.topics.map(t => (typeof t === 'string' ? t : t.name));
             const topicMapping: { name: string, id: string, docId?: string }[] = [];
             
@@ -180,6 +205,7 @@ const generateMockTestFlow = ai.defineFlow(
             }
             
             const processedQuestions: MCQ[] = [];
+            const sectionQuestionsNeeded = section.questions;
 
             for (const cq of shuffleArray(canonicalQuestions)) {
                 if (processedQuestions.length >= sectionQuestionsNeeded) break;
