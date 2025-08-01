@@ -165,4 +165,6 @@ export interface Feedback {
   rating: number;
   comment: string;
   createdAt: Date;
+  reply?: string;
+  repliedAt?: Date;
 }
