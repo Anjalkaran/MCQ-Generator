@@ -82,6 +82,8 @@ export async function generateMockTest(input: GenerateMockTestInput): Promise<Ge
   return generateMockTestFlow(input);
 }
 
+const MATERIAL_CHUNK_SIZE = 8000; // Increased chunk size for better performance
+
 const generateMockTestFlow = ai.defineFlow(
   {
     name: 'generateMockTestFlow',
@@ -145,13 +147,31 @@ const generateMockTestFlow = ai.defineFlow(
                 throw new Error(`No MCQ documents have been uploaded for the topics in section: "${section.sectionName}". Please upload question files.`);
             }
 
-            const { output } = await extractMCQsFromTextPrompt({
-                textContent: combinedContent,
-                topicNames: topicNamesInSection,
-                language: input.language,
-            });
+            let allExtractedMcqs: MCQ[] = [];
+            const collectedQuestionTexts = new Set<string>();
 
-            const allExtractedMcqs = output?.mcqs || [];
+            // Chunking logic to handle large documents
+            for (let i = 0; i < combinedContent.length; i += MATERIAL_CHUNK_SIZE) {
+                if (allExtractedMcqs.length >= sectionQuestionsNeeded * 1.5) break; // Stop if we have plenty of questions
+
+                const contentChunk = combinedContent.substring(i, i + MATERIAL_CHUNK_SIZE);
+
+                const { output } = await extractMCQsFromTextPrompt({
+                    textContent: contentChunk,
+                    topicNames: topicNamesInSection,
+                    language: input.language,
+                });
+
+                if (output && output.mcqs) {
+                    for (const mcq of output.mcqs) {
+                        const questionText = mcq.question.trim();
+                        if (!collectedQuestionTexts.has(questionText)) {
+                            allExtractedMcqs.push(mcq);
+                            collectedQuestionTexts.add(questionText);
+                        }
+                    }
+                }
+            }
 
             if (allExtractedMcqs.length < sectionQuestionsNeeded) {
                 throw new Error(`Could not find enough questions for section "${section.sectionName}". Found ${allExtractedMcqs.length}, but need ${sectionQuestionsNeeded}. Please upload more questions for the topics in this section.`);
