@@ -11,7 +11,7 @@ import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
-import { getDashboardData, updateUserDocument } from '@/lib/firestore';
+import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback } from '@/lib/firestore';
 import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification } from "@/lib/types";
 import { ADMIN_EMAILS, FREE_EXAM_LIMIT } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
@@ -42,6 +42,7 @@ interface DashboardContextType {
   onlineUsers: OnlineUser[];
   isLoading: boolean;
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>;
+  hasGivenFeedback: boolean;
 }
 
 const DashboardContext = createContext<DashboardContextType | null>(null);
@@ -84,7 +85,7 @@ function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
-  const { user, userData, isLoading, onlineUsers } = useDashboard();
+  const { user, userData, isLoading, onlineUsers, hasGivenFeedback } = useDashboard();
   const { setOpenMobile } = useSidebar();
   const [isLogoutAlertOpen, setIsLogoutAlertOpen] = useState(false);
 
@@ -109,6 +110,14 @@ function AppSidebar() {
   const handleFeedbackClick = () => {
     setIsLogoutAlertOpen(false);
     router.push('/dashboard/feedback');
+  };
+  
+  const handleLogoutClick = () => {
+    if (hasGivenFeedback) {
+      handleLogout();
+    } else {
+      setIsLogoutAlertOpen(true);
+    }
   };
 
   const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
@@ -313,12 +322,10 @@ function AppSidebar() {
         )}
         <div className="p-2">
             <AlertDialog open={isLogoutAlertOpen} onOpenChange={setIsLogoutAlertOpen}>
-                <AlertDialogTrigger asChild>
-                    <Button variant="ghost" className="w-full justify-start">
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <span className="group-data-[collapsible=icon]:hidden">Logout</span>
-                    </Button>
-                </AlertDialogTrigger>
+                <Button variant="ghost" className="w-full justify-start" onClick={handleLogoutClick}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span className="group-data-[collapsible=icon]:hidden">Logout</span>
+                </Button>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
@@ -367,6 +374,7 @@ export default function DashboardLayout({
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showReasoningPopup, setShowReasoningPopup] = useState(false);
+  const [hasGivenFeedback, setHasGivenFeedback] = useState(false);
 
   const handleLogout = useCallback(async (authInstance = getFirebaseAuth(), showToast = true) => {
     if (!authInstance) {
@@ -474,7 +482,14 @@ export default function DashboardLayout({
                 
             } else {
                  // Regular user fetches only their relevant data
-                const { userData: fetchedUserData, categories, topics } = await getDashboardData(currentUser.uid);
+                const [
+                    { userData: fetchedUserData, categories, topics },
+                    feedbackStatus
+                ] = await Promise.all([
+                    getDashboardData(currentUser.uid),
+                    hasUserSubmittedFeedback(currentUser.uid)
+                ]);
+
                 if (!fetchedUserData) {
                      toast({ title: "Authentication Error", description: "Could not load user profile. Please log in again.", variant: "destructive" });
                      handleLogout(auth, false);
@@ -484,6 +499,7 @@ export default function DashboardLayout({
                 setUserData(fetchedUserData);
                 setCategories(categories);
                 setTopics(topics);
+                setHasGivenFeedback(feedbackStatus);
 
                 // Check for reasoning update popup
                 if ((fetchedUserData.examCategory === 'PA' || fetchedUserData.examCategory === 'POSTMAN') && !fetchedUserData.hasSeenReasoningUpdate) {
@@ -541,7 +557,7 @@ export default function DashboardLayout({
     }
   };
   
-  const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, qnaUsage, notifications, onlineUsers, isLoading, setUserData };
+  const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, qnaUsage, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback };
 
   return (
     <DashboardContext.Provider value={contextValue}>

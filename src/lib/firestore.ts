@@ -732,6 +732,15 @@ export const getAllFeedback = async (): Promise<Feedback[]> => {
     });
 };
 
+export const hasUserSubmittedFeedback = async (userId: string): Promise<boolean> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const feedbackCollection = collection(db, 'feedback');
+    const q = query(feedbackCollection, where('userId', '==', userId), limit(1));
+    const snapshot = await getDocs(q);
+    return !snapshot.empty;
+};
+
 
 // CONSOLIDATED DASHBOARD DATA FETCHING
 export const getDashboardData = async (userId: string, isAdmin: boolean = false) => {
