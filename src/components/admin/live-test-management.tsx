@@ -12,8 +12,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Clock, Trash2, Edit, CalendarIcon, Upload, Eye, Download } from 'lucide-react';
-import { addLiveTest, updateLiveTest, deleteLiveTest, deleteLiveTestBankDocument } from '@/lib/firestore';
+import { Loader2, Clock, Trash2, Edit, CalendarIcon, Upload, Eye, Download, FileJson } from 'lucide-react';
+import { addLiveTest, updateLiveTest, deleteLiveTest, deleteLiveTestBankDocument, addLiveTestBankDocument } from '@/lib/firestore';
 import type { BankedQuestion, LiveTest } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -24,6 +24,9 @@ import { cn, normalizeDate } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import MTS_PAPER_1 from '@/lib/live-test-question-paper-1.json';
+import PM_PAPER_1 from '@/lib/live-test-question-paper-pm-1.json';
+
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 
@@ -56,6 +59,7 @@ interface LiveTestManagementProps {
 export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: LiveTestManagementProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [liveTestBank, setLiveTestBank] = useState<BankedQuestion[]>(initialLiveTestBank);
   const [liveTests, setLiveTests] = useState<LiveTest[]>(initialLiveTests);
   const [editingTest, setEditingTest] = useState<LiveTest | null>(null);
@@ -190,6 +194,31 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
     document.body.removeChild(link);
   };
   
+  const handleImportPaper = async (paperData: any[], fileName: string, category: "MTS" | "POSTMAN" | "PA") => {
+    setIsImporting(true);
+    try {
+      const content = JSON.stringify({ questions: paperData });
+      
+      const newDocData: Omit<BankedQuestion, 'id'> = {
+        examCategory: category,
+        fileName: fileName,
+        content: content,
+        uploadedAt: new Date(),
+      };
+
+      const newDocRef = await addLiveTestBankDocument(newDocData);
+      const newDocument = { id: newDocRef.id, ...newDocData };
+      
+      setLiveTestBank(prev => [newDocument, ...prev]);
+      toast({ title: 'Success', description: `${fileName} imported successfully.` });
+    } catch (error: any) {
+      toast({ title: 'Import Failed', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+
   const selectedCategory = scheduleForm.watch('examCategory');
   const filteredPapers = selectedCategory 
     ? liveTestBank.filter(p => p.examCategory === selectedCategory) 
@@ -281,6 +310,24 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                     <CardDescription>Manage your uploaded live test question papers.</CardDescription>
                 </CardHeader>
                 <CardContent>
+                     <div className="flex gap-2 mb-4">
+                        <Button
+                            variant="outline"
+                            onClick={() => handleImportPaper(MTS_PAPER_1, "mts-paper-1.json", "MTS")}
+                            disabled={isImporting}
+                        >
+                            {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileJson className="mr-2 h-4 w-4" />}
+                            Import MTS Paper 1
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => handleImportPaper(PM_PAPER_1, "pm-paper-1.json", "POSTMAN")}
+                            disabled={isImporting}
+                        >
+                            {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileJson className="mr-2 h-4 w-4" />}
+                            Import PM Paper 1
+                        </Button>
+                    </div>
                      <div className="border rounded-md h-64 overflow-y-auto">
                         <Table>
                             <TableHeader>
