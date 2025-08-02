@@ -71,8 +71,8 @@ const generateLiveMockTestFlow = ai.defineFlow(
     const canonicalQuestions = parsedData.questions;
     
     let processedQuestions: MCQ[] = canonicalQuestions.map(q => {
+        // Use English if selected, or if the language is not found in translations
         if (lang === 'English' || !q.translations || !q.translations[lang]) {
-            // If English is selected or translation doesn't exist, return the original question.
             return {
                 question: q.question,
                 options: q.options,
@@ -82,15 +82,15 @@ const generateLiveMockTestFlow = ai.defineFlow(
             };
         }
         
-        // Use the translated version.
+        // Use the translated version from the nested object
         const translated = q.translations[lang];
         
         return {
             question: translated.question,
             options: translated.options,
             correctAnswer: translated.correctAnswer,
-            topic: q.topic, // Keep the original topic
-            // Use translated solution if it exists, otherwise fall back to the original English solution.
+            topic: q.topic, // Topic remains the same across translations
+            // Fallback to English solution if translated solution is not available
             solution: translated.solution || q.solution, 
         };
     });
