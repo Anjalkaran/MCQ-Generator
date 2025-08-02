@@ -20,6 +20,7 @@ import { getLiveTestQuestionPaper, getReasoningQuestionsForLiveTest } from '@/li
 const GenerateLiveMockTestInputSchema = z.object({
   liveTestId: z.string().describe('The ID of the live test paper document in Firestore.'),
   examCategory: z.enum(["MTS", "POSTMAN", "PA"]).describe('The exam category for which the test is being generated.'),
+  language: z.string().optional().default('English').describe('The language for the generated quiz.'),
 });
 export type GenerateLiveMockTestInput = z.infer<typeof GenerateLiveMockTestInputSchema>;
 
@@ -54,7 +55,7 @@ const generateLiveMockTestFlow = ai.defineFlow(
         throw new Error(`The live test question paper (${input.liveTestId}) could not be found. Please contact an administrator.`);
     }
     
-    let parsedData: { questions: MCQ[] };
+    let parsedData: { questions: any[] };
     try {
         parsedData = JSON.parse(questionPaper.content);
     } catch (error) {
@@ -66,7 +67,22 @@ const generateLiveMockTestFlow = ai.defineFlow(
         throw new Error(`The live test question paper '${questionPaper.fileName}' is empty or incorrectly formatted. It must be a JSON object with a "questions" array.`);
     }
 
-    let finalMCQs = parsedData.questions;
+    const lang = input.language || 'English';
+    const canonicalQuestions = parsedData.questions;
+    
+    let processedQuestions: MCQ[] = canonicalQuestions.map(q => {
+        if (lang === 'English' || !q.translations || !q.translations[lang]) {
+            return q; // Return original English version
+        }
+        // Return the translated version, but keep the original solution if the translation doesn't have one
+        return {
+            ...q.translations[lang],
+            solution: q.translations[lang].solution || q.solution
+        };
+    });
+
+
+    let finalMCQs = processedQuestions;
     
     let reasoningQuestionsNeeded = 0;
     if (input.examCategory === 'PA') {

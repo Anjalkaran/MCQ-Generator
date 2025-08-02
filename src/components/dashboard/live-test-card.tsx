@@ -17,12 +17,22 @@ import { normalizeDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { ADMIN_EMAILS, RAZORPAY_KEY_ID } from '@/lib/constants';
 import { formatDistanceToNowStrict, format } from 'date-fns';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 declare global {
     interface Window {
         Razorpay: any;
     }
 }
+
+const languages = [
+    { value: 'English', label: 'English' },
+    { value: 'ta', label: 'தமிழ்' },
+    { value: 'hi', label: 'हिन्दी' },
+    { value: 'te', label: 'తెలుగు' },
+    { value: 'kn', label: 'ಕನ್ನಡ' },
+] as const;
+
 
 const blueprintMap = {
     MTS: MTS_BLUEPRINT,
@@ -39,6 +49,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const [timeRemaining, setTimeRemaining] = useState('');
     const [testState, setTestState] = useState<'upcoming' | 'live' | 'ended' | 'completed' | 'loading'>('loading');
     const [participantCount, setParticipantCount] = useState<number | null>(null);
+    const [selectedLanguage, setSelectedLanguage] = useState('English');
 
     const startTime = useMemo(() => normalizeDate(test.startTime), [test.startTime]);
     const endTime = useMemo(() => normalizeDate(test.endTime), [test.endTime]);
@@ -110,6 +121,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
             const result = await generateLiveMockTest({ 
                 liveTestId: test.questionPaperId,
                 examCategory: test.examCategory,
+                language: selectedLanguage,
             });
 
             if (!result || !result.mcqs) {
@@ -265,7 +277,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     }
 
     return (
-        <Card className="border-primary border-2 shadow-lg relative overflow-hidden">
+        <Card className="border-primary border-2 shadow-lg relative overflow-hidden flex flex-col">
              {participantCount !== null && (
                 <Badge variant="secondary" className="absolute top-4 right-4 flex items-center gap-1.5">
                     <Users className="h-3.5 w-3.5" />
@@ -278,7 +290,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
                     {format(startTime, 'dd/MM/yyyy p')}
                 </CardDescription>
             </CardHeader>
-            <CardContent className="text-center space-y-4">
+            <CardContent className="text-center space-y-4 flex-grow">
                  {!isAdmin && (
                      <div className="p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">
@@ -289,6 +301,18 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
                         </p>
                     </div>
                  )}
+                  <div className="pt-2">
+                    <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                        <SelectTrigger className="w-full max-w-xs mx-auto">
+                            <SelectValue placeholder="Select Language" />
+                        </SelectTrigger>
+                        <SelectContent>
+                        {languages.map((lang) => (
+                            <SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+                </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-2">
                 <div className="flex w-full gap-2">
