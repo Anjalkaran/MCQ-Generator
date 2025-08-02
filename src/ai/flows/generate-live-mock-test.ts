@@ -72,12 +72,26 @@ const generateLiveMockTestFlow = ai.defineFlow(
     
     let processedQuestions: MCQ[] = canonicalQuestions.map(q => {
         if (lang === 'English' || !q.translations || !q.translations[lang]) {
-            return q; // Return original English version
+            // If English is selected or translation doesn't exist, return the original question.
+            return {
+                question: q.question,
+                options: q.options,
+                correctAnswer: q.correctAnswer,
+                topic: q.topic,
+                solution: q.solution,
+            };
         }
-        // Return the translated version, but keep the original solution if the translation doesn't have one
+        
+        // Use the translated version.
+        const translated = q.translations[lang];
+        
         return {
-            ...q.translations[lang],
-            solution: q.translations[lang].solution || q.solution
+            question: translated.question,
+            options: translated.options,
+            correctAnswer: translated.correctAnswer,
+            topic: q.topic, // Keep the original topic
+            // Use translated solution if it exists, otherwise fall back to the original English solution.
+            solution: translated.solution || q.solution, 
         };
     });
 
@@ -104,7 +118,7 @@ const generateLiveMockTestFlow = ai.defineFlow(
             question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
             options: q.options,
             correctAnswer: q.correctAnswer,
-            solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
+            solution: q.solutionText ? `${q.solutionText}${q.solutionImage ? `<br/><img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : ''}` : (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
             topic: 'Reasoning',
         }));
         
