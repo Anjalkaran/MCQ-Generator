@@ -35,7 +35,10 @@ const uploadSchema = z.object({
   file: z
     .instanceof(File, { message: 'Please upload a file.' })
     .refine(file => file.size > 0, 'Please upload a file.')
-    .refine(file => file.type === 'application/json', 'File must be a JSON document.'),
+    .refine(
+      (file) => ['application/json', 'text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.type),
+      'File must be a JSON, TXT, or DOCX document.'
+    ),
 });
 
 
@@ -146,7 +149,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
         }
         const { newDocument } = await response.json();
         setLiveTestBank(prev => [newDocument, ...prev]);
-        toast({ title: 'Success', description: 'File uploaded successfully.' });
+        toast({ title: 'Success', description: 'File processed and uploaded successfully.' });
         uploadForm.reset();
         const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
@@ -194,7 +197,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
     document.body.removeChild(link);
   };
   
-  const handleImportPaper = async (paperData: any[], fileName: string, category: "MTS" | "POSTMAN" | "PA") => {
+  const handleImportPaper = async (paperData: any, fileName: string, category: "MTS" | "POSTMAN" | "PA") => {
     setIsImporting(true);
     try {
       const content = JSON.stringify({ questions: paperData });
@@ -254,7 +257,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                 <CardHeader>
                     <CardTitle>Upload Live Test Papers</CardTitle>
                     <CardDescription>
-                        Upload question papers in a valid JSON format.
+                        Upload question papers in JSON, DOCX, or TXT format. Text files will be converted to JSON automatically by AI.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -283,11 +286,11 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                 name="file"
                                 render={({ field: { onChange, value, ...rest } }) => (
                                     <FormItem>
-                                    <FormLabel>Question Paper File (.json)</FormLabel>
+                                    <FormLabel>Question Paper File (.json, .docx, .txt)</FormLabel>
                                     <FormControl>
                                         <Input 
                                         type="file" 
-                                        accept=".json"
+                                        accept=".json,.docx,.txt"
                                         onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
                                         {...rest}
                                         />
