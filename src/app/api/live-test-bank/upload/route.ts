@@ -4,8 +4,7 @@ import { addLiveTestBankDocument } from '@/lib/firestore';
 import type { BankedQuestion, MCQ } from '@/lib/types';
 import { z } from 'zod';
 import mammoth from 'mammoth';
-import { generate } from '@genkit-ai/ai';
-import { gemini15Pro } from '@genkit-ai/googleai';
+import { ai } from '@/ai/genkit';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; 
@@ -46,29 +45,38 @@ const extractMCQsFromText = async (textContent: string): Promise<MCQ[]> => {
 *   Do NOT verify, correct, or change any of the content. Extract it exactly as it appears.
 *   The 'correctAnswer' field MUST be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
 *   **TRIMMING RULE:** If an option in the text starts with a letter followed by a period or parenthesis (e.g., "a.", "B)", "c."), you MUST trim this prefix. For example, "a. The quick brown fox" should become "The quick brown fox".
+*   Your final output must be a single, valid JSON object that adheres to the schema: {"questions": [...]}.
 
 --- TEXT CONTENT ---
 ${textContent}
 --- END TEXT CONTENT ---
-
-Your final output must be a single, valid JSON object containing a 'questions' array with all the valid questions you were able to extract from the text.
 `;
 
-    const llmResponse = await generate({
-        model: gemini15Pro,
+    const llmResponse = await ai.generate({
+        model: 'googleai/gemini-1.5-pro',
         prompt: prompt,
-        output: {
-            format: 'json',
-            schema: JsonObjectUploadSchema,
-        },
-        config: { temperature: 0.1 }
+        config: {
+            responseMimeType: "application/json",
+        }
     });
     
-    const parsedOutput = llmResponse.output();
-    if (!parsedOutput || !parsedOutput.questions) {
-        throw new Error('AI failed to extract any questions from the provided text.');
+    const textResponse = llmResponse.text;
+    if (!textResponse) {
+        throw new Error('AI failed to return a response.');
     }
-    return parsedOutput.questions;
+    
+    try {
+        const parsedJson = JSON.parse(textResponse);
+        const validated = JsonObjectUploadSchema.safeParse(parsedJson);
+        if (!validated.success) {
+            console.error("AI output failed validation:", validated.error);
+            throw new Error('AI returned data in an invalid format.');
+        }
+        return validated.data.questions;
+    } catch (e) {
+        console.error("Failed to parse AI response as JSON:", e);
+        throw new Error('AI returned an invalid JSON object. Please check the document content and try again.');
+    }
 };
 
 
