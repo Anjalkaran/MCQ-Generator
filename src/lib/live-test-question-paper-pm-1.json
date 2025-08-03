@@ -1,3 +1,4 @@
+
 [
   {
     "sourceLanguage": "English",
@@ -1355,7 +1356,951 @@
         "solution": "ನಾಣ್ಯಗಳು ಮತ್ತು ಬುಲಿಯನ್ ಅನ್ನು ಕಳುಹಿಸಬಹುದಾದರೂ, ಮೌಲ್ಯ ನಿರ್ಬಂಧಗಳಿವೆ. ₹20,000 ಕ್ಕಿಂತ ಹೆಚ್ಚಿನ ಮೌಲ್ಯದ ಚಿನ್ನದ ನಾಣ್ಯ ಅಥವಾ ಬುಲಿಯನ್ ಹೊಂದಿರುವ ಲೇಖನಗಳನ್ನು ಅನುಮತಿಸಲು 'Insured Post' ಸೇವೆಯನ್ನು ಬಳಸಿ ಕಳುಹಿಸಬೇಕು."
       }
     }
-  }
-]
-
-    
+  },
+  {
+    "sourceLanguage": "English",
+    "question": "What is the colour of the impression made by a Franking Machine?",
+    "options": [
+      "Blue",
+      "Black",
+      "Bright Red",
+      "Green"
+    ],
+    "correctAnswer": "Bright Red",
+    "topic": "Payment of Postage",
+    "solution": "Post Office rules explicitly state that the frank impression must be in a bright red colour to be considered valid.",
+    "translations": {
+      "ta": {
+        "question": "ஒரு Franking Machine-ஆல் செய்யப்படும் முத்திரையின் நிறம் என்ன?",
+        "options": [
+          "நீலம்",
+          "கருப்பு",
+          "பிரகாசமான சிவப்பு",
+          "பச்சை"
+        ],
+        "correctAnswer": "பிரகாசமான சிவப்பு",
+        "solution": "தபால் அலுவலக விதிகள் வெளிப்படையாகக் கூறுகின்றன, பிராங்கிங் முத்திரை செல்லுபடியாகக் கருதப்படுவதற்கு அது ஒரு பிரகாசமான சிவப்பு நிறத்தில் இருக்க வேண்டும்."
+      },
+      "hi": {
+        "question": "एक Franking Machine द्वारा बनाई गई छाप का रंग क्या होता है?",
+        "options": [
+          "नीला",
+          "काला",
+          "चमकीला लाल",
+          "हरा"
+        ],
+        "correctAnswer": "चमकीला लाल",
+        "solution": "डाकघर के नियम स्पष्ट रूप से कहते हैं कि फ्रैंकिंग छाप को वैध माने जाने के लिए चमकीले लाल रंग में होना चाहिए।"
+      },
+      "te": {
+        "question": "ఒక Franking Machine ద్వారా చేయబడిన ముద్ర యొక్క రంగు ఏమిటి?",
+        "options": [
+          "నీలం",
+          "నలుపు",
+          "ప్రకాశవంతమైన ఎరుపు",
+          "ఆకుపచ్చ"
+        ],
+        "correctAnswer": "ప్రకాశవంతమైన ఎరుపు",
+        "solution": "పోస్ట్ ఆఫీస్ నియమాలు స్పష్టంగా చెబుతున్నాయి, ఫ్రాంకింగ్ ముద్ర చెల్లుబాటు అయ్యేదిగా పరిగణించబడటానికి అది ఒక ప్రకాశవంతమైన ఎరుపు రంగులో ఉండాలి."
+      },
+      "kn": {
+        "question": "ಒಂದು Franking Machine-ನಿಂದ ಮಾಡಲಾದ ಮುದ್ರೆಯ ಬಣ್ಣ ಯಾವುದು?",
+        "options": [
+          "ನೀಲಿ",
+          "ಕಪ್ಪು",
+          "ಪ್ರಕಾಶಮಾನವಾದ ಕೆಂಪು",
+          "ಹಸಿರು"
+        ],
+        "correctAnswer": "ಪ್ರಕಾಶಮಾನವಾದ ಕೆಂಪು",
+        "solution": "ಅಂಚೆ ಕಚೇರಿ ನಿಯಮಗಳು ಸ್ಪಷ್ಟವಾಗಿ ಹೇಳುತ್ತವೆ, ಫ್ರಾಂಕಿಂಗ್ ಮುದ್ರೆಯು ಮಾನ್ಯವೆಂದು ಪರಿಗಣಿಸಲು ಅದು ಪ್ರಕಾಶಮಾನವಾದ ಕೆಂಪು ಬಣ್ಣದಲ್ಲಿರಬೇಕು."
+      }
+    }
+  },
+  {
+    "sourceLanguage": "English",
+    "question": "An article addressed to a student at a college hostel which has authorized the hostel warden to receive mail on behalf of the students. The student refuses to accept the article when the warden offers it. What happens next?",
+    "options": [
+      "The article is considered delivered as it was handed to an authorized agent.",
+      "The article is returned to the post office and then to the sender as 'Refused'.",
+      "The warden is responsible for returning the article to the sender.",
+      "The postman takes the article back and re-attempts delivery to the student directly."
+    ],
+    "correctAnswer": "The article is returned to the post office and then to the sender as 'Refused'.",
+    "topic": "Delivery of Mails",
+    "solution": "Even if delivered to an authorized agent like a warden, the final delivery is to the addressee. If the addressee refuses it from the agent, the article is officially considered 'Refused' and is returned through postal channels.",
+    "translations": {
+      "ta": {
+        "question": "ஒரு கல்லூரி விடுதியில் உள்ள ஒரு மாணவருக்கு ஒரு கட்டுரை முகவரியிடப்பட்டுள்ளது, அந்த விடுதி மாணவர்களின் சார்பாக தபால் பெற விடுதி காப்பாளருக்கு அங்கீகாரம் அளித்துள்ளது. காப்பாளர் அதை வழங்கும் போது மாணவர் கட்டுரையை ஏற்க மறுக்கிறார். அடுத்து என்ன நடக்கும்?",
+        "options": [
+          "கட்டுரை ஒரு அங்கீகரிக்கப்பட்ட முகவரிடம் ஒப்படைக்கப்பட்டதால், அது விநியோகிக்கப்பட்டதாகக் கருதப்படுகிறது.",
+          "கட்டுரை தபால் நிலையத்திற்குத் திருப்பி அனுப்பப்பட்டு, பின்னர் 'மறுக்கப்பட்டது' என அனுப்புநருக்குத் திருப்பி அனுப்பப்படுகிறது.",
+          "காப்பாளர் கட்டுரையை அனுப்புநருக்குத் திருப்பி அனுப்புவதற்குப் பொறுப்பாவார்.",
+          "தபால்காரர் கட்டுரையைத் திரும்ப எடுத்துச் சென்று நேரடியாக மாணவருக்கு மீண்டும் விநியோகிக்க முயற்சிக்கிறார்."
+        ],
+        "correctAnswer": "கட்டுரை தபால் நிலையத்திற்குத் திருப்பி அனுப்பப்பட்டு, பின்னர் 'மறுக்கப்பட்டது' என அனுப்புநருக்குத் திருப்பி அனுப்பப்படுகிறது.",
+        "solution": "ஒரு காப்பாளர் போன்ற ஒரு அங்கீகரிக்கப்பட்ட முகவரிடம் வழங்கப்பட்டாலும், இறுதி விநியோகம் முகவரியாளருக்கே. முகவரியாளர் அதை முகவரிடமிருந்து மறுத்தால், கட்டுரை அதிகாரப்பூர்வமாக 'மறுக்கப்பட்டது' எனக் கருதப்பட்டு தபால் சேனல்கள் மூலம் திருப்பி அனுப்பப்படுகிறது."
+      },
+      "hi": {
+        "question": "एक लेख एक कॉलेज छात्रावास में एक छात्र को संबोधित है जिसने छात्रावास के वार्डन को छात्रों की ओर से मेल प्राप्त करने के लिए अधिकृत किया है। जब वार्डन इसे प्रदान करता है तो छात्र लेख को स्वीकार करने से इनकार कर देता है। आगे क्या होता है?",
+        "options": [
+          "लेख को वितरित माना जाता है क्योंकि इसे एक अधिकृत एजेंट को सौंप दिया गया था।",
+          "लेख को डाकघर में वापस कर दिया जाता है और फिर 'अस्वीकृत' के रूप में प्रेषक को वापस कर दिया जाता है।",
+          "वार्डन लेख को प्रेषक को वापस करने के लिए जिम्मेदार है।",
+          "डाकिया लेख को वापस ले जाता है और सीधे छात्र को डिलीवरी का पुनः प्रयास करता है।"
+        ],
+        "correctAnswer": "लेख को डाकघर में वापस कर दिया जाता है और फिर 'अस्वीकृत' के रूप में प्रेषक को वापस कर दिया जाता है।",
+        "solution": "भले ही एक वार्डन जैसे अधिकृत एजेंट को वितरित किया गया हो, अंतिम डिलीवरी प्राप्तकर्ता को होती है। यदि प्राप्तकर्ता इसे एजेंट से इनकार करता है, तो लेख को आधिकारिक तौर पर 'अस्वीकृत' माना जाता है और डाक चैनलों के माध्यम से वापस कर दिया जाता है।"
+      },
+      "te": {
+        "question": "ఒక కళాశాల హాస్టల్‌లోని ఒక విద్యార్థికి ఒక వస్తువు చిరునామా చేయబడింది, ఆ హాస్టల్ విద్యార్థుల తరపున మెయిల్ స్వీకరించడానికి హాస్టల్ వార్డెన్‌కు అధికారం ఇచ్చింది. వార్డెన్ దానిని అందించినప్పుడు విద్యార్థి వస్తువును స్వీకరించడానికి నిరాకరిస్తాడు. తర్వాత ఏమి జరుగుతుంది?",
+        "options": [
+          "వస్తువు ఒక అధీకృత ఏజెంట్‌కు అప్పగించబడినందున అది డెలివరీ చేయబడినట్లుగా పరిగణించబడుతుంది.",
+          "వస్తువును పోస్ట్ ఆఫీసుకు తిరిగి పంపి, ఆపై 'నిరాకరించబడింది'గా పంపినవారికి తిరిగి పంపుతారు.",
+          "వార్డెన్ వస్తువును పంపినవారికి తిరిగి పంపడానికి బాధ్యత వహిస్తాడు.",
+          "పోస్ట్‌మ్యాన్ వస్తువును తిరిగి తీసుకుని, నేరుగా విద్యార్థికి తిరిగి డెలివరీ చేయడానికి ప్రయత్నిస్తాడు."
+        ],
+        "correctAnswer": "వస్తువును పోస్ట్ ఆఫీసుకు తిరిగి పంపి, ఆపై 'నిరాకరించబడింది'గా పంపినవారికి తిరిగి పంపుతారు.",
+        "solution": "వార్డెన్ వంటి ఒక అధీకృత ఏజెంట్‌కు డెలివరీ చేసినప్పటికీ, చివరి డెలివరీ చిరునామాదారునికే. చిరునామాదారుడు దానిని ఏజెంట్ నుండి నిరాకరిస్తే, వస్తువు అధికారికంగా 'నిరాకరించబడింది'గా పరిగణించబడి మరియు పోస్టల్ ఛానెళ్ల ద్వారా తిరిగి పంపబడుతుంది."
+      },
+      "kn": {
+        "question": "ಒಂದು ಲೇಖನವನ್ನು ಕಾಲೇಜು ಹಾಸ್ಟೆಲ್‌ನಲ್ಲಿರುವ ಒಬ್ಬ ವಿದ್ಯಾರ್ಥಿಗೆ ವಿಳಾಸ ಮಾಡಲಾಗಿದೆ, ಆ ಹಾಸ್ಟೆಲ್ ವಿದ್ಯಾರ್ಥಿಗಳ ಪರವಾಗಿ ಮೇಲ್ ಸ್ವೀಕರಿಸಲು ಹಾಸ್ಟೆಲ್ ವಾರ್ಡನ್‌ಗೆ ಅಧಿಕಾರ ನೀಡಿದೆ. ವಾರ್ಡನ್ ಅದನ್ನು ನೀಡಿದಾಗ ವಿದ್ಯಾರ್ಥಿಯು ಲೇಖನವನ್ನು ಸ್ವೀಕರಿಸಲು ನಿರಾಕರಿಸುತ್ತಾನೆ. ಮುಂದೆ ಏನಾಗುತ್ತದೆ?",
+        "options": [
+          "ಲೇಖನವನ್ನು ಒಬ್ಬ ಅಧಿಕೃತ ಏಜೆಂಟ್‌ಗೆ ಹಸ್ತಾಂತರಿಸಿದ್ದರಿಂದ ಅದನ್ನು ವಿತರಿಸಲಾಗಿದೆ ಎಂದು ಪರಿಗಣಿಸಲಾಗುತ್ತದೆ.",
+          "ಲೇಖನವನ್ನು ಅಂಚೆ ಕಚೇರಿಗೆ ಹಿಂತಿರುಗಿಸಲಾಗುತ್ತದೆ ಮತ್ತು ನಂತರ 'ನಿರಾಕರಿಸಲಾಗಿದೆ' ಎಂದು ಕಳುಹಿಸುವವರಿಗೆ ಹಿಂತಿರುಗಿಸಲಾಗುತ್ತದೆ.",
+          "ವಾರ್ಡನ್ ಲೇಖನವನ್ನು ಕಳುಹಿಸುವವರಿಗೆ ಹಿಂತಿರುಗಿಸಲು ಜವಾಬ್ದಾರನಾಗಿರುತ್ತಾನೆ.",
+          "ಪೋಸ್ಟ್‌ಮ್ಯಾನ್ ಲೇಖನವನ್ನು ಹಿಂತೆಗೆದುಕೊಂಡು ನೇರವಾಗಿ ವಿದ್ಯಾರ್ಥಿಗೆ ಮರು-ವಿತರಣೆ ಮಾಡಲು ಪ್ರಯತ್ನಿಸುತ್ತಾನೆ."
+        ],
+        "correctAnswer": "ಲೇಖನವನ್ನು ಅಂಚೆ ಕಚೇರಿಗೆ ಹಿಂತಿರುಗಿಸಲಾಗುತ್ತದೆ ಮತ್ತು ನಂತರ 'ನಿರಾಕರಿಸಲಾಗಿದೆ' ಎಂದು ಕಳುಹಿಸುವವರಿಗೆ ಹಿಂತಿರುಗಿಸಲಾಗುತ್ತದೆ.",
+        "solution": "ವಾರ್ಡನ್‌ನಂತಹ ಒಬ್ಬ ಅಧಿಕೃತ ಏಜೆಂಟ್‌ಗೆ ತಲುಪಿಸಿದರೂ, ಅಂತಿಮ ವಿತರಣೆಯು ವಿಳಾಸದಾರನಿಗೆ. ವಿಳಾಸದಾರನು ಅದನ್ನು ಏಜೆಂಟ್‌ನಿಂದ ನಿರಾಕರಿಸಿದರೆ, ಲೇಖನವನ್ನು ಅಧಿಕೃತವಾಗಿ 'ನಿರಾಕರಿಸಲಾಗಿದೆ' ಎಂದು ಪರಿಗಣಿಸಲಾಗುತ್ತದೆ ಮತ್ತು ಅಂಚೆ ಚಾನೆಲ್‌ಗಳ ಮೂಲಕ ಹಿಂತಿರುಗಿಸಲಾಗುತ್ತದೆ."
+      }
+    }
+  },
+  {
+    "sourceLanguage": "English",
+    "question": "A large e-commerce company wants to use India Post for delivering its parcels and also wants a Cash-on-Delivery (COD) facility. Which product is most suitable for this?",
+    "options": [
+      "Express Parcel Post with COD",
+      "Business Parcel",
+      "Registered Parcel",
+      "Logistics Post"
+    ],
+    "correctAnswer": "Express Parcel Post with COD",
+    "topic": "Products: Business",
+    "solution": "Express Parcel Post is a premium parcel service with time-bound delivery. It specifically offers a value-added Cash-on-Delivery (COD) service, making it ideal for e-commerce businesses.",
+    "translations": {
+      "ta": {
+        "question": "ஒரு பெரிய இ-காமர்ஸ் நிறுவனம் தனது பார்சல்களை விநியோகிக்க India Post-ஐப் பயன்படுத்த விரும்புகிறது மேலும் Cash-on-Delivery (COD) வசதியையும் விரும்புகிறது. இதற்கு மிகவும் பொருத்தமான தயாரிப்பு எது?",
+        "options": [
+          "COD உடன் Express Parcel Post",
+          "Business Parcel",
+          "Registered Parcel",
+          "Logistics Post"
+        ],
+        "correctAnswer": "COD உடன் Express Parcel Post",
+        "solution": "Express Parcel Post என்பது காலக்கெடுவுடன் கூடிய ஒரு பிரீமியம் பார்சல் சேவையாகும். இது குறிப்பாக மதிப்பு கூட்டப்பட்ட Cash-on-Delivery (COD) சேவையை வழங்குகிறது, இது இ-காமர்ஸ் வணிகங்களுக்கு ஏற்றதாக அமைகிறது."
+      },
+      "hi": {
+        "question": "एक बड़ी ई-कॉमर्स कंपनी अपने पार्सल वितरित करने के लिए India Post का उपयोग करना चाहती है और Cash-on-Delivery (COD) सुविधा भी चाहती है। इसके लिए सबसे उपयुक्त उत्पाद कौन सा है?",
+        "options": [
+          "COD के साथ Express Parcel Post",
+          "Business Parcel",
+          "Registered Parcel",
+          "Logistics Post"
+        ],
+        "correctAnswer": "COD के साथ Express Parcel Post",
+        "solution": "Express Parcel Post समय-बद्ध डिलीवरी के साथ एक प्रीमियम पार्सल सेवा है। यह विशेष रूप से एक मूल्य-वर्धित Cash-on-Delivery (COD) सेवा प्रदान करती है, जो इसे ई-कॉमर्स व्यवसायों के लिए आदर्श बनाती है।"
+      },
+      "te": {
+        "question": "ఒక పెద్ద ఇ-కామర్స్ కంపెనీ తన పార్శిళ్లను డెలివరీ చేయడానికి India Post-ను ఉపయోగించాలనుకుంటోంది మరియు Cash-on-Delivery (COD) సౌకర్యం కూడా కావాలనుకుంటోంది. దీనికి అత్యంత అనువైన ఉత్పత్తి ఏది?",
+        "options": [
+          "COD తో Express Parcel Post",
+          "Business Parcel",
+          "Registered Parcel",
+          "Logistics Post"
+        ],
+        "correctAnswer": "COD తో Express Parcel Post",
+        "solution": "Express Parcel Post అనేది సమయ-బద్ధమైన డెలివరీతో కూడిన ఒక ప్రీమియం పార్శిల్ సేవ. ఇది ప్రత్యేకంగా విలువ-ఆధారిత Cash-on-Delivery (COD) సేవను అందిస్తుంది, ఇది ఇ-కామర్స్ వ్యాపారాలకు ఆదర్శవంతంగా ఉంటుంది."
+      },
+      "kn": {
+        "question": "ಒಂದು ದೊಡ್ಡ ಇ-ಕಾಮರ್ಸ್ ಕಂಪನಿಯು ತನ್ನ ಪಾರ್ಸೆಲ್‌ಗಳನ್ನು ತಲುಪಿಸಲು India Post-ಅನ್ನು ಬಳಸಲು ಬಯಸುತ್ತದೆ ಮತ್ತು Cash-on-Delivery (COD) ಸೌಲಭ್ಯವನ್ನೂ ಬಯಸುತ್ತದೆ. ಇದಕ್ಕಾಗಿ ಅತ್ಯಂತ ಸೂಕ್ತವಾದ ಉತ್ಪನ್ನ ಯಾವುದು?",
+        "options": [
+          "COD உடன் Express Parcel Post",
+          "Business Parcel",
+          "Registered Parcel",
+          "Logistics Post"
+        ],
+        "correctAnswer": "COD உடன் Express Parcel Post",
+        "solution": "Express Parcel Post ಸಮಯ-ಬದ್ಧ ವಿತರಣೆಯೊಂದಿಗೆ ಒಂದು ಪ್ರೀಮಿಯಂ ಪಾರ್ಸೆಲ್ ಸೇವೆಯಾಗಿದೆ. ಇದು ನಿರ್ದಿಷ್ಟವಾಗಿ ಮೌಲ್ಯ-ವರ್ಧಿತ Cash-on-Delivery (COD) ಸೇವೆಯನ್ನು ನೀಡುತ್ತದೆ, ಇದು ಇ-ಕಾಮರ್ಸ್ ವ್ಯವಹಾರಗಳಿಗೆ ಆದರ್ಶಪ್ರಾಯವಾಗಿದೆ."
+      }
+    }
+  },
+  {
+    "sourceLanguage": "English",
+    "question": "What does the term 'Surrender Value' mean in the context of a PLI/RPLI policy?",
+    "options": [
+      "The total premium paid by the policyholder.",
+      "The death benefit paid to the nominee.",
+      "The amount a policyholder receives if they decide to terminate the policy before its maturity.",
+      "The loan amount that can be taken against the policy."
+    ],
+    "correctAnswer": "The amount a policyholder receives if they decide to terminate the policy before its maturity.",
+    "topic": "Products: Insurance",
+    "solution": "A policy acquires a surrender value after a certain period (usually 3 years). If the insured person discontinues the policy, they can 'surrender' it and receive this lump sum amount, which is a percentage of the premiums paid.",
+    "translations": {
+      "ta": {
+        "question": "ஒரு PLI/RPLI பாலிசியின் பின்னணியில் 'Surrender Value' என்ற சொல்லின் அர்த்தம் என்ன?",
+        "options": [
+          "பாலிசிதாரரால் செலுத்தப்பட்ட மொத்த பிரீமியம்.",
+          "பரிந்துரைக்கப்பட்டவருக்கு வழங்கப்படும் இறப்புப் பலன்.",
+          "ஒரு பாலிசிதாரர் அதன் முதிர்ச்சிக்கு முன் பாலிசியை நிறுத்த முடிவு செய்தால் அவர் பெறும் தொகை.",
+          "பாலிசிக்கு எதிராக எடுக்கக்கூடிய கடன் தொகை."
+        ],
+        "correctAnswer": "ஒரு பாலிசிதாரர் அதன் முதிர்ச்சிக்கு முன் பாலிசியை நிறுத்த முடிவு செய்தால் அவர் பெறும் தொகை.",
+        "solution": "ஒரு பாலிசி ஒரு குறிப்பிட்ட காலத்திற்குப் பிறகு (பொதுவாக 3 ஆண்டுகள்) ஒரு சரணடைவு மதிப்பைப் பெறுகிறது. காப்பீடு செய்யப்பட்ட நபர் பாலிசியை நிறுத்தினால், அவர்கள் அதை 'சரணடைய'லாம் மற்றும் இந்த மொத்தத் தொகையைப் பெறலாம், இது செலுத்தப்பட்ட பிரீமியங்களின் ஒரு சதவீதமாகும்."
+      },
+      "hi": {
+        "question": "एक PLI/RPLI पॉलिसी के संदर्भ में 'Surrender Value' शब्द का क्या अर्थ है?",
+        "options": [
+          "पॉलिसीधारक द्वारा भुगतान किया गया कुल प्रीमियम।",
+          "नामांकित व्यक्ति को भुगतान किया गया मृत्यु लाभ।",
+          "एक पॉलिसीधारक को मिलने वाली राशि यदि वे अपनी पॉलिसी को उसकी परिपक्वता से पहले समाप्त करने का निर्णय लेते हैं।",
+          "पॉलिसी के खिलाफ लिया जा सकने वाला ऋण राशि।"
+        ],
+        "correctAnswer": "एक पॉलिसीधारक को मिलने वाली राशि यदि वे अपनी पॉलिसी को उसकी परिपक्वता से पहले समाप्त करने का निर्णय लेते हैं।",
+        "solution": "एक पॉलिसी एक निश्चित अवधि (आमतौर पर 3 साल) के बाद एक समर्पण मूल्य प्राप्त करती है। यदि बीमित व्यक्ति पॉलिसी को बंद कर देता है, तो वे इसे 'समर्पण' कर सकते हैं और यह एकमुश्त राशि प्राप्त कर सकते हैं, जो भुगतान किए गए प्रीमियम का एक प्रतिशत है।"
+      },
+      "te": {
+        "question": "ఒక PLI/RPLI పాలసీ సందర్భంలో 'Surrender Value' అనే పదం యొక్క అర్థం ఏమిటి?",
+        "options": [
+          "పాలసీదారుడు చెల్లించిన మొత్తం ప్రీమియం.",
+          "నామినీకి చెల్లించిన మరణ ప్రయోజనం.",
+          "ఒక పాలసీదారుడు దాని మెచ్యూరిటీకి ముందు పాలసీని రద్దు చేయాలని నిర్ణయించుకుంటే అతను పొందే మొత్తం.",
+          "పాలసీపై తీసుకోగల రుణ మొత్తం."
+        ],
+        "correctAnswer": "ఒక పాలసీదారుడు దాని మెచ్యూరిటీకి ముందు పాలసీని రద్దు చేయాలని నిర్ణయించుకుంటే అతను పొందే మొత్తం.",
+        "solution": "ఒక పాలసీ ఒక నిర్దిష్ట కాలం (సాధారణంగా 3 సంవత్సరాలు) తర్వాత ఒక సరెండర్ విలువను పొందుతుంది. బీమా చేసిన వ్యక్తి పాలసీని నిలిపివేస్తే, వారు దానిని 'సరెండర్' చేయవచ్చు మరియు ఈ ఏకమొత్తాన్ని పొందవచ్చు, ఇది చెల్లించిన ప్రీమియంలలో ఒక శాతం."
+      },
+      "kn": {
+        "question": "ಒಂದು PLI/RPLI ಪಾಲಿಸಿಯ ಸಂದರ್ಭದಲ್ಲಿ 'Surrender Value' ಎಂಬ ಪದದ ಅರ್ಥವೇನು?",
+        "options": [
+          "ಪಾಲಿಸಿದಾರನು ಪಾವತಿಸಿದ ಒಟ್ಟು ಪ್ರೀಮಿಯಂ.",
+          "ನಾಮಿನಿಗೆ ಪಾವತಿಸಿದ ಮರಣ ಪ್ರಯೋಜನ.",
+          "ಒಬ್ಬ ಪಾಲಿಸಿದಾರನು ತನ್ನ ಪಾಲಿಸಿಯನ್ನು ಅದರ ಮೆಚ್ಯೂರಿಟಿಗೆ ಮುಂಚಿತವಾಗಿ ಮುಕ್ತಾಯಗೊಳಿಸಲು ನಿರ್ಧರಿಸಿದರೆ ಅವನು ಪಡೆಯುವ ಮೊತ್ತ.",
+          "ಪಾಲಿಸಿಯ ವಿರುದ್ಧ ತೆಗೆದುಕೊಳ್ಳಬಹುದಾದ ಸಾಲದ ಮೊತ್ತ."
+        ],
+        "correctAnswer": "ಒಬ್ಬ ಪಾಲಿಸಿದಾರನು ತನ್ನ ಪಾಲಿಸಿಯನ್ನು ಅದರ ಮೆಚ್ಯೂರಿಟಿಗೆ ಮುಂಚಿತವಾಗಿ ಮುಕ್ತಾಯಗೊಳಿಸಲು ನಿರ್ಧರಿಸಿದರೆ ಅವನು ಪಡೆಯುವ ಮೊತ್ತ.",
+        "solution": "ಒಂದು ಪಾಲಿಸಿಯು ಒಂದು ನಿರ್ದಿಷ್ಟ ಅವಧಿಯ (ಸಾಮಾನ್ಯವಾಗಿ 3 ವರ್ಷಗಳು) ನಂತರ ಒಂದು ಸರೆಂಡರ್ ಮೌಲ್ಯವನ್ನು ಪಡೆಯುತ್ತದೆ. ವಿಮೆ ಮಾಡಿದ ವ್ಯಕ್ತಿಯು ಪಾಲಿಸಿಯನ್ನು ನಿಲ್ಲಿಸಿದರೆ, ಅವರು ಅದನ್ನು 'ಸರೆಂಡರ್' ಮಾಡಬಹುದು ಮತ್ತು ಈ ಒಟ್ಟು ಮೊತ್ತವನ್ನು ಪಡೆಯಬಹುದು, ಇದು ಪಾವತಿಸಿದ ಪ್ರೀಮಿಯಂಗಳ ಒಂದು ಶೇಕಡಾವಾರು."
+      }
+    }
+  },
+  {
+    "sourceLanguage": "English",
+    "question": "Which Post Office Savings Scheme is specifically designed for the welfare of a girl child?",
+    "options": [
+      "Kisan Vikas Patra (KVP)",
+      "Sukanya Samriddhi Yojana (SSY)",
+      "Mahila Samman Savings Certificate",
+      "National Savings Certificate (NSC)"
+    ],
+    "correctAnswer": "Sukanya Samriddhi Yojana (SSY)",
+    "topic": "Products: Banking",
+    "solution": "SSY is a government-backed savings scheme launched as part of the \"Beti Bachao, Beti Padhao\" campaign, aimed at encouraging parents to build a fund for the future education and marriage expenses of their female child.",
+    "translations": {
+      "ta": {
+        "question": "எந்த தபால் அலுவலக சேமிப்புத் திட்டம் குறிப்பாக ஒரு பெண் குழந்தையின் நலனுக்காக வடிவமைக்கப்பட்டுள்ளது?",
+        "options": [
+          "Kisan Vikas Patra (KVP)",
+          "Sukanya Samriddhi Yojana (SSY)",
+          "Mahila Samman Savings Certificate",
+          "National Savings Certificate (NSC)"
+        ],
+        "correctAnswer": "Sukanya Samriddhi Yojana (SSY)",
+        "solution": "SSY என்பது \"Beti Bachao, Beti Padhao\" பிரச்சாரத்தின் ஒரு பகுதியாக தொடங்கப்பட்ட ஒரு அரசாங்க ஆதரவு சேமிப்புத் திட்டமாகும், இது பெற்றோர்களை தங்கள் பெண் குழந்தையின் எதிர்கால கல்வி மற்றும் திருமணச் செலவுகளுக்கு ஒரு நிதியை உருவாக்க ஊக்குவிப்பதை நோக்கமாகக் கொண்டுள்ளது."
+      },
+      "hi": {
+        "question": "कौन सी डाकघर बचत योजना विशेष रूप से एक बालिका के कल्याण के लिए डिज़ाइन की गई है?",
+        "options": [
+          "Kisan Vikas Patra (KVP)",
+          "Sukanya Samriddhi Yojana (SSY)",
+          "Mahila Samman Savings Certificate",
+          "National Savings Certificate (NSC)"
+        ],
+        "correctAnswer": "Sukanya Samriddhi Yojana (SSY)",
+        "solution": "SSY \"Beti Bachao, Beti Padhao\" अभियान के हिस्से के रूप में शुरू की गई एक सरकार समर्थित बचत योजना है, जिसका उद्देश्य माता-पिता को अपनी बेटी की भविष्य की शिक्षा और शादी के खर्च के लिए एक कोष बनाने के लिए प्रोत्साहित करना है।"
+      },
+      "te": {
+        "question": "ఏ పోస్ట్ ఆఫీస్ సేవింగ్స్ స్కీమ్ ప్రత్యేకంగా ఒక ఆడపిల్ల సంక్షేమం కోసం రూపొందించబడింది?",
+        "options": [
+          "Kisan Vikas Patra (KVP)",
+          "Sukanya Samriddhi Yojana (SSY)",
+          "Mahila Samman Savings Certificate",
+          "National Savings Certificate (NSC)"
+        ],
+        "correctAnswer": "Sukanya Samriddhi Yojana (SSY)",
+        "solution": "SSY అనేది \"Beti Bachao, Beti Padhao\" ప్రచారంలో భాగంగా ప్రారంభించబడిన ఒక ప్రభుత్వ-మద్దతుగల పొదుపు పథకం, ఇది తల్లిదండ్రులను వారి ఆడపిల్ల యొక్క భవిష్యత్తు విద్య మరియు వివాహ ఖర్చుల కోసం ఒక నిధిని నిర్మించడానికి ప్రోత్సహించడం లక్ష్యంగా పెట్టుకుంది."
+      },
+      "kn": {
+        "question": "ಯಾವ ಅಂಚೆ ಕಚೇರಿ ಉಳಿತಾಯ ಯೋಜನೆಯು ನಿರ್ದಿಷ್ಟವಾಗಿ ಹೆಣ್ಣು ಮಗುವಿನ ಕಲ್ಯಾಣಕ್ಕಾಗಿ ವಿನ್ಯಾಸಗೊಳಿಸಲಾಗಿದೆ?",
+        "options": [
+          "Kisan Vikas Patra (KVP)",
+          "Sukanya Samriddhi Yojana (SSY)",
+          "Mahila Samman Savings Certificate",
+          "National Savings Certificate (NSC)"
+        ],
+        "correctAnswer": "Sukanya Samriddhi Yojana (SSY)",
+        "solution": "SSY \"Beti Bachao, Beti Padhao\" ಅಭಿಯಾನದ ಭಾಗವಾಗಿ ಪ್ರಾರಂಭಿಸಲಾದ ಒಂದು ಸರ್ಕಾರಿ-ಬೆಂಬಲಿತ ಉಳಿತಾಯ ಯೋಜನೆಯಾಗಿದೆ, ಇದು ಪೋಷಕರನ್ನು ತಮ್ಮ ಹೆಣ್ಣು ಮಗುವಿನ ಭವಿಷ್ಯದ ಶಿಕ್ಷಣ ಮತ್ತು ಮದುವೆ ವೆಚ್ಚಗಳಿಗಾಗಿ ಒಂದು ನಿಧಿಯನ್ನು ನಿರ್ಮಿಸಲು ಪ್ರೋತ್ಸಾಹಿಸುವ ಗುರಿಯನ್ನು ಹೊಂದಿದೆ."
+      }
+    }
+  },
+  {
+    "sourceLanguage": "English",
+    "question": "An addressee who has refused an article, later change their mind and claim it from the post office?",
+    "options": [
+      "Yes, within 24 hours.",
+      "Yes, if the article has not yet been dispatched back to the sender.",
+      "No, once an article is refused, the refusal is final.",
+      "Yes, but they have to pay a penalty."
+    ],
+    "correctAnswer": "No, once an article is refused, the refusal is final.",
+    "topic": "Refusal of Article",
+    "solution": "Postal rules are very clear on this. A refusal is a definitive action. Once marked as 'Refused', the contract to deliver to that addressee is terminated, and the article must be returned to the sender.",
+    "translations": {
+      "ta": {
+        "question": "ஒரு கட்டுரையை மறுத்த ஒரு முகவரியாளர், பின்னர் தனது மனதை மாற்றிக்கொண்டு அதை தபால் நிலையத்திலிருந்து கோர முடியுமா?",
+        "options": [
+          "ஆம், 24 மணி நேரத்திற்குள்.",
+          "ஆம், கட்டுரை இன்னும் அனுப்புநருக்குத் திருப்பி அனுப்பப்படவில்லை என்றால்.",
+          "இல்லை, ஒருமுறை ஒரு கட்டுரை மறுக்கப்பட்டால், அந்த மறுப்பு இறுதியானது.",
+          "ஆம், ஆனால் அவர்கள் ஒரு அபராதம் செலுத்த வேண்டும்."
+        ],
+        "correctAnswer": "இல்லை, ஒருமுறை ஒரு கட்டுரை மறுக்கப்பட்டால், அந்த மறுப்பு இறுதியானது.",
+        "solution": "தபால் விதிகள் இதில் மிகவும் தெளிவாக உள்ளன. ஒரு மறுப்பு ஒரு உறுதியான செயல். ஒருமுறை 'மறுக்கப்பட்டது' எனக் குறிக்கப்பட்டால், அந்த முகவரியாளருக்கு வழங்குவதற்கான ஒப்பந்தம் நிறுத்தப்படுகிறது, மற்றும் கட்டுரை அனுப்புநருக்குத் திருப்பி அனுப்பப்பட வேண்டும்."
+      },
+      "hi": {
+        "question": "क्या एक प्राप्तकर्ता जिसने एक लेख को अस्वीकार कर दिया है, बाद में अपना मन बदल सकता है और डाकघर से इसका दावा कर सकता है?",
+        "options": [
+          "हाँ, 24 घंटे के भीतर।",
+          "हाँ, यदि लेख अभी तक प्रेषक को वापस नहीं भेजा गया है।",
+          "नहीं, एक बार एक लेख को अस्वीकार कर दिया जाता है, तो इनकार अंतिम होता है।",
+          "हाँ, लेकिन उन्हें जुर्माना देना होगा।"
+        ],
+        "correctAnswer": "नहीं, एक बार एक लेख को अस्वीकार कर दिया जाता है, तो इनकार अंतिम होता है।",
+        "solution": "डाक नियम इस पर बहुत स्पष्ट हैं। एक इनकार एक निश्चित कार्रवाई है। एक बार 'अस्वीकृत' के रूप में चिह्नित हो जाने पर, उस प्राप्तकर्ता को वितरित करने का अनुबंध समाप्त हो जाता है, और लेख को प्रेषक को वापस किया जाना चाहिए।"
+      },
+      "te": {
+        "question": "ఒక వస్తువును నిరాకరించిన ఒక చిరునామాదారుడు, తర్వాత తన మనసు మార్చుకుని దానిని పోస్ట్ ఆఫీస్ నుండి క్లెయిమ్ చేయగలడా?",
+        "options": [
+          "అవును, 24 గంటలలోపు.",
+          "అవును, వస్తువు ఇంకా పంపినవారికి తిరిగి పంపబడకపోతే.",
+          "లేదు, ఒకసారి ఒక వస్తువు నిరాకరించబడిన తర్వాత, ఆ నిరాకరణ అంతిమమైనది.",
+          "అవును, కానీ వారు ఒక జరిమానా చెల్లించాలి."
+        ],
+        "correctAnswer": "లేదు, ఒకసారి ఒక వస్తువు నిరాకరించబడిన తర్వాత, ఆ నిరాకరణ అంతిమమైనది.",
+        "solution": "పోస్టల్ నియమాలు దీనిపై చాలా స్పష్టంగా ఉన్నాయి. ఒక నిరాకరణ ఒక నిశ్చయాత్మక చర్య. ఒకసారి 'నిరాకరించబడింది'గా గుర్తించబడిన తర్వాత, ఆ చిరునామాదారునికి డెలివరీ చేసే ఒప్పందం రద్దు చేయబడుతుంది, మరియు వస్తువును పంపినవారికి తిరిగి పంపాలి."
+      },
+      "kn": {
+        "question": "ಒಂದು ಲೇಖನವನ್ನು ನಿರಾಕರಿಸಿದ ಒಬ್ಬ ವಿಳಾಸದಾರನು, ನಂತರ ತನ್ನ ಮನಸ್ಸನ್ನು ಬದಲಾಯಿಸಿ ಅದನ್ನು ಅಂಚೆ ಕಚೇರಿಯಿಂದ ಕ್ಲೈಮ್ ಮಾಡಬಹುದೇ?",
+        "options": [
+          "ಹೌದು, 24 ಗಂಟೆಗಳ ಒಳಗೆ.",
+          "ಹೌದು, ಲೇಖನವನ್ನು ಇನ್ನೂ ಕಳುಹಿಸುವವರಿಗೆ ಹಿಂತಿರುಗಿಸದಿದ್ದರೆ.",
+          "ಇಲ್ಲ, ಒಮ್ಮೆ ಒಂದು ಲೇಖನವನ್ನು ನಿರಾಕರಿಸಿದರೆ, ಆ ನಿರಾಕರಣೆ ಅಂತಿಮವಾಗಿರುತ್ತದೆ.",
+          "ಹೌದು, ಆದರೆ ಅವರು ದಂಡವನ್ನು ಪಾವತಿಸಬೇಕಾಗುತ್ತದೆ."
+        ],
+        "correctAnswer": "ಇಲ್ಲ, ಒಮ್ಮೆ ಒಂದು ಲೇಖನವನ್ನು ನಿರಾಕರಿಸಿದರೆ, ಆ ನಿರಾಕರಣೆ ಅಂತಿಮವಾಗಿರುತ್ತದೆ.",
+        "solution": "ಅಂಚೆ ನಿಯಮಗಳು ಈ ಬಗ್ಗೆ ಬಹಳ ಸ್ಪಷ್ಟವಾಗಿವೆ. ಒಂದು ನಿರಾಕರಣೆ ಒಂದು ನಿರ್ಣಾಯಕ ಕ್ರಿಯೆಯಾಗಿದೆ. ಒಮ್ಮೆ 'ನಿರಾಕರಿಸಲಾಗಿದೆ' ಎಂದು ಗುರುತಿಸಿದರೆ, ಆ ವಿಳಾಸದಾರನಿಗೆ ತಲುಪಿಸುವ ಒಪ್ಪಂದವು ಕೊನೆಗೊಳ್ಳುತ್ತದೆ, ಮತ್ತು ಲೇಖನವನ್ನು ಕಳುಹಿಸುವವರಿಗೆ ಹಿಂತಿರುಗಿಸಬೇಕು."
+      }
+    }
+  },
+  {
+    "sourceLanguage": "English",
+    "question": "A letter arrives for a person who has left India permanently. What should the Post Office do with the letter?",
+    "options": [
+      "Send it to the new foreign address provided by the person.",
+      "Send it to the Returned Letter Office (RLO).",
+      "Destroy the letter.",
+      "Deliver it to a relative."
+    ],
+    "correctAnswer": "Send it to the Returned Letter Office (RLO).",
+    "topic": "Redirection",
+    "solution": "Redirection of mail to foreign countries is not undertaken for free. Unless the addressee has made specific arrangements and paid the necessary postage for forwarding, letters for people who have left the country are treated as undeliverable and sent to the RLO.",
+    "translations": {
+      "ta": {
+        "question": "நிரந்தரமாக இந்தியாவை விட்டு வெளியேறிய ஒரு நபருக்கு ஒரு கடிதம் வருகிறது. தபால் நிலையம் அந்தக் கடிதத்துடன் என்ன செய்ய வேண்டும்?",
+        "options": [
+          "அந்த நபர் வழங்கிய புதிய வெளிநாட்டு முகவரிக்கு அதை அனுப்புங்கள்.",
+          "அதை Returned Letter Office (RLO)-க்கு அனுப்புங்கள்.",
+          "கடிதத்தை அழித்துவிடுங்கள்.",
+          "அதை ஒரு உறவினரிடம் வழங்குங்கள்."
+        ],
+        "correctAnswer": "அதை Returned Letter Office (RLO)-க்கு அனுப்புங்கள்.",
+        "solution": "வெளிநாடுகளுக்கு தபால் திருப்பி அனுப்புவது இலவசமாக மேற்கொள்ளப்படுவதில்லை. முகவரியாளர் குறிப்பிட்ட ஏற்பாடுகளைச் செய்து, அனுப்புவதற்கான தேவையான தபால் கட்டணத்தைச் செலுத்தாவிட்டால், நாட்டை விட்டு வெளியேறியவர்களுக்கான கடிதங்கள் வழங்க முடியாதவையாகக் கருதப்பட்டு RLO-க்கு அனுப்பப்படுகின்றன."
+      },
+      "hi": {
+        "question": "एक ऐसे व्यक्ति के लिए एक पत्र आता है जिसने स्थायी रूप से भारत छोड़ दिया है। डाकघर को उस पत्र के साथ क्या करना चाहिए?",
+        "options": [
+          "इसे व्यक्ति द्वारा प्रदान किए गए नए विदेशी पते पर भेजें।",
+          "इसे Returned Letter Office (RLO) में भेजें।",
+          "पत्र को नष्ट कर दें।",
+          "इसे एक रिश्तेदार को दें।"
+        ],
+        "correctAnswer": "इसे Returned Letter Office (RLO) में भेजें।",
+        "solution": "विदेशी देशों में मेल का पुनः निर्देशन मुफ्त में नहीं किया जाता है। जब तक कि प्राप्तकर्ता ने विशेष व्यवस्था नहीं की हो और अग्रेषण के लिए आवश्यक डाक का भुगतान नहीं किया हो, देश छोड़ चुके लोगों के लिए पत्र अविभाज्य माने जाते हैं और RLO में भेजे जाते हैं।"
+      },
+      "te": {
+        "question": "శాశ్వతంగా భారతదేశాన్ని విడిచిపెట్టిన ఒక వ్యక్తికి ఒక లేఖ వస్తుంది. పోస్ట్ ఆఫీస్ ఆ లేఖతో ఏమి చేయాలి?",
+        "options": [
+          "దానిని ఆ వ్యక్తి అందించిన కొత్త విదేశీ చిరునామాకు పంపండి.",
+          "దానిని Returned Letter Office (RLO)కు పంపండి.",
+          "లేఖను నాశనం చేయండి.",
+          "దానిని ఒక బంధువుకు డెలివరీ చేయండి."
+        ],
+        "correctAnswer": "దానిని Returned Letter Office (RLO)కు పంపండి.",
+        "solution": "విదేశాలకు మెయిల్ దారి మళ్లింపు ఉచితంగా చేపట్టబడదు. చిరునామాదారుడు నిర్దిష్ట ఏర్పాట్లు చేసి, ఫార్వార్డింగ్ కోసం అవసరమైన పోస్టేజీని చెల్లించకపోతే, దేశం విడిచి వెళ్ళిన వారి కోసం లేఖలు డెలివరీ చేయలేనివిగా పరిగణించబడి మరియు RLOకు పంపబడతాయి."
+      },
+      "kn": {
+        "question": "ಶಾಶ್ವತವಾಗಿ ಭಾರತವನ್ನು ತೊರೆದ ಒಬ್ಬ ವ್ಯಕ್ತಿಗೆ ಒಂದು ಪತ್ರ ಬರುತ್ತದೆ. ಅಂಚೆ ಕಚೇರಿಯು ಆ ಪತ್ರದೊಂದಿಗೆ ಏನು ಮಾಡಬೇಕು?",
+        "options": [
+          "ಅದನ್ನು ಆ ವ್ಯಕ್ತಿಯು ಒದಗಿಸಿದ ಹೊಸ ವಿದೇಶಿ ವಿಳಾಸಕ್ಕೆ ಕಳುಹಿಸಿ.",
+          "ಅದನ್ನು Returned Letter Office (RLO) ಗೆ ಕಳುಹಿಸಿ.",
+          "ಪತ್ರವನ್ನು ನಾಶಮಾಡಿ.",
+          "ಅದನ್ನು ಒಬ್ಬ ಸಂಬಂಧಿಕರಿಗೆ ತಲುಪಿಸಿ."
+        ],
+        "correctAnswer": "ಅದನ್ನು Returned Letter Office (RLO) ಗೆ ಕಳುಹಿಸಿ.",
+        "solution": "ವಿದೇಶಗಳಿಗೆ ಮೇಲ್ ಮರುನಿರ್ದೇಶನವನ್ನು ಉಚಿತವಾಗಿ ಕೈಗೊಳ್ಳಲಾಗುವುದಿಲ್ಲ. ವಿಳಾಸದಾರನು ನಿರ್ದಿಷ್ಟ ವ್ಯವಸ್ಥೆಗಳನ್ನು ಮಾಡಿ, ಫಾರ್ವರ್ಡಿಂಗ್‌ಗಾಗಿ ಅಗತ್ಯ ಅಂಚೆ ಶುಲ್ಕವನ್ನು ಪಾವತಿಸದ ಹೊರತು, ದೇಶವನ್ನು ತೊರೆದ ಜನರಿಗಾಗಿ ಪತ್ರಗಳನ್ನು ವಿತರಿಸಲಾಗದವು ಎಂದು ಪರಿಗಣಿಸಲಾಗುತ್ತದೆ ಮತ್ತು RLO ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ."
+      }
+    }
+  },
+  {
+    "sourceLanguage": "English",
+    "question": "A Post Office which is situated in a town or its suburbs where there is also a Head Post Office is defined as a:",
+    "options": [
+      "Branch Office",
+      "Corporate Office",
+      "Town Sub-Office",
+      "Urban Branch Office"
+    ],
+    "correctAnswer": "Town Sub-Office",
+    "topic": "Postal Manual Volume V: Definitions",
+    "solution": "This is the specific definition. A sub-office located in the same town as its H.O. is a Town Sub-Office, while one located elsewhere is a Mofussil (rural/outlying) Sub-Office.",
+    "translations": {
+      "ta": {
+        "question": "ஒரு தலைமை தபால் அலுவலகமும் உள்ள ஒரு நகரம் அல்லது அதன் புறநகர்ப் பகுதிகளில் அமைந்துள்ள ஒரு தபால் அலுவலகம் எவ்வாறு வரையறுக்கப்படுகிறது?",
+        "options": [
+          "கிளை அலுவலகம்",
+          "கார்ப்பரேட் அலுவலகம்",
+          "நகர துணை அலுவலகம்",
+          "நகர்ப்புற கிளை அலுவலகம்"
+        ],
+        "correctAnswer": "நகர துணை அலுவலகம்",
+        "solution": "இது குறிப்பிட்ட வரையறை. அதன் H.O. உள்ள அதே நகரத்தில் அமைந்துள்ள ஒரு துணை அலுவலகம் ஒரு Town Sub-Office ஆகும், அதேசமயம் வேறு இடத்தில் அமைந்துள்ள ஒன்று ஒரு Mofussil (கிராமப்புற/வெளிப்புற) Sub-Office ஆகும்."
+      },
+      "hi": {
+        "question": "एक डाकघर जो एक कस्बे या उसके उपनगरों में स्थित है जहाँ एक प्रधान डाकघर भी है, को किस रूप में परिभाषित किया गया है?",
+        "options": [
+          "शाखा कार्यालय",
+          "कॉर्पोरेट कार्यालय",
+          "नगर उप-कार्यालय",
+          "शहरी शाखा कार्यालय"
+        ],
+        "correctAnswer": "नगर उप-कार्यालय",
+        "solution": "यह विशिष्ट परिभाषा है। एक उप-कार्यालय जो उसी कस्बे में स्थित है जहाँ उसका H.O. है, एक Town Sub-Office है, जबकि कहीं और स्थित एक Mofussil (ग्रामीण/बाहरी) Sub-Office है।"
+      },
+      "te": {
+        "question": "ఒక హెడ్ పోస్ట్ ఆఫీస్ కూడా ఉన్న ఒక పట్టణం లేదా దాని శివారు ప్రాంతాలలో ఉన్న ఒక పోస్ట్ ఆఫీస్‌ను ఏమని నిర్వచిస్తారు?",
+        "options": [
+          "బ్రాంచ్ ఆఫీస్",
+          "కార్పొరేట్ ఆఫీస్",
+          "టౌన్ సబ్-ఆఫీస్",
+          "అర్బన్ బ్రాంచ్ ఆఫీస్"
+        ],
+        "correctAnswer": "టౌన్ సబ్-ఆఫీస్",
+        "solution": "ఇది నిర్దిష్ట నిర్వచనం. దాని H.O. ఉన్న అదే పట్టణంలో ఉన్న ఒక సబ్-ఆఫీస్ ఒక Town Sub-Office, అయితే వేరే చోట ఉన్నది ఒక Mofussil (గ్రామీణ/బయటి) Sub-Office."
+      },
+      "kn": {
+        "question": "ಒಂದು ಪ್ರಧಾನ ಅಂಚೆ ಕಚೇರಿಯೂ ಇರುವ ಒಂದು ಪಟ್ಟಣ ಅಥವಾ ಅದರ ಉಪನಗರಗಳಲ್ಲಿರುವ ಒಂದು ಅಂಚೆ ಕಚೇರಿಯನ್ನು ಏನೆಂದು ವ್ಯಾಖ್ಯಾನಿಸಲಾಗಿದೆ?",
+        "options": [
+          "ಶಾಖಾ ಕಚೇರಿ",
+          "ಕಾರ್ಪೊರೇಟ್ ಕಚೇರಿ",
+          "ಪಟ್ಟಣ ಉಪ-ಕಚೇರಿ",
+          "ನಗರ ಶಾಖಾ ಕಚೇರಿ"
+        ],
+        "correctAnswer": "ಪಟ್ಟಣ ಉಪ-ಕಚೇರಿ",
+        "solution": "ಇದು ನಿರ್ದಿಷ್ಟ ವ್ಯಾಖ್ಯಾನ. ಅದರ H.O. ಇರುವ ಅದೇ ಪಟ್ಟಣದಲ್ಲಿರುವ ಒಂದು ಉಪ-ಕಚೇರಿಯು ಒಂದು Town Sub-Office ಆಗಿದೆ, ಆದರೆ ಬೇರೆಡೆ ಇರುವ ಒಂದು Mofussil (ಗ್ರಾಮೀಣ/ಹೊರವಲಯದ) Sub-Office ಆಗಿದೆ."
+      }
+    }
+  },
+  {
+    "sourceLanguage": "English",
+    "question": "The process of arranging articles with the address-side upwards and the addresses turned in the same direction is known as:",
+    "options": [
+      "Sorting",
+      "Facing",
+      "Beating",
+      "Staging"
+    ],
+    "correctAnswer": "Facing",
+    "topic": "Postal Manual Volume V: Definitions",
+    "solution": "'Facing' is the preliminary step before stamp cancellation, ensuring all letters are oriented correctly for efficient processing, either manually or by machine.",
+    "translations": {
+      "ta": {
+        "question": "கட்டுரைகளை முகவரிப் பக்கம் மேல்நோக்கி மற்றும் முகவரிகள் ஒரே திசையில் திருப்பப்பட்ட நிலையில் வரிசைப்படுத்தும் செயல்முறை எவ்வாறு அறியப்படுகிறது?",
+        "options": [
+          "வரிசைப்படுத்துதல்",
+          "முகப்பு செய்தல்",
+          "அடித்தல்",
+          "நிலைப்படுத்துதல்"
+        ],
+        "correctAnswer": "முகப்பு செய்தல்",
+        "solution": "'Facing' என்பது முத்திரை ரத்து செய்வதற்கு முந்தைய பூர்வாங்கப் படியாகும், இது அனைத்துக் கடிதங்களும் கைமுறையாகவோ அல்லது இயந்திரம் மூலமாகவோ திறமையான செயலாக்கத்திற்காகச் சரியாக ausgerichtetிருப்பதை உறுதி செய்கிறது."
+      },
+      "hi": {
+        "question": "लेखों को पते वाले हिस्से को ऊपर की ओर और पतों को एक ही दिशा में घुमाकर व्यवस्थित करने की प्रक्रिया को किस रूप में जाना जाता है?",
+        "options": [
+          "छँटाई",
+          "फेसिंग",
+          "बीटिंग",
+          "स्टेजिंग"
+        ],
+        "correctAnswer": "फेसिंग",
+        "solution": "'फेसिंग' टिकट रद्द करने से पहले का प्रारंभिक चरण है, जो यह सुनिश्चित करता है कि सभी पत्र मैन्युअल रूप से या मशीन द्वारा कुशल प्रसंस्करण के लिए सही ढंग से उन्मुख हों।"
+      },
+      "te": {
+        "question": "వస్తువులను చిరునామా-వైపు పైకి మరియు చిరునామాలను ఒకే దిశలో తిప్పి అమర్చే ప్రక్రియను ఏమని పిలుస్తారు?",
+        "options": [
+          "సార్టింగ్",
+          "ఫేసింగ్",
+          "బీటింగ్",
+          "స్టేజింగ్"
+        ],
+        "correctAnswer": "ఫేసింగ్",
+        "solution": "'ఫేసింగ్' అనేది స్టాంప్ రద్దుకు ముందు ప్రాథమిక దశ, ఇది అన్ని లేఖలు మాన్యువల్‌గా లేదా మెషీన్ ద్వారా సమర్థవంతమైన ప్రాసెసింగ్ కోసం సరిగ్గా ausgerichtetிருப்பதை నిర్ధారిస్తుంది."
+      },
+      "kn": {
+        "question": "ಲೇಖನಗಳನ್ನು ವಿಳಾಸ-ಬದಿಯನ್ನು ಮೇಲಕ್ಕೆ ಮತ್ತು ವಿಳಾಸಗಳನ್ನು ಒಂದೇ ದಿಕ್ಕಿನಲ್ಲಿ ತಿರುಗಿಸಿ ಜೋಡಿಸುವ ಪ್ರಕ್ರಿಯೆಯನ್ನು ಏನೆಂದು ಕರೆಯಲಾಗುತ್ತದೆ?",
+        "options": [
+          "ವಿಂಗಡಣೆ",
+          "ಫೇಸಿಂಗ್",
+          "ಬೀಟಿಂಗ್",
+          "ಸ್ಟೇಜಿಂಗ್"
+        ],
+        "correctAnswer": "ಫೇಸಿಂಗ್",
+        "solution": "'ಫೇಸಿಂಗ್' ಎಂಬುದು ಅಂಚೆಚೀಟಿ ರದ್ದತಿಗೆ ಮುಂಚಿನ ಪ್ರಾಥಮಿಕ ಹಂತವಾಗಿದೆ, ಇದು ಎಲ್ಲಾ ಪತ್ರಗಳು ಕೈಯಾರೆ ಅಥವಾ ಯಂತ್ರದ ಮೂಲಕ ದಕ್ಷ ಪ್ರಕ್ರಿಯೆಗಾಗಿ ಸರಿಯಾಗಿ ausgerichtetிருப்பதை ಖಚಿತಪಡಿಸುತ್ತದೆ."
+      }
+    }
+  },
+  {
+    "sourceLanguage": "English",
+    "question": "A letter posted in a letterbox after the prescribed hour of clearance but before the final clearance for the day by the postman is called a:",
+    "options": [
+      "Too Late Letter",
+      "Mis-sent Letter",
+      "Late Letter",
+      "Unpaid Letter"
+    ],
+    "correctAnswer": "Late Letter",
+    "topic": "Postal Manual Volume V: Definitions",
+    "solution": "'Late Letters' are those posted after the advertised clearance time. They are still cleared but are affixed with a \"Late Fee\" stamp if the sender wants them to be dispatched with the same mail. Without the fee, they wait for the next dispatch.",
+    "translations": {
+      "ta": {
+        "question": "ஒரு கடிதப்பெட்டியில் பரிந்துரைக்கப்பட்ட thanh lý நேரத்திற்குப் பிறகு ஆனால் அன்றைய நாளுக்கான தபால்காரரின் இறுதி thanh lý-க்கு முன் போடப்பட்ட ஒரு கடிதம் எவ்வாறு அழைக்கப்படுகிறது?",
+        "options": [
+          "மிகவும் தாமதமான கடிதம்",
+          "தவறாக அனுப்பப்பட்ட கடிதம்",
+          "தாமதமான கடிதம்",
+          "செலுத்தப்படாத கடிதம்"
+        ],
+        "correctAnswer": "தாமதமான கடிதம்",
+        "solution": "'Late Letters' என்பவை விளம்பரப்படுத்தப்பட்ட thanh lý நேரத்திற்குப் பிறகு போடப்பட்டவை. அவை இன்னும் thanh lý செய்யப்படுகின்றன, ஆனால் அனுப்புநர் அவற்றை அதே தபாலுடன் அனுப்ப விரும்பினால் \"தாமதக் கட்டணம்\" முத்திரையுடன் ஒட்டப்படுகின்றன. கட்டணம் இல்லாமல், அவை அடுத்த அனுப்பலுக்காகக் காத்திருக்கின்றன."
+      },
+      "hi": {
+        "question": "निर्धारित निकासी के समय के बाद लेकिन डाकिया द्वारा दिन की अंतिम निकासी से पहले एक लेटरबॉक्स में पोस्ट किया गया एक पत्र कहलाता है:",
+        "options": [
+          "बहुत देर से पत्र",
+          "गलत भेजा गया पत्र",
+          "देर से पत्र",
+          "अवैतनिक पत्र"
+        ],
+        "correctAnswer": "देर से पत्र",
+        "solution": "'देर से पत्र' वे हैं जो विज्ञापित निकासी समय के बाद पोस्ट किए जाते हैं। उन्हें अभी भी निकाला जाता है, लेकिन यदि प्रेषक उन्हें उसी मेल के साथ भेजना चाहता है तो उन पर \"विलंब शुल्क\" का टिकट लगाया जाता है। शुल्क के बिना, वे अगले प्रेषण की प्रतीक्षा करते हैं।"
+      },
+      "te": {
+        "question": "ఒక లెటర్‌బాక్స్‌లో నిర్దేశిత క్లియరెన్స్ గంట తర్వాత కానీ ఆ రోజు పోస్ట్‌మ్యాన్ ద్వారా చివరి క్లియరెన్స్‌కు ముందు పోస్ట్ చేయబడిన ఒక లేఖను ఏమని పిలుస్తారు?",
+        "options": [
+          "చాలా ఆలస్యమైన లేఖ",
+          "తప్పుగా పంపిన లేఖ",
+          "ఆలస్యమైన లేఖ",
+          "చెల్లించని లేఖ"
+        ],
+        "correctAnswer": "ఆలస్యమైన లేఖ",
+        "solution": "'ఆలస్యమైన లేఖలు' అనేవి ప్రచారిత క్లియరెన్స్ సమయం తర్వాత పోస్ట్ చేయబడినవి. అవి ఇంకా క్లియర్ చేయబడతాయి కానీ పంపినవారు వాటిని అదే మెయిల్‌తో పంపాలనుకుంటే వాటిపై \"ఆలస్య రుసుము\" స్టాంప్ అతికించబడుతుంది. రుసుము లేకుండా, అవి తదుపరి పంపకం కోసం వేచి ఉంటాయి."
+      },
+      "kn": {
+        "question": "ಒಂದು ಲೆಟರ್‌ಬಾಕ್ಸ್‌ನಲ್ಲಿ ನಿಗದಿತ ತೆರವು ಗಂಟೆಯ ನಂತರ ಆದರೆ ಆ ದಿನದ ಪೋಸ್ಟ್‌ಮ್ಯಾನ್‌ನಿಂದ ಅಂತಿಮ ತೆರವಿಗೆ ಮೊದಲು ಹಾಕಿದ ಒಂದು ಪತ್ರವನ್ನು ಏನೆಂದು ಕರೆಯಲಾಗುತ್ತದೆ?",
+        "options": [
+          "ತುಂಬಾ ತಡವಾದ ಪತ್ರ",
+          "ತಪ್ಪಾಗಿ ಕಳುಹಿಸಿದ ಪತ್ರ",
+          "ತಡವಾದ ಪತ್ರ",
+          "ಪಾವತಿಸದ ಪತ್ರ"
+        ],
+        "correctAnswer": "ತಡವಾದ ಪತ್ರ",
+        "solution": "'ತಡವಾದ ಪತ್ರಗಳು' ಎಂದರೆ ಜಾಹೀರಾತು ಮಾಡಿದ ತೆರವು ಸಮಯದ ನಂತರ ಹಾಕಿದವು. ಅವುಗಳನ್ನು ಇನ್ನೂ ತೆರವುಗೊಳಿಸಲಾಗುತ್ತದೆ ಆದರೆ ಕಳುಹಿಸುವವರು ಅವುಗಳನ್ನು ಅದೇ ಮೇಲ್‌ನೊಂದಿಗೆ ಕಳುಹಿಸಲು ಬಯಸಿದರೆ ಅವುಗಳ ಮೇಲೆ \"ತಡವಾದ ಶುಲ್ಕ\" ಸ್ಟಾಂಪ್ ಅಂಟಿಸಲಾಗುತ್ತದೆ. ಶುಲ್ಕವಿಲ್ಲದೆ, ಅವು ಮುಂದಿನ ರವಾನೆಗಾಗಿ ಕಾಯುತ್ತವೆ."
+      }
+    }
+  },
+  {
+    "sourceLanguage": "English",
+    "question": "A letter correctly addressed to the Pune HO is erroneously put into the mail bag for Mumbai GPO by the sorting office. This letter is considered:",
+    "options": [
+      "Mis-directed",
+      "Mis-sent",
+      "Camp correspondence",
+      "A trial card"
+    ],
+    "correctAnswer": "Mis-sent",
+    "topic": "Postal Manual Volume V: Definitions",
+    "solution": "A 'Mis-sent' article is one that has been sent to a post office other than the office of destination. The error lies with the postal staff in the sorting/dispatching office.",
+    "translations": {
+      "ta": {
+        "question": "புனே HO-க்கு சரியாக முகவரியிடப்பட்ட ஒரு கடிதம், வரிசைப்படுத்தும் அலுவலகத்தால் தவறுதலாக மும்பை GPO-க்கான தபால் பையில் போடப்படுகிறது. இந்தக் கடிதம் எவ்வாறு கருதப்படுகிறது?",
+        "options": [
+          "தவறாக வழிநடத்தப்பட்டது",
+          "தவறாக அனுப்பப்பட்டது",
+          "முகாம் கடிதப் போக்குவரத்து",
+          "ஒரு சோதனை அட்டை"
+        ],
+        "correctAnswer": "தவறாக அனுப்பப்பட்டது",
+        "solution": "ஒரு 'Mis-sent' கட்டுரை என்பது சேருமிட அலுவலகத்தைத் தவிர வேறு ஒரு தபால் நிலையத்திற்கு அனுப்பப்பட்ட ஒன்றாகும். பிழை வரிசைப்படுத்தும்/அனுப்பும் அலுவலகத்தில் உள்ள தபால் ஊழியர்களிடம் உள்ளது."
+      },
+      "hi": {
+        "question": "पुणे HO को सही ढंग से संबोधित एक पत्र को छँटाई कार्यालय द्वारा गलती से मुंबई GPO के लिए मेल बैग में डाल दिया जाता है। यह पत्र माना जाता है:",
+        "options": [
+          "गलत-निर्देशित",
+          "गलत-भेजा गया",
+          "शिविर पत्राचार",
+          "एक परीक्षण कार्ड"
+        ],
+        "correctAnswer": "गलत-भेजा गया",
+        "solution": "एक 'गलत-भेजा गया' लेख वह है जिसे गंतव्य के कार्यालय के अलावा किसी अन्य डाकघर में भेज दिया गया है। त्रुटि छँटाई/प्रेषण कार्यालय में डाक कर्मचारियों की है।"
+      },
+      "te": {
+        "question": "పూణే HOకు సరిగ్గా చిరునామా చేయబడిన ఒక లేఖ, సార్టింగ్ కార్యాలయం ద్వారా పొరపాటున ముంబై GPO కోసం మెయిల్ బ్యాగ్‌లో వేయబడింది. ఈ లేఖను ఏమని పరిగణిస్తారు?",
+        "options": [
+          "తప్పుగా-నిర్దేశించబడినది",
+          "తప్పుగా-పంపబడినది",
+          "క్యాంప్ ఉత్తరప్రత్యుత్తరాలు",
+          "ఒక ట్రయల్ కార్డ్"
+        ],
+        "correctAnswer": "తప్పుగా-పంపబడినది",
+        "solution": "ఒక 'తప్పుగా-పంపబడినది' వస్తువు అంటే గమ్యస్థాన కార్యాలయం కాకుండా వేరే పోస్ట్ ఆఫీసుకు పంపబడినది. తప్పు సార్టింగ్/పంపకం కార్యాలయంలోని పోస్టల్ సిబ్బందిది."
+      },
+      "kn": {
+        "question": "ಪುಣೆ HOಗೆ ಸರಿಯಾಗಿ ವಿಳಾಸ ಮಾಡಲಾದ ಒಂದು ಪತ್ರವನ್ನು ವಿಂಗಡಣಾ ಕಚೇರಿಯಿಂದ ತಪ್ಪಾಗಿ ಮುಂಬೈ GPOಗೆ ಮೇಲ್ ಬ್ಯಾಗ್‌ನಲ್ಲಿ ಹಾಕಲಾಗುತ್ತದೆ. ಈ ಪತ್ರವನ್ನು ಏನೆಂದು ಪರಿಗಣಿಸಲಾಗುತ್ತದೆ?",
+        "options": [
+          "ತಪ್ಪು-ನಿರ್ದೇಶಿತ",
+          "ತಪ್ಪು-ಕಳುಹಿಸಿದ",
+          "ಶಿಬಿರ ಪತ್ರವ್ಯವಹಾರ",
+          "ಒಂದು ಪ್ರಾಯೋಗಿಕ ಕಾರ್ಡ್"
+        ],
+        "correctAnswer": "ತಪ್ಪು-ಕಳುಹಿಸಿದ",
+        "solution": "ಒಂದು 'ತಪ್ಪು-ಕಳುಹಿಸಿದ' ಲೇಖನವೆಂದರೆ ಗಮ್ಯಸ್ಥಾನದ ಕಚೇರಿಯಲ್ಲದೆ ಬೇರೆ ಅಂಚೆ ಕಚೇರಿಗೆ ಕಳುಹಿಸಲಾದದ್ದು. ತಪ್ಪು ವಿಂಗಡಣಾ/ರವಾನೆ ಕಚೇರಿಯಲ್ಲಿನ ಅಂಚೆ ಸಿಬ್ಬಂದಿಯದ್ದಾಗಿದೆ."
+      }
+    }
+  },
+  {
+    "sourceLanguage": "English",
+    "question": "An article addressed to \"Ram Kumar, Sector 15, Chandigarh\" is delivered to a different Ram Kumar in the same beat in Sector 15. This error is known as:",
+    "options": [
+      "Mis-delivery",
+      "Mis-direction",
+      "Mis-sending",
+      "Wrong delivery"
+    ],
+    "correctAnswer": "Mis-delivery",
+    "topic": "Postal Manual Volume V: Definitions",
+    "solution": "Mis-delivery occurs when the article reaches the correct post office and the correct beat, but the postman delivers it to the wrong person. 'Mis-direction' is an error in the written address itself.",
+    "translations": {
+      "ta": {
+        "question": "\"ராம் குமார், செக்டர் 15, சண்டிகர்\" என்று முகவரியிடப்பட்ட ஒரு கட்டுரை, செக்டர் 15-ல் உள்ள அதே பீட்டில் உள்ள வேறு ஒரு ராம் குமாருக்கு வழங்கப்படுகிறது. இந்தப் பிழை எவ்வாறு அறியப்படுகிறது?",
+        "options": [
+          "தவறான விநியோகம்",
+          "தவறான திசை",
+          "தவறான அனுப்புதல்",
+          "தவறான டெலிவரி"
+        ],
+        "correctAnswer": "தவறான விநியோகம்",
+        "solution": "கட்டுரை சரியான தபால் நிலையத்தையும் சரியான பீட்டையும் அடையும் போது, ஆனால் தபால்காரர் அதைத் தவறான நபருக்கு வழங்கும் போது தவறான விநியோகம் ஏற்படுகிறது. 'தவறான திசை' என்பது எழுதப்பட்ட முகவரியில் உள்ள ஒரு பிழையாகும்."
+      },
+      "hi": {
+        "question": "\"राम कुमार, सेक्टर 15, चंडीगढ़\" को संबोधित एक लेख सेक्टर 15 में उसी बीट में एक अलग राम कुमार को दिया जाता है। यह त्रुटि किस रूप में जानी जाती है?",
+        "options": [
+          "गलत-वितरण",
+          "गलत-दिशा",
+          "गलत-भेजना",
+          "गलत डिलीवरी"
+        ],
+        "correctAnswer": "गलत-वितरण",
+        "solution": "गलत-वितरण तब होता है जब लेख सही डाकघर और सही बीट तक पहुँचता है, लेकिन डाकिया इसे गलत व्यक्ति को वितरित करता है। 'गलत-दिशा' स्वयं लिखित पते में एक त्रुटि है।"
+      },
+      "te": {
+        "question": "\"రామ్ కుమార్, సెక్టార్ 15, చండీగఢ్\" అని చిరునామా చేయబడిన ఒక వస్తువు, సెక్టార్ 15లోని అదే బీట్‌లోని వేరొక రామ్ కుమార్‌కు డెలివరీ చేయబడింది. ఈ తప్పును ఏమని పిలుస్తారు?",
+        "options": [
+          "తప్పు-డెలివరీ",
+          "తప్పు-దిశ",
+          "తప్పు-పంపకం",
+          "తప్పు డెలివరీ"
+        ],
+        "correctAnswer": "తప్పు-డెలివరీ",
+        "solution": "వస్తువు సరైన పోస్ట్ ఆఫీసు మరియు సరైన బీట్‌కు చేరుకున్నప్పుడు, కానీ పోస్ట్‌మ్యాన్ దానిని తప్పు వ్యక్తికి డెలివరీ చేసినప్పుడు తప్పు-డెలివరీ జరుగుతుంది. 'తప్పు-దిశ' అనేది వ్రాసిన చిరునామాలోనే ఒక తప్పు."
+      },
+      "kn": {
+        "question": "\"ರಾಮ್ ಕುಮಾರ್, ಸೆಕ್ಟರ್ 15, ಚಂಡೀಗಢ\" ಎಂದು ವಿಳಾಸ ಮಾಡಲಾದ ಒಂದು ಲೇಖನವನ್ನು ಸೆಕ್ಟರ್ 15 ರಲ್ಲಿ ಅದೇ ಬೀಟ್‌ನಲ್ಲಿರುವ ಬೇರೆ ರಾಮ್ ಕುಮಾರ್‌ಗೆ ತಲುಪಿಸಲಾಗುತ್ತದೆ. ಈ ತಪ್ಪನ್ನು ಏನೆಂದು ಕರೆಯಲಾಗುತ್ತದೆ?",
+        "options": [
+          "ತಪ್ಪು-ವಿತರಣೆ",
+          "ತಪ್ಪು-ನಿರ್ದೇಶನ",
+          "ತಪ್ಪು-ಕಳುಹಿಸುವಿಕೆ",
+          "ತಪ್ಪು ವಿತರಣೆ"
+        ],
+        "correctAnswer": "ತಪ್ಪು-ವಿತರಣೆ",
+        "solution": "ಲೇಖನವು ಸರಿಯಾದ ಅಂಚೆ ಕಚೇರಿ ಮತ್ತು ಸರಿಯಾದ ಬೀಟ್‌ಗೆ ತಲುಪಿದಾಗ, ಆದರೆ ಪೋಸ್ಟ್‌ಮ್ಯಾನ್ ಅದನ್ನು ತಪ್ಪು ವ್ಯಕ್ತಿಗೆ ತಲುಪಿಸಿದಾಗ ತಪ್ಪು-ವಿತರಣೆ ಸಂಭವಿಸುತ್ತದೆ. 'ತಪ್ಪು-ನಿರ್ದೇಶನ' ಎಂಬುದು ಬರೆದ ವಿಳಾಸದಲ್ಲಿನ ಒಂದು ದೋಷವಾಗಿದೆ."
+      }
+    }
+  },
+  {
+    "sourceLanguage": "English",
+    "question": "The term 'Beat' as defined in Postal Manual Vol V refers to:",
+    "options": [
+      "The time taken by a postman to deliver all letters.",
+      "The area assigned to a postman for the delivery of postal articles.",
+      "The bag used by the postman.",
+      "The process of stamping letters."
+    ],
+    "correctAnswer": "The area assigned to a postman for the delivery of postal articles.",
+    "topic": "Postal Manual Volume V: Definitions",
+    "solution": "A postman's 'Beat' is the specific geographical route and area they are responsible for covering during their delivery duty.",
+    "translations": {
+      "ta": {
+        "question": "Postal Manual Vol V-ல் வரையறுக்கப்பட்டுள்ளபடி 'Beat' என்ற சொல் எதைக் குறிக்கிறது?",
+        "options": [
+          "ஒரு தபால்காரர் அனைத்து கடிதங்களையும் வழங்க எடுத்துக்கொள்ளும் நேரம்.",
+          "தபால் பொருட்களை வழங்குவதற்காக ஒரு தபால்காரருக்கு ஒதுக்கப்பட்ட பகுதி.",
+          "தபால்காரர் பயன்படுத்தும் பை.",
+          "கடிதங்களுக்கு முத்திரையிடும் செயல்முறை."
+        ],
+        "correctAnswer": "தபால் பொருட்களை வழங்குவதற்காக ஒரு தபால்காரருக்கு ஒதுக்கப்பட்ட பகுதி.",
+        "solution": "ஒரு தபால்காரரின் 'Beat' என்பது அவர்களின் விநியோகப் பணியின் போது அவர்கள் கடக்க வேண்டிய குறிப்பிட்ட புவியியல் பாதை மற்றும் பகுதியாகும்."
+      },
+      "hi": {
+        "question": "Postal Manual Vol V में परिभाषित 'Beat' शब्द का अर्थ है:",
+        "options": [
+          "एक डाकिया द्वारा सभी पत्र वितरित करने में लगने वाला समय।",
+          "डाक लेखों के वितरण के लिए एक डाकिया को सौंपा गया क्षेत्र।",
+          "डाकिया द्वारा इस्तेमाल किया जाने वाला बैग।",
+          "पत्रों पर मुहर लगाने की प्रक्रिया।"
+        ],
+        "correctAnswer": "डाक लेखों के वितरण के लिए एक डाकिया को सौंपा गया क्षेत्र।",
+        "solution": "एक डाकिया का 'Beat' वह विशिष्ट भौगोलिक मार्ग और क्षेत्र है जिसे वे अपनी डिलीवरी ड्यूटी के दौरान कवर करने के लिए जिम्मेदार हैं।"
+      },
+      "te": {
+        "question": "Postal Manual Vol Vలో నిర్వచించినట్లుగా 'Beat' అనే పదం దేనిని సూచిస్తుంది?",
+        "options": [
+          "ఒక పోస్ట్‌మ్యాన్ అన్ని లేఖలను డెలివరీ చేయడానికి తీసుకునే సమయం.",
+          "పోస్టల్ వస్తువుల డెలివరీ కోసం ఒక పోస్ట్‌మ్యాన్‌కు కేటాయించిన ప్రాంతం.",
+          "పోస్ట్‌మ్యాన్ ఉపయోగించే బ్యాగ్.",
+          "లేఖలపై స్టాంపు వేసే ప్రక్రియ."
+        ],
+        "correctAnswer": "పోస్టల్ వస్తువుల డెలివరీ కోసం ఒక పోస్ట్‌మ్యాన్‌కు కేటాయించిన ప్రాంతం.",
+        "solution": "ఒక పోస్ట్‌మ్యాన్ యొక్క 'Beat' అనేది వారి డెలివరీ డ్యూటీ సమయంలో వారు కవర్ చేయడానికి బాధ్యత వహించే నిర్దిష్ట భౌగోళిక మార్గం మరియు ప్రాంతం."
+      },
+      "kn": {
+        "question": "Postal Manual Vol V ರಲ್ಲಿ ವ್ಯಾಖ್ಯಾನಿಸಲಾದ 'Beat' ಎಂಬ ಪದವು ಏನನ್ನು ಸೂಚಿಸುತ್ತದೆ?",
+        "options": [
+          "ಒಬ್ಬ ಪೋಸ್ಟ್‌ಮ್ಯಾನ್ ಎಲ್ಲಾ ಪತ್ರಗಳನ್ನು ತಲುಪಿಸಲು ತೆಗೆದುಕೊಳ್ಳುವ ಸಮಯ.",
+          "ಅಂಚೆ ಲೇಖನಗಳ ವಿತರಣೆಗಾಗಿ ಒಬ್ಬ ಪೋಸ್ಟ್‌ಮ್ಯಾನ್‌ಗೆ ನಿಯೋಜಿಸಲಾದ ಪ್ರದೇಶ.",
+          "ಪೋಸ್ಟ್‌ಮ್ಯಾನ್ ಬಳಸುವ ಬ್ಯಾಗ್.",
+          "ಪತ್ರಗಳಿಗೆ ಸ್ಟಾಂಪ್ ಹಾಕುವ ಪ್ರಕ್ರಿಯೆ."
+        ],
+        "correctAnswer": "ಅಂಚೆ ಲೇಖನಗಳ ವಿತರಣೆಗಾಗಿ ಒಬ್ಬ ಪೋಸ್ಟ್‌ಮ್ಯಾನ್‌ಗೆ ನಿಯೋಜಿಸಲಾದ ಪ್ರದೇಶ.",
+        "solution": "ಒಬ್ಬ ಪೋಸ್ಟ್‌ಮ್ಯಾನ್‌ನ 'Beat' ಎಂದರೆ ಅವರು ತಮ್ಮ ವಿತರಣಾ ಕರ್ತವ್ಯದ ಸಮಯದಲ್ಲಿ ಕ್ರಮಿಸಲು ಜವಾಬ್ದಾರರಾಗಿರುವ ನಿರ್ದಿಷ್ಟ ಭೌಗೋಳಿಕ ಮಾರ್ಗ ಮತ್ತು ಪ್ರದೇಶ."
+      }
+    }
+  },
+  {
+    "sourceLanguage": "English",
+    "question": "What is an 'Account Bag'?",
+    "options": [
+      "A bag containing cash for the sub-office.",
+      "A bag containing unregistered letters and packets.",
+      "A bag used between a sub-office and its head office containing account documents, vouchers, and cash bags.",
+      "A bag containing only registered articles."
+    ],
+    "correctAnswer": "A bag used between a sub-office and its head office containing account documents, vouchers, and cash bags.",
+    "topic": "Postal Manual Volume V: Definitions",
+    "solution": "The Account Bag is a crucial bag for maintaining the financial accountability between a sub-office and its head office. It contains all the documents related to the day's transactions.",
+    "translations": {
+      "ta": {
+        "question": "'கணக்கு பை' என்றால் என்ன?",
+        "options": [
+          "துணை அலுவலகத்திற்கான பணத்தைக் கொண்ட ஒரு பை.",
+          "பதிவு செய்யப்படாத கடிதங்கள் மற்றும் பொதிகளைக் கொண்ட ஒரு பை.",
+          "ஒரு துணை அலுவலகம் மற்றும் அதன் தலைமை அலுவலகத்திற்கு இடையில் கணக்கு ஆவணங்கள், வவுச்சர்கள் மற்றும் பணப் பைகளைக் கொண்ட ஒரு பை.",
+          "பதிவு செய்யப்பட்ட தபால்களை மட்டுமே கொண்ட ஒரு பை."
+        ],
+        "correctAnswer": "ஒரு துணை அலுவலகம் மற்றும் அதன் தலைமை அலுவலகத்திற்கு இடையில் கணக்கு ஆவணங்கள், வவுச்சர்கள் மற்றும் பணப் பைகளைக் கொண்ட ஒரு பை.",
+        "solution": "கணக்கு பை என்பது ஒரு துணை அலுவலகம் மற்றும் அதன் தலைமை அலுவலகத்திற்கு இடையில் நிதிப் பொறுப்புடைமையைப் பராமரிப்பதற்கான ஒரு முக்கியமான பையாகும். இது அன்றைய பரிவர்த்தனைகள் தொடர்பான அனைத்து ஆவணங்களையும் கொண்டுள்ளது."
+      },
+      "hi": {
+        "question": "'अकाउंट बैग' क्या है?",
+        "options": [
+          "उप-कार्यालय के लिए नकदी वाला एक बैग।",
+          "अपंजीकृत पत्र और पैकेट वाला एक बैग।",
+          "एक उप-कार्यालय और उसके प्रधान कार्यालय के बीच उपयोग किया जाने वाला एक बैग जिसमें खाता दस्तावेज, वाउचर और नकद बैग होते हैं।",
+          "केवल पंजीकृत वस्तुएं वाला एक बैग।"
+        ],
+        "correctAnswer": "एक उप-कार्यालय और उसके प्रधान कार्यालय के बीच उपयोग किया जाने वाला एक बैग जिसमें खाता दस्तावेज, वाउचर और नकद बैग होते हैं।",
+        "solution": "अकाउंट बैग एक उप-कार्यालय और उसके प्रधान कार्यालय के बीच वित्तीय जवाबदेही बनाए रखने के लिए एक महत्वपूर्ण बैग है। इसमें दिन के लेनदेन से संबंधित सभी दस्तावेज होते हैं।"
+      },
+      "te": {
+        "question": "'అకౌంట్ బ్యాగ్' అంటే ఏమిటి?",
+        "options": [
+          "ఉప-కార్యాలయం కోసం నగదును కలిగి ఉన్న ఒక బ్యాగ్.",
+          "నమోదుకాని లేఖలు మరియు ప్యాకెట్లను కలిగి ఉన్న ఒక బ్యాగ్.",
+          "ఒక ఉప-కార్యాలయం మరియు దాని ప్రధాన కార్యాలయం మధ్య ఉపయోగించే ఒక బ్యాగ్, ఇది ఖాతా పత్రాలు, వోచర్లు మరియు నగదు బ్యాగ్‌లను కలిగి ఉంటుంది.",
+          "నమోదు చేయబడిన వస్తువులను మాత్రమే కలిగి ఉన్న ఒక బ్యాగ్."
+        ],
+        "correctAnswer": "ఒక ఉప-కార్యాలయం మరియు దాని ప్రధాన కార్యాలయం మధ్య ఉపయోగించే ఒక బ్యాగ్, ఇది ఖాతా పత్రాలు, వోచర్లు మరియు నగదు బ్యాగ్‌లను కలిగి ఉంటుంది.",
+        "solution": "అకౌంట్ బ్యాగ్ అనేది ఒక ఉప-కార్యాలయం మరియు దాని ప్రధాన కార్యాలయం మధ్య ఆర్థిక జవాబుదారీతనాన్ని నిర్వహించడానికి ఒక కీలకమైన బ్యాగ్. ఇది రోజువారీ లావాదేవీలకు సంబంధించిన అన్ని పత్రాలను కలిగి ఉంటుంది."
+      },
+      "kn": {
+        "question": "'ಖಾತೆ ಬ್ಯಾಗ್' ಎಂದರೇನು?",
+        "options": [
+          "ಉಪ-ಕಚೇರಿಗೆ ನಗದು ಇರುವ ಒಂದು ಬ್ಯಾಗ್.",
+          "ನೋಂದಾಯಿಸದ ಪತ್ರಗಳು ಮತ್ತು ಪ್ಯಾಕೆಟ್‌ಗಳನ್ನು ಹೊಂದಿರುವ ಒಂದು ಬ್ಯಾಗ್.",
+          "ಒಂದು ಉಪ-ಕಚೇರಿ ಮತ್ತು ಅದರ ಪ್ರಧಾನ ಕಚೇರಿಯ ನಡುವೆ ಬಳಸುವ ಒಂದು ಬ್ಯಾಗ್, ಇದು ಖಾತೆ ದಾಖಲೆಗಳು, ವೋಚರ್‌ಗಳು ಮತ್ತು ನಗದು ಬ್ಯಾಗ್‌ಗಳನ್ನು ಹೊಂದಿರುತ್ತದೆ.",
+          "ಕೇವಲ ನೋಂದಾಯಿತ ಲೇಖನಗಳನ್ನು ಹೊಂದಿರುವ ಒಂದು ಬ್ಯಾಗ್."
+        ],
+        "correctAnswer": "ಒಂದು ಉಪ-ಕಚೇರಿ ಮತ್ತು ಅದರ ಪ್ರಧಾನ ಕಚೇರಿಯ ನಡುವೆ ಬಳಸುವ ಒಂದು ಬ್ಯಾಗ್, ಇದು ಖಾತೆ ದಾಖಲೆಗಳು, ವೋಚರ್‌ಗಳು ಮತ್ತು ನಗದು ಬ್ಯಾಗ್‌ಗಳನ್ನು ಹೊಂದಿರುತ್ತದೆ.",
+        "solution": "ಖಾತೆ ಬ್ಯಾಗ್ ಒಂದು ಉಪ-ಕಚೇರಿ ಮತ್ತು ಅದರ ಪ್ರಧಾನ ಕಚೇರಿಯ ನಡುವೆ ಆರ್ಥಿಕ ಜವಾಬ್ದಾರಿಯನ್ನು ನಿರ್ವಹಿಸಲು ಒಂದು ನಿರ್ಣಾಯಕ ಬ್ಯಾಗ್ ಆಗಿದೆ. ಇದು ದಿನದ ವಹಿವಾಟುಗಳಿಗೆ ಸಂಬಂಧಿಸಿದ ಎಲ್ಲಾ ದಾಖಲೆಗಳನ್ನು ಹೊಂದಿರುತ್ತದೆ."
+      }
+    }
+  },
+  {
+    "sourceLanguage": "English",
+    "question": "A 'Mail Agent' or 'Mail Guard' is in charge of which type of postal unit?",
+    "options": [
+      "A Head Post Office",
+      "A Section of the RMS",
+      "A Sub Post Office",
+      "A Circle Stamp Depot"
+    ],
+    "correctAnswer": "A Section of the RMS",
+    "topic": "Postal Manual Volume V: Definitions",
+    "solution": "A Mail Agent or Mail Guard is the official in-charge of a travelling RMS office (a Section) in a mail van.",
+    "translations": {
+      "ta": {
+        "question": "ஒரு 'மெயில் ஏஜென்ட்' அல்லது 'மெயில் கார்டு' எந்த வகை தபால் பிரிவுக்குப் பொறுப்பானவர்?",
+        "options": [
+          "ஒரு தலைமை தபால் அலுவலகம்",
+          "RMS-ன் ஒரு பிரிவு",
+          "ஒரு துணை தபால் அலுவலகம்",
+          "ஒரு வட்ட முத்திரை கிடங்கு"
+        ],
+        "correctAnswer": "RMS-ன் ஒரு பிரிவு",
+        "solution": "ஒரு மெயில் ஏஜென்ட் அல்லது மெயில் கார்டு ஒரு தபால் வேனில் உள்ள ஒரு பயண RMS அலுவலகத்தின் (ஒரு பிரிவு) பொறுப்பான அதிகாரி."
+      },
+      "hi": {
+        "question": "एक 'मेल एजेंट' या 'मेल गार्ड' किस प्रकार की डाक इकाई का प्रभारी होता है?",
+        "options": [
+          "एक प्रधान डाकघर",
+          "RMS का एक अनुभाग",
+          "एक उप डाकघर",
+          "एक सर्किल स्टाम्प डिपो"
+        ],
+        "correctAnswer": "RMS का एक अनुभाग",
+        "solution": "एक मेल एजेंट या मेल गार्ड एक मेल वैन में एक यात्रा RMS कार्यालय (एक अनुभाग) का प्रभारी अधिकारी होता है।"
+      },
+      "te": {
+        "question": "ఒక 'మెయిల్ ఏజెంట్' లేదా 'మెయిల్ గార్డ్' ఏ రకమైన పోస్టల్ యూనిట్‌కు బాధ్యత వహిస్తారు?",
+        "options": [
+          "ఒక ప్రధాన పోస్ట్ ఆఫీస్",
+          "RMS యొక్క ఒక విభాగం",
+          "ఒక ఉప పోస్ట్ ఆఫీస్",
+          "ఒక సర్కిల్ స్టాంప్ డిపో"
+        ],
+        "correctAnswer": "RMS యొక్క ఒక విభాగం",
+        "solution": "ఒక మెయిల్ ఏజెంట్ లేదా మెయిల్ గార్డ్ ఒక మెయిల్ వ్యాన్‌లో ఒక ప్రయాణ RMS కార్యాలయం (ఒక విభాగం) యొక్క బాధ్యతాయుత అధికారి."
+      },
+      "kn": {
+        "question": "ಒಬ್ಬ 'ಮೇಲ್ ಏಜೆಂಟ್' ಅಥವಾ 'ಮೇಲ್ ಗಾರ್ಡ್' ಯಾವ ರೀತಿಯ ಅಂಚೆ ಘಟಕದ ಉಸ್ತುವಾರಿ ವಹಿಸುತ್ತಾರೆ?",
+        "options": [
+          "ಒಂದು ಪ್ರಧಾನ ಅಂಚೆ ಕಚೇರಿ",
+          "RMS ನ ಒಂದು ವಿಭಾಗ",
+          "ಒಂದು ಉಪ ಅಂಚೆ ಕಚೇರಿ",
+          "ಒಂದು ವೃತ್ತ ಅಂಚೆಚೀಟಿ ಡಿಪೋ"
+        ],
+        "correctAnswer": "RMS ನ ಒಂದು ವಿಭಾಗ",
+        "solution": "ಒಬ್ಬ ಮೇಲ್ ಏಜೆಂಟ್ ಅಥವಾ ಮೇಲ್ ಗಾರ್ಡ್ ಒಂದು ಮೇಲ್ ವ್ಯಾನ್‌ನಲ್ಲಿ ಒಂದು ಪ್ರಯಾಣ RMS ಕಚೇರಿ (ಒಂದು ವಿಭಾಗ) ಯ ಉಸ್ತುವಾರಿ ಅಧಿಕಾರಿಯಾಗಿರುತ್ತಾರೆ."
+      }
+    }
+  },
+  {
+    "sourceLanguage": "English",
+    "question": "In RMS, 'Sorting Mail Office' refers to:",
+    "options": [
+      "Any office that sorts mail.",
+      "A mobile office in a train that sorts mail for various destinations.",
+      "A stationary office of RMS that opens and sorts the contents of mail bags.",
+      "An office that only sorts foreign mail."
+    ],
+    "correctAnswer": "A stationary office of RMS that opens and sorts the contents of mail bags.",
+    "topic": "Postal Manual Volume V: Definitions",
+    "solution": "A Sorting Mail Office is a stationary RMS office where mail bags are received, opened, and the contents are sorted for further dispatch. This distinguishes it from a Transit Mail Office, which generally does not open bags.",
+    "translations": {
+      "ta": {
+        "question": "RMS-ல், 'வரிசைப்படுத்தும் அஞ்சல் அலுவலகம்' என்பது எதைக் குறிக்கிறது?",
+        "options": [
+          "தபால் வரிசைப்படுத்தும் எந்தவொரு அலுவலகம்.",
+          "பல்வேறு இடங்களுக்கு தபால் வரிசைப்படுத்தும் ஒரு ரயிலில் ஒரு மொபைல் அலுவலகம்.",
+          "தபால் பைகளின் உள்ளடக்கங்களைத் திறந்து வரிசைப்படுத்தும் RMS-ன் ஒரு நிலையான அலுவலகம்.",
+          "வெளிநாட்டு தபால்களை மட்டுமே வரிசைப்படுத்தும் ஒரு அலுவலகம்."
+        ],
+        "correctAnswer": "தபால் பைகளின் உள்ளடக்கங்களைத் திறந்து வரிசைப்படுத்தும் RMS-ன் ஒரு நிலையான அலுவலகம்.",
+        "solution": "ஒரு வரிசைப்படுத்தும் அஞ்சல் அலுவலகம் என்பது ஒரு நிலையான RMS அலுவலகமாகும், அங்கு தபால் பைகள் பெறப்பட்டு, திறக்கப்பட்டு, மேலும் அனுப்புவதற்காக உள்ளடக்கங்கள் வரிசைப்படுத்தப்படுகின்றன. இது பொதுவாக பைகளைத் திறக்காத போக்குவரத்து அஞ்சல் அலுவலகத்திலிருந்து வேறுபடுகிறது."
+      },
+      "hi": {
+        "question": "RMS में, 'सॉर्टिंग मेल ऑफिस' का अर्थ है:",
+        "options": [
+          "कोई भी कार्यालय जो मेल छाँटता है।",
+          "एक ट्रेन में एक मोबाइल कार्यालय जो विभिन्न गंतव्यों के लिए मेल छाँटता है।",
+          "RMS का एक स्थिर कार्यालय जो मेल बैग की सामग्री को खोलता और छाँटता है।",
+          "एक कार्यालय जो केवल विदेशी मेल छाँटता है।"
+        ],
+        "correctAnswer": "RMS का एक स्थिर कार्यालय जो मेल बैग की सामग्री को खोलता और छाँटता है।",
+        "solution": "एक सॉर्टिंग मेल ऑफिस एक स्थिर RMS कार्यालय है जहाँ मेल बैग प्राप्त किए जाते हैं, खोले जाते हैं, और सामग्री को आगे भेजने के लिए छाँटा जाता है। यह इसे ट्रांजिट मेल ऑफिस से अलग करता है, जो आमतौर पर बैग नहीं खोलता है।"
+      },
+      "te": {
+        "question": "RMS-లో, 'సార్టింగ్ మెయిల్ ఆఫీస్' అంటే:",
+        "options": [
+          "మెయిల్ సార్ట్ చేసే ఏ కార్యాలయమైనా.",
+          "వివిధ గమ్యస్థానాల కోసం మెయిల్ సార్ట్ చేసే ఒక రైలులో ఒక మొబైల్ కార్యాలయం.",
+          "మెయిల్ బ్యాగ్‌ల విషయాలను తెరిచి సార్ట్ చేసే RMS యొక్క ఒక స్థిర కార్యాలయం.",
+          "విదేశీ మెయిల్‌ను మాత్రమే సార్ట్ చేసే ఒక కార్యాలయం."
+        ],
+        "correctAnswer": "మెయిల్ బ్యాగ్‌ల విషయాలను తెరిచి సార్ట్ చేసే RMS యొక్క ఒక స్థిర కార్యాలయం.",
+        "solution": "ఒక సార్టింగ్ మెయిల్ ఆఫీస్ అనేది ఒక స్థిర RMS కార్యాలయం, ఇక్కడ మెయిల్ బ్యాగ్‌లు స్వీకరించబడతాయి, తెరవబడతాయి మరియు విషయాలు తదుపరి పంపకం కోసం సార్ట్ చేయబడతాయి. ఇది సాధారణంగా బ్యాగ్‌లను తెరవని ట్రాన్సిట్ మెయిల్ ఆఫీస్ నుండి దీనిని వేరు చేస్తుంది."
+      },
+      "kn": {
+        "question": "RMS ನಲ್ಲಿ, 'ವಿಂಗಡಣಾ ಮೇಲ್ ಕಚೇರಿ' ಎಂದರೆ:",
+        "options": [
+          "ಮೇಲ್ ಅನ್ನು ವಿಂಗಡಿಸುವ ಯಾವುದೇ ಕಚೇರಿ.",
+          "ವಿವಿಧ ಗಮ್ಯಸ್ಥಾನಗಳಿಗೆ ಮೇಲ್ ಅನ್ನು ವಿಂಗಡಿಸುವ ರೈಲಿನಲ್ಲಿ ಒಂದು ಮೊಬೈಲ್ ಕಚೇರಿ.",
+          "ಮೇಲ್ ಬ್ಯಾಗ್‌ಗಳ ವಿಷಯಗಳನ್ನು ತೆರೆದು ವಿಂಗಡಿಸುವ RMS ನ ಒಂದು ಸ್ಥಾಯಿ ಕಚೇರಿ.",
+          "ಕೇವಲ ವಿದೇಶಿ ಮೇಲ್ ಅನ್ನು ವಿಂಗಡಿಸುವ ಒಂದು ಕಚೇರಿ."
+        ],
+        "correctAnswer": "ಮೇಲ್ ಬ್ಯಾಗ್‌ಗಳ ವಿಷಯಗಳನ್ನು ತೆರೆದು ವಿಂಗಡಿಸುವ RMS ನ ಒಂದು ಸ್ಥಾಯಿ ಕಚೇರಿ.",
+        "solution": "ಒಂದು ವಿಂಗಡಣಾ ಮೇಲ್ ಕಚೇರಿ ಒಂದು ಸ್ಥಾಯಿ RMS ಕಚೇರಿಯಾಗಿದ್ದು, ಅಲ್ಲಿ ಮೇಲ್ ಬ್ಯಾಗ್‌ಗಳನ್ನು ಸ್ವೀಕರಿಸಲಾಗುತ್ತದೆ, ತೆರೆಯಲಾಗುತ್ತದೆ, ಮತ್ತು ವಿಷಯಗಳನ್ನು ಮುಂದಿನ ರವಾನೆಗಾಗಿ ವಿಂಗಡಿಸಲಾಗುತ್ತದೆ. ಇದು ಸಾಮಾನ್ಯವಾಗಿ ಬ್ಯಾಗ್‌ಗಳನ್ನು ತೆರೆಯದ ಸಾಗಣೆ ಮೇಲ್ ಕಚೇರಿಗಿಂತ ಭಿನ್ನವಾಗಿರುತ್ತದೆ."
+        }
+      }
+    }
+  ]
+}
+```
