@@ -6,7 +6,6 @@ import { z } from 'zod';
 import mammoth from 'mammoth';
 import { generate } from '@genkit-ai/ai';
 import { gemini15Pro } from '@genkit-ai/googleai';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; 
@@ -22,10 +21,14 @@ const MCQSchema = z.object({
   translations: z.record(z.any()).optional(),
 });
 
-// Schema for the final JSON structure stored in Firestore
-const JsonUploadSchema = z.object({
+// Schema for the object structure, if the JSON is wrapped
+const JsonObjectUploadSchema = z.object({
   questions: z.array(MCQSchema),
 });
+
+// Schema for the direct array structure
+const JsonArrayUploadSchema = z.array(MCQSchema);
+
 
 const extractMCQsFromText = async (textContent: string): Promise<MCQ[]> => {
     const prompt = `You are an expert at meticulously parsing and formatting multiple-choice questions (MCQs) from raw text. Your task is to extract all questions and their complete data, including translations if available, and format them into a valid JSON structure.
@@ -56,12 +59,12 @@ Your final output must be a single, valid JSON object containing a 'questions' a
         prompt: prompt,
         output: {
             format: 'json',
-            schema: zodToJsonSchema(JsonUploadSchema) as any,
+            schema: JsonObjectUploadSchema,
         },
         config: { temperature: 0.1 }
     });
     
-    const parsedOutput = llmResponse.json();
+    const parsedOutput = llmResponse.output();
     if (!parsedOutput || !parsedOutput.questions) {
         throw new Error('AI failed to extract any questions from the provided text.');
     }
@@ -90,13 +93,25 @@ export async function POST(req: NextRequest) {
         if (file.type === 'application/json') {
             const textContent = await file.text();
             const jsonData = JSON.parse(textContent);
-            const validationResult = JsonUploadSchema.safeParse(jsonData);
-            if (!validationResult.success) {
-                console.error(`JSON validation error in ${file.name}:`, validationResult.error.errors);
-                return NextResponse.json({ error: `Invalid JSON format in file: ${file.name}. It must be an object with a "questions" array.`, details: validationResult.error.flatten() }, { status: 400 });
-            }
-            extractedFromFile = validationResult.data.questions;
 
+            // Try parsing as {"questions": [...]} first
+            const objectValidation = JsonObjectUploadSchema.safeParse(jsonData);
+            if (objectValidation.success) {
+                extractedFromFile = objectValidation.data.questions;
+            } else {
+                // If that fails, try parsing as a direct array [...]
+                const arrayValidation = JsonArrayUploadSchema.safeParse(jsonData);
+                if (arrayValidation.success) {
+                    extractedFromFile = arrayValidation.data;
+                } else {
+                    // If both fail, the JSON format is invalid for our needs
+                    console.error(`JSON validation error in ${file.name}:`, arrayValidation.error.errors);
+                    return NextResponse.json({ 
+                        error: `Invalid JSON format in file: ${file.name}. It must be an object with a "questions" array, or an array of question objects.`, 
+                        details: arrayValidation.error.flatten() 
+                    }, { status: 400 });
+                }
+            }
         } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.type === 'text/plain') {
             let textContent: string;
             if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
