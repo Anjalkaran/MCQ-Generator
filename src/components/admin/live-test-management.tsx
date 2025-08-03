@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Clock, Trash2, Edit, CalendarIcon, Upload, Eye, Download, FileJson } from 'lucide-react';
-import { addLiveTest, updateLiveTest, deleteLiveTest, deleteLiveTestBankDocument, addLiveTestBankDocument } from '@/lib/firestore';
+import { addLiveTest, updateLiveTest, deleteLiveTest, deleteLiveTestBankDocument, addLiveTestBankDocument, updateLiveTestBankDocument } from '@/lib/firestore';
 import type { BankedQuestion, LiveTest } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import MTS_PAPER_1 from '@/lib/live-test-question-paper-1.json';
 import PM_PAPER_1 from '@/lib/live-test-question-paper-pm-1.json';
+import { Textarea } from '../ui/textarea';
 
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
@@ -63,10 +64,14 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [liveTestBank, setLiveTestBank] = useState<BankedQuestion[]>(initialLiveTestBank);
   const [liveTests, setLiveTests] = useState<LiveTest[]>(initialLiveTests);
   const [editingTest, setEditingTest] = useState<LiveTest | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingPaper, setEditingPaper] = useState<BankedQuestion | null>(null);
+  const [editedContent, setEditedContent] = useState('');
+  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const scheduleForm = useForm<z.infer<typeof scheduleSchema>>({
@@ -122,7 +127,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
             toast({ title: 'Success', description: 'Live test scheduled successfully.' });
         }
         scheduleForm.reset();
-        setIsDialogOpen(false);
+        setIsScheduleDialogOpen(false);
         setEditingTest(null);
     } catch (error: any) {
       console.error("Live test scheduling error:", error);
@@ -183,10 +188,34 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
     }
   }
 
-  const handleOpenDialog = (test: LiveTest | null) => {
+  const handleOpenScheduleDialog = (test: LiveTest | null) => {
     setEditingTest(test);
-    setIsDialogOpen(true);
+    setIsScheduleDialogOpen(true);
   }
+
+  const handleOpenEditDialog = (paper: BankedQuestion) => {
+    setEditingPaper(paper);
+    setEditedContent(getFormattedContent(paper.content));
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingPaper) return;
+    setIsSaving(true);
+    try {
+        JSON.parse(editedContent); // Validate JSON before saving
+        await updateLiveTestBankDocument(editingPaper.id, editedContent);
+        setLiveTestBank(prev => prev.map(p => p.id === editingPaper.id ? { ...p, content: editedContent } : p));
+        toast({ title: "Success", description: "Document updated successfully." });
+        setIsEditDialogOpen(false);
+        setEditingPaper(null);
+    } catch (error: any) {
+        console.error("Failed to update document", error);
+        toast({ title: "Error", description: error instanceof SyntaxError ? "Invalid JSON format." : "Could not update the document.", variant: "destructive" });
+    } finally {
+        setIsSaving(false);
+    }
+  };
 
   const handleDownload = (paper: BankedQuestion) => {
     const blob = new Blob([paper.content], { type: 'application/json;charset=utf-8;' });
@@ -347,6 +376,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                             <TableCell className="text-right">
                                                  <Dialog><DialogTrigger asChild><Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button></DialogTrigger><DialogContent className="max-w-3xl"><DialogHeader><DialogTitle>{p.fileName}</DialogTitle></DialogHeader><ScrollArea className="h-96 w-full rounded-md border p-4"><pre className="text-sm whitespace-pre-wrap">{getFormattedContent(p.content)}</pre></ScrollArea></DialogContent></Dialog>
                                                  <Button variant="ghost" size="icon" onClick={() => handleDownload(p)}><Download className="h-4 w-4" /></Button>
+                                                 <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(p)}><Edit className="h-4 w-4" /></Button>
                                                  <AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will delete "{p.fileName}". This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePaper(p.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
                                             </TableCell>
                                         </TableRow>
@@ -360,9 +390,9 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                 </CardContent>
             </Card>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { setIsDialogOpen(isOpen); if (!isOpen) setEditingTest(null); }}>
+        <Dialog open={isScheduleDialogOpen} onOpenChange={(isOpen) => { setIsScheduleDialogOpen(isOpen); if (!isOpen) setEditingTest(null); }}>
              <DialogTrigger asChild>
-                <Button onClick={() => handleOpenDialog(null)}>
+                <Button onClick={() => handleOpenScheduleDialog(null)}>
                     <Clock className="mr-2 h-4 w-4" />
                     Schedule New Live Test
                 </Button>
@@ -559,6 +589,30 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
             </DialogContent>
         </Dialog>
         
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="max-w-3xl">
+                <DialogHeader>
+                    <DialogTitle>Edit: {editingPaper?.fileName}</DialogTitle>
+                    <DialogDescription>
+                        Make changes to the JSON content below. Ensure the format remains valid.
+                    </DialogDescription>
+                </DialogHeader>
+                <Textarea
+                    value={editedContent}
+                    onChange={(e) => setEditedContent(e.target.value)}
+                    className="h-96 text-sm font-mono"
+                    placeholder="Enter valid JSON content..."
+                />
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleSaveEdit} disabled={isSaving}>
+                        {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save Changes
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
         <Card>
             <CardHeader>
                 <CardTitle>All Scheduled Live Tests</CardTitle>
@@ -585,7 +639,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                         <TableCell>{format(normalizeDate(test.endTime)!, "dd/MM/yyyy hh:mm a")}</TableCell>
                                         <TableCell>{getStatus(test)}</TableCell>
                                         <TableCell className="text-right">
-                                            <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(test)}>
+                                            <Button variant="ghost" size="icon" onClick={() => handleOpenScheduleDialog(test)}>
                                                 <Edit className="h-4 w-4" />
                                             </Button>
                                              <AlertDialog>
