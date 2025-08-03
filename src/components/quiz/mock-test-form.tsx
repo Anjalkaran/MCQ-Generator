@@ -20,19 +20,11 @@ import { ADMIN_EMAILS } from '@/lib/constants';
 import { Input } from '@/components/ui/input';
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
-const languages = [
-    { value: 'English', label: 'English' },
-    { value: 'Tamil', label: 'தமிழ்' },
-    { value: 'Hindi', label: 'हिन्दी' },
-    { value: 'Telugu', label: 'తెలుగు' },
-    { value: 'Kannada', label: 'ಕನ್ನಡ' },
-] as const;
 
 const formSchema = z.object({
   examType: z.enum(examCategories, {
     required_error: 'Please select an exam type.',
   }),
-  language: z.string().min(1, 'Please select a language.'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -53,7 +45,6 @@ export function MockTestForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       examType: 'MTS',
-      language: 'English',
     },
   });
 
@@ -73,7 +64,7 @@ export function MockTestForm() {
       const { mcqs } = await generateMockTest({
           examCategory: values.examType,
           userId: user.uid,
-          language: values.language,
+          language: 'English',
       });
 
       if (!mcqs || mcqs.length === 0) {
@@ -117,28 +108,6 @@ export function MockTestForm() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CardContent>
                 <fieldset disabled={isGenerating || isLoading} className="space-y-6">
-                    <FormField
-                      control={form.control}
-                      name="language"
-                      render={({ field }) => (
-                          <FormItem>
-                          <FormLabel>Language</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                              <SelectTrigger>
-                                  <SelectValue placeholder="Select Language" />
-                              </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                              {languages.map((lang) => (
-                                  <SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>
-                              ))}
-                              </SelectContent>
-                          </Select>
-                          <FormMessage />
-                          </FormItem>
-                      )}
-                    />
                     <FormField
                     control={form.control}
                     name="examType"
