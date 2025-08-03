@@ -229,7 +229,7 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
         <Card>
           <CardHeader>
             <CardTitle>Topic-wise Leaderboard</CardTitle>
-            <CardDescription>Ranking based on average scores from all topic-wise quizzes. Only users who have completed more than five exams are included.</CardDescription>
+            <CardDescription>Ranking based on average scores from all topic-wise quizzes. Only users who have completed more than six exams are included.</CardDescription>
           </CardHeader>
           <CardContent>
             <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} />
@@ -241,7 +241,7 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
         <Card>
           <CardHeader>
             <CardTitle>Mock Test Leaderboard</CardTitle>
-            <CardDescription>Ranking based on average scores from all mock tests. Only users who have completed more than five exams are included.</CardDescription>
+            <CardDescription>Ranking based on average scores from all mock tests. Only users who have completed more than six exams are included.</CardDescription>
           </CardHeader>
           <CardContent>
              <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} />
