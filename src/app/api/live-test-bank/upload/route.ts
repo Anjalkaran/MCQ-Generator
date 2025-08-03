@@ -100,29 +100,33 @@ export async function POST(req: NextRequest) {
 
         if (file.type === 'application/json') {
             const textContent = await file.text();
+            let jsonData;
             try {
-                const jsonData = JSON.parse(textContent);
-
-                // Try parsing as {"questions": [...]} first
-                const objectValidation = JsonObjectUploadSchema.safeParse(jsonData);
-                if (objectValidation.success) {
-                    extractedFromFile = objectValidation.data.questions;
-                } else {
-                    // If that fails, try parsing as a direct array [...]
-                    const arrayValidation = JsonArrayUploadSchema.safeParse(jsonData);
-                    if (arrayValidation.success) {
-                        extractedFromFile = arrayValidation.data;
-                    } else {
-                        // If both fail, the JSON format is invalid for our needs
-                        console.error(`JSON validation error in ${file.name}:`, arrayValidation.error.errors);
-                        return NextResponse.json({ 
-                            error: `Invalid JSON format in file: ${file.name}. It must be an object with a "questions" array, or a direct array of question objects.`, 
-                            details: arrayValidation.error.flatten() 
-                        }, { status: 400 });
-                    }
-                }
+                jsonData = JSON.parse(textContent);
             } catch (e) {
-                 return NextResponse.json({ error: `Syntax error in JSON file: ${file.name}. Please check for issues like trailing commas.` }, { status: 400 });
+                if (e instanceof SyntaxError) {
+                    return NextResponse.json({ error: `Syntax error in JSON file: ${file.name}. Please check for issues like trailing commas.` }, { status: 400 });
+                }
+                throw e; // re-throw other errors
+            }
+            
+            // Try parsing as {"questions": [...]} first
+            const objectValidation = JsonObjectUploadSchema.safeParse(jsonData);
+            if (objectValidation.success) {
+                extractedFromFile = objectValidation.data.questions;
+            } else {
+                // If that fails, try parsing as a direct array [...]
+                const arrayValidation = JsonArrayUploadSchema.safeParse(jsonData);
+                if (arrayValidation.success) {
+                    extractedFromFile = arrayValidation.data;
+                } else {
+                    // If both fail, the JSON format is invalid for our needs
+                    console.error(`JSON validation error in ${file.name}:`, arrayValidation.error.errors);
+                    return NextResponse.json({ 
+                        error: `Invalid JSON format in file: ${file.name}. It must be an object with a "questions" array, or a direct array of question objects.`, 
+                        details: arrayValidation.error.flatten() 
+                    }, { status: 400 });
+                }
             }
 
         } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.type === 'text/plain') {
