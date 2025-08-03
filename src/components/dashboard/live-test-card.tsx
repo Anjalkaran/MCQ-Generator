@@ -198,8 +198,20 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     };
 
     const handleShare = () => {
-        const formattedDate = startTime ? format(startTime, 'dd/MM/yyyy p') : 'an upcoming date';
-        const message = `📢 *Anjalkaran ${test.examCategory} Live Mock Test!* 📢\n\nJoin the live test and compete with fellow aspirants.\n\n*Test:* ${test.title}\n*Date:* ${formattedDate}\n\nBoost your preparation now!\n\nGet the app: https://anjalkaran.in`;
+        const message = `📢 *Anjalkaran Live Mock Test Challenge!* 📢
+
+Get ready to test your knowledge and compete with fellow aspirants! We're hosting live mock tests for:
+
+🔹 *MTS*
+🔹 *POSTMAN*
+🔹 *PA*
+
+Simulate real exam conditions, find out where you stand, and boost your preparation. 
+
+Join now and aim for the top of the leaderboard! 🏆
+
+*Download the App:*
+https://anjalkaran.in`;
         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, '_blank');
     };
