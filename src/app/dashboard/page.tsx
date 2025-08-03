@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useDashboard } from "@/app/dashboard/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, BookCopy, FileText, Rss, BrainCircuit } from 'lucide-react';
@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
 import { formatDistanceToNowStrict } from 'date-fns';
 
 function Countdown({ test }: { test: LiveTest }) {
@@ -61,6 +62,7 @@ function Countdown({ test }: { test: LiveTest }) {
 function UpcomingLiveTest() {
     const [upcomingTests, setUpcomingTests] = useState<LiveTest[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const plugin = useRef(Autoplay({ delay: 4000, stopOnInteraction: true }));
 
     useEffect(() => {
         const fetchAndSetTests = async () => {
@@ -94,7 +96,12 @@ function UpcomingLiveTest() {
     }
     
     return (
-        <Carousel className="w-full max-w-xs mx-auto">
+        <Carousel 
+            plugins={[plugin.current]}
+            className="w-full max-w-xs mx-auto"
+            onMouseEnter={plugin.current.stop}
+            onMouseLeave={plugin.current.reset}
+        >
             <CarouselContent>
                 {upcomingTests.map((test) => (
                 <CarouselItem key={test.id}>
