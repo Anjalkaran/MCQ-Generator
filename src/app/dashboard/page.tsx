@@ -77,7 +77,7 @@ function UpcomingLiveTest() {
     if (!upcomingTest) {
         return (
              <CardDescription className="pt-4">
-                Participate in scheduled live tests that simulate real exam conditions, or practice with past live tests.
+                MTS, PM, and PA Mock Test. Participate in scheduled live tests that simulate real exam conditions.
             </CardDescription>
         );
     }
