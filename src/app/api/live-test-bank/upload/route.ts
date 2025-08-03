@@ -45,7 +45,7 @@ const extractMCQsFromText = async (textContent: string): Promise<MCQ[]> => {
 *   Do NOT verify, correct, or change any of the content. Extract it exactly as it appears.
 *   The 'correctAnswer' field MUST be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
 *   **TRIMMING RULE:** If an option in the text starts with a letter followed by a period or parenthesis (e.g., "a.", "B)", "c."), you MUST trim this prefix. For example, "a. The quick brown fox" should become "The quick brown fox".
-*   Your final output must be a single, valid JSON object that adheres to the schema: {"questions": [...]}. Do NOT wrap the JSON in markdown code blocks.
+*   Your final output must be ONLY a single, valid JSON object that adheres to the schema: {"questions": [...]}. Do NOT include any introductory text, markdown formatting like \`\`\`json, or any other text outside of the JSON object itself.
 
 --- TEXT CONTENT ---
 ${textContent}
@@ -63,7 +63,9 @@ ${textContent}
     }
     
     try {
-        const parsedJson = JSON.parse(textResponse);
+        // Clean the response: remove markdown and any leading/trailing whitespace.
+        const cleanedText = textResponse.replace(/^```json\s*|```\s*$/g, '').trim();
+        const parsedJson = JSON.parse(cleanedText);
         const validated = JsonObjectUploadSchema.safeParse(parsedJson);
         if (!validated.success) {
             console.error("AI output failed validation:", validated.error);
@@ -71,7 +73,7 @@ ${textContent}
         }
         return validated.data.questions;
     } catch (e) {
-        console.error("Failed to parse AI response as JSON:", e);
+        console.error("Failed to parse AI response as JSON:", textResponse, e);
         throw new Error('AI returned an invalid JSON object. Please check the document content and try again.');
     }
 };
