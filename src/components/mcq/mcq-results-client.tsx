@@ -4,7 +4,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle, XCircle, Award, Repeat, Home, BrainCircuit, Trophy, Share2 } from "lucide-react";
+import { CheckCircle, XCircle, Award, Repeat, Home, Lightbulb, Trophy, Share2 } from "lucide-react";
 import type { MCQ, Topic, UserData } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -237,7 +237,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
                         <AccordionItem value="item-1">
                             <AccordionTrigger>
                                 <div className="flex items-center gap-2 text-primary">
-                                    <BrainCircuit className="w-5 h-5" />
+                                    <Lightbulb className="w-5 h-5" />
                                     <span className="font-semibold">{explanationLabel}</span>
                                 </div>
                             </AccordionTrigger>
