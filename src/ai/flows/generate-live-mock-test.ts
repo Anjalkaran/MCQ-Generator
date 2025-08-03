@@ -20,7 +20,6 @@ import { getLiveTestQuestionPaper, getReasoningQuestionsForLiveTest } from '@/li
 const GenerateLiveMockTestInputSchema = z.object({
   liveTestId: z.string().describe('The ID of the live test paper document in Firestore.'),
   examCategory: z.enum(["MTS", "POSTMAN", "PA"]).describe('The exam category for which the test is being generated.'),
-  language: z.string().optional().default('English').describe('The language for the generated quiz.'),
 });
 export type GenerateLiveMockTestInput = z.infer<typeof GenerateLiveMockTestInputSchema>;
 
@@ -67,31 +66,15 @@ const generateLiveMockTestFlow = ai.defineFlow(
         throw new Error(`The live test question paper '${questionPaper.fileName}' is empty or incorrectly formatted. It must be a JSON object with a "questions" array.`);
     }
 
-    const lang = input.language || 'English';
     const canonicalQuestions = parsedData.questions;
     
     let processedQuestions: MCQ[] = canonicalQuestions.map(q => {
-        // Use English if selected, or if the language is not found in translations
-        if (lang === 'English' || !q.translations || !q.translations[lang]) {
-            return {
-                question: q.question,
-                options: q.options,
-                correctAnswer: q.correctAnswer,
-                topic: q.topic,
-                solution: q.solution,
-            };
-        }
-        
-        // Use the translated version from the nested object
-        const translated = q.translations[lang];
-        
         return {
-            question: translated.question,
-            options: translated.options,
-            correctAnswer: translated.correctAnswer,
-            topic: q.topic, // Topic remains the same across translations
-            // Fallback to English solution if translated solution is not available
-            solution: translated.solution || q.solution, 
+            question: q.question,
+            options: q.options,
+            correctAnswer: q.correctAnswer,
+            topic: q.topic,
+            solution: q.solution,
         };
     });
 
