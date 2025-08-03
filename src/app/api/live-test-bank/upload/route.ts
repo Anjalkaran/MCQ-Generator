@@ -45,7 +45,7 @@ const extractMCQsFromText = async (textContent: string): Promise<MCQ[]> => {
 *   Do NOT verify, correct, or change any of the content. Extract it exactly as it appears.
 *   The 'correctAnswer' field MUST be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
 *   **TRIMMING RULE:** If an option in the text starts with a letter followed by a period or parenthesis (e.g., "a.", "B)", "c."), you MUST trim this prefix. For example, "a. The quick brown fox" should become "The quick brown fox".
-*   Your final output must be a single, valid JSON object that adheres to the schema: {"questions": [...]}.
+*   Your final output must be a single, valid JSON object that adheres to the schema: {"questions": [...]}. Do NOT wrap the JSON in markdown code blocks.
 
 --- TEXT CONTENT ---
 ${textContent}
@@ -55,9 +55,6 @@ ${textContent}
     const llmResponse = await ai.generate({
         model: 'googleai/gemini-1.5-pro',
         prompt: prompt,
-        config: {
-            responseMimeType: "application/json",
-        }
     });
     
     const textResponse = llmResponse.text;
