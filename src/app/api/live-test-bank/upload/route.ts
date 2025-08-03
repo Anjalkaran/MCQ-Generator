@@ -72,59 +72,70 @@ Your final output must be a single, valid JSON object containing a 'questions' a
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-    const file = formData.get('file') as File | null;
+    const files = formData.getAll('files') as File[] | null;
     const examCategory = formData.get('examCategory') as string | null;
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file uploaded.' }, { status: 400 });
+    if (!files || files.length === 0) {
+      return NextResponse.json({ error: 'No files uploaded.' }, { status: 400 });
     }
     if (!examCategory) {
       return NextResponse.json({ error: 'Exam Category is missing.' }, { status: 400 });
     }
 
-    let extractedQuestions: MCQ[];
+    let allExtractedQuestions: MCQ[] = [];
 
-    if (file.type === 'application/json') {
-        const textContent = await file.text();
-        const jsonData = JSON.parse(textContent);
-        const validationResult = JsonUploadSchema.safeParse(jsonData);
-        if (!validationResult.success) {
-            console.error("JSON validation error:", validationResult.error.errors);
-            return NextResponse.json({ error: 'Invalid JSON format. The file must be an object with a "questions" array.', details: validationResult.error.flatten() }, { status: 400 });
-        }
-        extractedQuestions = validationResult.data.questions;
+    for (const file of files) {
+        let extractedFromFile: MCQ[] = [];
 
-    } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.type === 'text/plain') {
-        let textContent: string;
-        if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-            const buffer = Buffer.from(await file.arrayBuffer());
-            const result = await mammoth.extractRawText({ buffer });
-            textContent = result.value;
+        if (file.type === 'application/json') {
+            const textContent = await file.text();
+            const jsonData = JSON.parse(textContent);
+            const validationResult = JsonUploadSchema.safeParse(jsonData);
+            if (!validationResult.success) {
+                console.error(`JSON validation error in ${file.name}:`, validationResult.error.errors);
+                return NextResponse.json({ error: `Invalid JSON format in file: ${file.name}. It must be an object with a "questions" array.`, details: validationResult.error.flatten() }, { status: 400 });
+            }
+            extractedFromFile = validationResult.data.questions;
+
+        } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.type === 'text/plain') {
+            let textContent: string;
+            if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                const buffer = Buffer.from(await file.arrayBuffer());
+                const result = await mammoth.extractRawText({ buffer });
+                textContent = result.value;
+            } else {
+                textContent = await file.text();
+            }
+
+            if (!textContent.trim()) {
+                continue; // Skip empty files
+            }
+            
+            extractedFromFile = await extractMCQsFromText(textContent);
         } else {
-            textContent = await file.text();
-        }
-
-        if (!textContent.trim()) {
-            return NextResponse.json({ error: 'The uploaded file is empty or contains no readable text.' }, { status: 400 });
+            return NextResponse.json({ error: `Unsupported file type: ${file.name}. Please upload JSON, DOCX, or TXT files.` }, { status: 415 });
         }
         
-        extractedQuestions = await extractMCQsFromText(textContent);
-        if (extractedQuestions.length === 0) {
-            return NextResponse.json({ error: 'No valid questions could be extracted from the document.' }, { status: 400 });
-        }
-    } else {
-        return NextResponse.json({ error: 'Unsupported file type. Please upload a JSON, DOCX, or TXT file.' }, { status: 415 });
+        allExtractedQuestions.push(...extractedFromFile);
     }
 
-    if (extractedQuestions.some(q => !q.options.includes(q.correctAnswer))) {
+
+    if (allExtractedQuestions.length === 0) {
+      return NextResponse.json({ error: 'No valid questions could be extracted from the uploaded files.' }, { status: 400 });
+    }
+
+    if (allExtractedQuestions.some(q => !q.options.includes(q.correctAnswer))) {
       return NextResponse.json({ error: "Data integrity issue: One or more questions have a `correctAnswer` that is not present in its `options` array." }, { status: 400 });
     }
     
-    const contentToStore = JSON.stringify({ questions: extractedQuestions }, null, 2);
+    const contentToStore = JSON.stringify({ questions: allExtractedQuestions }, null, 2);
+    
+    const firstFileName = files[0].name.replace(/\.[^/.]+$/, "");
+    const newFileName = files.length > 1 ? `${firstFileName}-combined.json` : `${firstFileName}.json`;
 
     const newDocData: Omit<BankedQuestion, 'id'> = {
         examCategory: examCategory as any,
-        fileName: file.name.replace(/\.(docx|txt)$/, '.json'), // Standardize to .json
+        fileName: newFileName,
         content: contentToStore,
         uploadedAt: new Date(),
     }
@@ -133,7 +144,7 @@ export async function POST(req: NextRequest) {
     const newDocument = { id: newDocRef.id, ...newDocData };
 
     return NextResponse.json({ 
-        message: 'Live test question paper processed and uploaded successfully.', 
+        message: 'Live test question paper(s) processed and uploaded successfully.', 
         newDocument
     });
 

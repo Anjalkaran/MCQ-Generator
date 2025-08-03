@@ -32,12 +32,12 @@ const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 
 const uploadSchema = z.object({
   examCategory: z.enum(examCategories),
-  file: z
-    .instanceof(File, { message: 'Please upload a file.' })
-    .refine(file => file.size > 0, 'Please upload a file.')
+  files: z
+    .array(z.instanceof(File))
+    .min(1, 'Please upload at least one file.')
     .refine(
-      (file) => ['application/json', 'text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.type),
-      'File must be a JSON, TXT, or DOCX document.'
+        (files) => files.every(file => ['application/json', 'text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.type)),
+        'All files must be JSON, TXT, or DOCX documents.'
     ),
 });
 
@@ -135,7 +135,9 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
   const onUploadSubmit = async (values: z.infer<typeof uploadSchema>) => {
     setIsUploading(true);
     const formData = new FormData();
-    formData.append('file', values.file);
+    values.files.forEach(file => {
+        formData.append('files', file);
+    });
     formData.append('examCategory', values.examCategory);
 
     try {
@@ -149,7 +151,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
         }
         const { newDocument } = await response.json();
         setLiveTestBank(prev => [newDocument, ...prev]);
-        toast({ title: 'Success', description: 'File processed and uploaded successfully.' });
+        toast({ title: 'Success', description: 'File(s) processed and uploaded successfully.' });
         uploadForm.reset();
         const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
@@ -257,7 +259,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                 <CardHeader>
                     <CardTitle>Upload Live Test Papers</CardTitle>
                     <CardDescription>
-                        Upload question papers in JSON, DOCX, or TXT format. Text files will be converted to JSON automatically by AI.
+                        Upload multiple question papers in JSON, DOCX, or TXT format. They will be combined into a single test paper.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -283,15 +285,16 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                 />
                             <FormField
                                 control={uploadForm.control}
-                                name="file"
+                                name="files"
                                 render={({ field: { onChange, value, ...rest } }) => (
                                     <FormItem>
-                                    <FormLabel>Question Paper File (.json, .docx, .txt)</FormLabel>
+                                    <FormLabel>Question Paper Files (.json, .docx, .txt)</FormLabel>
                                     <FormControl>
                                         <Input 
                                         type="file" 
                                         accept=".json,.docx,.txt"
-                                        onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
+                                        multiple
+                                        onChange={(e) => onChange(e.target.files ? Array.from(e.target.files) : [])}
                                         {...rest}
                                         />
                                     </FormControl>
@@ -301,7 +304,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                 />
                             <Button type="submit" disabled={isUploading}>
                                 {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                                Upload Paper
+                                Upload Paper(s)
                             </Button>
                         </form>
                     </Form>
