@@ -36,8 +36,8 @@ const uploadSchema = z.object({
     .array(z.instanceof(File))
     .min(1, 'Please upload at least one file.')
     .refine(
-        (files) => files.every(file => ['application/json', 'text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.type)),
-        'All files must be JSON, TXT, or DOCX documents.'
+        (files) => files.every(file => file.type === 'application/json'),
+        'All files must be JSON documents.'
     ),
 });
 
@@ -259,7 +259,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                 <CardHeader>
                     <CardTitle>Upload Live Test Papers</CardTitle>
                     <CardDescription>
-                        Upload multiple question papers in JSON, DOCX, or TXT format. They will be combined into a single test paper.
+                        Upload one or more question papers in JSON format. They will be combined into a single test paper.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -288,11 +288,11 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                 name="files"
                                 render={({ field: { onChange, value, ...rest } }) => (
                                     <FormItem>
-                                    <FormLabel>Question Paper Files (.json, .docx, .txt)</FormLabel>
+                                    <FormLabel>Question Paper Files (.json)</FormLabel>
                                     <FormControl>
                                         <Input 
                                         type="file" 
-                                        accept=".json,.docx,.txt"
+                                        accept=".json"
                                         multiple
                                         onChange={(e) => onChange(e.target.files ? Array.from(e.target.files) : [])}
                                         {...rest}
