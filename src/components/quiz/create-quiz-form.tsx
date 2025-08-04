@@ -21,12 +21,15 @@ import { FREE_EXAM_LIMIT, ADMIN_EMAILS } from '@/lib/constants';
 import Link from 'next/link';
 import { useDashboard } from '@/app/dashboard/layout';
 
+const languages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
+
 const formSchema = z.object({
   examType: z.string().min(1, 'Please select an exam type.'),
   part: z.string().min(1, 'Please select a part.'),
   categoryId: z.string().min(1, 'Please select a category.'),
   topicId: z.string().min(1, 'Please select a topic.'),
   numberOfQuestions: z.coerce.number().min(3).max(25),
+  language: z.enum(languages).optional().default('English'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -47,6 +50,7 @@ export function CreateQuizForm() {
       categoryId: '',
       topicId: '',
       numberOfQuestions: 5,
+      language: 'English',
     },
   });
   
@@ -126,7 +130,7 @@ export function CreateQuizForm() {
           material: selectedTopic.material,
           userId: user.uid,
           topicId: selectedTopic.id,
-          language: 'English',
+          language: values.language,
       };
 
 
@@ -347,6 +351,30 @@ export function CreateQuizForm() {
                         </FormItem>
                     )}
                     />
+                    {isAdmin && (
+                        <FormField
+                            control={form.control}
+                            name="language"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Language</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a language" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {languages.map((lang) => (
+                                                <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    )}
                 </fieldset>
                 )}
              </CardContent>
