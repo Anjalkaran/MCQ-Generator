@@ -130,6 +130,13 @@ export async function generateMCQs(input: GenerateMCQsInput): Promise<GenerateMC
   return generateMCQsFlow(input);
 }
 
+const languageMap: Record<string, string> = {
+    'tamil': 'ta',
+    'hindi': 'hi',
+    'telugu': 'te',
+    'kannada': 'kn'
+};
+
 const generateMCQsFlow = ai.defineFlow(
   {
     name: 'generateMCQsFlow',
@@ -165,23 +172,24 @@ const generateMCQsFlow = ai.defineFlow(
         }
         
         const processedQuestions = canonicalQuestions.map(mcq => {
-            if (input.language && input.language !== 'English' && mcq.translations?.[input.language.toLowerCase()]) {
-                const langKey = input.language.toLowerCase();
-                const translated = mcq.translations[langKey];
-                
-                // Find the original index of the correct answer in the English options
-                const correctEnglishAnswer = mcq.correctAnswer;
-                const correctIndex = mcq.options.findIndex(opt => opt === correctEnglishAnswer);
-
-                if (correctIndex !== -1 && translated.options[correctIndex]) {
-                     return {
-                        ...translated,
-                        correctAnswer: translated.options[correctIndex], // Ensure correct answer points to the translated option
-                        topic: mcq.topic, // Preserve original topic
-                     };
+            if (input.language && input.language !== 'English') {
+                const langKey = languageMap[input.language.toLowerCase()];
+                if (langKey && mcq.translations?.[langKey]) {
+                    const translated = mcq.translations[langKey];
+                    
+                    // The translated correctAnswer is the text, but we need to ensure it's one of the translated options.
+                    // This assumes the translated correctAnswer text from JSON is reliable.
+                    return {
+                        ...mcq, // Keep original fields like topic
+                        ...translated, // Overwrite with translated fields
+                        question: translated.question,
+                        options: translated.options,
+                        correctAnswer: translated.correctAnswer,
+                        solution: translated.solution,
+                    };
                 }
             }
-            return mcq;
+            return mcq; // Return the original English MCQ
         });
 
         const finalMCQs = shuffleArray(processedQuestions).slice(0, input.numberOfQuestions);
