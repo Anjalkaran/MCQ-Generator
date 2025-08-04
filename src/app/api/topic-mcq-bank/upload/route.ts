@@ -133,48 +133,56 @@ export async function POST(req: NextRequest) {
     const existingDocs = await getTopicMCQs(topicId);
     let combinedMCQs: MCQ[] = [...allExtractedMCQs];
     let targetDocId: string | undefined = undefined;
+    let finalFileName: string;
 
     if (existingDocs.length > 0) {
-        targetDocId = existingDocs[0].id; // We'll update the first existing document
+        // If documents exist for this topic, append to the first one found.
+        const existingDoc = existingDocs[0];
+        targetDocId = existingDoc.id;
+        finalFileName = existingDoc.fileName; // Keep the original filename
+
         try {
-            const existingContent = JSON.parse(existingDocs[0].content);
+            const existingContent = JSON.parse(existingDoc.content);
             if (existingContent.mcqs && Array.isArray(existingContent.mcqs)) {
-                // Prepend existing questions to the new ones
+                // Combine existing questions with the new ones.
                 combinedMCQs = [...existingContent.mcqs, ...allExtractedMCQs];
             }
         } catch (e) {
             console.warn(`Could not parse existing MCQ content for topic ${topicId}. It will be overwritten.`);
         }
+    } else {
+        // No existing document, create a new one.
+        const firstFile = files[0];
+        finalFileName = firstFile.name.replace(/\.[^/.]+$/, "") + (firstFile.type === 'application/json' ? '.json' : '.txt');
     }
     
-    // Simple deduplication based on the question text
-    const uniqueMCQs = Array.from(new Map(combinedMCQs.map(mcq => [mcq.question, mcq])).values());
+    // De-duplicate the combined list based on the question text to prevent duplicates.
+    const uniqueMCQs = Array.from(new Map(combinedMCQs.map(mcq => [mcq.question.trim(), mcq])).values());
     
     const contentToStore = JSON.stringify({ mcqs: uniqueMCQs }, null, 2);
     
-    const firstFileName = files[0].name.replace(/\.[^/.]+$/, "");
-    const newFileName = files.length > 1 ? `${firstFileName}-and-more.json` : `${firstFileName}.json`;
-    
     const docData: Omit<TopicMCQ, 'id'> = {
         topicId: topicId,
-        fileName: newFileName,
+        fileName: finalFileName,
         content: contentToStore,
         uploadedAt: new Date(),
     }
     
     if (targetDocId) {
-        await updateTopicMCQDocument(targetDocId, contentToStore, newFileName);
+        // Update the existing document with the combined content
+        await updateTopicMCQDocument(targetDocId, contentToStore, finalFileName);
         const updatedDocument = { id: targetDocId, ...docData };
          return NextResponse.json({ 
-            message: `Topic MCQ document updated successfully with ${allExtractedMCQs.length} new question(s).`, 
+            message: `Topic MCQ document updated successfully with ${allExtractedMCQs.length} new question(s). Total unique questions: ${uniqueMCQs.length}.`, 
             newDocument: updatedDocument
         });
 
     } else {
+        // Create a new document
         const newDocRef = await addTopicMCQDocument(docData);
         const newDocument = { id: newDocRef.id, ...docData };
          return NextResponse.json({ 
-            message: `Topic MCQ document created successfully with ${allExtractedMCQs.length} question(s).`,
+            message: `Topic MCQ document created successfully with ${uniqueMCQs.length} question(s).`,
             newDocument
         });
     }
