@@ -164,10 +164,27 @@ const generateMCQsFlow = ai.defineFlow(
             throw new Error(`Failed to find any valid questions for "${input.topic}" in the uploaded MCQ Bank documents. Please upload a valid JSON file for this topic.`);
         }
         
-        const finalMCQs = shuffleArray(canonicalQuestions).slice(0, input.numberOfQuestions);
-        
-        // TODO: Handle language translation if needed in a later step.
-        // For now, it assumes the source JSON is in the desired language or English.
+        const processedQuestions = canonicalQuestions.map(mcq => {
+            if (input.language && input.language !== 'English' && mcq.translations?.[input.language.toLowerCase()]) {
+                const langKey = input.language.toLowerCase();
+                const translated = mcq.translations[langKey];
+                
+                // Find the original index of the correct answer in the English options
+                const correctEnglishAnswer = mcq.correctAnswer;
+                const correctIndex = mcq.options.findIndex(opt => opt === correctEnglishAnswer);
+
+                if (correctIndex !== -1 && translated.options[correctIndex]) {
+                     return {
+                        ...translated,
+                        correctAnswer: translated.options[correctIndex], // Ensure correct answer points to the translated option
+                        topic: mcq.topic, // Preserve original topic
+                     };
+                }
+            }
+            return mcq;
+        });
+
+        const finalMCQs = shuffleArray(processedQuestions).slice(0, input.numberOfQuestions);
 
         return { mcqs: finalMCQs };
 
