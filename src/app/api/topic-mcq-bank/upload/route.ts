@@ -11,13 +11,21 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
 export const runtime = 'nodejs';
 export const maxDuration = 300; 
 
-const MCQSchema = z.object({
-  question: z.string().min(1, "Question text cannot be empty.").describe('The multiple-choice question text only. It must NOT contain the answer options.'),
-  options: z.array(z.string().min(1, "Option text cannot be empty.")).length(4).describe('An array of four possible answers, with the full text for each option.'),
-  correctAnswer: z.string().min(1, "Correct answer cannot be empty.").describe('The full text of the correct answer, which MUST be an exact match to one of the four strings in the `options` array.'),
-  solution: z.string().optional().describe('A step-by-step solution for arithmetic problems, or a detailed explanation for other topics.'),
-  topic: z.string().optional().describe("The specific topic of the question."),
+// Base MCQ Schema without translations for recursive use
+const BaseMCQSchema = z.object({
+  question: z.string().min(1, "Question text cannot be empty."),
+  options: z.array(z.string().min(1, "Option text cannot be empty.")).length(4),
+  correctAnswer: z.string().min(1, "Correct answer cannot be empty."),
+  solution: z.string().optional(),
+  topic: z.string().optional(),
 });
+
+// Main MCQ Schema that includes translations, which can be recursive
+const MCQSchema: z.ZodType<MCQ> = BaseMCQSchema.extend({
+  sourceLanguage: z.string().optional().default('English'),
+  translations: z.lazy(() => z.record(MCQSchema)).optional(),
+});
+
 
 const MCQOutputSchema = z.object({
   mcqs: z.array(MCQSchema).describe('The extracted multiple-choice questions.'),
@@ -121,44 +129,52 @@ export async function POST(req: NextRequest) {
     if (allExtractedMCQs.length === 0) {
         return NextResponse.json({ error: 'No valid MCQs could be extracted from the uploaded documents.' }, { status: 400 });
     }
-
-    // Add sourceLanguage and an empty translations map to each MCQ if they don't exist
-    const canonicalMCQs = allExtractedMCQs.map(mcq => ({
-        ...mcq,
-        sourceLanguage: mcq.sourceLanguage || 'English',
-        translations: mcq.translations || {}
-    }));
     
-    const contentToStore = JSON.stringify({ mcqs: canonicalMCQs }, null, 2);
+    const existingDocs = await getTopicMCQs(topicId);
+    let combinedMCQs: MCQ[] = [...allExtractedMCQs];
+    let targetDocId: string | undefined = undefined;
+
+    if (existingDocs.length > 0) {
+        targetDocId = existingDocs[0].id; // We'll update the first existing document
+        try {
+            const existingContent = JSON.parse(existingDocs[0].content);
+            if (existingContent.mcqs && Array.isArray(existingContent.mcqs)) {
+                // Prepend existing questions to the new ones
+                combinedMCQs = [...existingContent.mcqs, ...allExtractedMCQs];
+            }
+        } catch (e) {
+            console.warn(`Could not parse existing MCQ content for topic ${topicId}. It will be overwritten.`);
+        }
+    }
+    
+    // Simple deduplication based on the question text
+    const uniqueMCQs = Array.from(new Map(combinedMCQs.map(mcq => [mcq.question, mcq])).values());
+    
+    const contentToStore = JSON.stringify({ mcqs: uniqueMCQs }, null, 2);
     
     const firstFileName = files[0].name.replace(/\.[^/.]+$/, "");
     const newFileName = files.length > 1 ? `${firstFileName}-and-more.json` : `${firstFileName}.json`;
     
-    const newDocData: Omit<TopicMCQ, 'id'> = {
+    const docData: Omit<TopicMCQ, 'id'> = {
         topicId: topicId,
         fileName: newFileName,
         content: contentToStore,
         uploadedAt: new Date(),
     }
     
-    // Check if a document for this topic already exists
-    const existingDoc = (await getTopicMCQs(topicId))[0];
-    
-    if (existingDoc) {
-        // Update the existing document
-        await updateTopicMCQDocument(existingDoc.id, contentToStore, newFileName);
-        const updatedDocument = { id: existingDoc.id, ...newDocData };
+    if (targetDocId) {
+        await updateTopicMCQDocument(targetDocId, contentToStore, newFileName);
+        const updatedDocument = { id: targetDocId, ...docData };
          return NextResponse.json({ 
-            message: 'Topic MCQ document updated successfully.', 
+            message: `Topic MCQ document updated successfully with ${allExtractedMCQs.length} new question(s).`, 
             newDocument: updatedDocument
         });
 
     } else {
-        // Create a new document
-        const newDocRef = await addTopicMCQDocument(newDocData);
-        const newDocument = { id: newDocRef.id, ...newDocData };
+        const newDocRef = await addTopicMCQDocument(docData);
+        const newDocument = { id: newDocRef.id, ...docData };
          return NextResponse.json({ 
-            message: 'Topic MCQ document created successfully.', 
+            message: `Topic MCQ document created successfully with ${allExtractedMCQs.length} question(s).`,
             newDocument
         });
     }
