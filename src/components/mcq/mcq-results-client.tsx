@@ -35,8 +35,11 @@ interface StoredQuizData {
 // Helper function to normalize answer strings for comparison
 const normalizeAnswer = (answer: string | undefined): string => {
     if (!answer) return "";
-    // Trim whitespace and remove leading/trailing quotes (single or double) and periods.
-    return answer.trim().replace(/^["']|["'.]$/g, '').toLowerCase();
+    // Trim whitespace, convert to lower case, and remove any leading list markers (e.g., "a)", "b.", "1. ").
+    return answer
+        .trim()
+        .toLowerCase()
+        .replace(/^[a-d][\)\.]\s*|^[1-4][\)\.]\s*/, '');
 };
 
 
