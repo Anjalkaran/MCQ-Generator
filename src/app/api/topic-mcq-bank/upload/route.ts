@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import mammoth from 'mammoth';
-import { addTopicMCQDocument } from '@/lib/firestore';
+import { addTopicMCQDocument, updateTopicMCQDocument } from '@/lib/firestore';
 import type { TopicMCQ, MCQ } from '@/lib/types';
 import { generate } from '@genkit-ai/ai';
 import { gemini15Pro } from '@genkit-ai/googleai';
@@ -39,7 +39,7 @@ Your task is to extract as many high-quality, unique questions as you can find f
 4.  If a solution is not found for a question, the 'solution' field MUST be an empty string ("").
 **CRITICAL INSTRUCTIONS:**
 *   Do NOT verify, correct, or change any of the content. Extract it exactly as it appears in the text.
-*   The 'correctAnswer' field in your output MUST be an EXACT, case-sensitive match to one of the four strings in the `options` array.
+*   The 'correctAnswer' field in your output MUST be an EXACT, case-sensitive match to one of the four strings in the \`options\` array.
 *   **TRIMMING RULE:** If an option in the text starts with a letter followed by a period or parenthesis (e.g., "a.", "B)", "c."), you MUST trim this prefix from the option text before including it in the output. For example, "a. The quick brown fox" should become "The quick brown fox".
 *   You MUST extract the actual text content for all fields. NEVER output the literal word "string" as a value for any field.
 --- TEXT CONTENT ---
@@ -141,13 +141,27 @@ export async function POST(req: NextRequest) {
         uploadedAt: new Date(),
     }
     
-    const newDocRef = await addTopicMCQDocument(newDocData);
-    const newDocument = { id: newDocRef.id, ...newDocData };
+    // Check if a document for this topic already exists
+    const existingDoc = (await getTopicMCQs(topicId))[0];
+    
+    if (existingDoc) {
+        // Update the existing document
+        await updateTopicMCQDocument(existingDoc.id, contentToStore, newFileName);
+        const updatedDocument = { id: existingDoc.id, ...newDocData };
+         return NextResponse.json({ 
+            message: 'Topic MCQ document updated successfully.', 
+            newDocument: updatedDocument
+        });
 
-    return NextResponse.json({ 
-        message: 'Topic MCQ document(s) uploaded and processed successfully.', 
-        newDocument
-    });
+    } else {
+        // Create a new document
+        const newDocRef = await addTopicMCQDocument(newDocData);
+        const newDocument = { id: newDocRef.id, ...newDocData };
+         return NextResponse.json({ 
+            message: 'Topic MCQ document created successfully.', 
+            newDocument
+        });
+    }
 
   } catch (error: any) {
     console.error('Error processing topic MCQ file:', error);

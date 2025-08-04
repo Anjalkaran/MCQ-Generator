@@ -364,6 +364,14 @@ export const addLiveTestBankDocument = async (data: Omit<BankedQuestion, 'id'>):
     return await addDoc(collection(db, 'liveTestBank'), data);
 };
 
+export const updateLiveTestBankDocument = async (docId: string, content: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const docRef = doc(db, 'liveTestBank', docId);
+    await updateDoc(docRef, { content });
+};
+
+
 export const deleteLiveTestBankDocument = async (docId: string): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
@@ -557,24 +565,16 @@ export const getTopicMCQs = async (topicId?: string): Promise<TopicMCQ[]> => {
 export const addTopicMCQDocument = async (data: Omit<TopicMCQ, 'id'>): Promise<DocumentReference> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
-    const existingDocs = await getTopicMCQs(data.topicId);
-    if (existingDocs.length > 0) {
-        const existingDoc = existingDocs[0];
-        const newContent = existingDoc.content + '\n\n---\n\n' + data.content;
-        const docRef = doc(db, 'topicMCQs', existingDoc.id);
-        await updateDoc(docRef, { content: newContent, fileName: data.fileName, uploadedAt: data.uploadedAt });
-        return docRef;
-    } else {
-        return await addDoc(collection(db, 'topicMCQs'), data);
-    }
+    return await addDoc(collection(db, 'topicMCQs'), data);
 };
 
-export const updateTopicMCQDocument = async (docId: string, content: string): Promise<void> => {
+export const updateTopicMCQDocument = async (docId: string, content: string, fileName: string): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     const docRef = doc(db, 'topicMCQs', docId);
-    await updateDoc(docRef, { content });
+    await updateDoc(docRef, { content, fileName, uploadedAt: new Date() });
 };
+
 
 export const updateTopicMCQWithTranslation = async (docId: string, originalQuestion: string, lang: string, translatedMcq: MCQ): Promise<void> => {
     const db = getFirebaseDb();
