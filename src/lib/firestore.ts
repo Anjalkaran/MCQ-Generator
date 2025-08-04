@@ -364,13 +364,6 @@ export const addLiveTestBankDocument = async (data: Omit<BankedQuestion, 'id'>):
     return await addDoc(collection(db, 'liveTestBank'), data);
 };
 
-export const updateLiveTestBankDocument = async (docId: string, content: string): Promise<void> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    const docRef = doc(db, 'liveTestBank', docId);
-    await updateDoc(docRef, { content });
-};
-
 export const deleteLiveTestBankDocument = async (docId: string): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
