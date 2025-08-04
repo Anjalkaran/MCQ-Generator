@@ -210,7 +210,7 @@ const generateMockTestFlow = ai.defineFlow(
             for (const cq of shuffleArray(canonicalQuestions)) {
                 if (processedQuestions.length >= sectionQuestionsNeeded) break;
 
-                if (targetLang === 'English') {
+                if (targetLang === 'English' || !targetLang) {
                     processedQuestions.push(cq);
                 } else if (cq.translations && cq.translations[targetLang]) {
                     processedQuestions.push(cq.translations[targetLang]);

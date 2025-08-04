@@ -66,7 +66,15 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
   const onSubmit = async (values: z.infer<typeof uploadSchema>) => {
     setIsUploading(true);
     const formData = new FormData();
+    const selectedTopic = topics.find(t => t.id === values.topicId);
+    if (!selectedTopic) {
+        toast({ title: 'Error', description: 'Selected topic not found.', variant: 'destructive'});
+        setIsUploading(false);
+        return;
+    }
+
     formData.append('topicId', values.topicId);
+    formData.append('topicTitle', selectedTopic.title);
     formData.append('file', values.file);
 
     try {
@@ -83,7 +91,7 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
       const { newDocument } = await response.json();
       setTopicMCQs(prev => [newDocument, ...prev]);
 
-      toast({ title: 'Success', description: 'Topic MCQ file uploaded successfully.' });
+      toast({ title: 'Success', description: 'Topic MCQ file uploaded and processed successfully.' });
       form.reset();
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
@@ -173,7 +181,7 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
         <Card>
         <CardHeader>
             <CardTitle>Upload Topic-Specific MCQs</CardTitle>
-            <CardDescription>Upload a DOCX file containing questions for a specific topic. These questions will be used for quizzes on that topic after being verified by AI.</CardDescription>
+            <CardDescription>Upload a DOCX file containing questions for a specific topic. The AI will extract and convert them to a structured JSON format.</CardDescription>
         </CardHeader>
         <CardContent>
             <Form {...form}>
@@ -259,7 +267,7 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
                 />
                 <Button type="submit" disabled={isUploading}>
                 {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                Upload MCQs for Topic
+                Upload & Process MCQs
                 </Button>
             </form>
             </Form>

@@ -144,9 +144,36 @@ const generateMCQsFlow = ai.defineFlow(
 
     // If a document is uploaded, always use it.
     if (uploadedMCQs && uploadedMCQs.length > 0) {
-        // If we are here, it means a document was found, so we extract from it.
-        const combinedContent = uploadedMCQs.map(doc => doc.content).join('\n\n---\n\n');
-        const totalLength = combinedContent.length;
+        let canonicalQuestions: z.infer<typeof MCQSchema>[] = [];
+        uploadedMCQs.forEach(doc => {
+            try {
+                const parsedContent = JSON.parse(doc.content);
+                if (parsedContent.mcqs && Array.isArray(parsedContent.mcqs)) {
+                    canonicalQuestions.push(...parsedContent.mcqs);
+                }
+            } catch (error) {
+                console.warn(`Could not parse JSON from document ${doc.fileName} for topic ${input.topic}`);
+            }
+        });
+        
+        if (canonicalQuestions.length < input.numberOfQuestions) {
+            console.warn(`Could only find ${canonicalQuestions.length} questions in the uploaded files for topic "${input.topic}", though ${input.numberOfQuestions} were requested.`);
+        }
+        
+        if (canonicalQuestions.length === 0) {
+            throw new Error(`Failed to find any valid questions for "${input.topic}" in the uploaded MCQ Bank documents. Please upload a valid JSON file for this topic.`);
+        }
+        
+        const finalMCQs = shuffleArray(canonicalQuestions).slice(0, input.numberOfQuestions);
+        
+        // TODO: Handle language translation if needed in a later step.
+        // For now, it assumes the source JSON is in the desired language or English.
+
+        return { mcqs: finalMCQs };
+
+    } else if (input.material) {
+        // If no document is uploaded, but there is raw material, use AI to extract from it.
+        const totalLength = input.material.length;
 
         let collectedMCQs: z.infer<typeof MCQSchema>[] = [];
         const collectedQuestionTexts = new Set<string>();
@@ -161,7 +188,7 @@ const generateMCQsFlow = ai.defineFlow(
             }
 
             const endIndex = Math.min(currentIndex + MATERIAL_CHUNK_SIZE, totalLength);
-            const contentChunk = combinedContent.substring(currentIndex, endIndex);
+            const contentChunk = input.material.substring(currentIndex, endIndex);
             
             if (contentChunk.trim().length < 50) {
                 if (currentIndex === 0 && i > 0) break; 
@@ -213,7 +240,7 @@ const generateMCQsFlow = ai.defineFlow(
 
         return { mcqs: finalMCQs };
     } else {
-        // If no document is uploaded, assume it's a knowledge-based topic and generate from scratch.
+        // If no document and no material, generate from scratch.
         const { output } = await generateMCQsFromScratchPrompt({
             topic: input.topic,
             examCategory: input.examCategory,
