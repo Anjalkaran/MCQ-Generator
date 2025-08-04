@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import mammoth from 'mammoth';
-import { addTopicMCQDocument, updateTopicMCQDocument } from '@/lib/firestore';
+import { addTopicMCQDocument, updateTopicMCQDocument, getTopicMCQs } from '@/lib/firestore';
 import type { TopicMCQ, MCQ } from '@/lib/types';
 import { generate } from '@genkit-ai/ai';
 import { gemini15Pro } from '@genkit-ai/googleai';
