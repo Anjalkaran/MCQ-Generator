@@ -13,6 +13,7 @@ config();
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { getUserTopicProgress, updateUserTopicProgress, getTopicMCQs } from '@/lib/firestore';
+import type { MCQ } from '@/lib/types';
 
 const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
@@ -140,11 +141,10 @@ const generateMCQsFlow = ai.defineFlow(
       throw new Error("A user ID must be provided to generate a quiz.");
     }
     
+    // **PRIORITY 1: Check for uploaded JSON files in the MCQ Bank**
     const uploadedMCQs = await getTopicMCQs(input.topicId);
-
-    // If a document is uploaded, always use it.
     if (uploadedMCQs && uploadedMCQs.length > 0) {
-        let canonicalQuestions: z.infer<typeof MCQSchema>[] = [];
+        let canonicalQuestions: MCQ[] = [];
         uploadedMCQs.forEach(doc => {
             try {
                 const parsedContent = JSON.parse(doc.content);
@@ -171,8 +171,8 @@ const generateMCQsFlow = ai.defineFlow(
 
         return { mcqs: finalMCQs };
 
+    // **PRIORITY 2: Fallback to generating from raw text material**
     } else if (input.material) {
-        // If no document is uploaded, but there is raw material, use AI to extract from it.
         const totalLength = input.material.length;
 
         let collectedMCQs: z.infer<typeof MCQSchema>[] = [];
@@ -239,8 +239,9 @@ const generateMCQsFlow = ai.defineFlow(
         const finalMCQs = shuffleArray(collectedMCQs).slice(0, input.numberOfQuestions);
 
         return { mcqs: finalMCQs };
+
+    // **PRIORITY 3: Fallback to generating from scratch**
     } else {
-        // If no document and no material, generate from scratch.
         const { output } = await generateMCQsFromScratchPrompt({
             topic: input.topic,
             examCategory: input.examCategory,

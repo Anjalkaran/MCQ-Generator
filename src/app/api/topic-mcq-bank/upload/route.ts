@@ -23,6 +23,12 @@ const MCQOutputSchema = z.object({
   mcqs: z.array(MCQSchema).describe('The extracted multiple-choice questions.'),
 });
 
+// Zod schema for validating uploaded JSON content
+const JsonUploadSchema = z.object({
+  mcqs: z.array(MCQSchema),
+});
+
+
 const extractMCQsFromText = async (textContent: string, topicName: string): Promise<MCQ[]> => {
     const prompt = `You are an expert at parsing and formatting multiple-choice questions (MCQs).
 Your task is to extract as many high-quality, unique questions as you can find from the 'TEXT CONTENT' provided below and format them.
@@ -33,7 +39,7 @@ Your task is to extract as many high-quality, unique questions as you can find f
 4.  If a solution is not found for a question, the 'solution' field MUST be an empty string ("").
 **CRITICAL INSTRUCTIONS:**
 *   Do NOT verify, correct, or change any of the content. Extract it exactly as it appears in the text.
-*   The 'correctAnswer' field in your output MUST be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
+*   The 'correctAnswer' field in your output MUST be an EXACT, case-sensitive match to one of the four strings in the `options` array.
 *   **TRIMMING RULE:** If an option in the text starts with a letter followed by a period or parenthesis (e.g., "a.", "B)", "c."), you MUST trim this prefix from the option text before including it in the output. For example, "a. The quick brown fox" should become "The quick brown fox".
 *   You MUST extract the actual text content for all fields. NEVER output the literal word "string" as a value for any field.
 --- TEXT CONTENT ---
@@ -60,7 +66,7 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
     const topicId = formData.get('topicId') as string | null;
-    const topicTitle = formData.get('topicTitle') as string | null; // Get topic title for the prompt
+    const topicTitle = formData.get('topicTitle') as string | null;
 
     if (!file) {
       return NextResponse.json({ error: 'No file uploaded.' }, { status: 400 });
@@ -69,37 +75,60 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Topic ID and Title are missing.' }, { status: 400 });
     }
 
-    if (file.type !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-        return NextResponse.json({ error: 'Unsupported file type. Please upload a DOCX file.' }, { status: 415 });
-    }
+    let extractedMCQs: MCQ[] = [];
+    let contentToStore: string;
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const result = await mammoth.extractRawText({ buffer });
-    const textContent = result.value;
-    
-    if (!textContent.trim()) {
-        return NextResponse.json({ error: 'Could not extract any text from the file.' }, { status: 400 });
+    if (file.type === 'application/json') {
+        const textContent = await file.text();
+        try {
+            const jsonData = JSON.parse(textContent);
+            const validation = JsonUploadSchema.safeParse(jsonData);
+            if (!validation.success) {
+                console.error("JSON validation error:", validation.error.flatten());
+                return NextResponse.json({ 
+                    error: `Invalid JSON format in file: ${file.name}. It must be an object with an "mcqs" array matching the required structure.`, 
+                    details: validation.error.flatten() 
+                }, { status: 400 });
+            }
+            extractedMCQs = validation.data.mcqs;
+            contentToStore = textContent; // Store the original, valid JSON
+        } catch (e) {
+            return NextResponse.json({ error: `Syntax error in JSON file: ${file.name}. Please check the file for errors like trailing commas.` }, { status: 400 });
+        }
+
+    } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const result = await mammoth.extractRawText({ buffer });
+        const textContent = result.value;
+        
+        if (!textContent.trim()) {
+            return NextResponse.json({ error: 'Could not extract any text from the DOCX file.' }, { status: 400 });
+        }
+        
+        extractedMCQs = await extractMCQsFromText(textContent, topicTitle);
+        contentToStore = JSON.stringify({ mcqs: extractedMCQs }, null, 2);
+
+    } else {
+        return NextResponse.json({ error: 'Unsupported file type. Please upload a JSON or DOCX file.' }, { status: 415 });
     }
-    
-    // Extract MCQs from text content
-    const extractedMCQs = await extractMCQsFromText(textContent, topicTitle);
 
     if (extractedMCQs.length === 0) {
         return NextResponse.json({ error: 'No valid MCQs could be extracted from the document.' }, { status: 400 });
     }
 
-    // Add sourceLanguage and an empty translations map to each MCQ
+    // Add sourceLanguage and an empty translations map to each MCQ if they don't exist
     const canonicalMCQs = extractedMCQs.map(mcq => ({
         ...mcq,
-        sourceLanguage: 'English',
-        translations: {}
+        sourceLanguage: mcq.sourceLanguage || 'English',
+        translations: mcq.translations || {}
     }));
     
-    const contentToStore = JSON.stringify({ mcqs: canonicalMCQs }, null, 2);
+    // Use the processed content for storing
+    contentToStore = JSON.stringify({ mcqs: canonicalMCQs }, null, 2);
     
     const newDocData: Omit<TopicMCQ, 'id'> = {
         topicId: topicId,
-        fileName: file.name.replace('.docx', '.json'),
+        fileName: file.name.replace(/\.[^/.]+$/, '.json'),
         content: contentToStore,
         uploadedAt: new Date(),
     }

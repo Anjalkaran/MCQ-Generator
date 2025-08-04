@@ -125,14 +125,17 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
     if (!editingMCQ) return;
     setIsSaving(true);
     try {
+        // Validate JSON content before saving
+        JSON.parse(editedContent);
         await updateTopicMCQDocument(editingMCQ.id, editedContent);
         setTopicMCQs(prev => prev.map(q => q.id === editingMCQ.id ? { ...q, content: editedContent } : q));
         toast({ title: "Success", description: "Document updated successfully." });
         setIsEditDialogOpen(false);
         setEditingMCQ(null);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to update document", error);
-        toast({ title: "Error", description: "Could not update the document.", variant: "destructive" });
+        const errorMessage = error instanceof SyntaxError ? "Invalid JSON format. Please check your syntax." : "Could not update the document.";
+        toast({ title: "Error", description: errorMessage, variant: "destructive" });
     } finally {
         setIsSaving(false);
     }
@@ -143,7 +146,7 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    const safeFileName = mcqDoc.fileName.replace('.docx', '.json');
+    const safeFileName = mcqDoc.fileName.replace(/\.[^/.]+$/, '.json');
     link.setAttribute("download", safeFileName);
     document.body.appendChild(link);
     link.click();
@@ -181,7 +184,7 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
         <Card>
         <CardHeader>
             <CardTitle>Upload Topic-Specific MCQs</CardTitle>
-            <CardDescription>Upload a DOCX file containing questions for a specific topic. The AI will extract and convert them to a structured JSON format.</CardDescription>
+            <CardDescription>Upload a JSON or DOCX file with questions for a specific topic. DOCX files will be converted to JSON by an AI.</CardDescription>
         </CardHeader>
         <CardContent>
             <Form {...form}>
@@ -252,11 +255,11 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
                 name="file"
                 render={({ field: { value, onChange, ...rest } }) => (
                     <FormItem>
-                    <FormLabel>MCQ Document (.docx)</FormLabel>
+                    <FormLabel>MCQ Document (.json, .docx)</FormLabel>
                     <FormControl>
                         <Input 
                         type="file" 
-                        accept=".docx"
+                        accept=".json,.docx"
                         onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
                         {...rest}
                         />
@@ -363,13 +366,14 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
                 <DialogHeader>
                     <DialogTitle>Edit: {editingMCQ?.fileName}</DialogTitle>
                     <DialogDescription>
-                        Make changes to the text content below. This will directly update the document in the database.
+                        Make changes to the JSON content below. Ensure the format remains valid.
                     </DialogDescription>
                 </DialogHeader>
                 <Textarea
                     value={editedContent}
                     onChange={(e) => setEditedContent(e.target.value)}
-                    className="h-96 text-sm"
+                    className="h-96 text-sm font-mono"
+                    placeholder='{ "mcqs": [ { "question": "...", "options": [...], ... } ] }'
                 />
                 <DialogFooter>
                     <DialogClose asChild>
