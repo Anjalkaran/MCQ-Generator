@@ -64,71 +64,79 @@ Your final output must be a single, valid JSON object containing an 'mcqs' array
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-    const file = formData.get('file') as File | null;
+    const files = formData.getAll('files') as File[] | null;
     const topicId = formData.get('topicId') as string | null;
     const topicTitle = formData.get('topicTitle') as string | null;
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file uploaded.' }, { status: 400 });
+    if (!files || files.length === 0) {
+      return NextResponse.json({ error: 'No files uploaded.' }, { status: 400 });
     }
     if (!topicId || !topicTitle) {
       return NextResponse.json({ error: 'Topic ID and Title are missing.' }, { status: 400 });
     }
 
-    let extractedMCQs: MCQ[] = [];
-    let contentToStore: string;
+    let allExtractedMCQs: MCQ[] = [];
 
-    if (file.type === 'application/json') {
-        const textContent = await file.text();
-        try {
-            const jsonData = JSON.parse(textContent);
-            const validation = JsonUploadSchema.safeParse(jsonData);
-            if (!validation.success) {
-                console.error("JSON validation error:", validation.error.flatten());
-                return NextResponse.json({ 
-                    error: `Invalid JSON format in file: ${file.name}. It must be an object with an "mcqs" array matching the required structure.`, 
-                    details: validation.error.flatten() 
-                }, { status: 400 });
+    for (const file of files) {
+        let extractedMCQsFromFile: MCQ[] = [];
+
+        if (file.type === 'application/json') {
+            const textContent = await file.text();
+            try {
+                const jsonData = JSON.parse(textContent);
+                const validation = JsonUploadSchema.safeParse(jsonData);
+                if (!validation.success) {
+                    console.error("JSON validation error:", validation.error.flatten());
+                    return NextResponse.json({ 
+                        error: `Invalid JSON format in file: ${file.name}. It must be an object with an "mcqs" array matching the required structure.`, 
+                        details: validation.error.flatten() 
+                    }, { status: 400 });
+                }
+                extractedMCQsFromFile = validation.data.mcqs;
+            } catch (e) {
+                return NextResponse.json({ error: `Syntax error in JSON file: ${file.name}. Please check the file for errors like trailing commas.` }, { status: 400 });
             }
-            extractedMCQs = validation.data.mcqs;
-            contentToStore = textContent; // Store the original, valid JSON
-        } catch (e) {
-            return NextResponse.json({ error: `Syntax error in JSON file: ${file.name}. Please check the file for errors like trailing commas.` }, { status: 400 });
-        }
 
-    } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-        const buffer = Buffer.from(await file.arrayBuffer());
-        const result = await mammoth.extractRawText({ buffer });
-        const textContent = result.value;
-        
-        if (!textContent.trim()) {
-            return NextResponse.json({ error: 'Could not extract any text from the DOCX file.' }, { status: 400 });
+        } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+            const buffer = Buffer.from(await file.arrayBuffer());
+            const result = await mammoth.extractRawText({ buffer });
+            const textContent = result.value;
+            
+            if (!textContent.trim()) {
+                console.warn(`Could not extract any text from the DOCX file: ${file.name}`);
+                continue; // Skip this file
+            }
+            
+            extractedMCQsFromFile = await extractMCQsFromText(textContent, topicTitle);
+
+        } else {
+            console.warn(`Skipping unsupported file type: ${file.name}`);
+            continue; // Skip this file
         }
         
-        extractedMCQs = await extractMCQsFromText(textContent, topicTitle);
-        contentToStore = JSON.stringify({ mcqs: extractedMCQs }, null, 2);
-
-    } else {
-        return NextResponse.json({ error: 'Unsupported file type. Please upload a JSON or DOCX file.' }, { status: 415 });
+        allExtractedMCQs.push(...extractedMCQsFromFile);
     }
 
-    if (extractedMCQs.length === 0) {
-        return NextResponse.json({ error: 'No valid MCQs could be extracted from the document.' }, { status: 400 });
+
+    if (allExtractedMCQs.length === 0) {
+        return NextResponse.json({ error: 'No valid MCQs could be extracted from the uploaded documents.' }, { status: 400 });
     }
 
     // Add sourceLanguage and an empty translations map to each MCQ if they don't exist
-    const canonicalMCQs = extractedMCQs.map(mcq => ({
+    const canonicalMCQs = allExtractedMCQs.map(mcq => ({
         ...mcq,
         sourceLanguage: mcq.sourceLanguage || 'English',
         translations: mcq.translations || {}
     }));
     
-    // Use the processed content for storing
-    contentToStore = JSON.stringify({ mcqs: canonicalMCQs }, null, 2);
+    const contentToStore = JSON.stringify({ mcqs: canonicalMCQs }, null, 2);
+    
+    const firstFileName = files[0].name.replace(/\.[^/.]+$/, "");
+    const newFileName = files.length > 1 ? `${firstFileName}-and-more.json` : `${firstFileName}.json`;
     
     const newDocData: Omit<TopicMCQ, 'id'> = {
         topicId: topicId,
-        fileName: file.name.replace(/\.[^/.]+$/, '.json'),
+        fileName: newFileName,
         content: contentToStore,
         uploadedAt: new Date(),
     }
@@ -137,7 +145,7 @@ export async function POST(req: NextRequest) {
     const newDocument = { id: newDocRef.id, ...newDocData };
 
     return NextResponse.json({ 
-        message: 'Topic MCQ document uploaded and processed successfully.', 
+        message: 'Topic MCQ document(s) uploaded and processed successfully.', 
         newDocument
     });
 

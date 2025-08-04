@@ -29,12 +29,12 @@ const uploadSchema = z.object({
   topicId: z.string({
     required_error: 'You must select a topic.',
   }),
-  file: z
-    .instanceof(File)
-    .refine((file) => file.size > 0, 'Please upload a file.')
+  files: z
+    .array(z.instanceof(File))
+    .min(1, 'Please upload at least one file.')
     .refine(
-        (file) => file.size <= 4 * 1024 * 1024,
-        `File size must be less than 4MB.`
+        (files) => files.every((file) => file.size <= 4 * 1024 * 1024),
+        `Each file size must be less than 4MB.`
     ),
 });
 
@@ -59,7 +59,7 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
     resolver: zodResolver(uploadSchema),
     defaultValues: {
         topicId: undefined,
-        file: undefined,
+        files: [],
     }
   });
 
@@ -75,7 +75,9 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
 
     formData.append('topicId', values.topicId);
     formData.append('topicTitle', selectedTopic.title);
-    formData.append('file', values.file);
+    values.files.forEach(file => {
+      formData.append('files', file);
+    });
 
     try {
       const response = await fetch('/api/topic-mcq-bank/upload', {
@@ -85,13 +87,22 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to upload file.');
+        throw new Error(errorData.error || 'Failed to upload files.');
       }
 
       const { newDocument } = await response.json();
-      setTopicMCQs(prev => [newDocument, ...prev]);
+      setTopicMCQs(prev => {
+        const existingDocIndex = prev.findIndex(doc => doc.topicId === newDocument.topicId);
+        if (existingDocIndex > -1) {
+            const updatedDocs = [...prev];
+            updatedDocs[existingDocIndex] = newDocument;
+            return updatedDocs;
+        } else {
+            return [newDocument, ...prev];
+        }
+      });
 
-      toast({ title: 'Success', description: 'Topic MCQ file uploaded and processed successfully.' });
+      toast({ title: 'Success', description: 'Topic MCQ file(s) uploaded and processed successfully.' });
       form.reset();
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
@@ -184,7 +195,7 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
         <Card>
         <CardHeader>
             <CardTitle>Upload Topic-Specific MCQs</CardTitle>
-            <CardDescription>Upload a JSON or DOCX file with questions for a specific topic. DOCX files will be converted to JSON by an AI.</CardDescription>
+            <CardDescription>Upload one or more JSON or DOCX files for a specific topic. New questions will be added to the existing ones for that topic.</CardDescription>
         </CardHeader>
         <CardContent>
             <Form {...form}>
@@ -252,15 +263,16 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
                 />
                 <FormField
                 control={form.control}
-                name="file"
-                render={({ field: { value, onChange, ...rest } }) => (
+                name="files"
+                render={({ field: { onChange, value, ...rest } }) => (
                     <FormItem>
-                    <FormLabel>MCQ Document (.json, .docx)</FormLabel>
+                    <FormLabel>MCQ Documents (.json, .docx)</FormLabel>
                     <FormControl>
                         <Input 
                         type="file" 
                         accept=".json,.docx"
-                        onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
+                        multiple
+                        onChange={(e) => onChange(e.target.files ? Array.from(e.target.files) : [])}
                         {...rest}
                         />
                     </FormControl>
