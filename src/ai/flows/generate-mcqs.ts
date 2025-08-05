@@ -148,11 +148,12 @@ const generateMCQsFlow = ai.defineFlow(
       throw new Error("A user ID must be provided to generate a quiz.");
     }
     
+    let canonicalQuestions: MCQ[] = [];
+    
     // **PRIORITY 1: Check for uploaded JSON files in the MCQ Bank**
-    const uploadedMCQs = await getTopicMCQs(input.topicId);
-    if (uploadedMCQs && uploadedMCQs.length > 0) {
-        let canonicalQuestions: MCQ[] = [];
-        uploadedMCQs.forEach(doc => {
+    const uploadedMCQDocs = await getTopicMCQs(input.topicId);
+    if (uploadedMCQDocs && uploadedMCQDocs.length > 0) {
+        uploadedMCQDocs.forEach(doc => {
             try {
                 const parsedContent = JSON.parse(doc.content);
                 if (parsedContent.mcqs && Array.isArray(parsedContent.mcqs)) {
@@ -162,13 +163,11 @@ const generateMCQsFlow = ai.defineFlow(
                 console.warn(`Could not parse JSON from document ${doc.fileName} for topic ${input.topic}`);
             }
         });
-        
+    }
+
+    if (canonicalQuestions.length > 0) {
         if (canonicalQuestions.length < input.numberOfQuestions) {
-            console.warn(`Could only find ${canonicalQuestions.length} questions in the uploaded files for topic "${input.topic}", though ${input.numberOfQuestions} were requested.`);
-        }
-        
-        if (canonicalQuestions.length === 0) {
-            throw new Error(`Failed to find any valid questions for "${input.topic}" in the uploaded MCQ Bank documents. Please upload a valid JSON file for this topic.`);
+            console.warn(`Could only find ${canonicalQuestions.length} questions in the uploaded JSON files for topic "${input.topic}", though ${input.numberOfQuestions} were requested.`);
         }
         
         const processedQuestions = canonicalQuestions.map(mcq => {
@@ -176,12 +175,9 @@ const generateMCQsFlow = ai.defineFlow(
                 const langKey = languageMap[input.language.toLowerCase()];
                 if (langKey && mcq.translations?.[langKey]) {
                     const translated = mcq.translations[langKey];
-                    
-                    // The translated correctAnswer is the text, but we need to ensure it's one of the translated options.
-                    // This assumes the translated correctAnswer text from JSON is reliable.
                     return {
-                        ...mcq, // Keep original fields like topic
-                        ...translated, // Overwrite with translated fields
+                        ...mcq,
+                        ...translated,
                         question: translated.question,
                         options: translated.options,
                         correctAnswer: translated.correctAnswer,
@@ -196,7 +192,7 @@ const generateMCQsFlow = ai.defineFlow(
 
         return { mcqs: finalMCQs };
 
-    // **PRIORITY 2: Fallback to generating from raw text material**
+    // **PRIORITY 2: Fallback to generating from raw .docx material**
     } else if (input.material) {
         const totalLength = input.material.length;
 
