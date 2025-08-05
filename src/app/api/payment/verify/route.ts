@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { adminDb } from '@/lib/firebase-admin';
 import { addAdminNotification } from '@/lib/firestore';
-import { RAZORPAY_WEBHOOK_SECRET } from '@/lib/constants';
+import { RAZORPAY_KEY_SECRET } from '@/lib/constants';
 
 export const runtime = 'nodejs';
 
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
         }
 
         const generated_signature = crypto
-            .createHmac('sha256', RAZORPAY_WEBHOOK_SECRET)
+            .createHmac('sha256', RAZORPAY_KEY_SECRET)
             .update(razorpay_order_id + "|" + razorpay_payment_id)
             .digest('hex');
 
