@@ -40,23 +40,42 @@ const fileSchema = z.union([
 .optional()
 .nullable();
 
+
+const optionSchema = z.union([
+    z.instanceof(File),
+    z.string()
+])
+.refine(file => {
+    if (file instanceof File) {
+        return file.size <= MAX_FILE_SIZE_BYTES;
+    }
+    return true;
+}, `Option image size must be less than ${MAX_FILE_SIZE_MB}MB.`)
+.optional()
+.nullable();
+
+
 const formSchema = z.object({
   id: z.string().optional(),
   topic: z.string().min(1, 'Please select a topic.'),
   questionText: z.string().min(1, 'Question text is required.'),
   questionImage: fileSchema,
-  option1: z.string().min(1, 'Option 1 is required.'),
-  option2: z.string().min(1, 'Option 2 is required.'),
-  option3: z.string().min(1, 'Option 3 is required.'),
-  option4: z.string().min(1, 'Option 4 is required.'),
-  correctAnswer: z.string({ required_error: 'You must select a correct answer.'}),
+  option1: optionSchema,
+  option2: optionSchema,
+  option3: optionSchema,
+  option4: optionSchema,
+  correctAnswerIndex: z.string({ required_error: 'You must select a correct answer.'}),
   solutionImage: fileSchema,
   solutionText: z.string().optional(),
   isForLiveTest: z.boolean().default(false).optional(),
 }).refine(data => data.id || data.questionImage instanceof File, {
     message: "Question image is required.",
     path: ["questionImage"],
+}).refine(data => data.option1 || data.option2 || data.option3 || data.option4, {
+    message: "At least one option is required.",
+    path: ["option1"],
 });
+
 
 interface ReasoningBankManagementProps {
     initialQuestions: ReasoningQuestion[];
@@ -71,6 +90,8 @@ const fileToDataUri = (file: File): Promise<string> => {
         reader.readAsDataURL(file);
     });
 };
+
+const isDataUri = (str: any) => typeof str === 'string' && str.startsWith('data:image');
 
 export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManagementProps) {
   const [questions, setQuestions] = useState<ReasoningQuestion[]>(initialQuestions);
@@ -102,10 +123,6 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
     defaultValues: {
         topic: '',
         questionText: '',
-        option1: '',
-        option2: '',
-        option3: '',
-        option4: '',
         solutionText: '',
         isForLiveTest: false,
     },
@@ -113,6 +130,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
 
   useEffect(() => {
     if (editingQuestion) {
+        const correctIndex = editingQuestion.options.findIndex(opt => opt === editingQuestion.correctAnswer);
         form.reset({
             id: editingQuestion.id,
             topic: editingQuestion.topic,
@@ -121,7 +139,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
             option2: editingQuestion.options[1],
             option3: editingQuestion.options[2],
             option4: editingQuestion.options[3],
-            correctAnswer: editingQuestion.correctAnswer,
+            correctAnswerIndex: correctIndex > -1 ? String(correctIndex) : undefined,
             solutionText: editingQuestion.solutionText || '',
             isForLiveTest: editingQuestion.isForLiveTest,
             questionImage: editingQuestion.questionImage,
@@ -136,7 +154,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
             option2: '',
             option3: '',
             option4: '',
-            correctAnswer: undefined,
+            correctAnswerIndex: undefined,
             solutionText: '',
             isForLiveTest: false,
             questionImage: undefined,
@@ -157,18 +175,32 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
         const questionImageUri = values.questionImage instanceof File ? await fileToDataUri(values.questionImage) : values.questionImage;
         const solutionImageUri = values.solutionImage instanceof File ? await fileToDataUri(values.solutionImage) : values.solutionImage;
         
-        const options = [values.option1, values.option2, values.option3, values.option4];
+        const optionPromises = [values.option1, values.option2, values.option3, values.option4].map(opt => {
+            if (opt instanceof File) return fileToDataUri(opt);
+            return Promise.resolve(opt || "");
+        });
+
+        const options = await Promise.all(optionPromises);
+        const nonEmptyOptions = options.filter(opt => opt);
+
+        if(nonEmptyOptions.length < 2) {
+            throw new Error("Please provide at least two options (text or image).");
+        }
         
+        const correctIndex = parseInt(values.correctAnswerIndex, 10);
+        const correctAnswer = options[correctIndex];
+
         const payload: any = {
             topic: values.topic,
             questionText: values.questionText,
             questionImage: questionImageUri,
             options,
-            correctAnswer: values.correctAnswer,
+            correctAnswer,
             solutionImage: solutionImageUri,
             solutionText: values.solutionText,
             isForLiveTest: values.isForLiveTest,
         };
+
         if (values.id) {
             payload.id = values.id;
         }
@@ -188,7 +220,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
         
         if (values.id) {
             // Update existing question in state
-            setQuestions(prev => prev.map(q => q.id === values.id ? { ...q, ...savedDocument } : q));
+            setQuestions(prev => prev.map(q => q.id === values.id ? { ...q, ...savedDocument, options, correctAnswer } : q));
             toast({ title: 'Success', description: 'Question updated successfully.' });
             setIsEditDialogOpen(false);
             setEditingQuestion(null);
@@ -219,17 +251,63 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
     }
   }
 
+  const renderOptionInput = (index: 1 | 2 | 3 | 4) => {
+    const fieldName = `option${index}` as const;
+    const value = form.watch(fieldName);
+    
+    return (
+        <div className="flex items-center space-x-3 space-y-0 p-3 border rounded-md">
+            <RadioGroupItem value={String(index - 1)} />
+            <div className="flex-1 space-y-2">
+                 <FormField
+                    control={form.control}
+                    name={fieldName}
+                    render={({ field: { value, onChange, ...rest } }) => (
+                         <Input 
+                            placeholder={`Option ${index} (Text)`} 
+                            disabled={isDataUri(value)}
+                            value={isDataUri(value) ? '' : value || ''}
+                            onChange={(e) => {
+                                if (!isDataUri(form.getValues(fieldName))) {
+                                    onChange(e.target.value);
+                                }
+                            }}
+                         />
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name={fieldName}
+                    render={({ field: { value, onChange, ...rest } }) => (
+                        <div className="flex items-center gap-2">
+                             <Input 
+                                type="file"
+                                accept="image/png, image/jpeg, image/webp"
+                                className="text-xs"
+                                onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
+                            />
+                            {isDataUri(value) && (
+                                <Image src={value} alt={`Option ${index}`} width={32} height={32} className="rounded" />
+                            )}
+                        </div>
+                    )}
+                />
+            </div>
+        </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
         <Card>
             <CardHeader>
                 <CardTitle>Upload New Reasoning Question</CardTitle>
-                <CardDescription>Create an image-based reasoning question. Images are saved directly in the database.</CardDescription>
+                <CardDescription>Create an image-based reasoning question. Options can be text or images.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                        <FormField
+                         <FormField
                             control={form.control}
                             name="topic"
                             render={({ field }) => (
@@ -284,9 +362,10 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                                 </FormItem>
                             )}
                         />
+
                         <FormField
                             control={form.control}
-                            name="correctAnswer"
+                            name="correctAnswerIndex"
                             render={({ field }) => (
                                 <FormItem className="space-y-3">
                                 <FormLabel>Options &amp; Correct Answer*</FormLabel>
@@ -296,28 +375,17 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                                     value={field.value}
                                     className="grid grid-cols-1 md:grid-cols-2 gap-4"
                                     >
-                                        {[1, 2, 3, 4].map(i => (
-                                            <FormField
-                                                key={i}
-                                                control={form.control}
-                                                name={`option${i}` as 'option1' | 'option2' | 'option3' | 'option4'}
-                                                render={({ field: optionField }) => (
-                                                    <FormItem className="flex items-center space-x-3 space-y-0 p-3 border rounded-md">
-                                                        <FormControl>
-                                                            <RadioGroupItem value={optionField.value} />
-                                                        </FormControl>
-                                                        <Input placeholder={`Option ${i}`} {...optionField} className="flex-1" />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        ))}
+                                       {renderOptionInput(1)}
+                                       {renderOptionInput(2)}
+                                       {renderOptionInput(3)}
+                                       {renderOptionInput(4)}
                                     </RadioGroup>
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>
                             )}
                         />
-
+                        
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                              <FormField
                                 control={form.control}
@@ -386,7 +454,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
               </DialogHeader>
                <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-h-[80vh] overflow-y-auto pr-4">
-                        <FormField
+                         <FormField
                             control={form.control}
                             name="topic"
                             render={({ field }) => (
@@ -441,9 +509,10 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                                 </FormItem>
                             )}
                         />
+                        
                         <FormField
                             control={form.control}
-                            name="correctAnswer"
+                            name="correctAnswerIndex"
                             render={({ field }) => (
                                 <FormItem className="space-y-3">
                                 <FormLabel>Options &amp; Correct Answer*</FormLabel>
@@ -453,21 +522,10 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                                     value={field.value}
                                     className="grid grid-cols-1 md:grid-cols-2 gap-4"
                                     >
-                                        {[1, 2, 3, 4].map(i => (
-                                            <FormField
-                                                key={i}
-                                                control={form.control}
-                                                name={`option${i}` as 'option1' | 'option2' | 'option3' | 'option4'}
-                                                render={({ field: optionField }) => (
-                                                    <FormItem className="flex items-center space-x-3 space-y-0 p-3 border rounded-md">
-                                                        <FormControl>
-                                                            <RadioGroupItem value={optionField.value} />
-                                                        </FormControl>
-                                                        <Input placeholder={`Option ${i}`} {...optionField} className="flex-1" />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        ))}
+                                       {renderOptionInput(1)}
+                                       {renderOptionInput(2)}
+                                       {renderOptionInput(3)}
+                                       {renderOptionInput(4)}
                                     </RadioGroup>
                                 </FormControl>
                                 <FormMessage />
@@ -587,8 +645,12 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                                                         </div>
                                                         <div>
                                                             <h3 className="font-semibold mb-2">Options:</h3>
-                                                            <ul className="list-disc list-inside">
-                                                                {q.options.map(opt => <li key={opt} className={opt === q.correctAnswer ? 'font-bold text-primary' : ''}>{opt}</li>)}
+                                                            <ul className="space-y-2">
+                                                                {q.options.map((opt, idx) => (
+                                                                    <li key={idx} className={`p-2 border rounded-md ${opt === q.correctAnswer ? 'font-bold text-primary border-primary' : ''}`}>
+                                                                        {isDataUri(opt) ? <Image src={opt} alt={`Option ${idx+1}`} width={100} height={100} className="rounded" /> : opt}
+                                                                    </li>
+                                                                ))}
                                                             </ul>
                                                         </div>
                                                         {q.solutionImage && (
