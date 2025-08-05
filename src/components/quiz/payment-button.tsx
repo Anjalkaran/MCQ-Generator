@@ -17,47 +17,13 @@ declare global {
 interface PaymentButtonProps {
   user: UserData;
   amount: number;
-  onPaymentSuccess: () => void;
+  onPaymentSuccess: (details: { razorpay_payment_id: string }) => void;
+  onPaymentError: (error: string) => void;
 }
 
-export default function PaymentButton({ user, amount, onPaymentSuccess }: PaymentButtonProps) {
+export default function PaymentButton({ user, amount, onPaymentSuccess, onPaymentError }: PaymentButtonProps) {
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
-
-    const handleSuccessfulPayment = async (paymentDetails: {
-        razorpay_payment_id: string;
-        razorpay_order_id: string;
-        razorpay_signature: string;
-    }) => {
-        try {
-            const response = await fetch('/api/payment/verify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: user.uid,
-                    ...paymentDetails,
-                }),
-            });
-
-            const result = await response.json();
-            if (!response.ok) {
-                throw new Error(result.error || 'Failed to verify payment and upgrade account.');
-            }
-            // Call the parent component's success handler
-            onPaymentSuccess();
-
-        } catch (error: any) {
-            console.error("Error verifying payment and upgrading user:", error);
-            toast({
-                title: "Upgrade Failed",
-                description: "Your payment was successful, but we had trouble updating your account. Please contact support with your payment details.",
-                variant: "destructive",
-                duration: 10000,
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const createOrder = async () => {
         setLoading(true);
@@ -99,8 +65,7 @@ export default function PaymentButton({ user, amount, onPaymentSuccess }: Paymen
                 description: "1-Year Unlimited Exam Access",
                 order_id: order.id,
                 handler: function (response: any) {
-                    // Payment was successful, now verify and update user status
-                    handleSuccessfulPayment({
+                    onPaymentSuccess({
                         razorpay_payment_id: response.razorpay_payment_id,
                         razorpay_order_id: response.razorpay_order_id,
                         razorpay_signature: response.razorpay_signature,
@@ -126,14 +91,18 @@ export default function PaymentButton({ user, amount, onPaymentSuccess }: Paymen
             const paymentObject = new window.Razorpay(options);
             paymentObject.on('payment.failed', function (response: any) {
                 console.error("Payment Failed", response.error);
-                toast({ title: "Payment Failed", description: response.error.description || "An unknown error occurred.", variant: "destructive" });
+                const errorMessage = response.error.description || "An unknown error occurred.";
+                toast({ title: "Payment Failed", description: errorMessage, variant: "destructive" });
+                onPaymentError(errorMessage);
                 setLoading(false);
             });
             paymentObject.open();
             
         } catch (error: any) {
             console.error("Order creation error:", error);
-            toast({ title: "Error", description: error.message || 'Could not initiate the payment process.', variant: "destructive" });
+            const errorMessage = error.message || 'Could not initiate the payment process.';
+            toast({ title: "Error", description: errorMessage, variant: "destructive" });
+            onPaymentError(errorMessage);
             setLoading(false);
         }
     };
