@@ -139,7 +139,7 @@ export function CreateQuizForm() {
       if (!result || !result.mcqs || result.mcqs.length === 0) {
         toast({
           title: 'Exam Generation Failed',
-          description: 'The AI could not generate an exam for the selected topic. Please try again.',
+          description: 'The AI could not generate an exam for the selected topic. This may be because no question file (.json or .docx) has been uploaded for it yet.',
           variant: 'destructive',
         });
         setIsGenerating(false);
@@ -266,30 +266,28 @@ export function CreateQuizForm() {
                           </FormItem>
                       )}
                     />
-                    {isAdmin && (
-                        <FormField
-                            control={form.control}
-                            name="language"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Language</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select a language" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {languages.map((lang) => (
-                                                <SelectItem key={lang} value={lang}>{lang}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    )}
+                    <FormField
+                        control={form.control}
+                        name="language"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Language</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select a language" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {languages.map((lang) => (
+                                            <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                     <FormField
                     control={form.control}
                     name="part"
