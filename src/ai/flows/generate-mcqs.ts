@@ -74,38 +74,6 @@ Your final output must be a single, valid JSON object containing an 'mcqs' array
 `
 });
 
-const generateMCQsFromScratchPrompt = ai.definePrompt({
-    name: 'generateMCQsFromScratchPrompt',
-    input: {
-        schema: z.object({
-            topic: z.string(),
-            examCategory: z.string().optional(),
-            numberOfQuestions: z.number(),
-            language: z.string().optional().default('English'),
-        })
-    },
-    output: { schema: GenerateMCQsOutputSchema },
-    model: 'googleai/gemini-1.5-pro',
-    prompt: `You are an expert in creating multiple-choice questions for the Indian Postal Department's {{examCategory}} exam.
-
-**CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
-**CRITICAL RULE FOR TRANSLATION:** When translating to any language other than English (e.g., Tamil, Hindi, Telugu, Kannada), you MUST keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", "Head Office", "Sub Office", etc.
-
-Your task is to generate EXACTLY **{{numberOfQuestions}}** unique questions based on the following topic:
-**Topic: "{{topic}}"**
-
-For each generated question:
-1.  The 'question' must be clear and relevant to the topic.
-2.  The 'options' array must contain four distinct and plausible answers.
-3.  The 'correctAnswer' field must be an exact, case-sensitive match to one of the four options.
-4.  The 'solution' field should provide a detailed step-by-step explanation for arithmetic problems, or a clear justification for general knowledge questions.
-5.  The 'topic' field MUST be set to "{{topic}}".
-
-Your final output MUST be a single, valid JSON object containing an 'mcqs' array with EXACTLY {{numberOfQuestions}} questions.
-`,
-});
-
-
 const MATERIAL_CHUNK_SIZE = 4000;
 let deferredFunctions: (() => Promise<any>)[] = [];
 
@@ -252,7 +220,7 @@ const generateMCQsFlow = ai.defineFlow(
         }
         
         if (collectedMCQs.length === 0) {
-        throw new Error(`Failed to extract any valid questions for "${input.topic}". Please check the document formatting and content.`);
+            throw new Error(`Failed to extract any valid questions for "${input.topic}". Please check the document formatting and content.`);
         }
 
         await runDeferred();
@@ -261,19 +229,9 @@ const generateMCQsFlow = ai.defineFlow(
 
         return { mcqs: finalMCQs };
 
-    // **PRIORITY 3: Fallback to generating from scratch**
+    // **PRIORITY 3: No source material available**
     } else {
-        const { output } = await generateMCQsFromScratchPrompt({
-            topic: input.topic,
-            examCategory: input.examCategory,
-            numberOfQuestions: input.numberOfQuestions,
-            language: input.language,
-        });
-
-        if (!output || !output.mcqs || output.mcqs.length === 0) {
-            throw new Error(`The AI failed to generate questions for the topic "${input.topic}". Please try again.`);
-        }
-        return { mcqs: output.mcqs };
+        throw new Error(`No question file (.json or .docx) is available for the topic "${input.topic}". Please upload a file to generate an exam.`);
     }
   }
 );
