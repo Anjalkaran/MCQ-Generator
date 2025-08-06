@@ -123,13 +123,7 @@ export const POSTMAN_BLUEPRINT = {
           sectionName: "Postal Manual Vol. VII",
           questions: 5,
           topics: [
-            "Stamps and Seals",
-            "Portfolio and Stationery",
-            "Daily Reports and Mail Abstracts",
-            "Exchange and Disposal of Mails",
-            "Transit Bags and Cage TB",
-            "Duties of Mail Guard/Agent",
-            "A & B Orders",
+            "Postal Manual Vol. VII"
           ],
         },
       ],
