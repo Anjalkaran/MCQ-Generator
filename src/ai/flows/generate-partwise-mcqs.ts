@@ -13,8 +13,8 @@ import { config } from 'dotenv';
 config();
 
 import { z } from 'zod';
-import { getTopicsByPartAndExam, getTopicMCQs, getReasoningQuestionsForPartwiseTest, updateTopicMCQWithTranslation } from '@/lib/firestore';
-import type { MCQ, ReasoningQuestion } from '@/lib/types';
+import { getTopicsByPartAndExam, getTopicMCQs, updateTopicMCQWithTranslation } from '@/lib/firestore';
+import type { MCQ } from '@/lib/types';
 import { generate } from '@genkit-ai/ai';
 import { gemini15Pro } from '@genkit-ai/googleai';
 import { zodToJsonSchema } from 'zod-to-json-schema';
@@ -94,86 +94,65 @@ export async function generatePartwiseMCQs(input: GeneratePartwiseMCQsInput): Pr
       'kannada': 'kn'
   };
   const targetLangKey = targetLang ? languageMap[targetLang] : 'en';
+  
+  // Fetch questions from the MCQ bank for the relevant topics in the selected part.
+  const topicsForPart = await getTopicsByPartAndExam(part, examCategory);
+  if (topicsForPart.length === 0) {
+      throw new Error(`No topics found for ${examCategory} - ${part}. Please check if topics have been assigned to this part.`);
+  }
 
-  if (part === 'Part B') {
-    // For Part B, exclusively use questions from the reasoning bank.
-    const reasoningQuestions = await getReasoningQuestionsForPartwiseTest(examCategory as 'MTS' | 'POSTMAN' | 'PA');
-    
-    if (reasoningQuestions.length < numberOfQuestions) {
-        throw new Error(`Not enough questions available for ${examCategory} - Part B. We have ${reasoningQuestions.length}, but you requested ${numberOfQuestions}. More questions are yet to be uploaded.`);
-    }
+  const allMcqDocsForPart = await Promise.all(topicsForPart.map(t => getTopicMCQs(t.id)));
+  const canonicalQuestions: (MCQ & { sourceDocId: string, translations?: Record<string, any> })[] = [];
 
-    const selectedReasoning = shuffleArray(reasoningQuestions).slice(0, numberOfQuestions);
-    
-    const formattedReasoningMCQs: MCQ[] = selectedReasoning.map((q: ReasoningQuestion) => ({
-        question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
-        options: q.options,
-        correctAnswer: q.correctAnswer,
-        solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
-        topic: q.topic,
-    }));
-    finalMCQs.push(...formattedReasoningMCQs);
+  allMcqDocsForPart.flat().forEach(doc => {
+      try {
+          const parsed = JSON.parse(doc.content);
+          if (parsed.mcqs && Array.isArray(parsed.mcqs)) {
+              parsed.mcqs.forEach((mcq: any) => {
+                  canonicalQuestions.push({ ...mcq, sourceDocId: doc.id });
+              });
+          }
+      } catch (e) { /* Ignore non-json files */ }
+  });
 
-  } else {
-    // For Part A, fetch all questions from the MCQ bank for the relevant topics.
-    const topicsForPart = await getTopicsByPartAndExam(part, examCategory);
-    if (topicsForPart.length === 0) {
-        throw new Error(`No topics found for ${examCategory} - ${part}.`);
-    }
-
-    const allMcqDocsForPart = await Promise.all(topicsForPart.map(t => getTopicMCQs(t.id)));
-    const canonicalQuestions: (MCQ & { sourceDocId: string, translations?: Record<string, any> })[] = [];
-
-    allMcqDocsForPart.flat().forEach(doc => {
-        try {
-            const parsed = JSON.parse(doc.content);
-            if (parsed.mcqs && Array.isArray(parsed.mcqs)) {
-                parsed.mcqs.forEach((mcq: any) => {
-                    canonicalQuestions.push({ ...mcq, sourceDocId: doc.id });
-                });
-            }
-        } catch (e) { /* Ignore non-json files */ }
-    });
-
-    if (canonicalQuestions.length < numberOfQuestions) {
-      throw new Error(`Not enough questions in the MCQ Bank for ${part}. Found ${canonicalQuestions.length}, but you requested ${numberOfQuestions}. Please upload more JSON question files.`);
-    }
-    
-    const processedQuestions: MCQ[] = [];
-    
-    // Process translations and collect questions
-     for (const cq of shuffleArray(canonicalQuestions)) {
-        if (processedQuestions.length >= numberOfQuestions) break;
-
-        if (targetLang === 'english' || !targetLangKey) {
-            processedQuestions.push(cq);
-        } else if (cq.translations && cq.translations[targetLangKey]) {
-              const translated = cq.translations[targetLangKey];
-              processedQuestions.push({ ...cq, ...translated });
-        } else {
-            if (input.language) {
-                try {
-                    const translatedMcq = await translateMCQ(cq, input.language);
-                    processedQuestions.push(translatedMcq);
-                    
-                    updateTopicMCQWithTranslation(cq.sourceDocId, cq.question, targetLangKey, translatedMcq)
-                        .catch(err => console.error("Failed to save translation:", err));
-                } catch (e) {
-                    console.error(`Skipping question due to translation error for topic ${cq.topic}:`, e);
-                }
-            } else {
-                processedQuestions.push(cq);
-            }
-        }
-    }
-    
-    if (processedQuestions.length < numberOfQuestions) {
-        throw new Error(`Could not find or translate enough questions for ${part}. Processed ${processedQuestions.length}, but need ${numberOfQuestions}.`);
-    }
-
-    finalMCQs = shuffleArray(processedQuestions).slice(0, numberOfQuestions);
+  if (canonicalQuestions.length < numberOfQuestions) {
+    throw new Error(`Not enough questions in the MCQ Bank for ${part}. Found ${canonicalQuestions.length}, but you requested ${numberOfQuestions}. Please upload more JSON question files for topics in this part.`);
   }
   
+  const processedQuestions: MCQ[] = [];
+  
+  // Process translations and collect questions
+   for (const cq of shuffleArray(canonicalQuestions)) {
+      if (processedQuestions.length >= numberOfQuestions) break;
+
+      if (targetLang === 'english' || !targetLangKey) {
+          processedQuestions.push(cq);
+      } else if (cq.translations && cq.translations[targetLangKey]) {
+            const translated = cq.translations[targetLangKey];
+            processedQuestions.push({ ...cq, ...translated });
+      } else {
+          if (input.language) {
+              try {
+                  const translatedMcq = await translateMCQ(cq, input.language);
+                  processedQuestions.push(translatedMcq);
+                  
+                  updateTopicMCQWithTranslation(cq.sourceDocId, cq.question, targetLangKey, translatedMcq)
+                      .catch(err => console.error("Failed to save translation:", err));
+              } catch (e) {
+                  console.error(`Skipping question due to translation error for topic ${cq.topic}:`, e);
+              }
+          } else {
+              processedQuestions.push(cq);
+          }
+      }
+  }
+  
+  if (processedQuestions.length < numberOfQuestions) {
+      throw new Error(`Could not find or translate enough questions for ${part}. Processed ${processedQuestions.length}, but need ${numberOfQuestions}.`);
+  }
+
+  finalMCQs = shuffleArray(processedQuestions).slice(0, numberOfQuestions);
+
   if (finalMCQs.length === 0) {
       throw new Error('Could not find any questions for the selected part. Please check the MCQ bank or contact support.');
   }
