@@ -2,7 +2,7 @@
 'use server';
 
 /**
- * @fileOverview Generates a practice test for an entire part of an exam syllabus.
+ * @fileOverview Generates a practice test for an entire part of an exam syllabus by pulling questions from the MCQ Bank.
  *
  * - generatePartwiseMCQs - A function that handles the quiz generation process.
  * - GeneratePartwiseMCQsInput - The input type for the generatePartwiseMCQs function.
@@ -12,10 +12,12 @@
 import { config } from 'dotenv';
 config();
 
-import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { getTopicsByPartAndExam, getAllUserQuestions, getReasoningQuestionsForPartwiseTest } from '@/lib/firestore';
+import { getTopicsByPartAndExam, getTopicMCQs, getReasoningQuestionsForPartwiseTest, updateTopicMCQWithTranslation } from '@/lib/firestore';
 import type { MCQ, ReasoningQuestion } from '@/lib/types';
+import { generate } from '@genkit-ai/ai';
+import { gemini15Pro } from '@genkit-ai/googleai';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 
 const GeneratePartwiseMCQsInputSchema = z.object({
   examCategory: z.string().describe('The exam category (e.g., MTS, POSTMAN, PA).'),
@@ -39,110 +41,142 @@ const GeneratePartwiseMCQsOutputSchema = z.object({
 });
 export type GeneratePartwiseMCQsOutput = z.infer<typeof GeneratePartwiseMCQsOutputSchema>;
 
-const generateQuestionsForTopicsPrompt = ai.definePrompt({
-    name: 'generateQuestionsForTopicsPrompt',
-    input: {
-        schema: z.object({
-            examCategory: z.string(),
-            part: z.string(),
-            topics: z.string(),
-            questionCount: z.number(),
-            previousQuestions: z.array(z.string()).optional(),
-            language: z.string().optional().default('English'),
-        })
-    },
-    output: {
-        schema: z.object({
-            questions: z.array(MCQSchema)
-        })
-    },
-    model: 'googleai/gemini-1.5-pro',
-    prompt: `You are an expert in creating high-quality practice questions for the Indian Postal Department's {{examCategory}} exam.
+// Dedicated, simple translation flow logic
+const translateMCQ = async (mcq: MCQ, targetLanguage: string): Promise<MCQ> => {
+    const prompt = `Translate the following JSON MCQ object to ${targetLanguage}.
+      
+      **CRITICAL RULE:** Keep all technical terms, names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", etc. Translate only the descriptive text around them.
+      
+      **SOURCE MCQ JSON:**
+      ${JSON.stringify(mcq)}
+      `;
 
-**CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
-**CRITICAL RULE FOR TRANSLATION:** When translating to any language other than English (e.g., Tamil, Hindi, Telugu, Kannada), you MUST keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", "Head Office", "Sub Office", etc.
+    const result = await generate({
+        model: gemini15Pro,
+        prompt: prompt,
+        output: {
+            format: 'json',
+            schema: zodToJsonSchema(MCQSchema) as any,
+        },
+        config: { temperature: 0.2 }
+    });
+    
+    const translatedMcq = result.json();
 
-Your task is to generate EXACTLY **{{questionCount}}** questions for **{{part}}**.
+    if (!translatedMcq) {
+        throw new Error(`Failed to translate MCQ for topic: ${mcq.topic}`);
+    }
 
-The questions must cover the following topics. Distribute the questions evenly across the topics.
-{{{topics}}}
-
-For each generated question, you MUST specify its source topic in the 'topic' field from the list above.
-For any arithmetic questions, the 'solution' field MUST be an empty string (""). Solutions will be handled separately.
-
-{{#if previousQuestions}}
-  IMPORTANT: Do NOT repeat any of the following questions. Ensure the new questions are unique.
-  {{#each previousQuestions}}
-  - "{{this}}"
-  {{/each}}
-{{/if}}
-
-Your final output MUST be a single, valid JSON object containing a 'questions' array with EXACTLY {{questionCount}} questions.
-`,
-});
-
-export async function generatePartwiseMCQs(input: GeneratePartwiseMCQsInput): Promise<GeneratePartwiseMCQsOutput> {
-  return generatePartwiseMCQsFlow(input);
+    return translatedMcq as MCQ;
 }
 
-const generatePartwiseMCQsFlow = ai.defineFlow(
-  {
-    name: 'generatePartwiseMCQsFlow',
-    inputSchema: GeneratePartwiseMCQsInputSchema,
-    outputSchema: GeneratePartwiseMCQsOutputSchema,
-  },
-  async input => {
-    const { examCategory, part, numberOfQuestions, userId, language } = input;
 
-    let generatedMCQs: MCQ[] = [];
-
-    if (part === 'Part B') {
-        // For Part B, exclusively use questions from the reasoning bank.
-        const reasoningQuestions = await getReasoningQuestionsForPartwiseTest(examCategory as 'MTS' | 'POSTMAN' | 'PA');
-        
-        if (reasoningQuestions.length < numberOfQuestions) {
-            throw new Error(`Not enough questions available for ${examCategory} - Part B. We have ${reasoningQuestions.length}, but you requested ${numberOfQuestions}. More questions are yet to be uploaded.`);
-        }
-
-        const selectedReasoning = reasoningQuestions.sort(() => 0.5 - Math.random()).slice(0, numberOfQuestions);
-        
-        const formattedReasoningMCQs: MCQ[] = selectedReasoning.map((q: ReasoningQuestion) => ({
-            question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
-            options: q.options,
-            correctAnswer: q.correctAnswer,
-            solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
-            topic: q.topic,
-        }));
-        generatedMCQs.push(...formattedReasoningMCQs);
-
-    } else {
-        // For Part A, generate questions using AI.
-        const topicsForPart = await getTopicsByPartAndExam(part, examCategory);
-        if (topicsForPart.length === 0) {
-            throw new Error(`No topics found for ${examCategory} - ${part}.`);
-        }
-        
-        const topicsString = topicsForPart.map(topic => `- ${topic.title}`).join('\n');
-        const previousQuestions = await getAllUserQuestions(userId);
-
-        const { output } = await generateQuestionsForTopicsPrompt({
-            examCategory,
-            part,
-            topics: topicsString,
-            questionCount: numberOfQuestions,
-            previousQuestions: previousQuestions,
-            language,
-        });
-        
-        if (output && output.questions) {
-            generatedMCQs.push(...output.questions);
-        }
-    }
-    
-    if (generatedMCQs.length === 0) {
-        throw new Error('Could not generate or find any questions for the selected part. Please check the configuration or contact support.');
-    }
-    
-    return { mcqs: generatedMCQs };
+function shuffleArray<T>(array: T[]): T[] {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
   }
-);
+  return array;
+}
+
+
+export async function generatePartwiseMCQs(input: GeneratePartwiseMCQsInput): Promise<GeneratePartwiseMCQsOutput> {
+  const { examCategory, part, numberOfQuestions, userId, language } = input;
+
+  let finalMCQs: MCQ[] = [];
+  const targetLang = language?.toLowerCase();
+  
+  const languageMap: Record<string, string> = {
+      'english': 'en',
+      'tamil': 'ta',
+      'hindi': 'hi',
+      'telugu': 'te',
+      'kannada': 'kn'
+  };
+  const targetLangKey = targetLang ? languageMap[targetLang] : 'en';
+
+  if (part === 'Part B') {
+    // For Part B, exclusively use questions from the reasoning bank.
+    const reasoningQuestions = await getReasoningQuestionsForPartwiseTest(examCategory as 'MTS' | 'POSTMAN' | 'PA');
+    
+    if (reasoningQuestions.length < numberOfQuestions) {
+        throw new Error(`Not enough questions available for ${examCategory} - Part B. We have ${reasoningQuestions.length}, but you requested ${numberOfQuestions}. More questions are yet to be uploaded.`);
+    }
+
+    const selectedReasoning = shuffleArray(reasoningQuestions).slice(0, numberOfQuestions);
+    
+    const formattedReasoningMCQs: MCQ[] = selectedReasoning.map((q: ReasoningQuestion) => ({
+        question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
+        topic: q.topic,
+    }));
+    finalMCQs.push(...formattedReasoningMCQs);
+
+  } else {
+    // For Part A, fetch all questions from the MCQ bank for the relevant topics.
+    const topicsForPart = await getTopicsByPartAndExam(part, examCategory);
+    if (topicsForPart.length === 0) {
+        throw new Error(`No topics found for ${examCategory} - ${part}.`);
+    }
+
+    const allMcqDocsForPart = await Promise.all(topicsForPart.map(t => getTopicMCQs(t.id)));
+    const canonicalQuestions: (MCQ & { sourceDocId: string, translations?: Record<string, any> })[] = [];
+
+    allMcqDocsForPart.flat().forEach(doc => {
+        try {
+            const parsed = JSON.parse(doc.content);
+            if (parsed.mcqs && Array.isArray(parsed.mcqs)) {
+                parsed.mcqs.forEach((mcq: any) => {
+                    canonicalQuestions.push({ ...mcq, sourceDocId: doc.id });
+                });
+            }
+        } catch (e) { /* Ignore non-json files */ }
+    });
+
+    if (canonicalQuestions.length < numberOfQuestions) {
+      throw new Error(`Not enough questions in the MCQ Bank for ${part}. Found ${canonicalQuestions.length}, but you requested ${numberOfQuestions}. Please upload more JSON question files.`);
+    }
+    
+    const processedQuestions: MCQ[] = [];
+    
+    // Process translations and collect questions
+     for (const cq of shuffleArray(canonicalQuestions)) {
+        if (processedQuestions.length >= numberOfQuestions) break;
+
+        if (targetLang === 'english' || !targetLangKey) {
+            processedQuestions.push(cq);
+        } else if (cq.translations && cq.translations[targetLangKey]) {
+              const translated = cq.translations[targetLangKey];
+              processedQuestions.push({ ...cq, ...translated });
+        } else {
+            if (input.language) {
+                try {
+                    const translatedMcq = await translateMCQ(cq, input.language);
+                    processedQuestions.push(translatedMcq);
+                    
+                    updateTopicMCQWithTranslation(cq.sourceDocId, cq.question, targetLangKey, translatedMcq)
+                        .catch(err => console.error("Failed to save translation:", err));
+                } catch (e) {
+                    console.error(`Skipping question due to translation error for topic ${cq.topic}:`, e);
+                }
+            } else {
+                processedQuestions.push(cq);
+            }
+        }
+    }
+    
+    if (processedQuestions.length < numberOfQuestions) {
+        throw new Error(`Could not find or translate enough questions for ${part}. Processed ${processedQuestions.length}, but need ${numberOfQuestions}.`);
+    }
+
+    finalMCQs = shuffleArray(processedQuestions).slice(0, numberOfQuestions);
+  }
+  
+  if (finalMCQs.length === 0) {
+      throw new Error('Could not find any questions for the selected part. Please check the MCQ bank or contact support.');
+  }
+  
+  return { mcqs: finalMCQs };
+}

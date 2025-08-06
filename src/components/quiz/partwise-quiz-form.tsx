@@ -20,10 +20,13 @@ import { useDashboard } from '@/app/dashboard/layout';
 import { ADMIN_EMAILS, FREE_EXAM_LIMIT } from '@/lib/constants';
 import { generatePartwiseMCQs } from '@/ai/flows/generate-partwise-mcqs';
 
+const languages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
+
 const formSchema = z.object({
   examType: z.string().min(1, 'Please select an exam type.'),
   part: z.string().min(1, 'Please select a part.'),
   numberOfQuestions: z.coerce.number().min(5).max(50),
+  language: z.enum(languages).optional().default('English'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -42,6 +45,7 @@ export function PartwiseQuizForm() {
       examType: '',
       part: '',
       numberOfQuestions: 10,
+      language: 'English',
     },
   });
   
@@ -85,13 +89,13 @@ export function PartwiseQuizForm() {
           part: values.part as 'Part A' | 'Part B',
           numberOfQuestions: values.numberOfQuestions,
           userId: user.uid,
-          language: 'English',
+          language: values.language,
       });
 
       if (!mcqs || mcqs.length === 0) {
         toast({
           title: 'Exam Generation Failed',
-          description: 'The AI could not generate questions for the selected part.',
+          description: 'Could not find enough questions in the MCQ Bank for the selected part.',
           variant: 'destructive',
         });
         setIsGenerating(false);
@@ -182,6 +186,28 @@ export function PartwiseQuizForm() {
                           <FormMessage />
                           </FormItem>
                       )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="language"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Language</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select a language" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {languages.map((lang) => (
+                                            <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
                     />
                     <FormField
                     control={form.control}
