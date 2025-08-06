@@ -568,11 +568,15 @@ export const addTopicMCQDocument = async (data: Omit<TopicMCQ, 'id'>): Promise<D
     return await addDoc(collection(db, 'topicMCQs'), data);
 };
 
-export const updateTopicMCQDocument = async (docId: string, content: string, fileName: string): Promise<void> => {
+export const updateTopicMCQDocument = async (docId: string, content: string, fileName?: string): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     const docRef = doc(db, 'topicMCQs', docId);
-    await updateDoc(docRef, { content, fileName, uploadedAt: new Date() });
+    const updateData: { content: string, fileName?: string, uploadedAt: Date } = { content, uploadedAt: new Date() };
+    if (fileName) {
+        updateData.fileName = fileName;
+    }
+    await updateDoc(docRef, updateData);
 };
 
 
@@ -788,3 +792,5 @@ export const getQnAUsage = async (): Promise<QnAUsage[]> => {
     const snapshot = await getDocs(collection(db, 'qnaUsage'));
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), timestamp: doc.data().timestamp.toDate() } as QnAUsage));
 };
+
+    

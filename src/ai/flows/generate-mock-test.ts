@@ -16,7 +16,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-blueprints';
 import type { MCQ, ReasoningQuestion, Topic } from '@/lib/types';
-import { getTopicMCQs, getReasoningQuestionsForPartwiseTest, getTopics, updateTopicMCQWithTranslation } from '@/lib/firestore';
+import { getTopicMCQs, getReasoningQuestionsForPartwiseTest, getTopics, updateTopicMCQWithTranslation, getCategories } from '@/lib/firestore';
 import { generate } from '@genkit-ai/ai';
 import { gemini15Pro } from '@genkit-ai/googleai';
 import { zodToJsonSchema } from 'zod-to-json-schema';
@@ -134,8 +134,11 @@ const generateMockTestFlow = ai.defineFlow(
     else throw new Error(`No blueprint found for exam category: ${input.examCategory}`);
 
     const allQuestions: MCQ[] = [];
-    const allFirestoreTopics = await getTopics();
+    const [allFirestoreTopics, allFirestoreCategories] = await Promise.all([getTopics(), getCategories()]);
+    
     const topicMapByName: Map<string, Topic> = new Map(allFirestoreTopics.map(t => [t.title.toLowerCase(), t]));
+    const categoryMapByName: Map<string, {id: string}> = new Map(allFirestoreCategories.map(c => [c.name.toLowerCase(), {id: c.id}]));
+
     const targetLang = input.language?.toLowerCase();
 
     const languageMap: Record<string, string> = {
@@ -273,23 +276,29 @@ const generateMockTestFlow = ai.defineFlow(
                 sectionQuestions.push(...formattedReasoningMCQs);
              }
         } else { // Handle all other non-reasoning, non-GK sections
-            const topicNamesInSection = section.topics.map(t => (typeof t === 'string' ? t : t.name));
-            const topicMapping: { name: string, id: string, docId?: string }[] = [];
-            
-            for (const topicName of topicNamesInSection) {
-                const topicInfo = topicMapByName.get(topicName.toLowerCase());
-                if (topicInfo) {
-                    topicMapping.push({ name: topicInfo.title, id: topicInfo.id });
+            const categoryNamesInSection = section.topics.map(t => (typeof t === 'string' ? t : t.name));
+            const categoryIdsInSection = new Set<string>();
+
+            for (const catName of categoryNamesInSection) {
+                const categoryInfo = categoryMapByName.get(catName.toLowerCase());
+                if(categoryInfo) {
+                    categoryIdsInSection.add(categoryInfo.id);
                 } else {
-                    console.warn(`Blueprint topic "${topicName}" not found in Firestore. Skipping.`);
+                     console.warn(`Blueprint category "${catName}" not found in Firestore. Skipping.`);
                 }
             }
 
-            if (topicMapping.length === 0 && section.questions > 0) {
-                throw new Error(`No topics found in Firestore for section: "${section.sectionName}". Please check blueprint and topic names.`);
+            if (categoryIdsInSection.size === 0 && section.questions > 0) {
+                throw new Error(`No valid categories found in Firestore for section: "${section.sectionName}". Please check blueprint and category names.`);
             }
-
-            const allMcqDocsForSection = await Promise.all(topicMapping.map(t => getTopicMCQs(t.id)));
+            
+            const relevantTopics = allFirestoreTopics.filter(t => categoryIdsInSection.has(t.categoryId) && t.examCategories.includes(input.examCategory as 'MTS' | 'POSTMAN' | 'PA'));
+            
+            if (relevantTopics.length === 0 && section.questions > 0) {
+                throw new Error(`No topics associated with the categories in section "${section.sectionName}" were found for the exam type "${input.examCategory}".`);
+            }
+            
+            const allMcqDocsForSection = await Promise.all(relevantTopics.map(t => getTopicMCQs(t.id)));
             const canonicalQuestions: (MCQ & { sourceDocId: string, translations?: Record<string, any> })[] = [];
 
             allMcqDocsForSection.flat().forEach(doc => {
@@ -355,3 +364,5 @@ const generateMockTestFlow = ai.defineFlow(
     return { mcqs: shuffleArray(allQuestions).slice(0, totalExpectedQuestions) };
   }
 );
+
+    

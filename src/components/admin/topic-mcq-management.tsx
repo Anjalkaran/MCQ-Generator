@@ -270,7 +270,7 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
                     <FormControl>
                         <Input 
                         type="file" 
-                        accept=".json,.docx"
+                        accept=".json,.docx,.doc"
                         multiple
                         onChange={(e) => onChange(e.target.files ? Array.from(e.target.files) : [])}
                         {...rest}
@@ -401,3 +401,5 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
     </div>
   );
 }
+
+    
