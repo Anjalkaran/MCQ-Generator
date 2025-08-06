@@ -113,18 +113,10 @@ export const POSTMAN_BLUEPRINT = {
           ],
         },
         {
-          sectionName: "Postal Manual Volume VI - Part III",
+          sectionName: "PM Vol VI - Part III(PM)",
           questions: 5,
           topics: [
-            "Head Postman duties",
-            "Knowledge of Postal Business",
-            "Supply and sale of stamps & forms",
-            "Postman's Book and address noting",
-            "Handling damaged articles",
-            "Receipts for delivery",
-            "Instructions for special delivery (illiterate, Pardanashin, minors, lunatics)",
-            "e-Money Order payments",
-            "Duties of Village Postman",
+            "PM Vol VI - Part III(PM)"
           ],
         },
         {
@@ -157,7 +149,7 @@ export const POSTMAN_BLUEPRINT = {
             "General knowledge",
             "Indian culture & freedom struggle",
             "Ethics and morale study",
-            "Current affairs",
+            "current affairs",
           ],
         },
         {
