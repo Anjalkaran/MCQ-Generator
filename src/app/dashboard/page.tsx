@@ -196,7 +196,7 @@ export default function DashboardPage() {
                 <div className="bg-primary/10 p-3 rounded-full">
                   <BrainCircuit className="h-6 w-6 text-primary" />
                 </div>
-                <CardTitle>Image Base Reasoning Test</CardTitle>
+                <CardTitle>Reasoning Test</CardTitle>
               </div>
               <CardDescription className="pt-4">
                 Practice image-based questions by selecting a topic from the reasoning question bank. Perfect for honing analytical skills.

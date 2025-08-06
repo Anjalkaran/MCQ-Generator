@@ -188,10 +188,10 @@ function AppSidebar() {
             </SidebarMenuItem>
             {canSeeReasoning && (
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/reasoning-test')} tooltip="Image Base Reasoning">
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/reasoning-test')} tooltip="Reasoning Test">
                   <Link href="/dashboard/reasoning-test" onClick={onLinkClick}>
                     <BrainCircuit />
-                    <span>Image Base Reasoning</span>
+                    <span>Reasoning Test</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -610,7 +610,7 @@ export default function DashboardLayout({
                             New Feature Added!
                           </DialogTitle>
                           <DialogDescription className="pt-2">
-                             We've just added a new **Image Base Reasoning Test** section to help you master non-verbal and analytical questions.
+                             We've just added a new **Reasoning Test** section to help you master non-verbal and analytical questions.
                           </DialogDescription>
                         </DialogHeader>
                         <Alert>
