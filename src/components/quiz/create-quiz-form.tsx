@@ -184,7 +184,13 @@ export function CreateQuizForm() {
   
   const filteredCategoriesByExam = useMemo(() => {
     if (!selectedExamType) return [];
-    return categories.filter(c => c.examCategories && c.examCategories.includes(selectedExamType));
+    // Exclude reasoning categories
+    return categories.filter(c => 
+        c.examCategories && 
+        c.examCategories.includes(selectedExamType) &&
+        !c.name.toLowerCase().includes("reasoning") &&
+        !c.name.toLowerCase().includes("non-verbal")
+    );
   }, [selectedExamType, categories]);
   
   const filteredTopics = useMemo(() => {
