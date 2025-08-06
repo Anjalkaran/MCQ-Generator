@@ -152,9 +152,10 @@ const generateMockTestFlow = ai.defineFlow(
     for (const part of blueprint.parts) {
       for (const section of part.sections) {
         let sectionQuestions: MCQ[] = [];
+        const sectionNameLower = section.sectionName.toLowerCase();
 
         // Special handling for General Awareness - always generate with AI
-        if (section.sectionName.toLowerCase().includes("general awareness")) {
+        if (sectionNameLower.includes("general awareness")) {
             const topicsAndCounts = section.topics.map(t => (typeof t === 'string' ? { name: t, questions: 0 } : t));
             
             // For blueprints where question counts are not specified per topic, distribute them.
@@ -184,77 +185,94 @@ const generateMockTestFlow = ai.defineFlow(
                 }
             }
             
-        } else if (section.sectionName.toLowerCase().includes("reasoning")) {
-            const allReasoningBankQuestions = await getReasoningQuestionsForPartwiseTest(input.examCategory as 'MTS' | 'POSTMAN' | 'PA');
+        } else if (sectionNameLower.includes("reasoning")) {
+             const allReasoningBankQuestions = await getReasoningQuestionsForPartwiseTest(input.examCategory as 'MTS' | 'POSTMAN' | 'PA');
+            
+            let questionsNeeded = section.questions;
+            if (questionsNeeded === 0) continue;
 
-            for (const topicDef of section.topics) {
-                const { name: topicName, questions: questionsNeeded } = typeof topicDef === 'string' ? { name: topicDef, questions: 0 } : topicDef;
-                
-                if (questionsNeeded === 0) continue;
+             if (input.examCategory === 'PA') {
+                 for (const topicDef of section.topics) {
+                    const { name: topicName, questions: questionsNeededForTopic } = typeof topicDef === 'string' ? { name: topicDef, questions: 0 } : topicDef;
+                    if (questionsNeededForTopic === 0) continue;
 
-                if (topicName.toLowerCase() === 'analytical reasoning') {
-                    // Fetch text-based analytical reasoning from the main MCQ bank
-                    const topicInfo = topicMapByName.get(topicName.toLowerCase());
-                    if (!topicInfo) {
-                        throw new Error(`Topic "${topicName}" not found in Firestore for section "${section.sectionName}".`);
-                    }
-                    
-                    const mcqDocs = await getTopicMCQs(topicInfo.id);
-                    const canonicalQuestions: (MCQ & { sourceDocId: string, translations?: Record<string, any> })[] = [];
-                    mcqDocs.forEach(doc => {
-                        try {
-                            const parsed = JSON.parse(doc.content);
-                            if (parsed.mcqs && Array.isArray(parsed.mcqs)) {
-                                parsed.mcqs.forEach((mcq: any) => {
-                                    canonicalQuestions.push({ ...mcq, sourceDocId: doc.id });
-                                });
-                            }
-                        } catch (e) { /* ignore non-json */ }
-                    });
+                    if (topicName.toLowerCase() === 'analytical reasoning') {
+                        // Fetch text-based analytical reasoning from the main MCQ bank
+                        const topicInfo = topicMapByName.get(topicName.toLowerCase());
+                        if (!topicInfo) {
+                            throw new Error(`Topic "${topicName}" not found in Firestore for section "${section.sectionName}".`);
+                        }
+                        
+                        const mcqDocs = await getTopicMCQs(topicInfo.id);
+                        const canonicalQuestions: (MCQ & { sourceDocId: string, translations?: Record<string, any> })[] = [];
+                        mcqDocs.forEach(doc => {
+                            try {
+                                const parsed = JSON.parse(doc.content);
+                                if (parsed.mcqs && Array.isArray(parsed.mcqs)) {
+                                    parsed.mcqs.forEach((mcq: any) => {
+                                        canonicalQuestions.push({ ...mcq, sourceDocId: doc.id });
+                                    });
+                                }
+                            } catch (e) { /* ignore non-json */ }
+                        });
 
-                    if (canonicalQuestions.length < questionsNeeded) {
-                        throw new Error(`Not enough questions for "${topicName}". Found ${canonicalQuestions.length}, but need ${questionsNeeded}.`);
+                        if (canonicalQuestions.length < questionsNeededForTopic) {
+                            throw new Error(`Not enough questions for "${topicName}". Found ${canonicalQuestions.length}, but need ${questionsNeededForTopic}.`);
+                        }
+                        
+                        const processedQuestions = await Promise.all(
+                            shuffleArray(canonicalQuestions).slice(0, questionsNeededForTopic).map(async (cq) => {
+                                if (targetLang === 'english' || !targetLangKey) return cq;
+                                
+                                if (cq.translations && cq.translations[targetLangKey]) {
+                                    const translated = cq.translations[targetLangKey];
+                                    return {
+                                        ...cq,
+                                        ...translated,
+                                    };
+                                }
+                                
+                                if (input.language) {
+                                    const translatedMcq = await translateMCQ(cq, input.language);
+                                    updateTopicMCQWithTranslation(cq.sourceDocId, cq.question, targetLangKey, translatedMcq).catch(err => console.error("Failed to save translation:", err));
+                                    return translatedMcq;
+                                }
+                                return cq;
+                            })
+                        );
+                        sectionQuestions.push(...processedQuestions);
+                    } else {
+                        // Fetch image-based reasoning from the reasoning bank
+                        const topicQuestions = allReasoningBankQuestions.filter(q => q.topic.toLowerCase() === topicName.toLowerCase());
+                        if (topicQuestions.length < questionsNeededForTopic) {
+                            throw new Error(`Not enough questions in Reasoning Bank for "${topicName}". Found ${topicQuestions.length}, but need ${questionsNeededForTopic}.`);
+                        }
+                        const selectedReasoning = shuffleArray(topicQuestions).slice(0, questionsNeededForTopic);
+                        const formattedReasoningMCQs: MCQ[] = selectedReasoning.map((q: ReasoningQuestion) => ({
+                            question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
+                            options: q.options,
+                            correctAnswer: q.correctAnswer,
+                            solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
+                            topic: q.topic,
+                        }));
+                        sectionQuestions.push(...formattedReasoningMCQs);
                     }
-                    
-                    const processedQuestions = await Promise.all(
-                        shuffleArray(canonicalQuestions).slice(0, questionsNeeded).map(async (cq) => {
-                            if (targetLang === 'english' || !targetLangKey) return cq;
-                            
-                            if (cq.translations && cq.translations[targetLangKey]) {
-                                const translated = cq.translations[targetLangKey];
-                                return {
-                                    ...cq,
-                                    ...translated,
-                                };
-                            }
-                            
-                            if (input.language) {
-                                const translatedMcq = await translateMCQ(cq, input.language);
-                                updateTopicMCQWithTranslation(cq.sourceDocId, cq.question, targetLangKey, translatedMcq).catch(err => console.error("Failed to save translation:", err));
-                                return translatedMcq;
-                            }
-                            return cq;
-                        })
-                    );
-                    sectionQuestions.push(...processedQuestions);
-                } else {
-                    // Fetch image-based reasoning from the reasoning bank
-                    const topicQuestions = allReasoningBankQuestions.filter(q => q.topic.toLowerCase() === topicName.toLowerCase());
-                    if (topicQuestions.length < questionsNeeded) {
-                        throw new Error(`Not enough questions in Reasoning Bank for "${topicName}". Found ${topicQuestions.length}, but need ${questionsNeeded}.`);
-                    }
-                    const selectedReasoning = shuffleArray(topicQuestions).slice(0, questionsNeeded);
-                    const formattedReasoningMCQs: MCQ[] = selectedReasoning.map((q: ReasoningQuestion) => ({
-                        question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
-                        options: q.options,
-                        correctAnswer: q.correctAnswer,
-                        solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
-                        topic: q.topic,
-                    }));
-                    sectionQuestions.push(...formattedReasoningMCQs);
                 }
-            }
-        } else { // Handle all other non-reasoning sections
+             } else { // Handle POSTMAN reasoning
+                if (allReasoningBankQuestions.length < questionsNeeded) {
+                    throw new Error(`Not enough questions in Reasoning Bank for "${section.sectionName}". Found ${allReasoningBankQuestions.length}, but need ${questionsNeeded}.`);
+                }
+                const selectedReasoning = shuffleArray(allReasoningBankQuestions).slice(0, questionsNeeded);
+                const formattedReasoningMCQs: MCQ[] = selectedReasoning.map((q: ReasoningQuestion) => ({
+                    question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
+                    options: q.options,
+                    correctAnswer: q.correctAnswer,
+                    solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
+                    topic: q.topic,
+                }));
+                sectionQuestions.push(...formattedReasoningMCQs);
+             }
+        } else { // Handle all other non-reasoning, non-GK sections
             const topicNamesInSection = section.topics.map(t => (typeof t === 'string' ? t : t.name));
             const topicMapping: { name: string, id: string, docId?: string }[] = [];
             
@@ -267,7 +285,7 @@ const generateMockTestFlow = ai.defineFlow(
                 }
             }
 
-            if (topicMapping.length === 0) {
+            if (topicMapping.length === 0 && section.questions > 0) {
                 throw new Error(`No topics found in Firestore for section: "${section.sectionName}". Please check blueprint and topic names.`);
             }
 
@@ -287,7 +305,7 @@ const generateMockTestFlow = ai.defineFlow(
                 }
             });
             
-            if (canonicalQuestions.length === 0) {
+            if (canonicalQuestions.length === 0 && section.questions > 0) {
                  throw new Error(`No valid JSON MCQ documents have been uploaded for the topics in section: "${section.sectionName}".`);
             }
             
@@ -332,8 +350,8 @@ const generateMockTestFlow = ai.defineFlow(
       }
     }
     
-    const totalExpectedQuestions = blueprint.parts.reduce((sum, part) => sum + part.totalQuestions, 0);
-    
+    const totalExpectedQuestions = blueprint.parts.reduce((sum, part) => sum + part.sections.reduce((s, sec) => s + sec.questions, 0), 0);
+
     return { mcqs: shuffleArray(allQuestions).slice(0, totalExpectedQuestions) };
   }
 );
