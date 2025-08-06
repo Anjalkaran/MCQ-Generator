@@ -100,7 +100,18 @@ const generateMockTestFlow = ai.defineFlow(
     const allQuestions: MCQ[] = [];
     const allFirestoreTopics = await getTopics();
     const topicMapByName: Map<string, Topic> = new Map(allFirestoreTopics.map(t => [t.title.toLowerCase(), t]));
-    const targetLang = input.language;
+    const targetLang = input.language?.toLowerCase();
+
+    const languageMap: Record<string, string> = {
+        'english': 'en',
+        'tamil': 'ta',
+        'hindi': 'hi',
+        'telugu': 'te',
+        'kannada': 'kn'
+    };
+    
+    const targetLangKey = targetLang ? languageMap[targetLang] : 'en';
+
 
     for (const part of blueprint.parts) {
       for (const section of part.sections) {
@@ -123,7 +134,7 @@ const generateMockTestFlow = ai.defineFlow(
                     }
                     
                     const mcqDocs = await getTopicMCQs(topicInfo.id);
-                    const canonicalQuestions: (MCQ & { sourceDocId: string, translations?: Record<string, MCQ> })[] = [];
+                    const canonicalQuestions: (MCQ & { sourceDocId: string, translations?: Record<string, any> })[] = [];
                     mcqDocs.forEach(doc => {
                         try {
                             const parsed = JSON.parse(doc.content);
@@ -141,12 +152,22 @@ const generateMockTestFlow = ai.defineFlow(
                     
                     const processedQuestions = await Promise.all(
                         shuffleArray(canonicalQuestions).slice(0, questionsNeeded).map(async (cq) => {
-                            if (targetLang === 'English' || !targetLang) return cq;
-                            if (cq.translations && cq.translations[targetLang]) return cq.translations[targetLang];
+                            if (targetLang === 'english' || !targetLangKey) return cq;
                             
-                            const translatedMcq = await translateMCQ(cq, targetLang);
-                            updateTopicMCQWithTranslation(cq.sourceDocId, cq.question, targetLang, translatedMcq).catch(err => console.error("Failed to save translation:", err));
-                            return translatedMcq;
+                            if (cq.translations && cq.translations[targetLangKey]) {
+                                const translated = cq.translations[targetLangKey];
+                                return {
+                                    ...cq,
+                                    ...translated,
+                                };
+                            }
+                            
+                            if (input.language) {
+                                const translatedMcq = await translateMCQ(cq, input.language);
+                                updateTopicMCQWithTranslation(cq.sourceDocId, cq.question, targetLangKey, translatedMcq).catch(err => console.error("Failed to save translation:", err));
+                                return translatedMcq;
+                            }
+                            return cq;
                         })
                     );
                     sectionQuestions.push(...processedQuestions);
@@ -185,7 +206,7 @@ const generateMockTestFlow = ai.defineFlow(
             }
 
             const allMcqDocsForSection = await Promise.all(topicMapping.map(t => getTopicMCQs(t.id)));
-            const canonicalQuestions: (MCQ & { sourceDocId: string, translations?: Record<string, MCQ> })[] = [];
+            const canonicalQuestions: (MCQ & { sourceDocId: string, translations?: Record<string, any> })[] = [];
 
             allMcqDocsForSection.flat().forEach(doc => {
                 try {
@@ -210,20 +231,25 @@ const generateMockTestFlow = ai.defineFlow(
             for (const cq of shuffleArray(canonicalQuestions)) {
                 if (processedQuestions.length >= sectionQuestionsNeeded) break;
 
-                if (targetLang === 'English' || !targetLang) {
+                if (targetLang === 'english' || !targetLangKey) {
                     processedQuestions.push(cq);
-                } else if (cq.translations && cq.translations[targetLang]) {
-                    processedQuestions.push(cq.translations[targetLang]);
+                } else if (cq.translations && cq.translations[targetLangKey]) {
+                     const translated = cq.translations[targetLangKey];
+                     processedQuestions.push({ ...cq, ...translated });
                 } else {
-                    try {
-                        console.log(`Translating question for topic ${cq.topic} to ${targetLang}...`);
-                        const translatedMcq = await translateMCQ(cq, targetLang);
-                        processedQuestions.push(translatedMcq);
-                        
-                        updateTopicMCQWithTranslation(cq.sourceDocId, cq.question, targetLang, translatedMcq)
-                            .catch(err => console.error("Failed to save translation:", err));
-                    } catch (e) {
-                        console.error(`Skipping question due to translation error for topic ${cq.topic}:`, e);
+                    if (input.language) {
+                        try {
+                            console.log(`Translating question for topic ${cq.topic} to ${input.language}...`);
+                            const translatedMcq = await translateMCQ(cq, input.language);
+                            processedQuestions.push(translatedMcq);
+                            
+                            updateTopicMCQWithTranslation(cq.sourceDocId, cq.question, targetLangKey, translatedMcq)
+                                .catch(err => console.error("Failed to save translation:", err));
+                        } catch (e) {
+                            console.error(`Skipping question due to translation error for topic ${cq.topic}:`, e);
+                        }
+                    } else {
+                        processedQuestions.push(cq);
                     }
                 }
             }
