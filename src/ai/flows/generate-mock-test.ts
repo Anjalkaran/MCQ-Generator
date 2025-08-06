@@ -71,6 +71,42 @@ const translateMCQ = async (mcq: MCQ, targetLanguage: string): Promise<MCQ> => {
     return translatedMcq as MCQ;
 }
 
+const generateGkQuestionsPrompt = ai.definePrompt({
+    name: 'generateGkQuestionsPrompt',
+    input: {
+        schema: z.object({
+            examCategory: z.string(),
+            topicsAndCounts: z.array(z.object({ name: z.string(), questions: z.number() })),
+            language: z.string().optional().default('English'),
+        })
+    },
+    output: {
+        schema: z.object({
+            questions: z.array(MCQSchema)
+        })
+    },
+    model: 'googleai/gemini-1.5-pro',
+    prompt: `You are an expert in creating high-quality General Knowledge and Awareness practice questions for the Indian Postal Department's {{examCategory}} exam.
+
+**CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
+
+Your task is to generate a set of multiple-choice questions based on the provided list of topics and the number of questions required for each.
+
+**Topics and Question Counts:**
+{{#each topicsAndCounts}}
+-   **Topic:** {{name}}
+-   **Number of Questions:** {{questions}}
+{{/each}}
+
+**CRITICAL INSTRUCTIONS:**
+*   For each generated question, you MUST specify its source topic in the 'topic' field.
+*   The 'correctAnswer' must be an EXACT match to one of the four options.
+*   The 'solution' field should be an empty string ("").
+
+Your final output MUST be a single, valid JSON object containing a 'questions' array with the total number of questions requested.
+`,
+});
+
 
 function shuffleArray<T>(array: T[]): T[] {
   for (let i = array.length - 1; i > 0; i--) {
@@ -117,8 +153,25 @@ const generateMockTestFlow = ai.defineFlow(
       for (const section of part.sections) {
         let sectionQuestions: MCQ[] = [];
 
-        // This is the new, more granular logic for handling reasoning sections.
-        if (section.sectionName.toLowerCase().includes("reasoning")) {
+        // Special handling for General Awareness - always generate with AI
+        if (section.sectionName.toLowerCase().includes("general awareness")) {
+            const topicsAndCounts = section.topics.map(t => (typeof t === 'string' ? { name: t, questions: 0 } : t)).filter(t => t.questions > 0);
+            
+            if(topicsAndCounts.length > 0) {
+                const { output } = await generateGkQuestionsPrompt({
+                    examCategory: input.examCategory,
+                    topicsAndCounts: topicsAndCounts,
+                    language: input.language,
+                });
+
+                if (output && output.questions) {
+                    sectionQuestions.push(...output.questions);
+                } else {
+                    throw new Error(`Failed to generate General Awareness questions for section: "${section.sectionName}".`);
+                }
+            }
+            
+        } else if (section.sectionName.toLowerCase().includes("reasoning")) {
             const allReasoningBankQuestions = await getReasoningQuestionsForPartwiseTest(input.examCategory as 'MTS' | 'POSTMAN' | 'PA');
 
             for (const topicDef of section.topics) {
@@ -271,3 +324,5 @@ const generateMockTestFlow = ai.defineFlow(
     return { mcqs: shuffleArray(allQuestions).slice(0, totalExpectedQuestions) };
   }
 );
+
+    
