@@ -153,32 +153,6 @@ export function ReasoningTestForm() {
   const proValidUntilDate = normalizeDate(userData?.proValidUntil);
   const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
   
-  const totalExamsTaken = userData?.totalExamsTaken || 0;
-  const hasExceededFreeLimit = !isPro && userData && totalExamsTaken >= FREE_EXAM_LIMIT;
-
-  if (hasExceededFreeLimit) {
-     return (
-        <Card>
-            <CardHeader className="text-center">
-                <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit">
-                    <Gem className="h-8 w-8 text-primary" />
-                </div>
-                <CardTitle>Free Limit Reached</CardTitle>
-                <CardDescription>
-                    You have used your free exam allocation. Please upgrade for unlimited access to all features, including Reasoning Tests.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Button asChild className="w-full">
-                    <Link href="/dashboard/upgrade">
-                        Upgrade to Pro
-                    </Link>
-                </Button>
-            </CardContent>
-        </Card>
-    );
-  }
-
   return (
      <Card>
         <Form {...form}>
