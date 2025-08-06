@@ -52,6 +52,7 @@ export function MockTestForm() {
   });
 
   const selectedExamType = form.watch('examType');
+  const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
 
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
@@ -116,7 +117,7 @@ export function MockTestForm() {
                     name="examType"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Select Exam (Testing MTS only)</FormLabel>
+                        <FormLabel>Select Exam</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value} disabled={!user}>
                             <FormControl>
                             <SelectTrigger>
@@ -125,8 +126,12 @@ export function MockTestForm() {
                             </FormControl>
                             <SelectContent>
                                 <SelectItem value="MTS">MTS</SelectItem>
-                                <SelectItem value="POSTMAN" disabled>POSTMAN (Coming Soon)</SelectItem>
-                                <SelectItem value="PA" disabled>PA (Coming Soon)</SelectItem>
+                                <SelectItem value="POSTMAN" disabled={!isAdmin}>
+                                    POSTMAN {isAdmin ? '' : '(Coming Soon)'}
+                                </SelectItem>
+                                <SelectItem value="PA" disabled={!isAdmin}>
+                                    PA {isAdmin ? '' : '(Coming Soon)'}
+                                </SelectItem>
                             </SelectContent>
                         </Select>
                         <FormMessage />
