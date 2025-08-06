@@ -155,12 +155,25 @@ const generateMockTestFlow = ai.defineFlow(
 
         // Special handling for General Awareness - always generate with AI
         if (section.sectionName.toLowerCase().includes("general awareness")) {
-            const topicsAndCounts = section.topics.map(t => (typeof t === 'string' ? { name: t, questions: 0 } : t)).filter(t => t.questions > 0);
+            const topicsAndCounts = section.topics.map(t => (typeof t === 'string' ? { name: t, questions: 0 } : t));
             
-            if(topicsAndCounts.length > 0) {
+            // For blueprints where question counts are not specified per topic, distribute them.
+            if (topicsAndCounts.some(t => t.questions === 0) && section.questions) {
+                const totalTopics = topicsAndCounts.length;
+                const questionsPerTopic = Math.floor(section.questions / totalTopics);
+                let remainder = section.questions % totalTopics;
+                for (const t of topicsAndCounts) {
+                    t.questions = questionsPerTopic + (remainder > 0 ? 1 : 0);
+                    if (remainder > 0) remainder--;
+                }
+            }
+            
+            const validTopicsToGenerate = topicsAndCounts.filter(t => t.questions > 0);
+            
+            if(validTopicsToGenerate.length > 0) {
                 const { output } = await generateGkQuestionsPrompt({
                     examCategory: input.examCategory,
-                    topicsAndCounts: topicsAndCounts,
+                    topicsAndCounts: validTopicsToGenerate,
                     language: input.language,
                 });
 
@@ -324,5 +337,3 @@ const generateMockTestFlow = ai.defineFlow(
     return { mcqs: shuffleArray(allQuestions).slice(0, totalExpectedQuestions) };
   }
 );
-
-    
