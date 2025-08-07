@@ -11,29 +11,28 @@ export const MTS_BLUEPRINT = {
       sections: [
         {
           sectionName: "Post Office Guide Part I & Products/Services",
-          questions: 23,
           topics: [
             { name: "Organization of the Department", questions: 2 },
             { name: "Type of Post Offices", questions: 1 },
             { name: "Business Hours", questions: 1 },
-            { name: "Payment of postage, stamps and stationery", questions: 1 },
-            { name: "General rules as to packing, sealing and posting, manner of affixing postage stamps", questions: 1 },
+            { name: "Payment of postage, stamps and stationery", questions: 2 },
+            { name: "General rules as to packing, sealing and posting, manner of affixing postage stamps", questions: 2 },
             { name: "Methods of address", questions: 2 },
             { name: "Post boxes and Post bags", questions: 1 },
             { name: "Duties of Letter Box peon", questions: 1 },
             { name: "Official postal articles", questions: 1 },
             { name: "Prohibited postal articles", questions: 2 },
             { name: "Domestic Item – Mails", questions: 1 },
-            { name: "International items and services", questions: 1 },
             { name: "Stamps", questions: 1 },
             { name: "Jan Suraksha Scheme", questions: 1 },
+            { name: "International items and services", questions: 1 },
             { name: "PLI/RPLI", questions: 2 },
-            { name: "Definitions", questions: 4 },
+            { name: "Definitions", questions: 7 },
           ],
-           randomFrom: {
-              questions: 1,
-              topics: ["SCSS", "SSA", "PPF", "TD and MIS", "Recuring Deposit", "Savings Bank Account", "KVP", "NSC"],
-            }
+          randomFrom: {
+            questions: 2,
+            topics: ["SCSS", "SSA", "PPF", "TD and MIS", "Recuring Deposit", "Savings Bank Account", "KVP", "NSC"],
+          }
         },
       ],
     },
@@ -61,16 +60,19 @@ export const MTS_BLUEPRINT = {
         {
           sectionName: "Basic Arithmetics",
           questions: 10,
-          topics: [
-            { name: "BODMAS", questions: 1 },
-            { name: "Percentage", questions: 1 },
-            { name: "Profit and loss", questions: 1 },
-            { name: "Simple interest", questions: 1 },
-            { name: "Average", questions: 1 },
-            { name: "Time and work", questions: 1 },
-            { name: "Time and distance", questions: 1 },
-            { name: "Unitary method", questions: 3 },
-          ],
+          randomFrom: {
+            questions: 10,
+            topics: [
+              "BODMAS",
+              "Percentage",
+              "Profit and loss",
+              "Simple interest",
+              "Average",
+              "Time and work",
+              "Time and distance",
+              "Unitary method"
+            ]
+          }
         },
       ],
     },
@@ -127,26 +129,29 @@ export const POSTMAN_BLUEPRINT = {
         {
           sectionName: "General Awareness/Knowledge",
           questions: 10,
-          topics: [
-            { name: "Indian Geography", questions: 2 },
-            { name: "Civics", questions: 2 },
-            { name: "General knowledge", questions: 1 },
-            { name: "Indian culture & freedom struggle", questions: 2 },
-            { name: "Ethics and morale study", questions: 1 },
-            { name: "current affairs", questions: 2 },
-          ],
+          randomFrom: {
+            questions: 10,
+            topics: [
+                "Indian Geography", 
+                "Civics", 
+                "General knowledge", 
+                "Indian culture & freedom struggle", 
+                "Ethics and morale study",
+                "current affairs"
+            ]
+          }
         },
         {
           sectionName: "Basic Arithmetics",
           questions: 10,
-          topics: [
-            { name: "Basic Arithmetics", questions: 10 },
-          ],
+          randomFrom: {
+            questions: 10,
+            topics: ["Basic Arithmetics"]
+          },
         },
         {
           sectionName: "Reasoning and Analytical Ability",
           questions: 5,
-          topics: [],
         },
       ],
     },
@@ -165,8 +170,7 @@ export const PA_BLUEPRINT = {
       sections: [
         {
           sectionName: "Post Office Guide Part I & Products/Services",
-          questions: 20,
-           topics: [
+          topics: [
             { name: "Organization of the Department", questions: 1 },
             { name: "Type of Post Offices", questions: 1 },
             { name: "Business Hours", questions: 1 },
@@ -230,33 +234,38 @@ export const PA_BLUEPRINT = {
         {
           sectionName: "General Awareness/Knowledge",
           questions: 10,
-          topics: [
-            { name: "Indian Geography", questions: 2 },
-            { name: "Civics", questions: 2 },
-            { name: "General knowledge", questions: 1 },
-            { name: "Indian culture & freedom struggle", questions: 2 },
-            { name: "Ethics and morale study", questions: 1 },
-            { name: "current affairs", questions: 2 },
-          ],
+          randomFrom: {
+            questions: 10,
+            topics: [
+                "Indian Geography", 
+                "Civics", 
+                "General knowledge", 
+                "Indian culture & freedom struggle", 
+                "Ethics and morale study",
+                "current affairs"
+            ]
+          }
         },
         {
           sectionName: "Basic Arithmetics",
           questions: 20,
-          topics: [
-            { name: "BODMAS", questions: 2 },
-            { name: "Percentage", questions: 2 },
-            { name: "Profit and loss", questions: 3 },
-            { name: "Simple interest", questions: 3 },
-            { name: "Average", questions: 3 },
-            { name: "Time and work", questions: 2 },
-            { name: "Time and distance", questions: 3 },
-            { name: "Unitary method", questions: 2 },
-          ],
+          randomFrom: {
+            questions: 20,
+            topics: [
+                "BODMAS",
+                "Percentage",
+                "Profit and loss",
+                "Simple interest",
+                "Average",
+                "Time and work",
+                "Time and distance",
+                "Unitary method"
+            ]
+          }
         },
         {
           sectionName: "Reasoning and Analytical Ability",
           questions: 20,
-          topics: [],
         },
       ],
     },
