@@ -5,9 +5,10 @@ export const MTS_BLUEPRINT = {
   parts: [
     {
       partName: "Part-A",
+      totalQuestions: 30,
       sections: [
         {
-          sectionName: "Post Office Guide Part I & Products/Services",
+          sectionName: "Post Office Guide Part I",
           topics: [
             { name: "Organization of the Department", questions: 2 },
             { name: "Type of Post Offices", questions: 1 },
@@ -20,45 +21,56 @@ export const MTS_BLUEPRINT = {
             { name: "Official postal articles", questions: 1 },
             { name: "Prohibited postal articles", questions: 2 },
             { name: "Definitions", questions: 7 },
+          ],
+        },
+        {
+          sectionName: "Products and Services",
+          topics: [
             { name: "Domestic Item – Mails", questions: 1 },
             { name: "Stamps", questions: 1 },
             { name: "Jan Suraksha Scheme", questions: 1 },
             { name: "PLI/RPLI", questions: 2 },
-            { name: "International items and services", questions: 1 }
           ],
           randomFrom: {
             questions: 2,
             topics: ["SCSS", "SSA", "PPF", "TD and MIS", "Recuring Deposit", "Savings Bank Account", "KVP", "NSC"],
-          }
+          },
         },
       ],
     },
     {
       partName: "Part-B",
+      totalQuestions: 20,
       sections: [
         {
           sectionName: "General Awareness/Knowledge",
-          topics: [
-            { name: "Indian Geography", questions: 2 },
-            { name: "Civics", questions: 2 },
-            { name: "General knowledge", questions: 1 },
-            { name: "Indian culture & freedom struggle", questions: 2 },
-            { name: "Ethics and morale study", questions: 1 },
-            { name: "current affairs", questions: 2 }
-          ]
+          randomFrom: {
+            questions: 10,
+            topics: [
+                "Indian Geography", 
+                "Civics", 
+                "General knowledge", 
+                "Indian culture & freedom struggle", 
+                "Ethics and morale study",
+                "current affairs"
+            ]
+          }
         },
         {
           sectionName: "Basic Arithmetics",
-          topics: [
-            { name: "BODMAS", questions: 2 },
-            { name: "Percentage", questions: 1 },
-            { name: "Profit and loss", questions: 1 },
-            { name: "Simple interest", questions: 1 },
-            { name: "Average", questions: 1 },
-            { name: "Time and work", questions: 1 },
-            { name: "Time and distance", questions: 1 },
-            { name: "Unitary method", questions: 2 }
-          ]
+          randomFrom: {
+            questions: 10,
+            topics: [
+                "BODMAS",
+                "Percentage",
+                "Profit and loss",
+                "Simple interest",
+                "Average",
+                "Time and work",
+                "Time and distance",
+                "Unitary method"
+            ]
+          }
         },
       ],
     },
@@ -135,10 +147,6 @@ export const POSTMAN_BLUEPRINT = {
             topics: ["Basic Arithmetics"]
           },
         },
-        {
-          sectionName: "Reasoning and Analytical Ability",
-          questions: 5,
-        },
       ],
     },
   ],
@@ -150,6 +158,7 @@ export const PA_BLUEPRINT = {
   parts: [
     {
       partName: "Part-A",
+      totalQuestions: 50,
       sections: [
         {
           sectionName: "Post Office Guide Part I & Products/Services",
@@ -204,6 +213,7 @@ export const PA_BLUEPRINT = {
     },
     {
       partName: "Part-B",
+      totalQuestions: 50,
       sections: [
         {
           sectionName: "General Awareness/Knowledge",
