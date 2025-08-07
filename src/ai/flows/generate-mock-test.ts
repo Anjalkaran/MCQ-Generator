@@ -16,7 +16,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-blueprints';
 import type { MCQ, ReasoningQuestion, Topic } from '@/lib/types';
-import { getTopicMCQs, getReasoningQuestionsForPartwiseTest, getTopics, updateTopicMCQWithTranslation } from '@/lib/firestore';
+import { getShuffledMCQsForTopics, getTopics, updateTopicMCQWithTranslation } from '@/lib/firestore';
 import { generate } from '@genkit-ai/ai';
 import { gemini15Pro } from '@genkit-ai/googleai';
 import { zodToJsonSchema } from 'zod-to-json-schema';
@@ -139,53 +139,84 @@ const generateMockTestFlow = ai.defineFlow(
     const allFirestoreTopics = await getTopics();
     const topicMapByName: Map<string, Topic> = new Map(allFirestoreTopics.map(t => [t.title.toLowerCase(), t]));
     
-    // --- Optimized Data Fetching ---
-    const allTopicNames = new Set<string>();
-    blueprint.parts.forEach(part => {
-        part.sections.forEach(section => {
-             // Skip GK section from this pre-fetch
-            if (section.sectionName.toLowerCase().includes("general awareness")) {
-                return;
-            }
-            if (section.topics) {
-                section.topics.forEach(topicDef => {
-                    const name = typeof topicDef === 'string' ? topicDef : topicDef.name;
-                    allTopicNames.add(name.toLowerCase());
-                });
-            }
-            if (section.randomFrom) {
-                section.randomFrom.topics.forEach(name => allTopicNames.add(name.toLowerCase()));
-            }
-        });
-    });
-    
-    const allTopicIds = Array.from(allTopicNames).map(name => topicMapByName.get(name)?.id).filter(Boolean) as string[];
-    
-    const allMcqDocsPromises = allTopicIds.map(id => getTopicMCQs(id));
-    const allMcqDocsNested = await Promise.all(allMcqDocsPromises);
-    const allMcqDocs = allMcqDocsNested.flat();
-
-    const mcqsByTopicId = new Map<string, (MCQ & { sourceDocId: string, translations?: Record<string, any> })[]>();
-    allMcqDocs.forEach(doc => {
-        try {
-            const parsed = JSON.parse(doc.content);
-            if (parsed.mcqs && Array.isArray(parsed.mcqs)) {
-                const existing = mcqsByTopicId.get(doc.topicId) || [];
-                const newMcqs = parsed.mcqs.map((mcq: any) => ({ ...mcq, sourceDocId: doc.id }));
-                mcqsByTopicId.set(doc.topicId, [...existing, ...newMcqs]);
-            }
-        } catch (e) { /* ignore parse errors */ }
-    });
-    // --- End Optimized Data Fetching ---
-
     const targetLang = input.language?.toLowerCase();
     const languageMap: Record<string, string> = { 'english': 'en', 'tamil': 'ta', 'hindi': 'hi', 'telugu': 'te', 'kannada': 'kn' };
     const targetLangKey = targetLang ? languageMap[targetLang] : 'en';
 
-    // Helper function to process and translate questions
-    const processAndTranslate = async (canonicalQuestions: (MCQ & { sourceDocId: string, translations?: Record<string, any> })[]): Promise<MCQ[]> => {
+    for (const part of blueprint.parts) {
+      for (const section of part.sections) {
+        
+        // --- Special Case: Generate General Knowledge Questions with AI ---
+        if (section.sectionName.toLowerCase().includes("general awareness")) {
+            const gkTopicsAndCounts: { name: string, questions: number }[] = [];
+            
+            if (section.topics) {
+                gkTopicsAndCounts.push(...section.topics.map(topicDef => ({
+                    name: topicDef.name,
+                    questions: topicDef.questions,
+                })));
+            }
+            if (section.randomFrom) {
+                 const totalQuestionsNeeded = section.randomFrom.questions;
+                 // Distribute questions as evenly as possible among topics
+                 const topicsCount = section.randomFrom.topics.length;
+                 const baseQuestions = Math.floor(totalQuestionsNeeded / topicsCount);
+                 let remainder = totalQuestionsNeeded % topicsCount;
+                 
+                 section.randomFrom.topics.forEach(topicName => {
+                     let questionsForThisTopic = baseQuestions;
+                     if (remainder > 0) {
+                         questionsForThisTopic++;
+                         remainder--;
+                     }
+                     if (questionsForThisTopic > 0) {
+                        gkTopicsAndCounts.push({ name: topicName, questions: questionsForThisTopic });
+                     }
+                 });
+            }
+
+            if (gkTopicsAndCounts.length > 0) {
+                 const { output } = await generateGkQuestionsPrompt({
+                    examCategory: input.examCategory,
+                    topicsAndCounts: gkTopicsAndCounts,
+                    language: input.language
+                });
+                
+                if (!output || !output.questions) {
+                    throw new Error(`AI failed to generate General Awareness questions for section: "${section.sectionName}".`);
+                }
+                allQuestions.push(...output.questions);
+            }
+            continue; // Move to the next section
+        }
+
+        // --- Standard Question Fetching from MCQ Bank ---
+        const topicRequests = new Map<string, number>();
+        let randomFromRequest: { topics: string[], questions: number } | null = null;
+        
+        if (section.topics) {
+             section.topics.forEach(topicDef => {
+                const topicInfo = topicMapByName.get(topicDef.name.toLowerCase());
+                if (topicInfo) {
+                    topicRequests.set(topicInfo.id, topicDef.questions);
+                } else {
+                    console.warn(`Blueprint topic "${topicDef.name}" not found in Firestore. Skipping.`);
+                }
+            });
+        }
+        
+        if (section.randomFrom) {
+            const topicIds = section.randomFrom.topics
+                .map(name => topicMapByName.get(name.toLowerCase())?.id)
+                .filter(Boolean) as string[];
+            
+            randomFromRequest = { topics: topicIds, questions: section.randomFrom.questions };
+        }
+        
+        const fetchedMCQs = await getShuffledMCQsForTopics(topicRequests, randomFromRequest);
+        
         const processed: MCQ[] = [];
-        for (const cq of canonicalQuestions) {
+        for (const cq of fetchedMCQs) {
             let finalMcq: MCQ;
             if (targetLang === 'english' || !targetLangKey) {
                 finalMcq = cq;
@@ -207,96 +238,12 @@ const generateMockTestFlow = ai.defineFlow(
             const { translations, sourceLanguage, ...rest } = finalMcq as any;
             processed.push(rest);
         }
-        return processed;
-    };
-
-
-    for (const part of blueprint.parts) {
-      for (const section of part.sections) {
-        let sectionQuestions: MCQ[] = [];
-        
-        // --- Special Case: Generate General Knowledge Questions with AI ---
-        if (section.sectionName.toLowerCase().includes("general awareness")) {
-            const gkTopicsAndCounts = (section.topics || []).map(topicDef => ({
-                name: typeof topicDef === 'string' ? topicDef : topicDef.name,
-                questions: typeof topicDef === 'string' ? 1 : topicDef.questions,
-            }));
-            
-            if (section.randomFrom) {
-                // For MTS blueprint
-                 const totalQuestionsNeeded = section.randomFrom.questions;
-                 const topicsPerQuestion = Math.ceil(totalQuestionsNeeded / section.randomFrom.topics.length);
-                 section.randomFrom.topics.forEach(topicName => {
-                     gkTopicsAndCounts.push({ name: topicName, questions: topicsPerQuestion });
-                 });
-            }
-
-            if (gkTopicsAndCounts.length > 0) {
-                 const { output } = await generateGkQuestionsPrompt({
-                    examCategory: input.examCategory,
-                    topicsAndCounts: gkTopicsAndCounts,
-                    language: input.language
-                });
-                
-                if (!output || !output.questions) {
-                    throw new Error(`AI failed to generate General Awareness questions for section: "${section.sectionName}".`);
-                }
-                sectionQuestions.push(...output.questions);
-            }
-
-        } else if (section.randomFrom) {
-            const topicNames = section.randomFrom.topics;
-            const relevantTopicIds = topicNames.map(name => topicMapByName.get(name.toLowerCase())?.id).filter(Boolean) as string[];
-            
-            if (relevantTopicIds.length === 0) {
-                throw new Error(`No valid topics found in Firestore for random selection section: "${section.sectionName}".`);
-            }
-            
-            const canonicalQuestions: (MCQ & { sourceDocId: string, translations?: Record<string, any> })[] = [];
-            relevantTopicIds.forEach(id => {
-                const questions = mcqsByTopicId.get(id) || [];
-                canonicalQuestions.push(...questions);
-            });
-
-            if (canonicalQuestions.length < section.questions) {
-                 throw new Error(`Could not find enough questions for random selection in section "${section.sectionName}". Found ${canonicalQuestions.length}, but need ${section.questions}.`);
-            }
-
-            const processed = await processAndTranslate(canonicalQuestions);
-            sectionQuestions.push(...shuffleArray(processed).slice(0, section.questions));
-
-        }
-        else {
-            for (const topicDef of section.topics) {
-                const { name: topicName, questions: questionsNeededForTopic } = typeof topicDef === 'string' ? { name: topicDef, questions: 1 } : topicDef;
-
-                if (questionsNeededForTopic === 0) continue;
-
-                const topicInfo = topicMapByName.get(topicName.toLowerCase());
-                if (!topicInfo) {
-                    console.warn(`Blueprint topic "${topicName}" not found in Firestore for this exam category. Skipping.`);
-                    continue;
-                }
-                
-                const canonicalQuestions = mcqsByTopicId.get(topicInfo.id) || [];
-                
-                if (canonicalQuestions.length < questionsNeededForTopic) {
-                     throw new Error(`Not enough questions for "${topicName}". Found ${canonicalQuestions.length}, but need ${questionsNeededForTopic}.`);
-                }
-
-                const processed = await processAndTranslate(shuffleArray(canonicalQuestions));
-                sectionQuestions.push(...processed.slice(0, questionsNeededForTopic));
-            }
-        }
-        
-        allQuestions.push(...sectionQuestions);
+        allQuestions.push(...processed);
       }
     }
     
     const totalExpectedQuestions = blueprint.parts.reduce((sum, part) => sum + part.sections.reduce((s, sec) => s + sec.questions, 0), 0);
-    const finalMCQs = shuffleArray(allQuestions)
-      .slice(0, totalExpectedQuestions)
-      .map(mcq => ({ ...mcq, solution: mcq.solution || "" })); // Ensure solution is not undefined
+    const finalMCQs = shuffleArray(allQuestions).map(mcq => ({ ...mcq, solution: mcq.solution || "" })); // Ensure solution is not undefined
 
     if (finalMCQs.length < totalExpectedQuestions) {
         throw new Error(`Failed to generate the full mock test. Could only gather ${finalMCQs.length} out of ${totalExpectedQuestions} required questions. Please check the MCQ bank.`);

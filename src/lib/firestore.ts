@@ -562,6 +562,77 @@ export const getTopicMCQs = async (topicId?: string): Promise<TopicMCQ[]> => {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as TopicMCQ));
 };
 
+/**
+ * Shuffles an array in place.
+ * @param array The array to shuffle.
+ */
+function shuffleArray<T>(array: T[]): T[] {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+export const getShuffledMCQsForTopics = async (
+    fixedRequests: Map<string, number>,
+    randomRequest: { topics: string[], questions: number } | null
+): Promise<(MCQ & { sourceDocId: string })[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+
+    const allTopicIds = [...fixedRequests.keys()];
+    if (randomRequest) {
+        allTopicIds.push(...randomRequest.topics);
+    }
+    const uniqueTopicIds = [...new Set(allTopicIds)];
+
+    if (uniqueTopicIds.length === 0) return [];
+
+    const topicMcqDocs = await getTopicMCQs(undefined); // Fetch all once
+    const mcqsByTopicId = new Map<string, (MCQ & { sourceDocId: string })[]>();
+
+    topicMcqDocs.forEach(doc => {
+        if (uniqueTopicIds.includes(doc.topicId)) {
+            try {
+                const parsed = JSON.parse(doc.content);
+                if (parsed.mcqs && Array.isArray(parsed.mcqs)) {
+                    const existing = mcqsByTopicId.get(doc.topicId) || [];
+                    const newMcqs = parsed.mcqs.map((mcq: any) => ({ ...mcq, sourceDocId: doc.id }));
+                    mcqsByTopicId.set(doc.topicId, [...existing, ...newMcqs]);
+                }
+            } catch (e) { /* ignore parse errors */ }
+        }
+    });
+
+    const finalMCQs: (MCQ & { sourceDocId: string })[] = [];
+
+    // Handle fixed requests
+    for (const [topicId, count] of fixedRequests.entries()) {
+        const availableMCQs = mcqsByTopicId.get(topicId) || [];
+        if (availableMCQs.length < count) {
+            throw new Error(`Not enough questions for a topic. Found ${availableMCQs.length}, but need ${count}. Please check the MCQ bank.`);
+        }
+        finalMCQs.push(...shuffleArray(availableMCQs).slice(0, count));
+    }
+
+    // Handle random request
+    if (randomRequest) {
+        let pooledMCQs: (MCQ & { sourceDocId: string })[] = [];
+        randomRequest.topics.forEach(topicId => {
+            pooledMCQs.push(...(mcqsByTopicId.get(topicId) || []));
+        });
+
+        if (pooledMCQs.length < randomRequest.questions) {
+             throw new Error(`Could not find enough questions for random selection. Found ${pooledMCQs.length}, but need ${randomRequest.questions}.`);
+        }
+        finalMCQs.push(...shuffleArray(pooledMCQs).slice(0, randomRequest.questions));
+    }
+
+    return finalMCQs;
+};
+
+
 export const addTopicMCQDocument = async (data: Omit<TopicMCQ, 'id'>): Promise<DocumentReference> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");

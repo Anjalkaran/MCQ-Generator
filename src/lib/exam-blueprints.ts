@@ -26,37 +26,19 @@ export const MTS_BLUEPRINT = {
           ],
         },
         {
-            sectionName: "Products and Services - Mails",
-            questions: 2,
-            topics: [
-                { name: "Domestic Item – Mails", questions: 1 },
-                { name: "Stamps", questions: 1 },
-            ]
-        },
-        {
-            sectionName: "Products and Services – Banking",
-            questions: 3,
-            topics: [
-                { name: "Jan Suraksha Scheme", questions: 1 },
-            ],
-            randomFrom: {
-                questions: 2,
-                topics: ["SCSS", "SSA", "PPF", "TD and MIS", "Recuring Deposit", "Savings Bank Account", "KVP", "NSC"],
+          sectionName: "Products and Services",
+          questions: 8,
+          topics: [
+            { name: "Domestic Item – Mails", questions: 1 },
+            { name: "Stamps", questions: 1 },
+            { name: "Jan Suraksha Scheme", questions: 1 },
+            { name: "International items and services", questions: 1 },
+            { name: "PLI/RPLI", questions: 2 },
+          ],
+           randomFrom: {
+              questions: 2,
+              topics: ["SCSS", "SSA", "PPF", "TD and MIS", "Recuring Deposit", "Savings Bank Account", "KVP", "NSC"],
             }
-        },
-        {
-            sectionName: "Products and services – business",
-            questions: 1,
-            topics: [
-                { name: "International items and services", questions: 1 },
-            ]
-        },
-        {
-            sectionName: "Products and services – insurance",
-            questions: 2,
-            topics: [
-                { name: "PLI/RPLI", questions: 2 },
-            ]
         },
         {
           sectionName: "Postal Manual Volume V",
@@ -121,22 +103,30 @@ export const POSTMAN_BLUEPRINT = {
         {
           sectionName: "Post Office Guide Part I",
           questions: 30,
-          topics: ["Post Office Guide Part I"],
+          topics: [
+             { name: "Post Office Guide Part I", questions: 30 },
+          ],
         },
         {
           sectionName: "Postal Manual Volume V",
           questions: 10,
-          topics: ["Postal Manual Volume V"],
+          topics: [
+            { name: "Postal Manual Volume V", questions: 10 },
+          ],
         },
         {
           sectionName: "Postal Manual Volume VI - Part III",
           questions: 5,
-          topics: ["Postal Manual Volume VI - Part III(PM)"],
+          topics: [
+            { name: "Postal Manual Volume VI - Part III(PM)", questions: 5 },
+          ],
         },
         {
           sectionName: "PM Vol VII",
           questions: 5,
-          topics: ["PM Vol VII"],
+          topics: [
+             { name: "PM Vol VII", questions: 5 },
+          ],
         },
       ],
     },
@@ -161,7 +151,9 @@ export const POSTMAN_BLUEPRINT = {
         {
           sectionName: "Basic Arithmetics",
           questions: 10,
-          topics: ["Basic Arithmetics"],
+          topics: [
+            { name: "Basic Arithmetics", questions: 10 },
+          ],
         },
         {
           sectionName: "Reasoning and Analytical Ability",
