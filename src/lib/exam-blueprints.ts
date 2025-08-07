@@ -22,7 +22,7 @@ export const MTS_BLUEPRINT = {
         {
           sectionName: "Products and Services – Banking",
           questions: 3,
-          topics: ["Products and Services – Banking & Remittance"],
+          topics: ["Products and Services – Banking"],
         },
         {
           sectionName: "Products and services – business",
@@ -95,7 +95,7 @@ export const POSTMAN_BLUEPRINT = {
           topics: ["Postal Manual Volume VI - Part III(PM)"],
         },
         {
-          sectionName: "PM Vol VII",
+          sectionName: "Postal Manual Volume VII",
           questions: 5,
           topics: ["PM Vol VII"],
         },
@@ -148,30 +148,27 @@ export const PA_BLUEPRINT = {
           sectionName: "Post Office Guide Part I",
           questions: 10,
           topics: [
-            { name: "Organization of the Department", questions: 1 },
-            { name: "Type of Post Offices", questions: 1 },
-            { name: "Business Hours", questions: 1 },
-            { name: "Payment of postage, stamps and stationery", questions: 1 },
-            { name: "General rules as to packing, sealing and posting, manner of affixing postage stamps", questions: 1 },
-            { name: "Methods of address", questions: 1 },
-            { name: "Post boxes and Post bags", questions: 1 },
-            { name: "Duties of Letter Box peon", questions: 1 },
-            { name: "Official postal articles", questions: 1 },
-            { name: "Prohibited postal articles", questions: 1 },
+            "Organization of the Department",
+            "Type of Post Offices",
+            "Business Hours",
+            "Payment of postage, stamps and stationery",
+            "General rules as to packing, sealing and posting, manner of affixing postage stamps",
+            "Methods of address",
+            "Post boxes and Post bags",
+            "Duties of Letter Box peon",
+            "Official postal articles",
+            "Prohibited postal articles",
           ],
         },
         {
-          sectionName: "Products and Services",
-          questions: 20,
-          topics: [
-            { name: "Mails", questions: 1 },
-            { name: "International items and services", questions: 1 },
-            { name: "Others", questions: 1 },
-            { name: "Stamps", questions: 1 },
-            { name: "PLI/RPLI", questions: 2 },
-            { name: "Jan Suraksha Scheme", questions: 0 }, // Assuming 0 as not specified
-            { name: "SCSS, SSA, PPF, Recurring Deposit, Savings Bank Account, TD and MIS", questions: 14 }, // Assuming remaining questions
-          ]
+            sectionName: "Products and Services",
+            questions: 25,
+            topics: [
+                "Products and Services - Mails",
+                "Products and Services – Banking",
+                "Products and services – business",
+                "Products and services – insurance",
+            ]
         },
         {
           sectionName: "Post Office Guide Part II",
@@ -179,7 +176,7 @@ export const PA_BLUEPRINT = {
           topics: ["Post Office Guide Part II"],
         },
         {
-          sectionName: "Basic terminologies related to IT Modernization Project",
+          sectionName: "IT Modernization Project",
           questions: 10,
           topics: ["IT Modernization Project"],
         },
