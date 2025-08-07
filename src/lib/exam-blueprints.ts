@@ -188,7 +188,7 @@ export const PA_BLUEPRINT = {
         {
           sectionName: "Basic terminologies related to IT",
           questions: 10,
-          topics: ["Basic terminologies related to IT Modernisation project of Department of Posts"],
+          topics: ["Modernization Project"],
         },
         {
           sectionName: "Products and Services",
