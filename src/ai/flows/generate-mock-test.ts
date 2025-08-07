@@ -225,22 +225,21 @@ const generateMockTestFlow = ai.defineFlow(
                         
                         const processedQuestions = await Promise.all(
                             shuffleArray(canonicalQuestions).slice(0, questionsNeededForTopic).map(async (cq) => {
-                                if (targetLang === 'english' || !targetLangKey) return cq;
-                                
-                                if (cq.translations && cq.translations[targetLangKey]) {
+                                let finalMcq: MCQ;
+                                if (targetLang === 'english' || !targetLangKey) {
+                                    finalMcq = cq;
+                                } else if (cq.translations && cq.translations[targetLangKey]) {
                                     const translated = cq.translations[targetLangKey];
-                                    return {
-                                        ...cq,
-                                        ...translated,
-                                    };
-                                }
-                                
-                                if (input.language) {
+                                    finalMcq = { ...cq, ...translated };
+                                } else if (input.language) {
                                     const translatedMcq = await translateMCQ(cq, input.language);
                                     updateTopicMCQWithTranslation(cq.sourceDocId, cq.question, targetLangKey, translatedMcq).catch(err => console.error("Failed to save translation:", err));
-                                    return translatedMcq;
+                                    finalMcq = translatedMcq;
+                                } else {
+                                    finalMcq = cq;
                                 }
-                                return cq;
+                                const { translations, sourceLanguage, ...rest } = finalMcq as any;
+                                return rest;
                             })
                         );
                         sectionQuestions.push(...processedQuestions);
@@ -350,7 +349,7 @@ const generateMockTestFlow = ai.defineFlow(
                 }
 
                 // Remove translations property to reduce localStorage size
-                const { translations, ...rest } = finalMcq as any;
+                const { translations, sourceLanguage, ...rest } = finalMcq as any;
                 processedQuestions.push(rest);
             }
 
@@ -371,5 +370,3 @@ const generateMockTestFlow = ai.defineFlow(
     return { mcqs: shuffleArray(allQuestions).slice(0, totalExpectedQuestions) };
   }
 );
-
-    
