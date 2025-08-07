@@ -380,6 +380,8 @@ const generateMockTestFlow = ai.defineFlow(
             description: `A full-length mock test based on the official ${input.examCategory} syllabus.`,
             icon: 'scroll-text',
             categoryId: 'mock-test',
+            part: 'Part A', // Add default part
+            examCategories: [input.examCategory as 'MTS' | 'POSTMAN' | 'PA'], // Add exam category
         },
         createdAt: new Date(),
     };
