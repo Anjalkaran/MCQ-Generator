@@ -1,7 +1,7 @@
 
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion, runTransaction } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ, MCQData } from './types';
 import { ADMIN_EMAILS } from './constants';
 import { normalizeDate } from './utils';
 
@@ -793,4 +793,16 @@ export const getQnAUsage = async (): Promise<QnAUsage[]> => {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), timestamp: doc.data().timestamp.toDate() } as QnAUsage));
 };
 
+
+// GENERATED QUIZ MANAGEMENT
+export const getGeneratedQuiz = async (quizId: string): Promise<MCQData | null> => {
+    const db = getFirebaseDb();
+    if (!db) return null;
+    const docRef = doc(db, 'generatedQuizzes', quizId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+        return docSnap.data() as MCQData;
+    }
+    return null;
+}
     

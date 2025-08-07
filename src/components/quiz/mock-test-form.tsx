@@ -62,37 +62,19 @@ export function MockTestForm() {
       return;
     }
     
-    const blueprint = blueprintMap[values.examType];
-    
     try {
-      const { mcqs } = await generateMockTest({
+      const { quizId } = await generateMockTest({
           examCategory: values.examType,
           userId: user.uid,
           language: values.language,
       });
 
-      if (!mcqs || mcqs.length === 0) {
+      if (!quizId) {
         toast({ title: 'Generation Failed', description: 'The AI could not generate a mock test.', variant: 'destructive' });
         setIsGenerating(false);
         return;
       }
-
-      const quizId = `mock-test-${values.examType}-${Date.now()}`;
       
-      const quizData = {
-        mcqs: mcqs,
-        timeLimit: blueprint.totalDurationMinutes * 60,
-        isMockTest: true,
-        topic: {
-          id: quizId,
-          title: `${blueprint.examName} Mock Test`,
-          description: `A full-length mock test based on the official ${values.examType} syllabus.`,
-          icon: 'scroll-text',
-          categoryId: 'mock-test',
-        },
-      };
-
-      localStorage.setItem(`quiz-${quizId}`, JSON.stringify(quizData));
       router.push(`/quiz/${quizId}`);
 
     } catch (error: any) {

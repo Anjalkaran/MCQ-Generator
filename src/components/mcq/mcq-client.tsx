@@ -22,6 +22,7 @@ import type { MCQData } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Clock, PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getGeneratedQuiz } from "@/lib/firestore";
 
 interface MCQClientProps {
   topicId: string;
@@ -72,18 +73,33 @@ export function MCQClient({ topicId }: MCQClientProps) {
 
   useEffect(() => {
     setIsClient(true);
-    const savedQuiz = localStorage.getItem(`quiz-${topicId}`);
-    if (savedQuiz) {
-      const parsedData: MCQData = JSON.parse(savedQuiz);
-      setQuizData(parsedData);
-      quizStartTimeRef.current = Date.now();
-      if (parsedData.timeLimit) {
-        setTimeLeft(parsedData.timeLimit);
-      }
-    } else {
-      router.push('/dashboard');
-    }
-  }, [topicId, router]);
+    const fetchQuizData = async () => {
+        // First, check localStorage for topic-wise quizzes
+        const savedTopicQuiz = localStorage.getItem(`quiz-${topicId}`);
+        if (savedTopicQuiz) {
+            const parsedData: MCQData = JSON.parse(savedTopicQuiz);
+            setQuizData(parsedData);
+            if (parsedData.timeLimit) {
+                setTimeLeft(parsedData.timeLimit);
+            }
+        } else {
+            // If not in localStorage, assume it's a mock test and fetch from Firestore
+            const firestoreQuiz = await getGeneratedQuiz(topicId);
+            if (firestoreQuiz) {
+                setQuizData(firestoreQuiz);
+                if (firestoreQuiz.timeLimit) {
+                    setTimeLeft(firestoreQuiz.timeLimit);
+                }
+            } else {
+                toast({ title: "Error", description: "Quiz not found. It may have expired.", variant: "destructive" });
+                router.push('/dashboard');
+            }
+        }
+        quizStartTimeRef.current = Date.now();
+    };
+
+    fetchQuizData();
+  }, [topicId, router, toast]);
   
   useEffect(() => {
     if (timeLeft === 0) {

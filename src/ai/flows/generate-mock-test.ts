@@ -20,6 +20,8 @@ import { getTopicMCQs, getReasoningQuestionsForPartwiseTest, getTopics, updateTo
 import { generate } from '@genkit-ai/ai';
 import { gemini15Pro } from '@genkit-ai/googleai';
 import { zodToJsonSchema } from 'zod-to-json-schema';
+import { getFirebaseDb } from '@/lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 
 const GenerateMockTestInputSchema = z.object({
@@ -38,7 +40,7 @@ const MCQSchema = z.object({
 });
 
 const GenerateMockTestOutputSchema = z.object({
-  mcqs: z.array(MCQSchema).describe('The generated mock test questions.'),
+  quizId: z.string().describe('The ID of the generated quiz document in Firestore.'),
 });
 export type GenerateMockTestOutput = z.infer<typeof GenerateMockTestOutputSchema>;
 
@@ -366,7 +368,29 @@ const generateMockTestFlow = ai.defineFlow(
     }
     
     const totalExpectedQuestions = blueprint.parts.reduce((sum, part) => sum + part.sections.reduce((s, sec) => s + sec.questions, 0), 0);
+    const finalMCQs = shuffleArray(allQuestions).slice(0, totalExpectedQuestions);
 
-    return { mcqs: shuffleArray(allQuestions).slice(0, totalExpectedQuestions) };
+    const quizData = {
+        mcqs: finalMCQs,
+        timeLimit: blueprint.totalDurationMinutes * 60,
+        isMockTest: true,
+        topic: {
+            id: `mock-test-${input.examCategory}-${Date.now()}`,
+            title: `${blueprint.examName} Mock Test`,
+            description: `A full-length mock test based on the official ${input.examCategory} syllabus.`,
+            icon: 'scroll-text',
+            categoryId: 'mock-test',
+        },
+        createdAt: new Date(),
+    };
+    
+    const db = getFirebaseDb();
+    if (!db) {
+        throw new Error("Firestore is not initialized.");
+    }
+
+    const docRef = await addDoc(collection(db, "generatedQuizzes"), quizData);
+
+    return { quizId: docRef.id };
   }
 );
