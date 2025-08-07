@@ -47,14 +47,7 @@ export const MTS_BLUEPRINT = {
           sectionName: "Basic Arithmetics",
           questions: 10,
           topics: [
-            { name: "BODMAS", questions: 2 },
-            { name: "Percentage", questions: 1 },
-            { name: "Profit and loss", questions: 1 },
-            { name: "Simple interest", questions: 1 },
-            { name: "Average", questions: 1 },
-            { name: "Time and work", questions: 1 },
-            { name: "Time and distance", questions: 1 },
-            { name: "Unitary method", questions: 2 },
+            "Basic Arithmetics"
           ],
         },
       ],
