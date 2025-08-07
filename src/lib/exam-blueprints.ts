@@ -194,13 +194,7 @@ export const PA_BLUEPRINT = {
           sectionName: "Products and Services",
           questions: 10,
           topics: [
-            { name: "Domestic Items – Mails", questions: 1 },
-            { name: "International items and services", questions: 1 },
-            { name: "Others", questions: 1 },
-            { name: "Stamps", questions: 1 },
-            { name: "PLI/RPLI", questions: 2 },
-            { name: "Jan Suraksha Scheme", questions: 1 },
-            { name: "SCSS, SSA, PPF, Recurring Deposit, Savings Bank Account, TD and MIS", questions: 3 },
+            "Products and Services"
           ],
         },
         {
