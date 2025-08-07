@@ -8,7 +8,7 @@ export const MTS_BLUEPRINT = {
       totalQuestions: 30, // Keep track for clarity
       sections: [
         {
-          sectionName: "Post Office Guide Part I & Products/Services",
+          sectionName: "Post Office Guide Part I",
           topics: [
             { name: "Organization of the Department", questions: 2 },
             { name: "Type of Post Offices", questions: 1 },
@@ -20,12 +20,17 @@ export const MTS_BLUEPRINT = {
             { name: "Duties of Letter Box peon", questions: 1 },
             { name: "Official postal articles", questions: 1 },
             { name: "Prohibited postal articles", questions: 2 },
+            { name: "Definitions", questions: 7 },
+          ],
+        },
+        {
+          sectionName: "Products and Services",
+          topics: [
             { name: "Domestic Item – Mails", questions: 1 },
             { name: "Stamps", questions: 1 },
             { name: "Jan Suraksha Scheme", questions: 1 },
             { name: "International items and services", questions: 1 },
             { name: "PLI/RPLI", questions: 2 },
-            { name: "Definitions", questions: 7 },
           ],
           randomFrom: {
             questions: 2,
@@ -40,33 +45,27 @@ export const MTS_BLUEPRINT = {
       sections: [
         {
           sectionName: "General Awareness/Knowledge",
-          randomFrom: {
-            questions: 10,
-            topics: [
-                "Indian Geography", 
-                "Civics", 
-                "General knowledge", 
-                "Indian culture & freedom struggle", 
-                "Ethics and morale study",
-                "current affairs"
-            ]
-          }
+          topics: [
+            { name: "Indian Geography", questions: 2 },
+            { name: "Civics", questions: 2 },
+            { name: "General knowledge", questions: 1 },
+            { name: "Indian culture & freedom struggle", questions: 2 },
+            { name: "Ethics and morale study", questions: 1 },
+            { name: "current affairs", questions: 2 }
+          ]
         },
         {
           sectionName: "Basic Arithmetics",
-          randomFrom: {
-            questions: 10,
-            topics: [
-                "BODMAS",
-                "Percentage",
-                "Profit and loss",
-                "Simple interest",
-                "Average",
-                "Time and work",
-                "Time and distance",
-                "Unitary method"
-            ]
-          },
+          topics: [
+            { name: "BODMAS", questions: 2 },
+            { name: "Percentage", questions: 1 },
+            { name: "Profit and loss", questions: 1 },
+            { name: "Simple interest", questions: 1 },
+            { name: "Average", questions: 1 },
+            { name: "Time and work", questions: 1 },
+            { name: "Time and distance", questions: 1 },
+            { name: "Unitary method", questions: 2 }
+          ]
         },
       ],
     },
@@ -83,27 +82,37 @@ export const POSTMAN_BLUEPRINT = {
       totalQuestions: 50,
       sections: [
         {
-          sectionName: "Post Office Guide Part I",
+          sectionName: "Post Office Guide Part I & Products/Services",
           topics: [
-             { name: "Post Office Guide Part I", questions: 30 },
+            { name: "Organization of the Department", questions: 2 },
+            { name: "Type of Post Offices", questions: 2 },
+            { name: "Business Hours", questions: 2 },
+            { name: "Payment of postage, stamps and stationery", questions: 2 },
+            { name: "General rules as to packing, sealing and posting, manner of affixing postage stamps", questions: 2 },
+            { name: "Methods of address", questions: 2 },
+            { name: "Post boxes and Post bags", questions: 2 },
+            { name: "Duties of Letter Box peon", questions: 2 },
+            { name: "Official postal articles", questions: 2 },
+            { name: "Prohibited postal articles", questions: 2 },
+            { name: "PLI/RPLI", questions: 2 },
           ],
+          randomFrom: {
+            questions: 8,
+            topics: [
+                "Domestic Item – Mails", 
+                "International items and services",
+                "Stamps",
+                "SCSS", "SSA", "PPF", "TD and MIS", "Recuring Deposit", "Savings Bank Account", "KVP", "NSC",
+                "Jan Suraksha Scheme"
+            ],
+          }
         },
         {
-          sectionName: "Postal Manual Volume V",
+          sectionName: "Manuals",
           topics: [
             { name: "Postal Manual Volume V", questions: 10 },
-          ],
-        },
-        {
-          sectionName: "Postal Manual Volume VI - Part III",
-          topics: [
             { name: "Postal Manual Volume VI - Part III(PM)", questions: 5 },
-          ],
-        },
-        {
-          sectionName: "PM Vol VII",
-          topics: [
-             { name: "PM Vol VII", questions: 5 },
+            { name: "PM Vol VII", questions: 5 },
           ],
         },
       ],

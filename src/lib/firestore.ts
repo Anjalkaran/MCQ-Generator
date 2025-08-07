@@ -620,7 +620,10 @@ export const getShuffledMCQsForTopics = async (
     if (randomRequest) {
         let pooledMCQs: (MCQ & { sourceDocId: string })[] = [];
         randomRequest.topics.forEach(topicId => {
-            pooledMCQs.push(...(mcqsByTopicId.get(topicId) || []));
+            // This is the fix: ensure topics from fixed requests are not re-added to the pool.
+            if (!fixedRequests.has(topicId)) {
+                pooledMCQs.push(...(mcqsByTopicId.get(topicId) || []));
+            }
         });
 
         if (pooledMCQs.length < randomRequest.questions) {
@@ -876,4 +879,3 @@ export const getGeneratedQuiz = async (quizId: string): Promise<MCQData | null> 
     }
     return null;
 }
-    
