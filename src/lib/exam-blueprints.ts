@@ -176,26 +176,10 @@ export const PA_BLUEPRINT = {
   parts: [
     {
       partName: "Part-A",
-      totalMarks: 50,
-      totalQuestions: 50,
+      totalMarks: 40,
+      totalQuestions: 40,
       marksPerQuestion: 1,
       sections: [
-        {
-          sectionName: "Post Office Guide Part I",
-          questions: 10,
-          topics: [
-            { name: "Organization of the Department", questions: 1 },
-            { name: "Type of Post Offices", questions: 1 },
-            { name: "Business Hours", questions: 1 },
-            { name: "Payment of postage, stamps and stationery", questions: 1 },
-            { name: "General rules as to packing, sealing and posting, manner of affixing postage stamps", questions: 1 },
-            { name: "Methods of address", questions: 1 },
-            { name: "Post boxes and Post bags", questions: 1 },
-            { name: "Duties of Letter Box peon", questions: 1 },
-            { name: "Official postal articles", questions: 1 },
-            { name: "Prohibited postal articles", questions: 1 },
-          ],
-        },
         {
           sectionName: "Post Office Guide Part II",
           questions: 10,
