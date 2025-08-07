@@ -20,7 +20,7 @@ export const MTS_BLUEPRINT = {
           sectionName: "Postal Manual Volume V",
           questions: 7,
           topics: [
-            "Postal Manuals"
+            "Postal Manual Volume V"
           ],
         },
       ],
@@ -150,19 +150,23 @@ export const PA_BLUEPRINT = {
   parts: [
     {
       partName: "Part-A",
-      totalMarks: 50,
-      totalQuestions: 50,
+      totalMarks: 40,
+      totalQuestions: 40,
       marksPerQuestion: 1,
       sections: [
         {
           sectionName: "Post Office Guide Part II",
           questions: 10,
-          topics: ["Post Office Guide Part II"],
+          topics: [
+            "Post Office Guide Part II"
+          ],
         },
         {
           sectionName: "Basic terminologies related to IT",
           questions: 10,
-          topics: ["Basic terminologies related to IT"],
+          topics: [
+            "Basic terminologies related to IT"
+          ],
         },
         {
           sectionName: "Products and Services",
@@ -173,14 +177,14 @@ export const PA_BLUEPRINT = {
         },
         {
           sectionName: "Postal Manuals",
-          questions: 10,
+          questions: 5,
           topics: [
             "Postal Manuals",
           ],
         },
         {
           sectionName: "Foreign Post Manual",
-          questions: 10,
+          questions: 5,
           topics: [
             "Foreign Post Manual"
           ],
