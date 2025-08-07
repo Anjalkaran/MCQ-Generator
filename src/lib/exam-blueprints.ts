@@ -11,7 +11,7 @@ export const MTS_BLUEPRINT = {
       sections: [
         {
           sectionName: "Post Office Guide Part I",
-          questions: 23,
+          questions: 15,
           topics: [
             { name: "Organization of the Department", questions: 2 },
             { name: "Type of Post Offices", questions: 1 },
@@ -22,17 +22,33 @@ export const MTS_BLUEPRINT = {
             { name: "Post boxes and Post bags", questions: 1 },
             { name: "Duties of Letter Box peon", questions: 1 },
             { name: "Official postal articles", questions: 2 },
-            { name: "Prohibited postal articles", questions: 2 },
-            { name: "Products and Services- Mails", questions: 2 },
-            { name: "Products and Services – Banking", questions: 3 },
-            { name: "Products and services – business", questions: 1 },
-            { name: "Products and services – insurance", questions: 1 },
+            { name: "Prohibited postal articles", questions: 1 }, // Adjusted to make total 15
           ],
+        },
+        {
+          sectionName: "Products and Services- Mails",
+          questions: 2,
+          topics: ["Mails"],
+        },
+        {
+          sectionName: "Products and Services – Banking",
+          questions: 3,
+          topics: ["Banking & Remittance"],
+        },
+        {
+          sectionName: "Products and services – business",
+          questions: 1,
+          topics: ["Post Business"],
+        },
+        {
+          sectionName: "Products and services – insurance",
+          questions: 2,
+          topics: ["Insurance"],
         },
         {
           sectionName: "Postal Manual Volume V",
           questions: 7,
-          topics: [{ name: "Definitions", questions: 7 }],
+          topics: ["Postal Manual Volume V"],
         },
       ],
     },
@@ -51,7 +67,7 @@ export const MTS_BLUEPRINT = {
             { name: "General knowledge", questions: 1 },
             { name: "Indian culture & freedom struggle", questions: 2 },
             { name: "Ethics and morale study", questions: 1 },
-            { name: "Current Affairs", questions: 2 },
+            { name: "current affairs", questions: 2 },
           ],
         },
         {
@@ -165,8 +181,8 @@ export const PA_BLUEPRINT = {
           ],
         },
         {
-            name: "Products and Services",
-            questions: 10,
+            sectionName: "Products and Services",
+            questions: 20,
             topics: [
                 {name: "Mails", questions: 1},
                 {name: "International items and services", questions: 1},
@@ -174,41 +190,18 @@ export const PA_BLUEPRINT = {
                 {name: "Stamps", questions: 1},
                 {name: "PLI/RPLI", questions: 2},
                 {name: "Jan Suraksha Scheme", questions: 4},
+                {name: "Savings Schemes", questions: 10}, // Simplified this part
             ]
-        },
-         {
-          sectionName: "Savings Schemes",
-          questions: 5,
-          topics: ["Savings Schemes"],
         },
         {
           sectionName: "Post Office Guide Part II",
-          questions: 5,
+          questions: 10,
           topics: ["Post Office Guide Part II"],
         },
         {
-          sectionName: "IT Modernization Project",
+          sectionName: "Basic terminologies related to IT Modernization Project",
           questions: 10,
-          topics: [
-            {name: "Basic terminologies related to IT Modernization Project", questions: 10}
-          ],
-        },
-        {
-          sectionName: "Manuals (Vol VI & SB Orders)",
-          questions: 5,
-          topics: [
-            "Postal Manual Volume VI - Part I",
-            "Postal Manual Volume VI - Part III",
-            "SB Orders"
-          ],
-        },
-        {
-          sectionName: "Manuals (Vol VII & Foreign Post)",
-          questions: 5,
-          topics: [
-            "Postal Manual Volume VII",
-            "Foreign Post Manual"
-          ],
+          topics: ["IT Modernization Project"],
         },
       ],
     },
@@ -222,33 +215,33 @@ export const PA_BLUEPRINT = {
           sectionName: "General Awareness/Knowledge",
           questions: 10,
           topics: [
-            { name: "Indian Geography", questions: 0 },
-            { name: "Civics", questions: 0 },
-            { name: "General knowledge", questions: 0 },
-            { name: "Indian culture & freedom struggle", questions: 0 },
-            { name: "Ethics and morale study", questions: 0 },
-            { name: "current affairs", questions: 0 },
+            "Indian Geography",
+            "Civics",
+            "General knowledge",
+            "Indian culture & freedom struggle",
+            "Ethics and morale study",
+            "current affairs",
           ],
         },
         {
           sectionName: "Basic Arithmetics",
           questions: 20,
           topics: [
-            { name: "BODMAS", questions: 0 },
-            { name: "Percentage", questions: 0 },
-            { name: "Profit and loss", questions: 0 },
-            { name: "Simple interest", questions: 0 },
-            { name: "Average", questions: 0 },
-            { name: "Time and work", questions: 0 },
-            { name: "Time and distance", questions: 0 },
-            { name: "Unitary method", questions: 0 },
+            "BODMAS",
+            "Percentage",
+            "Profit and loss",
+            "Simple interest",
+            "Average",
+            "Time and work",
+            "Time and distance",
+            "Unitary method",
           ],
         },
         {
           sectionName: "Reasoning and Analytical Ability",
           questions: 20,
           topics: [
-            { name: "Logical Reasoning", questions: 10 },
+            { name: "Analytical Reasoning", questions: 10 },
             { name: "Cubs and dice", questions: 2 },
             { name: "Dot situation", questions: 1 },
             { name: "Embedded images", questions: 1 },
