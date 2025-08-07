@@ -176,10 +176,15 @@ export const PA_BLUEPRINT = {
   parts: [
     {
       partName: "Part-A",
-      totalMarks: 40,
-      totalQuestions: 40,
+      totalMarks: 50,
+      totalQuestions: 50,
       marksPerQuestion: 1,
       sections: [
+        {
+          sectionName: "Post Office Guide Part I",
+          questions: 10,
+          topics: ["Post Office Guide Part I"],
+        },
         {
           sectionName: "Post Office Guide Part II",
           questions: 10,
