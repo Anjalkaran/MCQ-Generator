@@ -147,34 +147,23 @@ export const PA_BLUEPRINT = {
         {
           sectionName: "Post Office Guide Part I",
           questions: 10,
+          topics: ["Post Office Guide Part I"],
+        },
+        {
+          sectionName: "Products and Services",
+          questions: 20,
           topics: [
-            "Organization of the Department",
-            "Type of Post Offices",
-            "Business Hours",
-            "Payment of postage, stamps and stationery",
-            "General rules as to packing, sealing and posting, manner of affixing postage stamps",
-            "Methods of address",
-            "Post boxes and Post bags",
-            "Duties of Letter Box peon",
-            "Official postal articles",
-            "Prohibited postal articles",
+            "Products and Services - Mails",
+            "Products and Services – Banking",
+            "Products and services – business",
+            "Products and services – insurance",
+            "Jan Suraksha Scheme",
+            "SCSS, SSA, PPF, Recurring Deposit, Savings Bank Account, TD and MIS",
           ],
         },
         {
-            sectionName: "Products and Services",
-            questions: 20,
-            topics: [
-                "Products and Services - Mails",
-                "Products and Services – Banking",
-                "Products and services – business",
-                "Products and services – insurance",
-                "Jan Suraksha Scheme",
-                "SCSS, SSA, PPF, Recurring Deposit, Savings Bank Account, TD and MIS"
-            ]
-        },
-        {
           sectionName: "Post Office Guide Part II",
-          questions: 0, 
+          questions: 0,
           topics: ["Post Office Guide Part II"],
         },
         {
@@ -219,16 +208,7 @@ export const PA_BLUEPRINT = {
         {
           sectionName: "Basic Arithmetics",
           questions: 20,
-          topics: [
-            "BODMAS",
-            "Percentage",
-            "Profit and loss",
-            "Simple interest",
-            "Average",
-            "Time and work",
-            "Time and distance",
-            "Unitary method",
-          ],
+          topics: ["Basic Arithmetics"],
         },
         {
           sectionName: "Reasoning and Analytical Ability",
