@@ -324,27 +324,34 @@ const generateMockTestFlow = ai.defineFlow(
             for (const cq of shuffleArray(canonicalQuestions)) {
                 if (processedQuestions.length >= sectionQuestionsNeeded) break;
 
+                let finalMcq: MCQ;
+
                 if (targetLang === 'english' || !targetLangKey) {
-                    processedQuestions.push(cq);
+                    finalMcq = cq;
                 } else if (cq.translations && cq.translations[targetLangKey]) {
                      const translated = cq.translations[targetLangKey];
-                     processedQuestions.push({ ...cq, ...translated });
+                     finalMcq = { ...cq, ...translated };
                 } else {
                     if (input.language) {
                         try {
                             console.log(`Translating question for topic ${cq.topic} to ${input.language}...`);
                             const translatedMcq = await translateMCQ(cq, input.language);
-                            processedQuestions.push(translatedMcq);
+                            finalMcq = translatedMcq;
                             
                             updateTopicMCQWithTranslation(cq.sourceDocId, cq.question, targetLangKey, translatedMcq)
                                 .catch(err => console.error("Failed to save translation:", err));
                         } catch (e) {
                             console.error(`Skipping question due to translation error for topic ${cq.topic}:`, e);
+                            continue; // Skip this question if translation fails
                         }
                     } else {
-                        processedQuestions.push(cq);
+                        finalMcq = cq;
                     }
                 }
+
+                // Remove translations property to reduce localStorage size
+                const { translations, ...rest } = finalMcq as any;
+                processedQuestions.push(rest);
             }
 
 
