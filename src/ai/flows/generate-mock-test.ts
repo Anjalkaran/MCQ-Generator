@@ -190,31 +190,6 @@ const generateMockTestFlow = ai.defineFlow(
             continue; // Move to the next section
         }
 
-        // --- Special Case: Fetch Reasoning Questions ---
-        if (section.sectionName.toLowerCase().includes("reasoning")) {
-            const reasoningQuestionsNeeded = section.questions;
-            if (reasoningQuestionsNeeded && reasoningQuestionsNeeded > 0) {
-                const reasoningQuestions = await getReasoningQuestionsForPartwiseTest(input.examCategory as 'MTS' | 'POSTMAN' | 'PA');
-
-                if (reasoningQuestions.length < reasoningQuestionsNeeded) {
-                    throw new Error(`Could not find enough reasoning questions. Found ${reasoningQuestions.length}, but need ${reasoningQuestionsNeeded}. Please upload more.`);
-                }
-
-                const selectedReasoning = shuffleArray(reasoningQuestions).slice(0, reasoningQuestionsNeeded);
-
-                const formattedReasoningMCQs: MCQ[] = selectedReasoning.map(q => ({
-                    question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
-                    options: q.options.map(opt => typeof opt === 'string' && opt.startsWith('data:image') ? `<img src="${opt}" alt="Option Image" class="h-24 w-24 object-contain" />` : opt),
-                    correctAnswer: typeof q.correctAnswer === 'string' && q.correctAnswer.startsWith('data:image') ? `<img src="${q.correctAnswer}" alt="Option Image" class="h-24 w-24 object-contain" />` : q.correctAnswer,
-                    solution: q.solutionText ? `${q.solutionText}${q.solutionImage ? `<br/><img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : ''}` : (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
-                    topic: 'Reasoning',
-                }));
-                
-                allQuestions.push(...formattedReasoningMCQs);
-            }
-            continue; // Move to the next section
-        }
-
         // --- Standard Question Fetching from MCQ Bank ---
         const topicRequests = new Map<string, number>();
         let randomFromRequest: { topics: string[], questions: number } | null = null;
@@ -267,16 +242,18 @@ const generateMockTestFlow = ai.defineFlow(
       }
     }
     
-    // Correctly calculate the total expected questions from the blueprint
     const totalExpectedQuestions = blueprint.parts.reduce((partSum, part) => 
         partSum + part.sections.reduce((sectionSum, section) => {
-            let count = section.questions || 0;
+            let count = 0; // Start count at 0 for each section
             if (section.topics) {
                 count += section.topics.reduce((topicSum, topic) => topicSum + topic.questions, 0);
             }
             if (section.randomFrom) {
                 count += section.randomFrom.questions;
             }
+            // Add the section's direct 'questions' property if it exists
+            count += section.questions || 0;
+            
             return sectionSum + count;
         }, 0), 0);
 

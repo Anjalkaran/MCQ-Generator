@@ -5,9 +5,7 @@ export const MTS_BLUEPRINT = {
   parts: [
     {
       partName: "Part-A",
-      totalMarks: 60,
-      totalQuestions: 30,
-      marksPerQuestion: 2,
+      totalQuestions: 30, // Keep track for clarity
       sections: [
         {
           sectionName: "Post Office Guide Part I & Products/Services",
@@ -38,13 +36,10 @@ export const MTS_BLUEPRINT = {
     },
     {
       partName: "Part-B",
-      totalMarks: 40,
-      totalQuestions: 20,
-      marksPerQuestion: 2,
+      totalQuestions: 20, // Keep track for clarity
       sections: [
         {
           sectionName: "General Awareness/Knowledge",
-          questions: 10,
           randomFrom: {
             questions: 10,
             topics: [
@@ -59,7 +54,6 @@ export const MTS_BLUEPRINT = {
         },
         {
           sectionName: "Basic Arithmetics",
-          questions: 10,
           randomFrom: {
             questions: 10,
             topics: [
@@ -86,34 +80,28 @@ export const POSTMAN_BLUEPRINT = {
   parts: [
     {
       partName: "Part-A",
-      totalMarks: 100,
       totalQuestions: 50,
-      marksPerQuestion: 2,
       sections: [
         {
           sectionName: "Post Office Guide Part I",
-          questions: 30,
           topics: [
              { name: "Post Office Guide Part I", questions: 30 },
           ],
         },
         {
           sectionName: "Postal Manual Volume V",
-          questions: 10,
           topics: [
             { name: "Postal Manual Volume V", questions: 10 },
           ],
         },
         {
           sectionName: "Postal Manual Volume VI - Part III",
-          questions: 5,
           topics: [
             { name: "Postal Manual Volume VI - Part III(PM)", questions: 5 },
           ],
         },
         {
           sectionName: "PM Vol VII",
-          questions: 5,
           topics: [
              { name: "PM Vol VII", questions: 5 },
           ],
@@ -122,13 +110,10 @@ export const POSTMAN_BLUEPRINT = {
     },
     {
       partName: "Part-B",
-      totalMarks: 50,
       totalQuestions: 25,
-      marksPerQuestion: 2,
       sections: [
         {
           sectionName: "General Awareness/Knowledge",
-          questions: 10,
           randomFrom: {
             questions: 10,
             topics: [
@@ -143,7 +128,6 @@ export const POSTMAN_BLUEPRINT = {
         },
         {
           sectionName: "Basic Arithmetics",
-          questions: 10,
           randomFrom: {
             questions: 10,
             topics: ["Basic Arithmetics"]
@@ -164,9 +148,7 @@ export const PA_BLUEPRINT = {
   parts: [
     {
       partName: "Part-A",
-      totalMarks: 50,
       totalQuestions: 50,
-      marksPerQuestion: 1,
       sections: [
         {
           sectionName: "Post Office Guide Part I & Products/Services",
@@ -221,13 +203,10 @@ export const PA_BLUEPRINT = {
     },
     {
       partName: "Part-B",
-      totalMarks: 50,
       totalQuestions: 50,
-      marksPerQuestion: 1,
       sections: [
         {
           sectionName: "General Awareness/Knowledge",
-          questions: 10,
           randomFrom: {
             questions: 10,
             topics: [
@@ -242,7 +221,6 @@ export const PA_BLUEPRINT = {
         },
         {
           sectionName: "Basic Arithmetics",
-          questions: 20,
           randomFrom: {
             questions: 20,
             topics: [
