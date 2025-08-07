@@ -287,7 +287,7 @@ const generateMockTestFlow = ai.defineFlow(
     }
 
     const quizData = {
-        mcqs: finalMCQs,
+        mcqs: finalMCQs.slice(0, totalExpectedQuestions), // Ensure we don't exceed the total
         timeLimit: blueprint.totalDurationMinutes * 60,
         isMockTest: true,
         topic: {

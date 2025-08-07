@@ -8,7 +8,7 @@ export const MTS_BLUEPRINT = {
       totalQuestions: 30,
       sections: [
         {
-          sectionName: "Post Office Guide Part I & Products/Services",
+          sectionName: "Post Office Guide Part I",
           topics: [
             { name: "Organization of the Department", questions: 2 },
             { name: "Type of Post Offices", questions: 1 },
@@ -20,17 +20,22 @@ export const MTS_BLUEPRINT = {
             { name: "Duties of Letter Box peon", questions: 1 },
             { name: "Official postal articles", questions: 1 },
             { name: "Prohibited postal articles", questions: 2 },
-            { name: "Definitions", questions: 7 },
-            { name: "Domestic Item – Mails", questions: 1 },
-            { name: "Stamps", questions: 1 },
-            { name: "Jan Suraksha Scheme", questions: 1 },
-            { name: "PLI/RPLI", questions: 2 },
           ],
-          randomFrom: {
-            questions: 3,
-            topics: ["SCSS", "SSA", "PPF", "TD and MIS", "Recuring Deposit", "Savings Bank Account", "KVP", "NSC"],
-          },
         },
+        {
+            sectionName: "Products and Services",
+            topics: [
+              { name: "Definitions", questions: 7 },
+              { name: "Domestic Item – Mails", questions: 1 },
+              { name: "Stamps", questions: 1 },
+              { name: "Jan Suraksha Scheme", questions: 1 },
+              { name: "PLI/RPLI", questions: 2 },
+            ],
+            randomFrom: {
+              questions: 5,
+              topics: ["SCSS", "SSA", "PPF", "TD and MIS", "Recuring Deposit", "Savings Bank Account", "KVP", "NSC"],
+            },
+        }
       ],
     },
     {

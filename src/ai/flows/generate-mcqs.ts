@@ -12,7 +12,7 @@ config();
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { getUserTopicProgress, updateUserTopicProgress, getTopicMCQs } from '@/lib/firestore';
+import { getTopicMCQs } from '@/lib/firestore';
 import type { MCQ } from '@/lib/types';
 import { generate } from '@genkit-ai/ai';
 import { gemini15Pro } from '@genkit-ai/googleai';
@@ -110,17 +110,7 @@ Your final output MUST be a single, valid JSON object containing an 'mcqs' array
 });
 
 
-const MATERIAL_CHUNK_SIZE = 4000;
-let deferredFunctions: (() => Promise<any>)[] = [];
-
-function defer(fn: () => Promise<any>) {
-    deferredFunctions.push(fn);
-}
-
-async function runDeferred() {
-    await Promise.all(deferredFunctions.map(fn => fn()));
-    deferredFunctions = [];
-}
+const MATERIAL_CHUNK_SIZE = 8000;
 
 function shuffleArray<T>(array: T[]): T[] {
   for (let i = array.length - 1; i > 0; i--) {
@@ -215,38 +205,32 @@ const generateMCQsFlow = ai.defineFlow(
 
     // **PRIORITY 2: Fallback to generating from raw .docx material**
     } else if (input.material) {
-        const totalLength = input.material.length;
-
         let collectedMCQs: z.infer<typeof MCQSchema>[] = [];
         const collectedQuestionTexts = new Set<string>();
-        const userProgress = await getUserTopicProgress(input.userId, input.topicId);
-        let currentIndex = userProgress?.lastCharacterIndexUsed || 0;
+        let currentIndex = 0;
         
-        const maxIterations = Math.ceil(totalLength / MATERIAL_CHUNK_SIZE) + 2; 
+        // Generate from the entire material in one go if it's small enough, otherwise chunk it.
+        const materialChunks: string[] = [];
+        if (input.material.length <= MATERIAL_CHUNK_SIZE) {
+            materialChunks.push(input.material);
+        } else {
+            for (let i = 0; i < input.material.length; i += MATERIAL_CHUNK_SIZE) {
+                materialChunks.push(input.material.substring(i, i + MATERIAL_CHUNK_SIZE));
+            }
+        }
         
-        for (let i = 0; i < maxIterations && collectedMCQs.length < input.numberOfQuestions; i++) {
-            if (currentIndex >= totalLength) {
-                currentIndex = 0;
-            }
+        for (const chunk of materialChunks) {
+            if (collectedMCQs.length >= input.numberOfQuestions) break;
 
-            const endIndex = Math.min(currentIndex + MATERIAL_CHUNK_SIZE, totalLength);
-            const contentChunk = input.material.substring(currentIndex, endIndex);
-            
-            if (contentChunk.trim().length < 50) {
-                if (currentIndex === 0 && i > 0) break; 
-                currentIndex = endIndex;
-                continue;
-            }
-
-            const { output: extractedOutput } = await extractMCQsFromTextPrompt({
-                textContent: contentChunk,
+             const { output: extractedOutput } = await extractMCQsFromTextPrompt({
+                textContent: chunk,
                 topicName: input.topic,
                 numberOfQuestions: input.numberOfQuestions - collectedMCQs.length,
                 language: input.language,
             });
 
             if (extractedOutput && extractedOutput.mcqs) {
-                const validNewMcqs = extractedOutput.mcqs.filter(mcq => {
+                 const validNewMcqs = extractedOutput.mcqs.filter(mcq => {
                     const questionText = mcq.question.trim();
                     const hasValidQuestion = questionText.toLowerCase() !== "string" && questionText.length > 1;
                     const hasValidOptions = mcq.options.every(opt => opt.trim().toLowerCase() !== "string" && opt.trim().length > 0);
@@ -259,14 +243,7 @@ const generateMCQsFlow = ai.defineFlow(
                     collectedQuestionTexts.add(mcq.question.trim());
                 });
             }
-            
-            currentIndex = endIndex;
         }
-
-        let nextIndex = currentIndex >= totalLength ? 0 : currentIndex;
-        defer(async () => {
-            await updateUserTopicProgress(input.userId, input.topicId, nextIndex);
-        });
 
         if (collectedMCQs.length < input.numberOfQuestions) {
             console.warn(`Could only find ${collectedMCQs.length} unique questions for topic "${input.topic}" after scanning the material, though ${input.numberOfQuestions} were requested.`);
@@ -275,8 +252,6 @@ const generateMCQsFlow = ai.defineFlow(
         if (collectedMCQs.length === 0) {
             throw new Error(`Failed to extract any valid questions for "${input.topic}". Please check the document formatting and content.`);
         }
-
-        await runDeferred();
         
         const finalMCQs = shuffleArray(collectedMCQs).slice(0, input.numberOfQuestions);
 
