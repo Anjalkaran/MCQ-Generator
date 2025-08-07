@@ -13,15 +13,26 @@ export const MTS_BLUEPRINT = {
           sectionName: "Post Office Guide Part I",
           questions: 23,
           topics: [
-            "Post Office Guide Part I"
+            { name: "Organization of the Department", questions: 2 },
+            { name: "Type of Post Offices", questions: 1 },
+            { name: "Business Hours", questions: 1 },
+            { name: "Payment of postage, stamps and stationery", questions: 2 },
+            { name: "General rules as to packing, sealing and posting, manner of affixing postage stamps", questions: 2 },
+            { name: "Methods of address", questions: 2 },
+            { name: "Post boxes and Post bags", questions: 1 },
+            { name: "Duties of Letter Box peon", questions: 1 },
+            { name: "Official postal articles", questions: 2 },
+            { name: "Prohibited postal articles", questions: 2 },
+            { name: "Products and Services- Mails", questions: 2 },
+            { name: "Products and Services – Banking", questions: 3 },
+            { name: "Products and services – business", questions: 1 },
+            { name: "Products and services – insurance", questions: 1 },
           ],
         },
         {
           sectionName: "Postal Manual Volume V",
           questions: 7,
-          topics: [
-            "Postal Manual Volume V"
-          ],
+          topics: [{ name: "Definitions", questions: 7 }],
         },
       ],
     },
@@ -47,7 +58,14 @@ export const MTS_BLUEPRINT = {
           sectionName: "Basic Arithmetics",
           questions: 10,
           topics: [
-            "Basic Arithmetics"
+            { name: "BODMAS", questions: 2 },
+            { name: "Percentage", questions: 1 },
+            { name: "Profit and loss", questions: 1 },
+            { name: "Simple interest", questions: 1 },
+            { name: "Average", questions: 1 },
+            { name: "Time and work", questions: 1 },
+            { name: "Time and distance", questions: 1 },
+            { name: "Unitary method", questions: 2 },
           ],
         },
       ],
@@ -68,30 +86,22 @@ export const POSTMAN_BLUEPRINT = {
         {
           sectionName: "Post Office Guide Part I",
           questions: 30,
-          topics: [
-            "Post Office Guide Part I"
-          ],
+          topics: ["Post Office Guide Part I"],
         },
         {
           sectionName: "Postal Manual Volume V",
           questions: 10,
-          topics: [
-            "Postal Manual Volume V",
-          ],
+          topics: ["Postal Manual Volume V"],
         },
         {
           sectionName: "Postal Manual Volume VI - Part III",
           questions: 5,
-          topics: [
-            "Postal Manual Volume VI - Part III(PM)"
-          ],
+          topics: ["Postal Manual Volume VI - Part III(PM)"],
         },
         {
           sectionName: "PM Vol VII",
           questions: 5,
-          topics: [
-            "PM Vol VII"
-          ],
+          topics: ["PM Vol VII"],
         },
       ],
     },
@@ -116,9 +126,7 @@ export const POSTMAN_BLUEPRINT = {
         {
           sectionName: "Basic Arithmetics",
           questions: 10,
-          topics: [
-            "Basic Arithmetics"
-          ],
+          topics: ["Basic Arithmetics"],
         },
         {
           sectionName: "Reasoning and Analytical Ability",
@@ -141,29 +149,52 @@ export const PA_BLUEPRINT = {
       marksPerQuestion: 1,
       sections: [
         {
-          sectionName: "Post Office Guide Part I & Savings Schemes",
-          questions: 16,
-          topics: ["Post Office Guide Part I"],
+          sectionName: "Post Office Guide Part I",
+          questions: 10,
+          topics: [
+            { name: "Organization of the Department", questions: 1 },
+            { name: "Type of Post Offices", questions: 1 },
+            { name: "Business Hours", questions: 1 },
+            { name: "Payment of postage, stamps and stationery", questions: 1 },
+            { name: "General rules as to packing, sealing and posting, manner of affixing postage stamps", questions: 1 },
+            { name: "Methods of address", questions: 1 },
+            { name: "Post boxes and Post bags", questions: 1 },
+            { name: "Duties of Letter Box peon", questions: 1 },
+            { name: "Official postal articles", questions: 1 },
+            { name: "Prohibited postal articles", questions: 1 },
+          ],
+        },
+        {
+            name: "Products and Services",
+            questions: 10,
+            topics: [
+                {name: "Mails", questions: 1},
+                {name: "International items and services", questions: 1},
+                {name: "Others", questions: 1},
+                {name: "Stamps", questions: 1},
+                {name: "PLI/RPLI", questions: 2},
+                {name: "Jan Suraksha Scheme", questions: 4},
+            ]
         },
          {
           sectionName: "Savings Schemes",
-          questions: 20,
+          questions: 5,
           topics: ["Savings Schemes"],
         },
         {
           sectionName: "Post Office Guide Part II",
-          questions: 10,
+          questions: 5,
           topics: ["Post Office Guide Part II"],
         },
         {
           sectionName: "IT Modernization Project",
           questions: 10,
           topics: [
-            "IT Modernization Project"
+            {name: "Basic terminologies related to IT Modernization Project", questions: 10}
           ],
         },
         {
-          sectionName: "Postal Manuals (Vol VI & SB Orders)",
+          sectionName: "Manuals (Vol VI & SB Orders)",
           questions: 5,
           topics: [
             "Postal Manual Volume VI - Part I",
@@ -191,26 +222,33 @@ export const PA_BLUEPRINT = {
           sectionName: "General Awareness/Knowledge",
           questions: 10,
           topics: [
-            "Indian Geography",
-            "Civics",
-            "General knowledge",
-            "Indian culture & freedom struggle",
-            "Ethics and morale study",
-            "current affairs",
+            { name: "Indian Geography", questions: 0 },
+            { name: "Civics", questions: 0 },
+            { name: "General knowledge", questions: 0 },
+            { name: "Indian culture & freedom struggle", questions: 0 },
+            { name: "Ethics and morale study", questions: 0 },
+            { name: "current affairs", questions: 0 },
           ],
         },
         {
           sectionName: "Basic Arithmetics",
           questions: 20,
           topics: [
-            "Basic Arithmetics"
+            { name: "BODMAS", questions: 0 },
+            { name: "Percentage", questions: 0 },
+            { name: "Profit and loss", questions: 0 },
+            { name: "Simple interest", questions: 0 },
+            { name: "Average", questions: 0 },
+            { name: "Time and work", questions: 0 },
+            { name: "Time and distance", questions: 0 },
+            { name: "Unitary method", questions: 0 },
           ],
         },
         {
           sectionName: "Reasoning and Analytical Ability",
           questions: 20,
           topics: [
-            { name: "Analytical Reasoning", questions: 10 },
+            { name: "Logical Reasoning", questions: 10 },
             { name: "Cubs and dice", questions: 2 },
             { name: "Dot situation", questions: 1 },
             { name: "Embedded images", questions: 1 },
