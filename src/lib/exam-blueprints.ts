@@ -183,7 +183,7 @@ export const PA_BLUEPRINT = {
         {
           sectionName: "Post Office Guide Part II",
           questions: 10,
-          topics: ["Post Office Guide Part II (except British and Irish Postal order)"],
+          topics: ["Post Office Guide Part II"],
         },
         {
           sectionName: "Basic terminologies related to IT",
@@ -194,7 +194,13 @@ export const PA_BLUEPRINT = {
           sectionName: "Products and Services",
           questions: 10,
           topics: [
-            "Products and Services"
+            { name: "Domestic Items – Mails", questions: 1 },
+            { name: "International items and services – 1", questions: 1 },
+            { name: "Others – 1", questions: 1 },
+            { name: "Stamps - 1", questions: 1 },
+            { name: "PLI/RPLI – 2", questions: 2 },
+            { name: "Jan Suraksha Scheme", questions: 1 },
+            { name: "SCSS, SSA, PPF, Recurring Deposit, Savings Bank Account, TD and MIS", questions: 3 },
           ],
         },
         {
