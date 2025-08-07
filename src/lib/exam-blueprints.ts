@@ -12,18 +12,7 @@ export const MTS_BLUEPRINT = {
         {
           sectionName: "Post Office Guide Part I",
           questions: 15,
-          topics: [
-            { name: "Organization of the Department", questions: 2 },
-            { name: "Type of Post Offices", questions: 1 },
-            { name: "Business Hours", questions: 1 },
-            { name: "Payment of postage, stamps and stationery", questions: 2 },
-            { name: "General rules as to packing, sealing and posting, manner of affixing postage stamps", questions: 2 },
-            { name: "Methods of address", questions: 2 },
-            { name: "Post boxes and Post bags", questions: 1 },
-            { name: "Duties of Letter Box peon", questions: 1 },
-            { name: "Official postal articles", questions: 2 },
-            { name: "Prohibited postal articles", questions: 1 }, // Adjusted to make total 15
-          ],
+          topics: ["Post Office Guide Part I"],
         },
         {
           sectionName: "Products and Services- Mails",
@@ -73,16 +62,7 @@ export const MTS_BLUEPRINT = {
         {
           sectionName: "Basic Arithmetics",
           questions: 10,
-          topics: [
-            { name: "BODMAS", questions: 2 },
-            { name: "Percentage", questions: 1 },
-            { name: "Profit and loss", questions: 1 },
-            { name: "Simple interest", questions: 1 },
-            { name: "Average", questions: 1 },
-            { name: "Time and work", questions: 1 },
-            { name: "Time and distance", questions: 1 },
-            { name: "Unitary method", questions: 2 },
-          ],
+          topics: ["Basic Arithmetics"],
         },
       ],
     },
@@ -181,17 +161,17 @@ export const PA_BLUEPRINT = {
           ],
         },
         {
-            sectionName: "Products and Services",
-            questions: 20,
-            topics: [
-                {name: "Mails", questions: 1},
-                {name: "International items and services", questions: 1},
-                {name: "Others", questions: 1},
-                {name: "Stamps", questions: 1},
-                {name: "PLI/RPLI", questions: 2},
-                {name: "Jan Suraksha Scheme", questions: 4},
-                {name: "Savings Schemes", questions: 10}, // Simplified this part
-            ]
+          sectionName: "Products and Services",
+          questions: 20,
+          topics: [
+            { name: "Mails", questions: 1 },
+            { name: "International items and services", questions: 1 },
+            { name: "Others", questions: 1 },
+            { name: "Stamps", questions: 1 },
+            { name: "PLI/RPLI", questions: 2 },
+            { name: "Jan Suraksha Scheme", questions: 4 },
+            { name: "Savings Schemes", questions: 10 },
+          ]
         },
         {
           sectionName: "Post Office Guide Part II",
@@ -202,6 +182,20 @@ export const PA_BLUEPRINT = {
           sectionName: "Basic terminologies related to IT Modernization Project",
           questions: 10,
           topics: ["IT Modernization Project"],
+        },
+        {
+          sectionName: "Combined Section: a) Postal Manual Volume VI – Part I b) Postal Manual Volume VI – Part III c) SB Orders",
+          questions: 5,
+          topics: [
+            "Postal Manual Volume VI – Part I",
+            "Postal Manual Volume VI – Part III",
+            "SB Orders",
+          ],
+        },
+        {
+          sectionName: "Combined Section: a) Postal Manual Volume VII b) Foreign Post Manual",
+          questions: 5,
+          topics: ["Postal Manual Volume VII", "Foreign Post Manual"],
         },
       ],
     },
