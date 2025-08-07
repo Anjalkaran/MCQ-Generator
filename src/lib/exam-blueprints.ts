@@ -95,7 +95,7 @@ export const POSTMAN_BLUEPRINT = {
           topics: ["Postal Manual Volume VI - Part III(PM)"],
         },
         {
-          sectionName: "Postal Manual Volume VII",
+          sectionName: "PM Vol VII",
           questions: 5,
           topics: ["PM Vol VII"],
         },
@@ -162,17 +162,19 @@ export const PA_BLUEPRINT = {
         },
         {
             sectionName: "Products and Services",
-            questions: 25,
+            questions: 20,
             topics: [
                 "Products and Services - Mails",
                 "Products and Services – Banking",
                 "Products and services – business",
                 "Products and services – insurance",
+                "Jan Suraksha Scheme",
+                "SCSS, SSA, PPF, Recurring Deposit, Savings Bank Account, TD and MIS"
             ]
         },
         {
           sectionName: "Post Office Guide Part II",
-          questions: 10,
+          questions: 0, // No questions specified for this section directly
           topics: ["Post Office Guide Part II"],
         },
         {
