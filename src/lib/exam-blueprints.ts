@@ -25,13 +25,24 @@ export const MTS_BLUEPRINT = {
             { name: 'Prohibited postal articles', questions: 2 },
             { name: 'Definitions', questions: 7 },
             { name: 'Domestic Item – Mails', questions: 1 },
+            { name: 'International items and services', questions: 1 },
             { name: 'Stamps', questions: 1 },
             { name: 'Jan Suraksha Scheme', questions: 1 },
             { name: 'PLI/RPLI', questions: 2 },
-            { name: 'SCSS', questions: 1 },
-            { name: 'SSA', questions: 1 },
-            { name: 'PPF', questions: 1 },
           ],
+          randomFrom: {
+            questions: 2,
+            topics: [
+                'SCSS', 
+                'SSA', 
+                'PPF', 
+                'TD and MIS', 
+                'Recuring Deposit', 
+                'Savings Bank Account', 
+                'KVP', 
+                'NSC'
+            ]
+          }
         },
       ],
     },
@@ -41,33 +52,27 @@ export const MTS_BLUEPRINT = {
       sections: [
         {
           sectionName: 'General Awareness/Knowledge',
-          randomFrom: {
-            questions: 10,
-            topics: [
-              'Indian Geography',
-              'Civics',
-              'General knowledge',
-              'Indian culture & freedom struggle',
-              'Ethics and morale study',
-              'current affairs'
-            ],
-          },
+          topics: [
+              { name: 'Indian Geography', questions: 2 },
+              { name: 'Civics', questions: 2 },
+              { name: 'General knowledge', questions: 1 },
+              { name: 'Indian culture & freedom struggle', questions: 2 },
+              { name: 'Ethics and morale study', questions: 1 },
+              { name: 'current affairs', questions: 2 },
+          ]
         },
         {
           sectionName: 'Basic Arithmetics',
-          randomFrom: {
-            questions: 10,
-            topics: [
-              'BODMAS',
-              'Percentage',
-              'Profit and loss',
-              'Simple interest',
-              'Average',
-              'Time and work',
-              'Time and distance',
-              'Unitary method',
-            ],
-          },
+          topics: [
+            { name: 'BODMAS', questions: 2 },
+            { name: 'Percentage', questions: 1 },
+            { name: 'Profit and loss', questions: 1 },
+            { name: 'Simple interest', questions: 1 },
+            { name: 'Average', questions: 1 },
+            { name: 'Time and work', questions: 1 },
+            { name: 'Time and distance', questions: 1 },
+            { name: 'Unitary method', questions: 2 },
+          ]
         },
       ],
     },
