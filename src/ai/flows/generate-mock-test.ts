@@ -267,7 +267,19 @@ const generateMockTestFlow = ai.defineFlow(
       }
     }
     
-    const totalExpectedQuestions = blueprint.parts.reduce((sum, part) => sum + part.sections.reduce((s, sec) => s + (sec.questions || 0) + (sec.randomFrom?.questions || 0), 0), 0);
+    // Correctly calculate the total expected questions from the blueprint
+    const totalExpectedQuestions = blueprint.parts.reduce((partSum, part) => 
+        partSum + part.sections.reduce((sectionSum, section) => {
+            let count = section.questions || 0;
+            if (section.topics) {
+                count += section.topics.reduce((topicSum, topic) => topicSum + topic.questions, 0);
+            }
+            if (section.randomFrom) {
+                count += section.randomFrom.questions;
+            }
+            return sectionSum + count;
+        }, 0), 0);
+
     const finalMCQs = shuffleArray(allQuestions).map(mcq => ({ ...mcq, solution: mcq.solution || "" })); // Ensure solution is not undefined
 
     if (finalMCQs.length < totalExpectedQuestions) {

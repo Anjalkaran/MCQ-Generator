@@ -44,35 +44,27 @@ export const MTS_BLUEPRINT = {
       sections: [
         {
           sectionName: "General Awareness/Knowledge",
-          questions: 10,
-          randomFrom: {
-            questions: 10,
-            topics: [
-                "Indian Geography", 
-                "Indian Civics", 
-                "General knowledge", 
-                "Indian culture & freedom struggle", 
-                "Ethics and morale study",
-                "current affairs"
-            ]
-          }
+          topics: [
+            { name: "Indian Geography", questions: 2 },
+            { name: "Civics", questions: 2 },
+            { name: "General knowledge", questions: 1 },
+            { name: "Indian culture & freedom struggle", questions: 2 },
+            { name: "Ethics and morale study", questions: 1 },
+            { name: "current affairs", questions: 2 },
+          ]
         },
         {
           sectionName: "Basic Arithmetics",
-          questions: 10,
-          randomFrom: {
-            questions: 10,
-            topics: [
-              "BODMAS",
-              "Percentage",
-              "Profit and loss",
-              "Simple interest",
-              "Average",
-              "Time and work",
-              "Time and distance",
-              "Unitary method"
-            ]
-          }
+          topics: [
+              { name: "BODMAS", questions: 2 },
+              { name: "Percentage", questions: 1 },
+              { name: "Profit and loss", questions: 1 },
+              { name: "Simple interest", questions: 1 },
+              { name: "Average", questions: 1 },
+              { name: "Time and work", questions: 1 },
+              { name: "Time and distance", questions: 1 },
+              { name: "Unitary method", questions: 2 },
+          ]
         },
       ],
     },
@@ -192,20 +184,22 @@ export const PA_BLUEPRINT = {
           }
         },
         {
-          sectionName: "Post Office Guide Part II",
-          questions: 10,
-          topics: [{ name: "Post Office Guide Part II", questions: 10 }],
+          sectionName: "Postal Manual Volume V & Guide Part II",
+          topics: [
+            { name: "Postal Manual Volume V", questions: 10 },
+            { name: "Post Office Guide Part II", questions: 10 }
+          ],
         },
         {
-          sectionName: "IT Modernization",
-          questions: 10,
+          sectionName: "IT Modernization & Manuals",
           topics: [
             { name: "Basic terminologies related to IT", questions: 10 },
+            { name: "Postal Manual Volume VII", questions: 3 },
+            { name: "Foreign Post Manual", questions: 2 },
           ],
         },
         {
             sectionName: "Postal Manuals & Orders",
-            questions: 5,
             randomFrom: {
                 questions: 5,
                 topics: [
@@ -214,14 +208,6 @@ export const PA_BLUEPRINT = {
                     "SB Orders"
                 ]
             }
-        },
-        {
-            sectionName: "Postal Manuals & Foreign Post",
-            questions: 5,
-            topics: [
-                { name: "Postal Manual Volume VII", questions: 3 },
-                { name: "Foreign Post Manual", questions: 2 },
-            ]
         }
       ],
     },
