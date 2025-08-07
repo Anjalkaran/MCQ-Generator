@@ -368,7 +368,9 @@ const generateMockTestFlow = ai.defineFlow(
     }
     
     const totalExpectedQuestions = blueprint.parts.reduce((sum, part) => sum + part.sections.reduce((s, sec) => s + sec.questions, 0), 0);
-    const finalMCQs = shuffleArray(allQuestions).slice(0, totalExpectedQuestions);
+    const finalMCQs = shuffleArray(allQuestions)
+      .slice(0, totalExpectedQuestions)
+      .map(mcq => ({ ...mcq, solution: mcq.solution || "" })); // Ensure solution is not undefined
 
     const quizData = {
         mcqs: finalMCQs,
@@ -380,8 +382,8 @@ const generateMockTestFlow = ai.defineFlow(
             description: `A full-length mock test based on the official ${input.examCategory} syllabus.`,
             icon: 'scroll-text',
             categoryId: 'mock-test',
-            part: 'Part A', // Add default part
-            examCategories: [input.examCategory as 'MTS' | 'POSTMAN' | 'PA'], // Add exam category
+            part: 'Part A',
+            examCategories: [input.examCategory as 'MTS' | 'POSTMAN' | 'PA'],
         },
         createdAt: new Date(),
     };
@@ -396,3 +398,5 @@ const generateMockTestFlow = ai.defineFlow(
     return { quizId: docRef.id };
   }
 );
+
+    
