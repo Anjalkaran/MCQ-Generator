@@ -83,7 +83,7 @@ export const POSTMAN_BLUEPRINT = {
           sectionName: "Postal Manual Volume VI - Part III",
           questions: 5,
           topics: [
-            "Postal Manuals"
+            "Postal Manual Volume VI - Part III"
           ],
         },
         {
