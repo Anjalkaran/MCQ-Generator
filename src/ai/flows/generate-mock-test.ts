@@ -242,20 +242,23 @@ const generateMockTestFlow = ai.defineFlow(
       }
     }
     
-    const totalExpectedQuestions = blueprint.parts.reduce((partSum, part) => 
-        partSum + part.sections.reduce((sectionSum, section) => {
-            let count = 0; // Start count at 0 for each section
+    // Correctly calculate the total expected questions from the blueprint
+    const totalExpectedQuestions = blueprint.parts.reduce((partSum, part) => {
+        return partSum + part.sections.reduce((sectionSum, section) => {
+            let count = 0;
             if (section.topics) {
                 count += section.topics.reduce((topicSum, topic) => topicSum + topic.questions, 0);
             }
             if (section.randomFrom) {
                 count += section.randomFrom.questions;
             }
-            // Add the section's direct 'questions' property if it exists
-            count += section.questions || 0;
-            
+            // This handles sections like "Reasoning" which might just have a direct question count
+            if (section.questions) {
+                count += section.questions;
+            }
             return sectionSum + count;
-        }, 0), 0);
+        }, 0);
+    }, 0);
 
     const finalMCQs = shuffleArray(allQuestions).map(mcq => ({ ...mcq, solution: mcq.solution || "" })); // Ensure solution is not undefined
 

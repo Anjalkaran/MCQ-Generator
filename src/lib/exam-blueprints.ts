@@ -5,10 +5,9 @@ export const MTS_BLUEPRINT = {
   parts: [
     {
       partName: "Part-A",
-      totalQuestions: 30, // Keep track for clarity
       sections: [
         {
-          sectionName: "Post Office Guide Part I",
+          sectionName: "Post Office Guide Part I & Products/Services",
           topics: [
             { name: "Organization of the Department", questions: 2 },
             { name: "Type of Post Offices", questions: 1 },
@@ -21,16 +20,11 @@ export const MTS_BLUEPRINT = {
             { name: "Official postal articles", questions: 1 },
             { name: "Prohibited postal articles", questions: 2 },
             { name: "Definitions", questions: 7 },
-          ],
-        },
-        {
-          sectionName: "Products and Services",
-          topics: [
             { name: "Domestic Item – Mails", questions: 1 },
             { name: "Stamps", questions: 1 },
             { name: "Jan Suraksha Scheme", questions: 1 },
-            { name: "International items and services", questions: 1 },
             { name: "PLI/RPLI", questions: 2 },
+            { name: "International items and services", questions: 1 }
           ],
           randomFrom: {
             questions: 2,
@@ -41,7 +35,6 @@ export const MTS_BLUEPRINT = {
     },
     {
       partName: "Part-B",
-      totalQuestions: 20, // Keep track for clarity
       sections: [
         {
           sectionName: "General Awareness/Knowledge",
@@ -157,7 +150,6 @@ export const PA_BLUEPRINT = {
   parts: [
     {
       partName: "Part-A",
-      totalQuestions: 50,
       sections: [
         {
           sectionName: "Post Office Guide Part I & Products/Services",
@@ -212,7 +204,6 @@ export const PA_BLUEPRINT = {
     },
     {
       partName: "Part-B",
-      totalQuestions: 50,
       sections: [
         {
           sectionName: "General Awareness/Knowledge",
