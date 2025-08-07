@@ -73,42 +73,6 @@ const translateMCQ = async (mcq: MCQ, targetLanguage: string): Promise<MCQ> => {
     return translatedMcq as MCQ;
 }
 
-const generateGkQuestionsPrompt = ai.definePrompt({
-    name: 'generateGkQuestionsPrompt',
-    input: {
-        schema: z.object({
-            examCategory: z.string(),
-            topicsAndCounts: z.array(z.object({ name: z.string(), questions: z.number() })),
-            language: z.string().optional().default('English'),
-        })
-    },
-    output: {
-        schema: z.object({
-            questions: z.array(MCQSchema)
-        })
-    },
-    model: 'googleai/gemini-1.5-pro',
-    prompt: `You are an expert in creating high-quality General Knowledge and Awareness practice questions for the Indian Postal Department's {{examCategory}} exam.
-
-**CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
-
-Your task is to generate a set of multiple-choice questions based on the provided list of topics and the number of questions required for each.
-
-**Topics and Question Counts:**
-{{#each topicsAndCounts}}
--   **Topic:** {{name}}
--   **Number of Questions:** {{questions}}
-{{/each}}
-
-**CRITICAL INSTRUCTIONS:**
-*   For each generated question, you MUST specify its source topic in the 'topic' field.
-*   The 'correctAnswer' must be an EXACT match to one of the four options.
-*   The 'solution' field should be an empty string ("").
-
-Your final output MUST be a single, valid JSON object containing a 'questions' array with the total number of questions requested.
-`,
-});
-
 
 function shuffleArray<T>(array: T[]): T[] {
   for (let i = array.length - 1; i > 0; i--) {
@@ -146,50 +110,6 @@ const generateMockTestFlow = ai.defineFlow(
     for (const part of blueprint.parts) {
       for (const section of part.sections) {
         
-        // --- Special Case: Generate General Knowledge Questions with AI ---
-        if (section.sectionName.toLowerCase().includes("general awareness")) {
-            const gkTopicsAndCounts: { name: string, questions: number }[] = [];
-            
-            if (section.topics) {
-                gkTopicsAndCounts.push(...section.topics.map(topicDef => ({
-                    name: topicDef.name,
-                    questions: topicDef.questions,
-                })));
-            }
-            if (section.randomFrom) {
-                 const totalQuestionsNeeded = section.randomFrom.questions;
-                 // Distribute questions as evenly as possible among topics
-                 const topicsCount = section.randomFrom.topics.length;
-                 const baseQuestions = Math.floor(totalQuestionsNeeded / topicsCount);
-                 let remainder = totalQuestionsNeeded % topicsCount;
-                 
-                 section.randomFrom.topics.forEach(topicName => {
-                     let questionsForThisTopic = baseQuestions;
-                     if (remainder > 0) {
-                         questionsForThisTopic++;
-                         remainder--;
-                     }
-                     if (questionsForThisTopic > 0) {
-                        gkTopicsAndCounts.push({ name: topicName, questions: questionsForThisTopic });
-                     }
-                 });
-            }
-
-            if (gkTopicsAndCounts.length > 0) {
-                 const { output } = await generateGkQuestionsPrompt({
-                    examCategory: input.examCategory,
-                    topicsAndCounts: gkTopicsAndCounts,
-                    language: input.language
-                });
-                
-                if (!output || !output.questions) {
-                    throw new Error(`AI failed to generate General Awareness questions for section: "${section.sectionName}".`);
-                }
-                allQuestions.push(...output.questions);
-            }
-            continue; // Move to the next section
-        }
-
         // --- Special Case: Fetch Reasoning Questions ---
         if (section.sectionName.toLowerCase().includes("reasoning")) {
             const totalReasoningQuestions = section.questions || 0;
@@ -211,7 +131,7 @@ const generateMockTestFlow = ai.defineFlow(
             continue; // Move to next section
         }
 
-        // --- Standard Question Fetching from MCQ Bank ---
+        // --- Standard Question Fetching from MCQ Bank for ALL topics (including GK) ---
         const topicRequests = new Map<string, number>();
         let randomFromRequest: { topics: string[], questions: number } | null = null;
         
@@ -312,5 +232,3 @@ const generateMockTestFlow = ai.defineFlow(
     return { quizId: docRef.id };
   }
 );
-
-    
