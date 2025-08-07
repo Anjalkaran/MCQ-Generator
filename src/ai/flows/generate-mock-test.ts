@@ -16,7 +16,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-blueprints';
 import type { MCQ, ReasoningQuestion, Topic } from '@/lib/types';
-import { getShuffledMCQsForTopics, getTopics, updateTopicMCQWithTranslation, getReasoningQuestionsForPartwiseTest } from '@/lib/firestore';
+import { getShuffledMCQsForTopics, getTopics, updateTopicMCQWithTranslation, getReasoningQuestionsForPartwiseTest, getTopicMCQs } from '@/lib/firestore';
 import { generate } from '@genkit-ai/ai';
 import { gemini15Pro } from '@genkit-ai/googleai';
 import { zodToJsonSchema } from 'zod-to-json-schema';
@@ -99,7 +99,7 @@ const generateMockTestFlow = ai.defineFlow(
     else if (input.examCategory === 'PA') blueprint = PA_BLUEPRINT;
     else throw new Error(`No blueprint found for exam category: ${input.examCategory}`);
 
-    const allQuestions: MCQ[] = [];
+    let allQuestions: MCQ[] = [];
     const allFirestoreTopics = await getTopics();
     const topicMapByName: Map<string, Topic> = new Map(allFirestoreTopics.map(t => [t.title.toLowerCase(), t]));
     
@@ -107,10 +107,29 @@ const generateMockTestFlow = ai.defineFlow(
     const languageMap: Record<string, string> = { 'english': 'en', 'tamil': 'ta', 'hindi': 'hi', 'telugu': 'te', 'kannada': 'kn' };
     const targetLangKey = targetLang ? languageMap[targetLang] : 'en';
 
+    // --- New Resilient Fetching Logic ---
+    const allMcqDocsForCategory = await getTopicMCQs();
+    const allMcqsForCategory: (MCQ & { sourceDocId: string; topicId: string })[] = [];
+    
+    const categoryTopicIds = new Set(allFirestoreTopics.filter(t => t.examCategories.includes(input.examCategory as 'MTS' | 'POSTMAN' | 'PA')).map(t => t.id));
+
+    allMcqDocsForCategory.forEach(doc => {
+      if (categoryTopicIds.has(doc.topicId)) {
+        try {
+          const parsed = JSON.parse(doc.content);
+          if (parsed.mcqs && Array.isArray(parsed.mcqs)) {
+            parsed.mcqs.forEach((mcq: any) => {
+              allMcqsForCategory.push({ ...mcq, sourceDocId: doc.id, topicId: doc.topicId });
+            });
+          }
+        } catch (e) { /* Ignore non-json files */ }
+      }
+    });
+
+
     for (const part of blueprint.parts) {
       for (const section of part.sections) {
         
-        // --- Special Case: Fetch Reasoning Questions ---
         if (section.sectionName.toLowerCase().includes("reasoning")) {
             const totalReasoningQuestions = section.questions || 0;
             if (totalReasoningQuestions > 0) {
@@ -128,10 +147,9 @@ const generateMockTestFlow = ai.defineFlow(
                 }));
                 allQuestions.push(...formatted);
             }
-            continue; // Move to next section
+            continue;
         }
 
-        // --- Standard Question Fetching from MCQ Bank for ALL topics (including GK) ---
         const topicRequests = new Map<string, number>();
         let randomFromRequest: { topics: string[], questions: number } | null = null;
         
@@ -154,36 +172,11 @@ const generateMockTestFlow = ai.defineFlow(
             randomFromRequest = { topics: topicIds, questions: section.randomFrom.questions };
         }
         
-        const fetchedMCQs = await getShuffledMCQsForTopics(topicRequests, randomFromRequest, input.examCategory as 'MTS' | 'POSTMAN' | 'PA');
-        
-        const processed: MCQ[] = [];
-        for (const cq of fetchedMCQs) {
-            let finalMcq: MCQ;
-            if (targetLang === 'english' || !targetLangKey) {
-                finalMcq = cq;
-            } else if (cq.translations && cq.translations[targetLangKey]) {
-                const translated = cq.translations[targetLangKey];
-                finalMcq = { ...cq, ...translated };
-            } else if (input.language) {
-                try {
-                    const translatedMcq = await translateMCQ(cq, input.language);
-                    updateTopicMCQWithTranslation(cq.sourceDocId, cq.question, targetLangKey, translatedMcq).catch(err => console.error("Failed to save translation:", err));
-                    finalMcq = translatedMcq;
-                } catch (e) {
-                    console.error(`Skipping question due to translation error for topic ${cq.topic}:`, e);
-                    continue; // Skip this question if translation fails
-                }
-            } else {
-                finalMcq = cq;
-            }
-            const { translations, sourceLanguage, ...rest } = finalMcq as any;
-            processed.push(rest);
-        }
-        allQuestions.push(...processed);
+        const fetchedMCQs = await getShuffledMCQsForTopics(topicRequests, randomFromRequest, input.examCategory as 'MTS' | 'POSTMAN' | 'PA', allMcqsForCategory);
+        allQuestions.push(...fetchedMCQs);
       }
     }
     
-    // Correctly calculate the total expected questions from the blueprint
     const totalExpectedQuestions = blueprint.parts.reduce((partSum, part) => {
         return partSum + part.sections.reduce((sectionSum, section) => {
             let count = 0;
@@ -200,14 +193,50 @@ const generateMockTestFlow = ai.defineFlow(
         }, 0);
     }, 0);
 
-    const finalMCQs = shuffleArray(allQuestions).map(mcq => ({ ...mcq, solution: mcq.solution || "" }));
-
-    if (finalMCQs.length < totalExpectedQuestions) {
-        throw new Error(`Failed to generate the full mock test. Could only gather ${finalMCQs.length} out of ${totalExpectedQuestions} required questions. Please check the MCQ bank.`);
+    // --- Fallback to fill any remaining shortfall ---
+    let shortfall = totalExpectedQuestions - allQuestions.length;
+    if (shortfall > 0) {
+        console.warn(`Shortfall of ${shortfall} questions detected. Filling from general pool.`);
+        const usedQuestionTexts = new Set(allQuestions.map(q => q.question));
+        const fallbackPool = allMcqsForCategory.filter(mcq => !usedQuestionTexts.has(mcq.question));
+        const fallbackQuestions = shuffleArray(fallbackPool).slice(0, shortfall);
+        allQuestions.push(...fallbackQuestions);
     }
 
+    if (allQuestions.length < totalExpectedQuestions) {
+        throw new Error(`Failed to generate the full mock test. Could only gather ${allQuestions.length} out of ${totalExpectedQuestions} required questions. Please check the MCQ bank.`);
+    }
+    
+    // Process translations for the final list
+    const processedQuestions: MCQ[] = [];
+    for (const cq of allQuestions) {
+         let finalMcq: MCQ;
+            if (targetLang === 'english' || !targetLangKey) {
+                finalMcq = cq;
+            } else if ((cq as any).translations && (cq as any).translations[targetLangKey]) {
+                const translated = (cq as any).translations[targetLangKey];
+                finalMcq = { ...cq, ...translated };
+            } else if (input.language) {
+                try {
+                    const translatedMcq = await translateMCQ(cq, input.language);
+                    updateTopicMCQWithTranslation((cq as any).sourceDocId, cq.question, targetLangKey, translatedMcq).catch(err => console.error("Failed to save translation:", err));
+                    finalMcq = translatedMcq;
+                } catch (e) {
+                    console.error(`Skipping question due to translation error for topic ${cq.topic}:`, e);
+                    finalMcq = cq; // Use original if translation fails
+                }
+            } else {
+                finalMcq = cq;
+            }
+            const { translations, sourceLanguage, sourceDocId, topicId, ...rest } = finalMcq as any;
+            processedQuestions.push(rest);
+    }
+
+
+    const finalMCQs = shuffleArray(processedQuestions).map(mcq => ({ ...mcq, solution: mcq.solution || "" }));
+
     const quizData = {
-        mcqs: finalMCQs.slice(0, totalExpectedQuestions), // Ensure we don't exceed the total
+        mcqs: finalMCQs.slice(0, totalExpectedQuestions),
         timeLimit: blueprint.totalDurationMinutes * 60,
         isMockTest: true,
         topic: {
@@ -216,7 +245,7 @@ const generateMockTestFlow = ai.defineFlow(
             description: `A full-length mock test based on the official ${input.examCategory} syllabus.`,
             icon: 'scroll-text',
             categoryId: 'mock-test',
-            part: 'Part A', // Default value
+            part: 'Part A', 
             examCategories: [input.examCategory as 'MTS' | 'POSTMAN' | 'PA'],
         },
         createdAt: new Date(),

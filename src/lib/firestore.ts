@@ -1,4 +1,5 @@
 
+
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion, runTransaction } from 'firebase/firestore';
 import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ, MCQData } from './types';
@@ -577,37 +578,20 @@ function shuffleArray<T>(array: T[]): T[] {
 export const getShuffledMCQsForTopics = async (
     fixedRequests: Map<string, number>,
     randomRequest: { topics: string[], questions: number } | null,
-    examCategory: 'MTS' | 'POSTMAN' | 'PA'
+    examCategory: 'MTS' | 'POSTMAN' | 'PA',
+    allMcqsForCategory: (MCQ & { sourceDocId: string; topicId: string })[]
 ): Promise<(MCQ & { sourceDocId: string })[]> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
 
-    const allRequestedTopicIds = [...fixedRequests.keys()];
-    if (randomRequest) {
-        allRequestedTopicIds.push(...randomRequest.topics);
-    }
-    const uniqueTopicIds = [...new Set(allRequestedTopicIds)];
-
-    if (uniqueTopicIds.length === 0) return [];
-
-    const topicMcqDocs = await getTopicMCQs(); // Fetch all once
     const mcqsByTopicId = new Map<string, (MCQ & { sourceDocId: string })[]>();
 
-    topicMcqDocs.forEach(doc => {
-        try {
-            const parsed = JSON.parse(doc.content);
-            if (parsed.mcqs && Array.isArray(parsed.mcqs)) {
-                const existing = mcqsByTopicId.get(doc.topicId) || [];
-                const newMcqs = parsed.mcqs.map((mcq: any) => ({ ...mcq, sourceDocId: doc.id }));
-                mcqsByTopicId.set(doc.topicId, [...existing, ...newMcqs]);
-            }
-        } catch (e) { /* ignore parse errors */ }
+    allMcqsForCategory.forEach(mcq => {
+        const existing = mcqsByTopicId.get(mcq.topicId) || [];
+        mcqsByTopicId.set(mcq.topicId, [...existing, mcq]);
     });
 
     const finalMCQs: (MCQ & { sourceDocId: string })[] = [];
-    const usedQuestions = new Set<string>(); // To track questions by their text to avoid duplicates
+    const usedQuestions = new Set<string>();
 
-    // Handle fixed requests
     for (const [topicId, count] of fixedRequests.entries()) {
         const availableMCQs = (mcqsByTopicId.get(topicId) || []).filter(mcq => !usedQuestions.has(mcq.question));
         const questionsToTake = shuffleArray(availableMCQs).slice(0, count);
@@ -615,7 +599,6 @@ export const getShuffledMCQsForTopics = async (
         finalMCQs.push(...questionsToTake);
     }
 
-    // Handle random request
     if (randomRequest) {
         let pooledMCQs: (MCQ & { sourceDocId: string })[] = [];
         randomRequest.topics.forEach(topicId => {
@@ -626,26 +609,6 @@ export const getShuffledMCQsForTopics = async (
         questionsToTake.forEach(q => usedQuestions.add(q.question));
         finalMCQs.push(...questionsToTake);
     }
-    
-    // Fallback logic to fill any shortfall
-    let shortfall = (Array.from(fixedRequests.values()).reduce((a,b) => a+b, 0) + (randomRequest?.questions || 0)) - finalMCQs.length;
-    
-    if (shortfall > 0) {
-        console.warn(`Initial fetch resulted in a shortfall of ${shortfall} questions. Attempting to fill from the bank.`);
-        const allTopicsForCategory = (await getTopics()).filter(t => t.examCategories.includes(examCategory));
-        const allTopicIdsForCategory = allTopicsForCategory.map(t => t.id);
-        
-        let fallbackPool: (MCQ & { sourceDocId: string })[] = [];
-        allTopicIdsForCategory.forEach(topicId => {
-            fallbackPool.push(...(mcqsByTopicId.get(topicId) || []));
-        });
-
-        const availableFallback = fallbackPool.filter(mcq => !usedQuestions.has(mcq.question));
-        const questionsToTake = shuffleArray(availableFallback).slice(0, shortfall);
-        questionsToTake.forEach(q => usedQuestions.add(q.question));
-        finalMCQs.push(...questionsToTake);
-    }
-
 
     return finalMCQs;
 };
