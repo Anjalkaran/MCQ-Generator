@@ -8,7 +8,7 @@ export const MTS_BLUEPRINT = {
       totalQuestions: 30,
       sections: [
         {
-          sectionName: "Post Office Guide Part I",
+          sectionName: "Post Office Guide Part I & Products/Services",
           topics: [
             { name: "Organization of the Department", questions: 2 },
             { name: "Type of Post Offices", questions: 1 },
@@ -21,18 +21,13 @@ export const MTS_BLUEPRINT = {
             { name: "Official postal articles", questions: 1 },
             { name: "Prohibited postal articles", questions: 2 },
             { name: "Definitions", questions: 7 },
-          ],
-        },
-        {
-          sectionName: "Products and Services",
-          topics: [
             { name: "Domestic Item – Mails", questions: 1 },
             { name: "Stamps", questions: 1 },
             { name: "Jan Suraksha Scheme", questions: 1 },
             { name: "PLI/RPLI", questions: 2 },
           ],
           randomFrom: {
-            questions: 2,
+            questions: 3,
             topics: ["SCSS", "SSA", "PPF", "TD and MIS", "Recuring Deposit", "Savings Bank Account", "KVP", "NSC"],
           },
         },

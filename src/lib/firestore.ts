@@ -576,61 +576,76 @@ function shuffleArray<T>(array: T[]): T[] {
 
 export const getShuffledMCQsForTopics = async (
     fixedRequests: Map<string, number>,
-    randomRequest: { topics: string[], questions: number } | null
+    randomRequest: { topics: string[], questions: number } | null,
+    examCategory: 'MTS' | 'POSTMAN' | 'PA'
 ): Promise<(MCQ & { sourceDocId: string })[]> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
 
-    const allTopicIds = [...fixedRequests.keys()];
+    const allRequestedTopicIds = [...fixedRequests.keys()];
     if (randomRequest) {
-        allTopicIds.push(...randomRequest.topics);
+        allRequestedTopicIds.push(...randomRequest.topics);
     }
-    const uniqueTopicIds = [...new Set(allTopicIds)];
+    const uniqueTopicIds = [...new Set(allRequestedTopicIds)];
 
     if (uniqueTopicIds.length === 0) return [];
 
-    const topicMcqDocs = await getTopicMCQs(undefined); // Fetch all once
+    const topicMcqDocs = await getTopicMCQs(); // Fetch all once
     const mcqsByTopicId = new Map<string, (MCQ & { sourceDocId: string })[]>();
 
     topicMcqDocs.forEach(doc => {
-        if (uniqueTopicIds.includes(doc.topicId)) {
-            try {
-                const parsed = JSON.parse(doc.content);
-                if (parsed.mcqs && Array.isArray(parsed.mcqs)) {
-                    const existing = mcqsByTopicId.get(doc.topicId) || [];
-                    const newMcqs = parsed.mcqs.map((mcq: any) => ({ ...mcq, sourceDocId: doc.id }));
-                    mcqsByTopicId.set(doc.topicId, [...existing, ...newMcqs]);
-                }
-            } catch (e) { /* ignore parse errors */ }
-        }
+        try {
+            const parsed = JSON.parse(doc.content);
+            if (parsed.mcqs && Array.isArray(parsed.mcqs)) {
+                const existing = mcqsByTopicId.get(doc.topicId) || [];
+                const newMcqs = parsed.mcqs.map((mcq: any) => ({ ...mcq, sourceDocId: doc.id }));
+                mcqsByTopicId.set(doc.topicId, [...existing, ...newMcqs]);
+            }
+        } catch (e) { /* ignore parse errors */ }
     });
 
     const finalMCQs: (MCQ & { sourceDocId: string })[] = [];
+    const usedQuestions = new Set<string>(); // To track questions by their text to avoid duplicates
 
     // Handle fixed requests
     for (const [topicId, count] of fixedRequests.entries()) {
-        const availableMCQs = mcqsByTopicId.get(topicId) || [];
-        if (availableMCQs.length < count) {
-            throw new Error(`Not enough questions for a topic. Found ${availableMCQs.length}, but need ${count}. Please check the MCQ bank.`);
-        }
-        finalMCQs.push(...shuffleArray(availableMCQs).slice(0, count));
+        const availableMCQs = (mcqsByTopicId.get(topicId) || []).filter(mcq => !usedQuestions.has(mcq.question));
+        const questionsToTake = shuffleArray(availableMCQs).slice(0, count);
+        questionsToTake.forEach(q => usedQuestions.add(q.question));
+        finalMCQs.push(...questionsToTake);
     }
 
     // Handle random request
     if (randomRequest) {
         let pooledMCQs: (MCQ & { sourceDocId: string })[] = [];
         randomRequest.topics.forEach(topicId => {
-            // This is the fix: ensure topics from fixed requests are not re-added to the pool.
-            if (!fixedRequests.has(topicId)) {
-                pooledMCQs.push(...(mcqsByTopicId.get(topicId) || []));
-            }
+            pooledMCQs.push(...(mcqsByTopicId.get(topicId) || []));
+        });
+        const availablePooled = pooledMCQs.filter(mcq => !usedQuestions.has(mcq.question));
+        const questionsToTake = shuffleArray(availablePooled).slice(0, randomRequest.questions);
+        questionsToTake.forEach(q => usedQuestions.add(q.question));
+        finalMCQs.push(...questionsToTake);
+    }
+    
+    // Fallback logic to fill any shortfall
+    let shortfall = (Array.from(fixedRequests.values()).reduce((a,b) => a+b, 0) + (randomRequest?.questions || 0)) - finalMCQs.length;
+    
+    if (shortfall > 0) {
+        console.warn(`Initial fetch resulted in a shortfall of ${shortfall} questions. Attempting to fill from the bank.`);
+        const allTopicsForCategory = (await getTopics()).filter(t => t.examCategories.includes(examCategory));
+        const allTopicIdsForCategory = allTopicsForCategory.map(t => t.id);
+        
+        let fallbackPool: (MCQ & { sourceDocId: string })[] = [];
+        allTopicIdsForCategory.forEach(topicId => {
+            fallbackPool.push(...(mcqsByTopicId.get(topicId) || []));
         });
 
-        if (pooledMCQs.length < randomRequest.questions) {
-             throw new Error(`Could not find enough questions for random selection. Found ${pooledMCQs.length}, but need ${randomRequest.questions}.`);
-        }
-        finalMCQs.push(...shuffleArray(pooledMCQs).slice(0, randomRequest.questions));
+        const availableFallback = fallbackPool.filter(mcq => !usedQuestions.has(mcq.question));
+        const questionsToTake = shuffleArray(availableFallback).slice(0, shortfall);
+        questionsToTake.forEach(q => usedQuestions.add(q.question));
+        finalMCQs.push(...questionsToTake);
     }
+
 
     return finalMCQs;
 };

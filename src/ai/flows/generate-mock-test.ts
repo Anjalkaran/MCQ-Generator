@@ -190,6 +190,27 @@ const generateMockTestFlow = ai.defineFlow(
             continue; // Move to the next section
         }
 
+        // --- Special Case: Fetch Reasoning Questions ---
+        if (section.sectionName.toLowerCase().includes("reasoning")) {
+            const totalReasoningQuestions = section.questions || 0;
+            if (totalReasoningQuestions > 0) {
+                const reasoningQuestions = await getReasoningQuestionsForPartwiseTest(input.examCategory as 'MTS' | 'POSTMAN' | 'PA');
+                if (reasoningQuestions.length < totalReasoningQuestions) {
+                    throw new Error(`Not enough reasoning questions. Found ${reasoningQuestions.length}, but need ${totalReasoningQuestions}.`);
+                }
+                const selected = shuffleArray(reasoningQuestions).slice(0, totalReasoningQuestions);
+                const formatted: MCQ[] = selected.map(q => ({
+                     question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
+                    options: q.options,
+                    correctAnswer: q.correctAnswer,
+                    solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
+                    topic: q.topic,
+                }));
+                allQuestions.push(...formatted);
+            }
+            continue; // Move to next section
+        }
+
         // --- Standard Question Fetching from MCQ Bank ---
         const topicRequests = new Map<string, number>();
         let randomFromRequest: { topics: string[], questions: number } | null = null;
@@ -213,7 +234,7 @@ const generateMockTestFlow = ai.defineFlow(
             randomFromRequest = { topics: topicIds, questions: section.randomFrom.questions };
         }
         
-        const fetchedMCQs = await getShuffledMCQsForTopics(topicRequests, randomFromRequest);
+        const fetchedMCQs = await getShuffledMCQsForTopics(topicRequests, randomFromRequest, input.examCategory as 'MTS' | 'POSTMAN' | 'PA');
         
         const processed: MCQ[] = [];
         for (const cq of fetchedMCQs) {
@@ -252,7 +273,6 @@ const generateMockTestFlow = ai.defineFlow(
             if (section.randomFrom) {
                 count += section.randomFrom.questions;
             }
-            // This handles sections like "Reasoning" which might just have a direct question count
             if (section.questions) {
                 count += section.questions;
             }
@@ -260,7 +280,7 @@ const generateMockTestFlow = ai.defineFlow(
         }, 0);
     }, 0);
 
-    const finalMCQs = shuffleArray(allQuestions).map(mcq => ({ ...mcq, solution: mcq.solution || "" })); // Ensure solution is not undefined
+    const finalMCQs = shuffleArray(allQuestions).map(mcq => ({ ...mcq, solution: mcq.solution || "" }));
 
     if (finalMCQs.length < totalExpectedQuestions) {
         throw new Error(`Failed to generate the full mock test. Could only gather ${finalMCQs.length} out of ${totalExpectedQuestions} required questions. Please check the MCQ bank.`);
