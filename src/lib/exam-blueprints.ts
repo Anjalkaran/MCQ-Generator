@@ -26,46 +26,19 @@ export const MTS_BLUEPRINT = {
           ],
         },
         {
-          sectionName: "Products and Services - Mails",
-          questions: 1,
-          topics: [
-            { name: "Domestic Item – Mails", questions: 1 },
-          ]
-        },
-        {
-          sectionName: "Stamps",
-          questions: 1,
-          topics: [
-            { name: "Stamps", questions: 1 },
-          ]
-        },
-        {
-          sectionName: "Jan Suraksha Scheme",
-          questions: 1,
-          topics: [
-            { name: "Jan Suraksha Scheme", questions: 1 },
-          ]
-        },
-        {
-          sectionName: "Savings Schemes",
-          questions: 2,
-          randomFrom: {
-            topics: ["SCSS", "SSA", "PPF", "TD and MIS", "Recuring Deposit", "Savings Bank Account", "KVP", "NSC"],
-          }
-        },
-        {
-          sectionName: "International items and services",
-          questions: 1,
-          topics: [
-            { name: "International items and services", questions: 1 },
-          ]
-        },
-        {
-          sectionName: "PLI/RPLI",
-          questions: 2,
-          topics: [
-            { name: "PLI/RPLI", questions: 2 },
-          ]
+            sectionName: "Products and Services",
+            questions: 9,
+            topics: [
+                { name: "Domestic Item – Mails", questions: 1 },
+                { name: "Stamps", questions: 1 },
+                { name: "Jan Suraksha Scheme", questions: 1 },
+                { name: "International items and services", questions: 1 },
+                { name: "PLI/RPLI", questions: 2 },
+            ],
+             randomFrom: {
+                questions: 2,
+                topics: ["SCSS", "SSA", "PPF", "TD and MIS", "Recuring Deposit", "Savings Bank Account", "KVP", "NSC"],
+            }
         },
         {
           sectionName: "Postal Manual Volume V",
@@ -207,9 +180,11 @@ export const PA_BLUEPRINT = {
             { name: "International items and services", questions: 1 },
             { name: "Stamps", questions: 1 },
             { name: "PLI/RPLI", questions: 2 },
-            { name: "Jan Suraksha Scheme", questions: 0 },
-            { name: "SCSS, SSA, PPF, Recurring Deposit, Savings Bank Account, TD and MIS", questions: 5 },
-          ]
+          ],
+          randomFrom: {
+            questions: 5,
+            topics: ["SCSS", "SSA", "PPF", "Recurring Deposit", "Savings Bank Account", "TD and MIS"]
+          }
         },
         {
           sectionName: "Post Office Guide Part II",
@@ -218,22 +193,30 @@ export const PA_BLUEPRINT = {
         },
         {
           sectionName: "IT Modernization",
-          questions: 5,
+          questions: 10,
           topics: [
-            { name: "Basic terminologies related to IT", questions: 5 },
-            { name: "IT Modernization Project", questions: 0 },
+            { name: "Basic terminologies related to IT", questions: 10 },
           ],
         },
         {
           sectionName: "Postal Manuals & Orders",
-          questions: 15,
-          topics: [
-            { name: "Postal Manual Volume VI – Part I", questions: 0 },
-            { name: "Postal Manual Volume VI – Part III", questions: 5 },
-            { name: "SB Orders", questions: 5 },
-            { name: "Postal Manual Volume VII", questions: 5 },
-            { name: "Foreign Post Manual", questions: 0 },
-          ]
+          questions: 5,
+           randomFrom: {
+                questions: 5,
+                topics: [
+                    "Postal Manual Volume VI – Part I",
+                    "Postal Manual Volume VI – Part III",
+                    "SB Orders"
+                ]
+            }
+        },
+        {
+            sectionName: "Postal Manuals & Foreign Post",
+            questions: 5,
+            topics: [
+                { name: "Postal Manual Volume VII", questions: 3 },
+                { name: "Foreign Post Manual", questions: 2 },
+            ]
         }
       ],
     },
