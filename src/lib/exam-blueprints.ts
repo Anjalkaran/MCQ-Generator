@@ -14,10 +14,7 @@ export const MTS_BLUEPRINT = {
             { name: 'Type of Post Offices', questions: 1 },
             { name: 'Business Hours', questions: 1 },
             { name: 'Payment of postage, stamps and stationery', questions: 2 },
-            {
-              name: 'General rules as to packing, sealing and posting, manner of affixing postage stamps',
-              questions: 1,
-            },
+            { name: 'General rules as to packing, sealing and posting, manner of affixing postage stamps', questions: 1 },
             { name: 'Methods of address', questions: 2 },
             { name: 'Post boxes and Post bags', questions: 1 },
             { name: 'Duties of Letter Box peon', questions: 1 },
@@ -203,7 +200,7 @@ export const PA_BLUEPRINT = {
           },
         },
         {
-          sectionName: 'Postal Manual Volume V & Guide Part II',
+          sectionName: 'Manuals',
           topics: [
             { name: 'Postal Manual Volume V', questions: 10 },
             { name: 'Post Office Guide Part II', questions: 10 },

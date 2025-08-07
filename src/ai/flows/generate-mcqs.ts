@@ -14,9 +14,6 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { getTopicMCQs } from '@/lib/firestore';
 import type { MCQ } from '@/lib/types';
-import { generate } from '@genkit-ai/ai';
-import { gemini15Pro } from '@genkit-ai/googleai';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 
 const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
@@ -77,39 +74,6 @@ Your final output must be a single, valid JSON object containing an 'mcqs' array
 `
 });
 
-const generateGkQuestionsPrompt = ai.definePrompt({
-    name: 'generateGkQuestionsForTopicPrompt',
-    input: {
-        schema: z.object({
-            examCategory: z.string(),
-            topic: z.string(),
-            numberOfQuestions: z.number(),
-            language: z.string().optional().default('English'),
-        })
-    },
-    output: {
-        schema: z.object({
-            mcqs: z.array(MCQSchema)
-        })
-    },
-    model: 'googleai/gemini-1.5-pro',
-    prompt: `You are an expert in creating high-quality General Knowledge practice questions for the Indian Postal Department's {{examCategory}} exam.
-
-**CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}.**
-
-Your task is to generate exactly {{numberOfQuestions}} multiple-choice questions on the following topic:
-**Topic:** {{topic}}
-
-**CRITICAL INSTRUCTIONS:**
-*   For each generated question, you MUST set the 'topic' field to "{{topic}}".
-*   The 'correctAnswer' must be an EXACT match to one of the four options.
-*   The 'solution' field should be an empty string ("").
-
-Your final output MUST be a single, valid JSON object containing an 'mcqs' array with exactly {{numberOfQuestions}} questions.
-`,
-});
-
-
 const MATERIAL_CHUNK_SIZE = 8000;
 
 function shuffleArray<T>(array: T[]): T[] {
@@ -142,23 +106,6 @@ const generateMCQsFlow = ai.defineFlow(
       throw new Error("A user ID must be provided to generate a quiz.");
     }
     
-    // **PRIORITY 0: Handle General Knowledge category by generating with AI**
-    if (input.category && input.category.toLowerCase().includes("general awareness")) {
-        const { output } = await generateGkQuestionsPrompt({
-            examCategory: input.examCategory || 'MTS',
-            topic: input.topic,
-            numberOfQuestions: input.numberOfQuestions,
-            language: input.language,
-        });
-
-        if (!output || !output.mcqs || output.mcqs.length === 0) {
-            throw new Error(`Failed to generate General Awareness questions for topic: "${input.topic}".`);
-        }
-
-        return { mcqs: output.mcqs };
-    }
-
-
     let canonicalQuestions: MCQ[] = [];
     
     // **PRIORITY 1: Check for uploaded JSON files in the MCQ Bank**
@@ -207,7 +154,6 @@ const generateMCQsFlow = ai.defineFlow(
     } else if (input.material) {
         let collectedMCQs: z.infer<typeof MCQSchema>[] = [];
         const collectedQuestionTexts = new Set<string>();
-        let currentIndex = 0;
         
         // Generate from the entire material in one go if it's small enough, otherwise chunk it.
         const materialChunks: string[] = [];
