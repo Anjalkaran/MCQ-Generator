@@ -90,7 +90,7 @@ export const POSTMAN_BLUEPRINT = {
           sectionName: "PM Vol VII",
           questions: 5,
           topics: [
-            "Postal Manuals"
+            "PM Vol VII"
           ],
         },
       ],
@@ -153,10 +153,10 @@ export const PA_BLUEPRINT = {
           topics: ["Post Office Guide Part II"],
         },
         {
-          sectionName: "Basic terminologies related to IT",
+          sectionName: "Modernization Project",
           questions: 10,
           topics: [
-            "Basic terminologies related to IT"
+            "Modernization Project"
           ],
         },
         {
