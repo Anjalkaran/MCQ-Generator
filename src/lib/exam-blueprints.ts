@@ -13,24 +13,14 @@ export const MTS_BLUEPRINT = {
           sectionName: "Post Office Guide Part I",
           questions: 23,
           topics: [
-            { name: "Organization of the Department", questions: 2 },
-            { name: "Type of Post Offices", questions: 1 },
-            { name: "Business Hours", questions: 1 },
-            { name: "Payment of postage, stamps and stationery", questions: 2 },
-            { name: "General rules as to packing, sealing and posting, manner of affixing postage stamps", questions: 2 },
-            { name: "Methods of address", questions: 2 },
-            { name: "Post boxes and Post bags", questions: 1 },
-            { name: "Duties of Letter Box peon", questions: 1 },
-            { name: "Official postal articles", questions: 2 },
-            { name: "Prohibited postal articles", questions: 2 },
-            { name: "Products and Services: Mails, Banking & Remittances, Insurance, Stamps and Business (Reference: India Post website)", questions: 7 },
+            "Post Office Guide Part I"
           ],
         },
         {
           sectionName: "Postal Manual Volume V",
           questions: 7,
           topics: [
-            { name: "Definitions", questions: 7 }
+            "Postal Manuals"
           ],
         },
       ],
@@ -86,44 +76,28 @@ export const POSTMAN_BLUEPRINT = {
           sectionName: "Post Office Guide Part I",
           questions: 30,
           topics: [
-            "Organization of the Department",
-            "Type of Post Offices",
-            "Business Hours",
-            "Payment of postage, stamps and stationery",
-            "General rules as to packing, sealing and posting, manner of affixing postage stamps",
-            "Methods of address",
-            "Post boxes and Post bags",
-            "Delivery of mails",
-            "Refusal of article",
-            "Payment of eMoney Order",
-            "Redirection",
-            "Instruction regarding address change",
-            "Articles addressed to deceased person",
-            "Liability to detention to certain mails",
-            "Facilities provided by Postmen in rural areas",
-            "Products and Services (Mails, Banking, Insurance, etc.)",
-            "Prohibited postal Articles",
+            "Post Office Guide Part I"
           ],
         },
         {
           sectionName: "Postal Manual Volume V",
           questions: 10,
           topics: [
-            "Definitions",
+            "Postal Manuals",
           ],
         },
         {
           sectionName: "Postal Manual Volume VI - Part III",
           questions: 5,
           topics: [
-            "PM Vol VI - Part III(PM)"
+            "Postal Manuals"
           ],
         },
         {
           sectionName: "PM Vol VII",
           questions: 5,
           topics: [
-            "PM Vol VII"
+            "Postal Manuals"
           ],
         },
       ],
@@ -181,11 +155,6 @@ export const PA_BLUEPRINT = {
       marksPerQuestion: 1,
       sections: [
         {
-          sectionName: "Post Office Guide Part I",
-          questions: 10,
-          topics: ["Post Office Guide Part I"],
-        },
-        {
           sectionName: "Post Office Guide Part II",
           questions: 10,
           topics: ["Post Office Guide Part II"],
@@ -199,30 +168,21 @@ export const PA_BLUEPRINT = {
           sectionName: "Products and Services",
           questions: 10,
           topics: [
-            { name: "Domestic Items – Mails", questions: 1 },
-            { name: "International items and services – 1", questions: 1 },
-            { name: "Others – 1", questions: 1 },
-            { name: "Stamps - 1", questions: 1 },
-            { name: "PLI/RPLI – 2", questions: 2 },
-            { name: "Jan Suraksha Scheme", questions: 1 },
-            { name: "SCSS, SSA, PPF, Recurring Deposit, Savings Bank Account, TD and MIS", questions: 3 },
+            "Products and Services",
           ],
         },
         {
-          sectionName: "Postal Manuals and SB Orders",
-          questions: 5,
+          sectionName: "Postal Manuals",
+          questions: 10,
           topics: [
-            "Postal Manual Volume VI – Part I",
-            "Postal Manual Volume VI – Part III",
-            "SB Orders",
+            "Postal Manuals",
           ],
         },
         {
-          sectionName: "Postal and Foreign Manuals",
-          questions: 5,
+          sectionName: "Foreign Post Manual",
+          questions: 10,
           topics: [
-            "Postal Manual Volume VII",
-            "Foreign Post Manual",
+            "Foreign Post Manual"
           ],
         },
       ],
