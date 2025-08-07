@@ -10,8 +10,8 @@ export const MTS_BLUEPRINT = {
       marksPerQuestion: 2,
       sections: [
         {
-          sectionName: "Post Office Guide Part I & Products/Services",
-          questions: 23,
+          sectionName: "Post Office Guide Part I",
+          questions: 15,
           topics: [
             { name: "Organization of the Department", questions: 2 },
             { name: "Type of Post Offices", questions: 1 },
@@ -23,13 +23,25 @@ export const MTS_BLUEPRINT = {
             { name: "Duties of Letter Box peon", questions: 1 },
             { name: "Official postal articles", questions: 1 },
             { name: "Prohibited postal articles", questions: 2 },
+          ],
+        },
+        {
+          sectionName: "Products and Services",
+          questions: 8,
+          topics: [
             { name: "Domestic Item – Mails", questions: 1 },
             { name: "Stamps", questions: 1 },
             { name: "Jan Suraksha Scheme", questions: 1 },
-            { name: "SCSS, SSA, PPF, TD and MIS, Recuring Deposit, Savings Bank Account, KVP and NSC", questions: 2 },
             { name: "Third Party Services", questions: 1 },
             { name: "PLI/RPLI", questions: 2 },
           ],
+        },
+        {
+          sectionName: "Savings Schemes",
+          questions: 2,
+          randomFrom: {
+            topics: ["SCSS", "SSA", "PPF", "TD and MIS", "Recuring Deposit", "Savings Bank Account", "KVP", "NSC"],
+          }
         },
         {
           sectionName: "Postal Manual Volume V",
@@ -167,7 +179,7 @@ export const PA_BLUEPRINT = {
             { name: "Duties of Letter Box peon", questions: 1 },
             { name: "Official postal articles", questions: 1 },
             { name: "Prohibited postal articles", questions: 1 },
-            { name: "Domestic Items – Mails", questions: 1 },
+            { name: "Domestic Item – Mails", questions: 1 },
             { name: "International items and services", questions: 1 },
             { name: "Stamps", questions: 1 },
             { name: "PLI/RPLI", questions: 2 },
