@@ -76,7 +76,7 @@ export const POSTMAN_BLUEPRINT = {
           sectionName: "Postal Manual Volume V",
           questions: 10,
           topics: [
-            "Postal Manuals",
+            "Postal Manual Volume V",
           ],
         },
         {
@@ -150,9 +150,7 @@ export const PA_BLUEPRINT = {
         {
           sectionName: "Post Office Guide Part II",
           questions: 10,
-          topics: [
-            "Post Office Guide Part II"
-          ],
+          topics: ["Post Office Guide Part II"],
         },
         {
           sectionName: "Basic terminologies related to IT",
@@ -164,9 +162,7 @@ export const PA_BLUEPRINT = {
         {
           sectionName: "Products and Services",
           questions: 10,
-          topics: [
-            "Products and Services",
-          ],
+          topics: ["Products and Services"],
         },
         {
           sectionName: "Postal Manuals",
