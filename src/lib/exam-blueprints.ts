@@ -12,7 +12,18 @@ export const MTS_BLUEPRINT = {
         {
           sectionName: "Post Office Guide Part I",
           questions: 15,
-          topics: ["Post Office Guide Part I"],
+          topics: [
+            "Organization of the Department",
+            "Type of Post Offices",
+            "Business Hours",
+            "Payment of postage, stamps and stationery",
+            "General rules as to packing, sealing and posting, manner of affixing postage stamps",
+            "Methods of address",
+            "Post boxes and Post bags",
+            "Duties of Letter Box peon",
+            "Official postal articles",
+            "Prohibited postal articles",
+          ],
         },
         {
           sectionName: "Products and Services - Mails",
@@ -22,7 +33,7 @@ export const MTS_BLUEPRINT = {
         {
           sectionName: "Products and Services – Banking",
           questions: 3,
-          topics: ["Products and Services – Banking"],
+          topics: ["Products and Services – Banking", "Products and Services – Banking & Remittance"],
         },
         {
           sectionName: "Products and services – business",
@@ -62,7 +73,16 @@ export const MTS_BLUEPRINT = {
         {
           sectionName: "Basic Arithmetics",
           questions: 10,
-          topics: ["Basic Arithmetics"],
+          topics: [
+            "BODMAS",
+            "Percentage",
+            "Profit and loss",
+            "Simple interest",
+            "Average",
+            "Time and work",
+            "Time and distance",
+            "Unitary method",
+          ],
         },
       ],
     },
@@ -145,31 +165,46 @@ export const PA_BLUEPRINT = {
       marksPerQuestion: 1,
       sections: [
         {
-          sectionName: "Post Office Guide Part I",
-          questions: 10,
-          topics: ["Post Office Guide Part I"],
+          sectionName: "Post Office Guide Part I & Others",
+          questions: 15,
+          topics: [
+            "Organization of the Department",
+            "Type of Post Offices",
+            "Business Hours",
+            "Payment of postage, stamps and stationery",
+            "General rules as to packing, sealing and posting, manner of affixing postage stamps",
+            "Methods of address",
+            "Post boxes and Post bags",
+            "Duties of Letter Box peon",
+            "Official postal articles",
+            "Prohibited postal articles",
+            "Domestic Items – Mails",
+            "International items and services",
+            "Stamps",
+            "PLI/RPLI",
+          ],
         },
         {
-          sectionName: "Products and Services",
+          sectionName: "Products and Services – Banking & Schemes",
           questions: 20,
           topics: [
-            "Products and Services - Mails",
-            "Products and Services – Banking",
-            "Products and services – business",
-            "Products and services – insurance",
             "Jan Suraksha Scheme",
             "SCSS, SSA, PPF, Recurring Deposit, Savings Bank Account, TD and MIS",
+            "Products and Services – Banking & Remittance",
           ],
         },
         {
           sectionName: "Post Office Guide Part II",
-          questions: 0,
+          questions: 10,
           topics: ["Post Office Guide Part II"],
         },
         {
           sectionName: "IT Modernization Project",
           questions: 10,
-          topics: ["IT Modernization Project"],
+          topics: [
+            "Basic terminologies related to IT",
+            "IT Modernization Project",
+          ],
         },
         {
           sectionName: "Postal Manuals Combined I",
@@ -208,13 +243,22 @@ export const PA_BLUEPRINT = {
         {
           sectionName: "Basic Arithmetics",
           questions: 20,
-          topics: ["Basic Arithmetics"],
+          topics: [
+            "BODMAS",
+            "Percentage",
+            "Profit and loss",
+            "Simple interest",
+            "Average",
+            "Time and work",
+            "Time and distance",
+            "Unitary method",
+          ],
         },
         {
           sectionName: "Reasoning and Analytical Ability",
           questions: 20,
           topics: [
-            { name: "Analytical Reasoning", questions: 10 },
+            { name: "Logical Reasoning", questions: 10 },
             { name: "Cubs and dice", questions: 2 },
             { name: "Dot situation", questions: 1 },
             { name: "Embedded images", questions: 1 },

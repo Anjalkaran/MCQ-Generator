@@ -16,7 +16,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-blueprints';
 import type { MCQ, ReasoningQuestion, Topic } from '@/lib/types';
-import { getTopicMCQs, getReasoningQuestionsForPartwiseTest, getTopics, updateTopicMCQWithTranslation, getCategories } from '@/lib/firestore';
+import { getTopicMCQs, getReasoningQuestionsForPartwiseTest, getTopics, updateTopicMCQWithTranslation } from '@/lib/firestore';
 import { generate } from '@genkit-ai/ai';
 import { gemini15Pro } from '@genkit-ai/googleai';
 import { zodToJsonSchema } from 'zod-to-json-schema';
@@ -136,10 +136,9 @@ const generateMockTestFlow = ai.defineFlow(
     else throw new Error(`No blueprint found for exam category: ${input.examCategory}`);
 
     const allQuestions: MCQ[] = [];
-    const [allFirestoreTopics, allFirestoreCategories] = await Promise.all([getTopics(), getCategories()]);
+    const allFirestoreTopics = await getTopics();
     
     const topicMapByName: Map<string, Topic> = new Map(allFirestoreTopics.map(t => [t.title.toLowerCase(), t]));
-    const categoryMapByName: Map<string, {id: string}> = new Map(allFirestoreCategories.map(c => [c.name.toLowerCase(), {id: c.id}]));
 
     const targetLang = input.language?.toLowerCase();
 
@@ -201,13 +200,28 @@ const generateMockTestFlow = ai.defineFlow(
                     const { name: topicName, questions: questionsNeededForTopic } = typeof topicDef === 'string' ? { name: topicDef, questions: 0 } : topicDef;
                     if (questionsNeededForTopic === 0) continue;
 
-                    if (topicName.toLowerCase() === 'analytical reasoning') {
-                        // Fetch text-based analytical reasoning from the main MCQ bank
-                        const topicInfo = topicMapByName.get(topicName.toLowerCase());
-                        if (!topicInfo) {
-                            throw new Error(`Topic "${topicName}" not found in Firestore for section "${section.sectionName}".`);
+                    const topicInfo = topicMapByName.get(topicName.toLowerCase());
+                    if (!topicInfo) {
+                        throw new Error(`Reasoning topic "${topicName}" not found in Firestore for section "${section.sectionName}". Please check blueprint and topic names.`);
+                    }
+                    
+                    if (topicInfo.source === 'reasoningBank') {
+                        // Fetch image-based reasoning from the reasoning bank
+                        const topicQuestions = allReasoningBankQuestions.filter(q => q.topic.toLowerCase() === topicName.toLowerCase());
+                        if (topicQuestions.length < questionsNeededForTopic) {
+                            throw new Error(`Not enough questions in Reasoning Bank for "${topicName}". Found ${topicQuestions.length}, but need ${questionsNeededForTopic}.`);
                         }
-                        
+                        const selectedReasoning = shuffleArray(topicQuestions).slice(0, questionsNeededForTopic);
+                        const formattedReasoningMCQs: MCQ[] = selectedReasoning.map((q: ReasoningQuestion) => ({
+                            question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
+                            options: q.options,
+                            correctAnswer: q.correctAnswer,
+                            solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
+                            topic: q.topic,
+                        }));
+                        sectionQuestions.push(...formattedReasoningMCQs);
+                    } else {
+                        // Fetch text-based analytical reasoning from the main MCQ bank
                         const mcqDocs = await getTopicMCQs(topicInfo.id);
                         const canonicalQuestions: (MCQ & { sourceDocId: string, translations?: Record<string, any> })[] = [];
                         mcqDocs.forEach(doc => {
@@ -245,21 +259,6 @@ const generateMockTestFlow = ai.defineFlow(
                             })
                         );
                         sectionQuestions.push(...processedQuestions);
-                    } else {
-                        // Fetch image-based reasoning from the reasoning bank
-                        const topicQuestions = allReasoningBankQuestions.filter(q => q.topic.toLowerCase() === topicName.toLowerCase());
-                        if (topicQuestions.length < questionsNeededForTopic) {
-                            throw new Error(`Not enough questions in Reasoning Bank for "${topicName}". Found ${topicQuestions.length}, but need ${questionsNeededForTopic}.`);
-                        }
-                        const selectedReasoning = shuffleArray(topicQuestions).slice(0, questionsNeededForTopic);
-                        const formattedReasoningMCQs: MCQ[] = selectedReasoning.map((q: ReasoningQuestion) => ({
-                            question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
-                            options: q.options,
-                            correctAnswer: q.correctAnswer,
-                            solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
-                            topic: q.topic,
-                        }));
-                        sectionQuestions.push(...formattedReasoningMCQs);
                     }
                 }
              } else { // Handle POSTMAN reasoning
@@ -277,26 +276,20 @@ const generateMockTestFlow = ai.defineFlow(
                 sectionQuestions.push(...formattedReasoningMCQs);
              }
         } else { // Handle all other non-reasoning, non-GK sections
-            const categoryNamesInSection = section.topics.map(t => (typeof t === 'string' ? t : t.name));
-            const categoryIdsInSection = new Set<string>();
+            const topicNamesInSection = section.topics.map(t => (typeof t === 'string' ? t.toLowerCase() : t.name.toLowerCase()));
+            const relevantTopics: Topic[] = [];
 
-            for (const catName of categoryNamesInSection) {
-                const categoryInfo = categoryMapByName.get(catName.toLowerCase());
-                if(categoryInfo) {
-                    categoryIdsInSection.add(categoryInfo.id);
+            for (const topicName of topicNamesInSection) {
+                const topicInfo = topicMapByName.get(topicName);
+                if (topicInfo && topicInfo.examCategories.includes(input.examCategory as 'MTS' | 'POSTMAN' | 'PA')) {
+                    relevantTopics.push(topicInfo);
                 } else {
-                     console.warn(`Blueprint category "${catName}" not found in Firestore. Skipping.`);
+                     console.warn(`Blueprint topic "${topicName}" not found in Firestore for this exam category. Skipping.`);
                 }
             }
 
-            if (categoryIdsInSection.size === 0 && section.questions > 0) {
-                throw new Error(`No valid categories found in Firestore for section: "${section.sectionName}". Please check blueprint and category names.`);
-            }
-            
-            const relevantTopics = allFirestoreTopics.filter(t => categoryIdsInSection.has(t.categoryId) && t.examCategories.includes(input.examCategory as 'MTS' | 'POSTMAN' | 'PA'));
-            
             if (relevantTopics.length === 0 && section.questions > 0) {
-                throw new Error(`No topics associated with the categories in section "${section.sectionName}" were found for the exam type "${input.examCategory}".`);
+                throw new Error(`No valid topics found in Firestore for section: "${section.sectionName}". Please check blueprint and topic names.`);
             }
             
             const allMcqDocsForSection = await Promise.all(relevantTopics.map(t => getTopicMCQs(t.id)));
@@ -382,7 +375,7 @@ const generateMockTestFlow = ai.defineFlow(
             description: `A full-length mock test based on the official ${input.examCategory} syllabus.`,
             icon: 'scroll-text',
             categoryId: 'mock-test',
-            part: 'Part A',
+            part: 'Part A', // Default value, can be adjusted if needed
             examCategories: [input.examCategory as 'MTS' | 'POSTMAN' | 'PA'],
         },
         createdAt: new Date(),
@@ -398,5 +391,3 @@ const generateMockTestFlow = ai.defineFlow(
     return { quizId: docRef.id };
   }
 );
-
-    
