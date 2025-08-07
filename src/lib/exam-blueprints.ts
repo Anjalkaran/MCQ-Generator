@@ -136,38 +136,46 @@ export const PA_BLUEPRINT = {
   parts: [
     {
       partName: "Part-A",
-      totalMarks: 40,
-      totalQuestions: 40,
+      totalMarks: 50,
+      totalQuestions: 50,
       marksPerQuestion: 1,
       sections: [
+        {
+          sectionName: "Post Office Guide Part I & Savings Schemes",
+          questions: 16,
+          topics: ["Post Office Guide Part I"],
+        },
+         {
+          sectionName: "Savings Schemes",
+          questions: 20,
+          topics: ["Savings Schemes"],
+        },
         {
           sectionName: "Post Office Guide Part II",
           questions: 10,
           topics: ["Post Office Guide Part II"],
         },
         {
-          sectionName: "Modernization Project",
+          sectionName: "IT Modernization Project",
           questions: 10,
           topics: [
-            "Modernization Project"
+            "IT Modernization Project"
           ],
         },
         {
-          sectionName: "Products and Services",
-          questions: 10,
-          topics: ["Products and Services"],
-        },
-        {
-          sectionName: "Postal Manuals",
+          sectionName: "Postal Manuals (Vol VI & SB Orders)",
           questions: 5,
           topics: [
-            "Postal Manuals",
+            "Postal Manual Volume VI - Part I",
+            "Postal Manual Volume VI - Part III",
+            "SB Orders"
           ],
         },
         {
-          sectionName: "Foreign Post Manual",
+          sectionName: "Manuals (Vol VII & Foreign Post)",
           questions: 5,
           topics: [
+            "Postal Manual Volume VII",
             "Foreign Post Manual"
           ],
         },
@@ -195,21 +203,14 @@ export const PA_BLUEPRINT = {
           sectionName: "Basic Arithmetics",
           questions: 20,
           topics: [
-            "BODMAS (brackets, orders, division, multiplication, addition, subtraction)",
-            "Percentage",
-            "Profit and loss",
-            "Simple interest",
-            "Average",
-            "Time and work",
-            "Time and distance",
-            "Unitary method",
+            "Basic Arithmetics"
           ],
         },
         {
           sectionName: "Reasoning and Analytical Ability",
           questions: 20,
           topics: [
-            { name: "Logical Reasoning", questions: 10 },
+            { name: "Analytical Reasoning", questions: 10 },
             { name: "Cubs and dice", questions: 2 },
             { name: "Dot situation", questions: 1 },
             { name: "Embedded images", questions: 1 },
