@@ -16,33 +16,24 @@ export const MTS_BLUEPRINT = {
             { name: 'Payment of postage, stamps and stationery', questions: 2 },
             {
               name: 'General rules as to packing, sealing and posting, manner of affixing postage stamps',
-              questions: 2,
+              questions: 1,
             },
             { name: 'Methods of address', questions: 2 },
             { name: 'Post boxes and Post bags', questions: 1 },
             { name: 'Duties of Letter Box peon', questions: 1 },
             { name: 'Official postal articles', questions: 1 },
             { name: 'Prohibited postal articles', questions: 2 },
-            { name: 'Definitions', questions: 7 },
             { name: 'Domestic Item – Mails', questions: 1 },
             { name: 'International items and services', questions: 1 },
             { name: 'Stamps', questions: 1 },
             { name: 'Jan Suraksha Scheme', questions: 1 },
+            { name: 'SCSS', questions: 1 },
+            { name: 'SSA', questions: 1 },
+            { name: 'TD and MIS', questions: 1 },
+            { name: 'Recuring Deposit', questions: 1 },
             { name: 'PLI/RPLI', questions: 2 },
+            { name: 'Definitions', questions: 6 },
           ],
-          randomFrom: {
-            questions: 2,
-            topics: [
-                'SCSS', 
-                'SSA', 
-                'PPF', 
-                'TD and MIS', 
-                'Recuring Deposit', 
-                'Savings Bank Account', 
-                'KVP', 
-                'NSC'
-            ]
-          }
         },
       ],
     },
@@ -53,13 +44,13 @@ export const MTS_BLUEPRINT = {
         {
           sectionName: 'General Awareness/Knowledge',
           topics: [
-              { name: 'Indian Geography', questions: 2 },
-              { name: 'Civics', questions: 2 },
-              { name: 'General knowledge', questions: 1 },
-              { name: 'Indian culture & freedom struggle', questions: 2 },
-              { name: 'Ethics and morale study', questions: 1 },
-              { name: 'current affairs', questions: 2 },
-          ]
+            { name: 'Indian Geography', questions: 2 },
+            { name: 'Civics', questions: 2 },
+            { name: 'General knowledge', questions: 1 },
+            { name: 'Indian culture & freedom struggle', questions: 2 },
+            { name: 'Ethics and morale study', questions: 1 },
+            { name: 'current affairs', questions: 2 },
+          ],
         },
         {
           sectionName: 'Basic Arithmetics',
@@ -72,7 +63,7 @@ export const MTS_BLUEPRINT = {
             { name: 'Time and work', questions: 1 },
             { name: 'Time and distance', questions: 1 },
             { name: 'Unitary method', questions: 2 },
-          ]
+          ],
         },
       ],
     },
@@ -161,6 +152,10 @@ export const POSTMAN_BLUEPRINT = {
             topics: ['Basic Arithmetics'],
           },
         },
+        {
+            sectionName: 'Reasoning and Analytical Ability',
+            questions: 5,
+        }
       ],
     },
   ],
@@ -201,7 +196,7 @@ export const PA_BLUEPRINT = {
               'SCSS',
               'SSA',
               'PPF',
-              'Recurring Deposit',
+              'Recuring Deposit',
               'Savings Bank Account',
               'TD and MIS',
             ],
