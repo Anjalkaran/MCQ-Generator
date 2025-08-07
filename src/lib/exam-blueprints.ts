@@ -258,7 +258,7 @@ export const PA_BLUEPRINT = {
           sectionName: "Reasoning and Analytical Ability",
           questions: 20,
           topics: [
-            { name: "Analytical Reasoning", questions: 10 },
+            { name: "Logical Reasoning", questions: 10 },
             { name: "Cubs and dice", questions: 2 },
             { name: "Dot situation", questions: 1 },
             { name: "Embedded images", questions: 1 },
