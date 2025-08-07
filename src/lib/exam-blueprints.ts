@@ -26,19 +26,37 @@ export const MTS_BLUEPRINT = {
           ],
         },
         {
-            sectionName: "Products and Services",
-            questions: 8,
+            sectionName: "Products and Services - Mails",
+            questions: 2,
             topics: [
                 { name: "Domestic Item – Mails", questions: 1 },
                 { name: "Stamps", questions: 1 },
+            ]
+        },
+        {
+            sectionName: "Products and Services – Banking",
+            questions: 3,
+            topics: [
                 { name: "Jan Suraksha Scheme", questions: 1 },
-                { name: "International items and services", questions: 1 },
-                { name: "PLI/RPLI", questions: 2 },
             ],
-             randomFrom: {
+            randomFrom: {
                 questions: 2,
                 topics: ["SCSS", "SSA", "PPF", "TD and MIS", "Recuring Deposit", "Savings Bank Account", "KVP", "NSC"],
             }
+        },
+        {
+            sectionName: "Products and services – business",
+            questions: 1,
+            topics: [
+                { name: "International items and services", questions: 1 },
+            ]
+        },
+        {
+            sectionName: "Products and services – insurance",
+            questions: 2,
+            topics: [
+                { name: "PLI/RPLI", questions: 2 },
+            ]
         },
         {
           sectionName: "Postal Manual Volume V",
@@ -58,14 +76,17 @@ export const MTS_BLUEPRINT = {
         {
           sectionName: "General Awareness/Knowledge",
           questions: 10,
-          topics: [
-            { name: "Indian Geography", questions: 2 },
-            { name: "Indian Civics", questions: 2 },
-            { name: "General knowledge", questions: 1 },
-            { name: "Indian culture & freedom struggle", questions: 2 },
-            { name: "Ethics and morale study", questions: 1 },
-            { name: "current affairs", questions: 2 },
-          ],
+          randomFrom: {
+            questions: 10,
+            topics: [
+                "Indian Geography", 
+                "Indian Civics", 
+                "General knowledge", 
+                "Indian culture & freedom struggle", 
+                "Ethics and morale study",
+                "current affairs"
+            ]
+          }
         },
         {
           sectionName: "Basic Arithmetics",
@@ -199,9 +220,9 @@ export const PA_BLUEPRINT = {
           ],
         },
         {
-          sectionName: "Postal Manuals & Orders",
-          questions: 5,
-           randomFrom: {
+            sectionName: "Postal Manuals & Orders",
+            questions: 5,
+            randomFrom: {
                 questions: 5,
                 topics: [
                     "Postal Manual Volume VI – Part I",
