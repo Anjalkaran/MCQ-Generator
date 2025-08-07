@@ -174,7 +174,7 @@ export const PA_BLUEPRINT = {
         },
         {
           sectionName: "Post Office Guide Part II",
-          questions: 0, // No questions specified for this section directly
+          questions: 0, 
           topics: ["Post Office Guide Part II"],
         },
         {
