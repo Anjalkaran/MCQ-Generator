@@ -170,9 +170,9 @@ export const PA_BLUEPRINT = {
       totalQuestions: 50,
       sections: [
         {
-          sectionName: 'Post Office Guide Part I & Products/Services',
+          sectionName: 'Products & Services',
           randomFrom: {
-            questions: 15,
+            questions: 10,
             topics: [
               'Organization of the Department',
               'Type of Post Offices',
@@ -203,7 +203,7 @@ export const PA_BLUEPRINT = {
         },
         {
           sectionName: 'Basic terminologies related to IT Modernization Project',
-          topics: [{ name: 'Basic terminologies related to IT', questions: 10 }],
+          topics: [{ name: 'Modernization Project', questions: 10 }],
         },
         {
           sectionName: 'Postal Manuals & Orders',
@@ -225,7 +225,7 @@ export const PA_BLUEPRINT = {
         },
         {
           sectionName: 'Postal Manual Volume V',
-          topics: [{ name: 'Postal Manual Volume V', questions: 5 }],
+          topics: [{ name: 'Postal Manual Volume V', questions: 10 }],
         },
       ],
     },
