@@ -202,26 +202,23 @@ export const PA_BLUEPRINT = {
           topics: [{ name: 'Post Office Guide Part II', questions: 10 }],
         },
         {
-          sectionName: 'Basic terminologies related to IT Modernization Project',
+          sectionName: 'IT Modernization Project',
           topics: [{ name: 'Modernization Project', questions: 10 }],
         },
         {
           sectionName: 'Postal Manuals & Orders',
-          randomFrom: {
-            questions: 5,
-            topics: [
-              'Postal Manual Volume VI – Part I',
-              'Postal Manual Volume VI – Part III',
-              'SB Orders',
+           topics: [
+              { name: 'Postal Manual Volume VI – Part I', questions: 2 },
+              { name: 'Postal Manual Volume VI – Part III', questions: 2 },
+              { name: 'SB Orders', questions: 1 },
             ],
-          },
         },
         {
           sectionName: 'Postal Manuals',
-          randomFrom: {
-            questions: 5,
-            topics: ['Postal Manual Volume VII', 'Foreign Post Manual'],
-          },
+          topics: [
+            { name: 'Postal Manual Volume VII', questions: 3 }, 
+            { name: 'Foreign Post Manual', questions: 2 }
+          ],
         },
         {
           sectionName: 'Postal Manual Volume V',
@@ -264,8 +261,12 @@ export const PA_BLUEPRINT = {
           },
         },
         {
-          sectionName: 'Reasoning and Analytical Ability',
-          questions: 20,
+          sectionName: 'Logical Reasoning (MCQ Bank)',
+          topics: [{ name: 'Logical Reasoning', questions: 10 }],
+        },
+        {
+          sectionName: 'Non-Verbal Reasoning (Image Bank)',
+          questions: 10,
         },
       ],
     },
