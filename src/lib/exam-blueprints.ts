@@ -192,7 +192,7 @@ export const PA_BLUEPRINT = {
           topics: [{ name: 'Modernization Project', questions: 10 }],
         },
         {
-          sectionName: 'Manuals & Orders (Vol VI & SB)',
+          sectionName: 'Combined Section: Manuals & Orders (Vol VI & SB)',
           randomFrom: {
             questions: 5,
             topics: [
@@ -203,7 +203,7 @@ export const PA_BLUEPRINT = {
           },
         },
         {
-          sectionName: 'Manuals & Foreign Post (Vol VII)',
+          sectionName: 'Combined Section: Manuals & Foreign Post (Vol VII)',
           randomFrom: {
             questions: 5,
             topics: ['Postal Manual Volume VII', 'Foreign Post Manual'],
@@ -237,26 +237,20 @@ export const PA_BLUEPRINT = {
         },
         {
           sectionName: 'Logical Reasoning',
-          topics: [{ name: 'Logical Reasoning', questions: 10 }],
+          topics: [{ name: 'Logical Reasoning', questions: 15 }],
         },
         {
           sectionName: 'Non-Verbal Reasoning',
-          questions: 10, // Total questions to fetch for this section
+          questions: 5, // Total questions to fetch for this section
           nonVerbalTopics: [ // The specific topics and counts to fetch from
-            { name: 'Cubs and dice', questions: 2 },
+            { name: 'Cubs and dice', questions: 1 },
             { name: 'Dot situation', questions: 1 },
             { name: 'Embedded images', questions: 1 },
-            { name: 'Figure matrix', questions: 1 },
-            { name: 'Image Analysis', questions: 1 },
             { name: 'Mirror Images', questions: 1 },
             { name: 'Paper Folding', questions: 1 },
-            { name: 'Paper Cutting', questions: 1 },
-            { name: 'Pattern Completion', questions: 1 },
           ]
         },
       ],
     },
   ],
 };
-
-    
