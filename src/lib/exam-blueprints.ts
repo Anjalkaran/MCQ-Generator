@@ -14,7 +14,10 @@ export const MTS_BLUEPRINT = {
             { name: 'Type of Post Offices', questions: 1 },
             { name: 'Business Hours', questions: 1 },
             { name: 'Payment of postage, stamps and stationery', questions: 2 },
-            { name: 'General rules as to packing, sealing and posting, manner of affixing postage stamps', questions: 1 },
+            {
+              name: 'General rules as to packing, sealing and posting, manner of affixing postage stamps',
+              questions: 1,
+            },
             { name: 'Methods of address', questions: 2 },
             { name: 'Post boxes and Post bags', questions: 1 },
             { name: 'Duties of Letter Box peon', questions: 1 },
@@ -173,10 +176,7 @@ export const PA_BLUEPRINT = {
             { name: 'Type of Post Offices', questions: 1 },
             { name: 'Business Hours', questions: 1 },
             { name: 'Payment of postage, stamps and stationery', questions: 1 },
-            {
-              name: 'General rules as to packing, sealing and posting, manner of affixing postage stamps',
-              questions: 1,
-            },
+            { name: 'General rules as to packing, sealing and posting, manner of affixing postage stamps', questions: 1 },
             { name: 'Methods of address', questions: 1 },
             { name: 'Post boxes and Post bags', questions: 1 },
             { name: 'Duties of Letter Box peon', questions: 1 },
@@ -186,44 +186,35 @@ export const PA_BLUEPRINT = {
           randomFrom: {
             questions: 5,
             topics: [
-              'Domestic Item – Mails',
-              'International items and services',
-              'Stamps',
-              'PLI/RPLI',
-              'SCSS',
-              'SSA',
-              'PPF',
-              'Recurring Deposit',
-              'Savings Bank Account',
-              'TD and MIS',
+              'Domestic Item – Mails', 'International items and services', 'Stamps', 'PLI/RPLI', 'SCSS', 'SSA', 'PPF', 'Recurring Deposit', 'Savings Bank Account', 'TD and MIS'
             ],
           },
         },
         {
-          sectionName: 'Manuals',
-          topics: [
-            { name: 'Postal Manual Volume V', questions: 5 },
-            { name: 'Post Office Guide Part II', questions: 10 },
-          ],
+          sectionName: 'Post Office Guide Part II',
+          topics: [{ name: 'Post Office Guide Part II', questions: 10 }],
         },
         {
-          sectionName: 'IT Modernization & Manuals',
-          topics: [
-            { name: 'Basic terminologies related to IT', questions: 10 },
-            { name: 'Postal Manual Volume VII', questions: 5 },
-            { name: 'Foreign Post Manual', questions: 5 },
-          ],
+          sectionName: 'Basic terminologies related to IT Modernization Project',
+          topics: [{ name: 'Basic terminologies related to IT', questions: 10 }],
         },
         {
           sectionName: 'Postal Manuals & Orders',
           randomFrom: {
             questions: 5,
-            topics: [
-              'Postal Manual Volume VI – Part I',
-              'Postal Manual Volume VI – Part III',
-              'SB Orders',
-            ],
+            topics: ['Postal Manual Volume VI – Part I', 'Postal Manual Volume VI – Part III', 'SB Orders'],
           },
+        },
+        {
+          sectionName: 'Postal Manuals',
+          randomFrom: {
+            questions: 5,
+            topics: ['Postal Manual Volume VII', 'Foreign Post Manual'],
+          },
+        },
+        {
+          sectionName: 'Postal Manual Volume V',
+          topics: [{ name: 'Postal Manual Volume V', questions: 5 }],
         },
       ],
     },
@@ -236,12 +227,7 @@ export const PA_BLUEPRINT = {
           randomFrom: {
             questions: 10,
             topics: [
-              'Indian Geography',
-              'Civics',
-              'General knowledge',
-              'Indian culture & freedom struggle',
-              'Ethics and morale study',
-              'current affairs'
+              'Indian Geography', 'Civics', 'General knowledge', 'Indian culture & freedom struggle', 'Ethics and morale study', 'current affairs'
             ],
           },
         },
@@ -250,14 +236,7 @@ export const PA_BLUEPRINT = {
           randomFrom: {
             questions: 20,
             topics: [
-              'BODMAS',
-              'Percentage',
-              'Profit and loss',
-              'Simple interest',
-              'Average',
-              'Time and work',
-              'Time and distance',
-              'Unitary method',
+              'BODMAS', 'Percentage', 'Profit and loss', 'Simple interest', 'Average', 'Time and work', 'Time and distance', 'Unitary method'
             ],
           },
         },
