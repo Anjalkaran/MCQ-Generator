@@ -698,12 +698,11 @@ const getReasoningTopicTitlesForExam = async (examCategory: 'MTS' | 'POSTMAN' | 
     const allTopics = await getTopics();
     const allCategories = await getCategories();
     
-    // Find categories whose names contain "Reasoning" or "Non-verbal" (case-insensitive)
+    // Find categories whose names contain "Non-verbal" (case-insensitive)
     const reasoningCategoryIds = new Set(
         allCategories
             .filter(c => {
                 const nameLower = c.name.toLowerCase();
-                // Make this more specific to avoid matching "Logical Reasoning" with image bank logic
                 return nameLower.includes("non verbal") || nameLower.includes("non-verbal");
             })
             .map(c => c.id)

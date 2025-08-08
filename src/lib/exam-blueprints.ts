@@ -170,7 +170,7 @@ export const PA_BLUEPRINT = {
       totalQuestions: 50,
       sections: [
         {
-          sectionName: 'Products & Services and POG-I',
+          sectionName: 'Post Office Guide Part I & Products/Services',
           randomFrom: {
             questions: 10,
             topics: [
@@ -202,12 +202,12 @@ export const PA_BLUEPRINT = {
           topics: [{ name: 'Post Office Guide Part II', questions: 10 }],
         },
         {
-          sectionName: 'Modernization Project',
+          sectionName: 'Basic terminologies related to IT Modernization Project',
           topics: [{ name: 'Modernization Project', questions: 10 }],
         },
         {
-          sectionName: 'Postal Manuals & Orders',
-           randomFrom: {
+          sectionName: 'Postal Manual Volume VI & SB Orders',
+          randomFrom: {
             questions: 5,
             topics: [
               'Postal Manual Volume VI – Part I',
@@ -217,7 +217,7 @@ export const PA_BLUEPRINT = {
           },
         },
         {
-          sectionName: 'Postal Manuals',
+          sectionName: 'Postal Manual Volume VII & Foreign Post Manual',
           randomFrom: {
             questions: 5,
             topics: [
