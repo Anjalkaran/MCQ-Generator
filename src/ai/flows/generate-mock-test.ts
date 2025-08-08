@@ -130,11 +130,14 @@ const generateMockTestFlow = ai.defineFlow(
     for (const part of blueprint.parts) {
       for (const section of part.sections) {
         
-        if (section.sectionName === "Non-Verbal Reasoning" && section.questions) {
-            const reasoningQuestions = await getReasoningQuestionsForPartwiseTest(section.nonVerbalTopics || []);
-            if (reasoningQuestions.length < section.questions) {
-                throw new Error(`Not enough non-verbal reasoning questions. Found ${reasoningQuestions.length}, but need ${section.questions}. Please upload more.`);
+        if (section.sectionName === "Non-Verbal Reasoning" && section.nonVerbalTopics) {
+            const reasoningQuestions = await getReasoningQuestionsForPartwiseTest(section.nonVerbalTopics);
+            const totalQuestionsNeeded = section.nonVerbalTopics.reduce((sum, t) => sum + t.questions, 0);
+
+            if (reasoningQuestions.length < totalQuestionsNeeded) {
+                throw new Error(`Not enough non-verbal reasoning questions. Found ${reasoningQuestions.length}, but need ${totalQuestionsNeeded}. Please upload more.`);
             }
+
             const formatted: MCQ[] = reasoningQuestions.map(q => ({
                 question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
                 options: q.options,
@@ -150,14 +153,25 @@ const generateMockTestFlow = ai.defineFlow(
         let randomFromRequest: { topics: string[], questions: number } | null = null;
         
         if (section.topics) {
-             section.topics.forEach(topicDef => {
-                const topicInfo = topicMapByName.get(topicDef.name.toLowerCase());
+             // Handle sections with a single topic and a fixed number of questions
+             if (section.topics.length === 1 && section.topics[0].name && section.topics[0].questions > 0) {
+                const topicInfo = topicMapByName.get(section.topics[0].name.toLowerCase());
                 if (topicInfo) {
-                    topicRequests.set(topicInfo.id, topicDef.questions);
+                    topicRequests.set(topicInfo.id, section.topics[0].questions);
                 } else {
-                    console.warn(`Blueprint topic "${topicDef.name}" not found in Firestore. Skipping.`);
+                     console.warn(`Blueprint topic "${section.topics[0].name}" not found in Firestore. Skipping.`);
                 }
-            });
+             } else {
+                // Handle sections with multiple topics, each with a question count
+                section.topics.forEach(topicDef => {
+                    const topicInfo = topicMapByName.get(topicDef.name.toLowerCase());
+                    if (topicInfo) {
+                        topicRequests.set(topicInfo.id, topicDef.questions);
+                    } else {
+                        console.warn(`Blueprint topic "${topicDef.name}" not found in Firestore. Skipping.`);
+                    }
+                });
+             }
         }
         
         if (section.randomFrom) {
@@ -182,8 +196,8 @@ const generateMockTestFlow = ai.defineFlow(
             if (section.randomFrom) {
                 count += section.randomFrom.questions;
             }
-            if (section.questions) {
-                count += section.questions;
+             if (section.nonVerbalTopics) {
+                count += section.nonVerbalTopics.reduce((topicSum, topic) => topicSum + topic.questions, 0);
             }
             return sectionSum + count;
         }, 0);
@@ -257,3 +271,5 @@ const generateMockTestFlow = ai.defineFlow(
     return { quizId: docRef.id };
   }
 );
+
+    
