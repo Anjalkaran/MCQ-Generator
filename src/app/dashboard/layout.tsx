@@ -374,6 +374,7 @@ export default function DashboardLayout({
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showReasoningPopup, setShowReasoningPopup] = useState(false);
+  const [showMockTestPopup, setShowMockTestPopup] = useState(false);
   const [hasGivenFeedback, setHasGivenFeedback] = useState(false);
   const idleTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -533,6 +534,12 @@ export default function DashboardLayout({
                 if ((fetchedUserData.examCategory === 'PA' || fetchedUserData.examCategory === 'POSTMAN') && !fetchedUserData.hasSeenReasoningUpdate) {
                     setShowReasoningPopup(true);
                 }
+                
+                // Check for mock test update popup
+                if (!fetchedUserData.hasSeenMockTestUpdate) {
+                    setShowMockTestPopup(true);
+                }
+
 
                 // Non-admins don't need this data, so set to empty arrays
                 setBankedQuestions([]);
@@ -573,7 +580,7 @@ export default function DashboardLayout({
     
   }, [router, toast, handleLogout, pathname]);
 
-  const handlePopupClose = async () => {
+  const handleReasoningPopupClose = async () => {
     setShowReasoningPopup(false);
     if (user && userData && !userData.hasSeenReasoningUpdate) {
         try {
@@ -585,6 +592,18 @@ export default function DashboardLayout({
     }
   };
   
+  const handleMockTestPopupClose = async () => {
+    setShowMockTestPopup(false);
+    if (user && userData && !userData.hasSeenMockTestUpdate) {
+        try {
+            await updateUserDocument(user.uid, { hasSeenMockTestUpdate: true });
+            setUserData(prev => prev ? ({...prev, hasSeenMockTestUpdate: true}) : null);
+        } catch (error) {
+            console.error("Failed to mark mock test update as seen:", error);
+        }
+    }
+  };
+
   const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, qnaUsage, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback };
 
   return (
@@ -602,7 +621,7 @@ export default function DashboardLayout({
               ) : (
                 <>
                   {children}
-                   <Dialog open={showReasoningPopup} onOpenChange={(isOpen) => !isOpen && handlePopupClose()}>
+                   <Dialog open={showReasoningPopup} onOpenChange={(isOpen) => !isOpen && handleReasoningPopupClose()}>
                       <DialogContent>
                         <DialogHeader>
                           <DialogTitle className="flex items-center gap-2">
@@ -619,8 +638,24 @@ export default function DashboardLayout({
                             You can find the new section on your main dashboard. Click the button below to go there now.
                            </AlertDescription>
                         </Alert>
-                         <Button asChild onClick={handlePopupClose}>
+                         <Button asChild onClick={handleReasoningPopupClose}>
                             <Link href="/dashboard">Got it, thanks!</Link>
+                         </Button>
+                      </DialogContent>
+                   </Dialog>
+                   <Dialog open={showMockTestPopup} onOpenChange={(isOpen) => !isOpen && handleMockTestPopupClose()}>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-2">
+                            <FileText className="h-6 w-6 text-primary" />
+                            Feature Unlocked: Mock Tests!
+                          </DialogTitle>
+                          <DialogDescription className="pt-2">
+                             Practice Mock Tests have been enabled for all users. You can now take unlimited mock tests to prepare for your exam.
+                          </DialogDescription>
+                        </DialogHeader>
+                         <Button asChild onClick={handleMockTestPopupClose}>
+                            <Link href="/dashboard/mock-test">Start a Mock Test</Link>
                          </Button>
                       </DialogContent>
                    </Dialog>
