@@ -130,9 +130,8 @@ const generateMockTestFlow = ai.defineFlow(
     for (const part of blueprint.parts) {
       for (const section of part.sections) {
         
-        // This condition is now more specific to only handle image-based reasoning questions
-        if (section.sectionName === "Non-Verbal Reasoning" && section.nonVerbalTopics) {
-            const reasoningQuestions = await getReasoningQuestionsForPartwiseTest(section.nonVerbalTopics);
+        if (section.sectionName === "Non-Verbal Reasoning" && section.questions) {
+            const reasoningQuestions = await getReasoningQuestionsForPartwiseTest(section.nonVerbalTopics || []);
             if (reasoningQuestions.length < section.questions) {
                 throw new Error(`Not enough non-verbal reasoning questions. Found ${reasoningQuestions.length}, but need ${section.questions}. Please upload more.`);
             }
@@ -144,7 +143,7 @@ const generateMockTestFlow = ai.defineFlow(
                 topic: q.topic,
             }));
             allQuestions.push(...formatted);
-            continue; // Skip the standard MCQ fetching for this section
+            continue;
         }
 
         const topicRequests = new Map<string, number>();
@@ -258,5 +257,3 @@ const generateMockTestFlow = ai.defineFlow(
     return { quizId: docRef.id };
   }
 );
-
-    

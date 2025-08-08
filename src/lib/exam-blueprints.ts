@@ -197,7 +197,6 @@ export const PA_BLUEPRINT = {
         },
         {
           sectionName: 'Post Office Guide Part I',
-          totalQuestions: 20,
           topics: [
             { name: 'Organization of the Department', questions: 1 },
             { name: 'Type of Post Offices', questions: 1 },
