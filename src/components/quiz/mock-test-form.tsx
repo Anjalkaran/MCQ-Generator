@@ -18,6 +18,8 @@ import { generateMockTest } from '@/ai/flows/generate-mock-test';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-blueprints';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { Input } from '@/components/ui/input';
+import { normalizeDate } from '@/lib/utils';
+import Link from 'next/link';
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 const languages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
@@ -104,6 +106,10 @@ export function MockTestForm() {
       setIsGenerating(false);
     }
   };
+  
+  const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
+  const proValidUntilDate = normalizeDate(userData?.proValidUntil);
+  const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
 
   return (
     <Card>
@@ -114,6 +120,20 @@ export function MockTestForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CardContent>
+                 {!isPro ? (
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Pro Feature</AlertTitle>
+                        <AlertDescription>
+                            Practice Mock Tests are available for Pro users only. Please upgrade for unlimited access.
+                        </AlertDescription>
+                        <Button asChild className="mt-4">
+                            <Link href="/dashboard/upgrade">
+                                Upgrade Now <Gem className="ml-2 h-4 w-4" />
+                            </Link>
+                        </Button>
+                    </Alert>
+                ) : (
                 <fieldset disabled={isGenerating || isLoading} className="space-y-6">
                     <FormField
                     control={form.control}
@@ -170,19 +190,22 @@ export function MockTestForm() {
                         </Alert>
                     )}
                 </fieldset>
+                )}
              </CardContent>
-             <CardFooter>
-                <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading} className="w-full">
-                    {isGenerating ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Generating... Please wait a moment.
-                        </>
-                    ) : (
-                        "Generate Mock Test"
-                    )}
-                </Button>
-            </CardFooter>
+             {isPro && (
+                <CardFooter>
+                    <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading} className="w-full">
+                        {isGenerating ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Generating... Please wait a moment.
+                            </>
+                        ) : (
+                            "Generate Mock Test"
+                        )}
+                    </Button>
+                </CardFooter>
+            )}
         </form>
         </Form>
     </Card>
