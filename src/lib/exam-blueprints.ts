@@ -197,6 +197,7 @@ export const PA_BLUEPRINT = {
         },
         {
           sectionName: 'Post Office Guide Part I',
+          totalQuestions: 20,
           topics: [
             { name: 'Organization of the Department', questions: 1 },
             { name: 'Type of Post Offices', questions: 1 },
@@ -210,15 +211,15 @@ export const PA_BLUEPRINT = {
             { name: 'Prohibited postal articles', questions: 1 },
             { name: 'Domestic Item – Mails', questions: 1 },
             { name: 'International items and services', questions: 1 },
-            { name: 'Definitions', questions: 1 }, // Changed 'Others' to 'Definitions'
+            { name: 'Definitions', questions: 1 },
             { name: 'Stamps', questions: 1 },
             { name: 'PLI/RPLI', questions: 2 },
             { name: 'Jan Suraksha Scheme', questions: 1 },
           ],
           randomFrom: {
             questions: 3,
-            topics: ['SCSS', 'SSA', 'PPF', 'Recurring Deposit', 'Savings Bank Account', 'TD and MIS']
-          }
+            topics: ['SCSS', 'SSA', 'PPF', 'Recurring Deposit', 'Savings Bank Account', 'TD and MIS'],
+          },
         },
       ],
     },
@@ -247,19 +248,10 @@ export const PA_BLUEPRINT = {
           },
         },
         {
-          sectionName: 'Logical Reasoning',
-          topics: [{ name: 'Logical Reasoning', questions: 15 }],
-        },
-        {
-          sectionName: 'Non-Verbal Reasoning',
-          questions: 5, // Total questions to fetch for this section
-          nonVerbalTopics: [ // The specific topics and counts to fetch from
-            { name: 'Cubs and dice', questions: 1 },
-            { name: 'Embedded images', questions: 1 },
-            { name: 'Figure matrix', questions: 1 },
-            { name: 'Paper Folding', questions: 1 },
-            { name: 'Pattern Completion', questions: 1 },
-          ]
+          sectionName: 'Reasoning and Analytical Ability',
+          topics: [
+            { name: 'Logical Reasoning', questions: 20 },
+          ],
         },
       ],
     },
