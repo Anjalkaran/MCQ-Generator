@@ -730,29 +730,20 @@ export const getReasoningQuestionsForPartwiseTest = async (
     if (!db) throw new Error("Firestore is not initialized");
 
     const allFetchedQuestions: ReasoningQuestion[] = [];
-    
-    // Fetch all questions from the bank that match any of the requested topics
-    const topicNames = nonVerbalTopicRequests.map(req => req.name);
-    if (topicNames.length === 0) return [];
+    const reasoningBankRef = collection(db, 'reasoningBank');
 
-    const q = query(collection(db, 'reasoningBank'), where('topic', 'in', topicNames));
-    const snapshot = await getDocs(q);
-    const allAvailableQuestions = snapshot.docs.map(doc => doc.data() as ReasoningQuestion);
-    
-    // Group questions by topic
-    const questionsByTopic = new Map<string, ReasoningQuestion[]>();
-    allAvailableQuestions.forEach(q => {
-        const existing = questionsByTopic.get(q.topic) || [];
-        questionsByTopic.set(q.topic, [...existing, q]);
-    });
-
-    // For each topic, shuffle and slice the required number of questions
     for (const request of nonVerbalTopicRequests) {
-        const available = questionsByTopic.get(request.name) || [];
-        if (available.length < request.questions) {
-            console.warn(`Not enough questions for reasoning topic "${request.name}". Needed ${request.questions}, found ${available.length}.`);
+        const q = query(reasoningBankRef, where('topic', '==', request.name));
+        const snapshot = await getDocs(q);
+        
+        const availableQuestions = snapshot.docs.map(doc => doc.data() as ReasoningQuestion);
+        
+        if (availableQuestions.length < request.questions) {
+            console.warn(`Not enough questions for reasoning topic "${request.name}". Needed ${request.questions}, found ${availableQuestions.length}.`);
         }
-        allFetchedQuestions.push(...shuffleArray(available).slice(0, request.questions));
+
+        const selected = shuffleArray(availableQuestions).slice(0, request.questions);
+        allFetchedQuestions.push(...selected);
     }
 
     return allFetchedQuestions;
