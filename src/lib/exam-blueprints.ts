@@ -170,7 +170,7 @@ export const PA_BLUEPRINT = {
       totalQuestions: 50,
       sections: [
         {
-          sectionName: 'Post Office Guide Part I',
+          sectionName: 'Post Office Guide Part I & Products/Services',
           topics: [
             { name: 'Organization of the Department', questions: 1 },
             { name: 'Type of Post Offices', questions: 1 },
@@ -195,14 +195,8 @@ export const PA_BLUEPRINT = {
             { name: 'TD and MIS', questions: 1 },
           ],
         },
-        {
-          sectionName: 'Post Office Guide Part II',
-          topics: [{ name: 'Post Office Guide Part II', questions: 10 }],
-        },
-        {
-          sectionName: 'Modernization Project',
-          topics: [{ name: 'Modernization Project', questions: 10 }],
-        },
+        { sectionName: 'Post Office Guide Part II', topics: [{ name: 'Post Office Guide Part II', questions: 10 }] },
+        { sectionName: 'Modernization Project', topics: [{ name: 'Modernization Project', questions: 10 }] },
         {
           sectionName: 'Postal Manuals & SB Orders',
           randomFrom: {
@@ -245,7 +239,7 @@ export const PA_BLUEPRINT = {
         },
         {
           sectionName: 'Logical Reasoning',
-          topics: [{ name: 'Reasoning and Analytical Ability', questions: 10 }],
+          topics: [{ name: 'Logical Reasoning', questions: 10 }],
         },
         {
           sectionName: 'Non-Verbal Reasoning',
@@ -255,5 +249,3 @@ export const PA_BLUEPRINT = {
     },
   ],
 };
-
-    

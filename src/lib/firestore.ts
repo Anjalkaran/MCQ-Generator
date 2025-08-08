@@ -594,6 +594,9 @@ export const getShuffledMCQsForTopics = async (
 
     for (const [topicId, count] of fixedRequests.entries()) {
         const availableMCQs = (mcqsByTopicId.get(topicId) || []).filter(mcq => !usedQuestions.has(mcq.question));
+        if (availableMCQs.length < count) {
+            console.warn(`Not enough questions for topic ID ${topicId}. Needed ${count}, found ${availableMCQs.length}.`);
+        }
         const questionsToTake = shuffleArray(availableMCQs).slice(0, count);
         questionsToTake.forEach(q => usedQuestions.add(q.question));
         finalMCQs.push(...questionsToTake);
@@ -605,6 +608,9 @@ export const getShuffledMCQsForTopics = async (
             pooledMCQs.push(...(mcqsByTopicId.get(topicId) || []));
         });
         const availablePooled = pooledMCQs.filter(mcq => !usedQuestions.has(mcq.question));
+         if (availablePooled.length < randomRequest.questions) {
+            console.warn(`Not enough questions for random pool. Needed ${randomRequest.questions}, found ${availablePooled.length}.`);
+        }
         const questionsToTake = shuffleArray(availablePooled).slice(0, randomRequest.questions);
         questionsToTake.forEach(q => usedQuestions.add(q.question));
         finalMCQs.push(...questionsToTake);
@@ -740,8 +746,12 @@ export const getReasoningQuestionsForPartwiseTest = async (examCategory: 'MTS' |
     if (!db) throw new Error("Firestore is not initialized");
     const relevantTopicTitles = await getReasoningTopicTitlesForExam(examCategory);
 
-    if (relevantTopicTitles.length === 0) return [];
+    if (relevantTopicTitles.length === 0) {
+        console.warn(`No non-verbal reasoning topics found for exam category: ${examCategory}`);
+        return [];
+    };
     
+    // Fetch all questions from the reasoning bank that match any of the relevant topic titles
     const q = query(
         collection(db, 'reasoningBank'), 
         where('topic', 'in', relevantTopicTitles)
