@@ -46,13 +46,34 @@ export function MockTestForm() {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      examType: 'MTS',
+      examType: undefined,
       language: 'English',
     },
   });
 
+  const availableExams = useMemo(() => {
+    if (!userData) return [];
+    if (userData.email && ADMIN_EMAILS.includes(userData.email)) return examCategories;
+    switch (userData.examCategory) {
+        case 'PA':
+            return ['PA', 'POSTMAN', 'MTS'];
+        case 'POSTMAN':
+            return ['POSTMAN', 'MTS'];
+        case 'MTS':
+            return ['MTS'];
+        default:
+            return [];
+    }
+  }, [userData]);
+
+  useEffect(() => {
+    if (userData?.examCategory) {
+        form.setValue('examType', userData.examCategory);
+    }
+  }, [userData?.examCategory, form]);
+
+
   const selectedExamType = form.watch('examType');
-  const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
 
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
@@ -107,13 +128,9 @@ export function MockTestForm() {
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                <SelectItem value="MTS">MTS</SelectItem>
-                                <SelectItem value="POSTMAN" disabled={!isAdmin}>
-                                    POSTMAN {isAdmin ? '' : '(Coming Soon)'}
-                                </SelectItem>
-                                <SelectItem value="PA" disabled={!isAdmin}>
-                                    PA {isAdmin ? '' : '(Coming Soon)'}
-                                </SelectItem>
+                                {availableExams.map((exam) => (
+                                    <SelectItem key={exam} value={exam}>{exam}</SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                         <FormMessage />
