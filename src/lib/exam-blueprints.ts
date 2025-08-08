@@ -170,7 +170,7 @@ export const PA_BLUEPRINT = {
       totalQuestions: 50,
       sections: [
         {
-          sectionName: 'Products & Services',
+          sectionName: 'Products & Services and POG-I',
           randomFrom: {
             questions: 10,
             topics: [
@@ -199,16 +199,16 @@ export const PA_BLUEPRINT = {
         },
         {
           sectionName: 'Post Office Guide Part II',
-          topics: [{ name: 'Post Office Guide Part II', questions: 5 }],
+          topics: [{ name: 'Post Office Guide Part II', questions: 10 }],
         },
         {
-          sectionName: 'Basic terminologies related to IT Modernization Project',
+          sectionName: 'Modernization Project',
           topics: [{ name: 'Modernization Project', questions: 10 }],
         },
         {
           sectionName: 'Postal Manuals & Orders',
            randomFrom: {
-            questions: 10,
+            questions: 5,
             topics: [
               'Postal Manual Volume VI – Part I',
               'Postal Manual Volume VI – Part III',
@@ -267,8 +267,8 @@ export const PA_BLUEPRINT = {
           },
         },
         {
-          sectionName: 'Reasoning and Analytical Ability',
-          topics: [{ name: 'Reasoning and Analytical Ability', questions: 10 }],
+          sectionName: 'Logical Reasoning',
+          topics: [{ name: 'Logical Reasoning', questions: 10 }],
         },
         {
           sectionName: 'Non-Verbal Reasoning',
