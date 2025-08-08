@@ -182,14 +182,14 @@ export const PA_BLUEPRINT = {
             { name: 'Duties of Letter Box peon', questions: 1 },
             { name: 'Official postal articles', questions: 1 },
             { name: 'Prohibited postal articles', questions: 1 },
-            { name: 'Domestic Item – Mails', questions: 1 },
-            { name: 'International items and services', questions: 1 },
-            { name: 'Stamps', questions: 1 },
-            { name: 'PLI/RPLI', questions: 2 },
           ],
           randomFrom: {
             questions: 5,
             topics: [
+              'Domestic Item – Mails',
+              'International items and services',
+              'Stamps',
+              'PLI/RPLI',
               'SCSS',
               'SSA',
               'PPF',
@@ -202,7 +202,7 @@ export const PA_BLUEPRINT = {
         {
           sectionName: 'Manuals',
           topics: [
-            { name: 'Postal Manual Volume V', questions: 10 },
+            { name: 'Postal Manual Volume V', questions: 5 },
             { name: 'Post Office Guide Part II', questions: 10 },
           ],
         },
@@ -210,8 +210,8 @@ export const PA_BLUEPRINT = {
           sectionName: 'IT Modernization & Manuals',
           topics: [
             { name: 'Basic terminologies related to IT', questions: 10 },
-            { name: 'Postal Manual Volume VII', questions: 3 },
-            { name: 'Foreign Post Manual', questions: 2 },
+            { name: 'Postal Manual Volume VII', questions: 5 },
+            { name: 'Foreign Post Manual', questions: 5 },
           ],
         },
         {
