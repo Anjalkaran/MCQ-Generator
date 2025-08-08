@@ -130,7 +130,7 @@ const generateMockTestFlow = ai.defineFlow(
     for (const part of blueprint.parts) {
       for (const section of part.sections) {
         
-        if (section.sectionName === "Non-Verbal Reasoning" && section.nonVerbalTopics) {
+        if (section.nonVerbalTopics) {
             const reasoningQuestions = await getReasoningQuestionsForPartwiseTest(section.nonVerbalTopics);
             const totalQuestionsNeeded = section.nonVerbalTopics.reduce((sum, t) => sum + t.questions, 0);
 
@@ -271,5 +271,7 @@ const generateMockTestFlow = ai.defineFlow(
     return { quizId: docRef.id };
   }
 );
+
+    
 
     

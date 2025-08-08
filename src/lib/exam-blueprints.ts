@@ -154,7 +154,9 @@ export const POSTMAN_BLUEPRINT = {
         },
         {
             sectionName: 'Non-Verbal Reasoning',
-            questions: 5,
+            nonVerbalTopics: [
+                { name: 'Non-Verbal Reasoning', questions: 5 },
+            ]
         }
       ],
     },
@@ -215,7 +217,7 @@ export const PA_BLUEPRINT = {
             { name: 'PLI/RPLI', questions: 2 },
             { name: 'Jan Suraksha Scheme', questions: 1 },
           ],
-          randomFrom: {
+           randomFrom: {
             questions: 3,
             topics: ['SCSS', 'SSA', 'PPF', 'Recurring Deposit', 'Savings Bank Account', 'TD and MIS'],
           },
@@ -256,3 +258,5 @@ export const PA_BLUEPRINT = {
     },
   ],
 };
+
+    
