@@ -171,22 +171,29 @@ export const PA_BLUEPRINT = {
       sections: [
         {
           sectionName: 'Post Office Guide Part I & Products/Services',
-          topics: [
-            { name: 'Organization of the Department', questions: 1 },
-            { name: 'Type of Post Offices', questions: 1 },
-            { name: 'Business Hours', questions: 1 },
-            { name: 'Payment of postage, stamps and stationery', questions: 1 },
-            { name: 'General rules as to packing, sealing and posting, manner of affixing postage stamps', questions: 1 },
-            { name: 'Methods of address', questions: 1 },
-            { name: 'Post boxes and Post bags', questions: 1 },
-            { name: 'Duties of Letter Box peon', questions: 1 },
-            { name: 'Official postal articles', questions: 1 },
-            { name: 'Prohibited postal articles', questions: 1 },
-          ],
           randomFrom: {
-            questions: 5,
+            questions: 15,
             topics: [
-              'Domestic Item – Mails', 'International items and services', 'Stamps', 'PLI/RPLI', 'SCSS', 'SSA', 'PPF', 'Recurring Deposit', 'Savings Bank Account', 'TD and MIS'
+              'Organization of the Department',
+              'Type of Post Offices',
+              'Business Hours',
+              'Payment of postage, stamps and stationery',
+              'General rules as to packing, sealing and posting, manner of affixing postage stamps',
+              'Methods of address',
+              'Post boxes and Post bags',
+              'Duties of Letter Box peon',
+              'Official postal articles',
+              'Prohibited postal articles',
+              'Domestic Item – Mails',
+              'International items and services',
+              'Stamps',
+              'PLI/RPLI',
+              'SCSS',
+              'SSA',
+              'PPF',
+              'Recurring Deposit',
+              'Savings Bank Account',
+              'TD and MIS',
             ],
           },
         },
@@ -202,7 +209,11 @@ export const PA_BLUEPRINT = {
           sectionName: 'Postal Manuals & Orders',
           randomFrom: {
             questions: 5,
-            topics: ['Postal Manual Volume VI – Part I', 'Postal Manual Volume VI – Part III', 'SB Orders'],
+            topics: [
+              'Postal Manual Volume VI – Part I',
+              'Postal Manual Volume VI – Part III',
+              'SB Orders',
+            ],
           },
         },
         {
@@ -227,7 +238,12 @@ export const PA_BLUEPRINT = {
           randomFrom: {
             questions: 10,
             topics: [
-              'Indian Geography', 'Civics', 'General knowledge', 'Indian culture & freedom struggle', 'Ethics and morale study', 'current affairs'
+              'Indian Geography',
+              'Civics',
+              'General knowledge',
+              'Indian culture & freedom struggle',
+              'Ethics and morale study',
+              'current affairs',
             ],
           },
         },
@@ -236,7 +252,14 @@ export const PA_BLUEPRINT = {
           randomFrom: {
             questions: 20,
             topics: [
-              'BODMAS', 'Percentage', 'Profit and loss', 'Simple interest', 'Average', 'Time and work', 'Time and distance', 'Unitary method'
+              'BODMAS',
+              'Percentage',
+              'Profit and loss',
+              'Simple interest',
+              'Average',
+              'Time and work',
+              'Time and distance',
+              'Unitary method',
             ],
           },
         },
