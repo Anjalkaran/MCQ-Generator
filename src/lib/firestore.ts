@@ -707,7 +707,8 @@ export const getReasoningQuestionsForLiveTest = async (examCategory: 'MTS' | 'PO
     // Find topic titles that are for non-verbal reasoning for the specified exam category
     const relevantTopicTitles = allTopics
         .filter(t => 
-            t.source === 'reasoningBank' &&
+            (t.categoryName?.toLowerCase().includes("reasoning") || 
+             t.categoryName?.toLowerCase().includes("non-verbal")) &&
             t.examCategories.includes(examCategory)
         )
         .map(t => t.title);
