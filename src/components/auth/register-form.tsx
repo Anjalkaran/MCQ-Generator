@@ -90,6 +90,8 @@ export function RegisterForm() {
         proValidUntil: null,
         createdAt: new Date(),
         lastSeen: serverTimestamp(),
+        hasSeenReasoningUpdate: false,
+        hasSeenMockTestUpdate: false,
       });
 
       toast({
