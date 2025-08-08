@@ -202,7 +202,7 @@ export const PA_BLUEPRINT = {
           topics: [{ name: 'Post Office Guide Part II', questions: 10 }],
         },
         {
-          sectionName: 'IT Modernization Project',
+          sectionName: 'Modernization Project',
           topics: [{ name: 'Modernization Project', questions: 10 }],
         },
         {
@@ -261,14 +261,16 @@ export const PA_BLUEPRINT = {
           },
         },
         {
-          sectionName: 'Logical Reasoning (MCQ Bank)',
+          sectionName: 'Logical Reasoning',
           topics: [{ name: 'Logical Reasoning', questions: 10 }],
         },
         {
-          sectionName: 'Non-Verbal Reasoning (Image Bank)',
+          sectionName: 'Non-Verbal Reasoning',
           questions: 10,
         },
       ],
     },
   ],
 };
+
+    
