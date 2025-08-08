@@ -131,7 +131,7 @@ const generateMockTestFlow = ai.defineFlow(
       for (const section of part.sections) {
         
         // This condition is now more specific to only handle image-based reasoning questions
-        if (section.sectionName.toLowerCase().includes("non-verbal reasoning")) {
+        if (section.sectionName.toLowerCase() === "non-verbal reasoning") {
             const totalReasoningQuestions = section.questions || 0;
             if (totalReasoningQuestions > 0) {
                 const reasoningQuestions = await getReasoningQuestionsForPartwiseTest(input.examCategory as 'MTS' | 'POSTMAN' | 'PA');

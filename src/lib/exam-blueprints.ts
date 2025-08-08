@@ -153,7 +153,7 @@ export const POSTMAN_BLUEPRINT = {
           },
         },
         {
-            sectionName: 'Reasoning and Analytical Ability',
+            sectionName: 'Non-Verbal Reasoning',
             questions: 5,
         }
       ],
@@ -170,20 +170,10 @@ export const PA_BLUEPRINT = {
       totalQuestions: 50,
       sections: [
         {
-          sectionName: 'Post Office Guide Part I & Products/Services',
+          sectionName: 'Products & Services',
           randomFrom: {
             questions: 10,
             topics: [
-              'Organization of the Department',
-              'Type of Post Offices',
-              'Business Hours',
-              'Payment of postage, stamps and stationery',
-              'General rules as to packing, sealing and posting, manner of affixing postage stamps',
-              'Methods of address',
-              'Post boxes and Post bags',
-              'Duties of Letter Box peon',
-              'Official postal articles',
-              'Prohibited postal articles',
               'Domestic Item – Mails',
               'International items and services',
               'Stamps',
@@ -198,17 +188,16 @@ export const PA_BLUEPRINT = {
           },
         },
         {
-          sectionName: 'Post Office Guide Part II',
-          topics: [{ name: 'Post Office Guide Part II', questions: 10 }],
+          sectionName: 'Postal Guides & Manuals',
+          topics: [
+            { name: 'Post Office Guide Part I', questions: 10 },
+            { name: 'Postal Manual Volume V', questions: 5 },
+          ],
         },
         {
-          sectionName: 'Basic terminologies related to IT Modernization Project',
-          topics: [{ name: 'Modernization Project', questions: 10 }],
-        },
-        {
-          sectionName: 'Postal Manual Volume VI & SB Orders',
+          sectionName: 'Postal Manuals & Orders',
           randomFrom: {
-            questions: 5,
+            questions: 10,
             topics: [
               'Postal Manual Volume VI – Part I',
               'Postal Manual Volume VI – Part III',
@@ -216,19 +205,19 @@ export const PA_BLUEPRINT = {
             ],
           },
         },
-        {
-          sectionName: 'Postal Manual Volume VII & Foreign Post Manual',
+         {
+          sectionName: 'Postal Manuals & Foreign Post',
           randomFrom: {
             questions: 5,
             topics: [
-              'Postal Manual Volume VII',
-              'Foreign Post Manual'
+                'Postal Manual Volume VII',
+                'Foreign Post Manual'
             ],
           }
         },
         {
-          sectionName: 'Postal Manual Volume V',
-          topics: [{ name: 'Postal Manual Volume V', questions: 10 }],
+          sectionName: 'IT Modernization Project',
+          topics: [{ name: 'Modernization Project', questions: 10 }],
         },
       ],
     },
@@ -278,3 +267,5 @@ export const PA_BLUEPRINT = {
     },
   ],
 };
+
+    
