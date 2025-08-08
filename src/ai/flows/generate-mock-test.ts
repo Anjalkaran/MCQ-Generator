@@ -130,7 +130,8 @@ const generateMockTestFlow = ai.defineFlow(
     for (const part of blueprint.parts) {
       for (const section of part.sections) {
         
-        if (section.sectionName.toLowerCase().includes("reasoning")) {
+        // This condition is now more specific to only handle image-based reasoning questions
+        if (section.sectionName.toLowerCase().includes("non-verbal reasoning")) {
             const totalReasoningQuestions = section.questions || 0;
             if (totalReasoningQuestions > 0) {
                 const reasoningQuestions = await getReasoningQuestionsForPartwiseTest(input.examCategory as 'MTS' | 'POSTMAN' | 'PA');
@@ -147,7 +148,7 @@ const generateMockTestFlow = ai.defineFlow(
                 }));
                 allQuestions.push(...formatted);
             }
-            continue;
+            continue; // Skip the standard MCQ fetching for this section
         }
 
         const topicRequests = new Map<string, number>();
@@ -261,3 +262,5 @@ const generateMockTestFlow = ai.defineFlow(
     return { quizId: docRef.id };
   }
 );
+
+    
