@@ -155,14 +155,26 @@ const generateMockTestFlow = ai.defineFlow(
         let randomFromRequest: { topics: string[], questions: number } | null = null;
         
         if (section.topics) {
-             section.topics.forEach(topicDef => {
+            // Handle sections with a single topic and a fixed number of questions
+             if (section.topics.length === 1 && section.topics[0].questions > 0) {
+                const topicDef = section.topics[0];
                 const topicInfo = topicMapByName.get(topicDef.name.toLowerCase());
-                if (topicInfo) {
+                if(topicInfo) {
                     topicRequests.set(topicInfo.id, topicDef.questions);
                 } else {
-                    console.warn(`Blueprint topic "${topicDef.name}" not found in Firestore. Skipping.`);
+                     console.warn(`Blueprint topic "${topicDef.name}" not found in Firestore. Skipping.`);
                 }
-            });
+             } else {
+                // Handle sections with multiple topics, each with its own question count
+                 section.topics.forEach(topicDef => {
+                    const topicInfo = topicMapByName.get(topicDef.name.toLowerCase());
+                    if (topicInfo) {
+                        topicRequests.set(topicInfo.id, topicDef.questions);
+                    } else {
+                        console.warn(`Blueprint topic "${topicDef.name}" not found in Firestore. Skipping.`);
+                    }
+                });
+             }
         }
         
         if (section.randomFrom) {
