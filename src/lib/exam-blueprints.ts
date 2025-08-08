@@ -188,16 +188,13 @@ export const PA_BLUEPRINT = {
           },
         },
         {
-          sectionName: 'Postal Guides & Manuals',
-          topics: [
-            { name: 'Post Office Guide Part I', questions: 10 },
-            { name: 'Postal Manual Volume V', questions: 5 },
-          ],
+          sectionName: 'Post Office Guide Part II',
+          topics: [{ name: 'Post Office Guide Part II', questions: 10 }],
         },
         {
           sectionName: 'Postal Manuals & Orders',
           randomFrom: {
-            questions: 10,
+            questions: 5,
             topics: [
               'Postal Manual Volume VI – Part I',
               'Postal Manual Volume VI – Part III',
@@ -205,20 +202,21 @@ export const PA_BLUEPRINT = {
             ],
           },
         },
-         {
+        {
           sectionName: 'Postal Manuals & Foreign Post',
           randomFrom: {
             questions: 5,
-            topics: [
-                'Postal Manual Volume VII',
-                'Foreign Post Manual'
-            ],
-          }
+            topics: ['Postal Manual Volume VII', 'Foreign Post Manual'],
+          },
         },
         {
-          sectionName: 'IT Modernization Project',
+          sectionName: 'IT Modernization',
           topics: [{ name: 'Modernization Project', questions: 10 }],
         },
+        {
+            sectionName: 'Definitions',
+            topics: [{name: 'Definitions', questions: 10}]
+        }
       ],
     },
     {
@@ -267,5 +265,3 @@ export const PA_BLUEPRINT = {
     },
   ],
 };
-
-    
