@@ -23,6 +23,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { increment } from 'firebase/firestore';
 
 interface OnlineUser {
     uid: string;
@@ -536,7 +537,8 @@ export default function DashboardLayout({
                 }
                 
                 // Check for mock test update popup
-                if (!fetchedUserData.hasSeenMockTestUpdate) {
+                const seenCount = fetchedUserData.mockTestUpdateSeenCount ?? 0;
+                if (seenCount < 2) {
                     setShowMockTestPopup(true);
                 }
 
@@ -594,12 +596,13 @@ export default function DashboardLayout({
   
   const handleMockTestPopupClose = async () => {
     setShowMockTestPopup(false);
-    if (user && userData && !userData.hasSeenMockTestUpdate) {
+    const seenCount = userData?.mockTestUpdateSeenCount ?? 0;
+    if (user && userData && seenCount < 2) {
         try {
-            await updateUserDocument(user.uid, { hasSeenMockTestUpdate: true });
-            setUserData(prev => prev ? ({...prev, hasSeenMockTestUpdate: true}) : null);
+            await updateUserDocument(user.uid, { mockTestUpdateSeenCount: increment(1) });
+            setUserData(prev => prev ? ({...prev, mockTestUpdateSeenCount: (prev.mockTestUpdateSeenCount ?? 0) + 1}) : null);
         } catch (error) {
-            console.error("Failed to mark mock test update as seen:", error);
+            console.error("Failed to update mock test seen count:", error);
         }
     }
   };

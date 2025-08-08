@@ -91,7 +91,7 @@ export function RegisterForm() {
         createdAt: new Date(),
         lastSeen: serverTimestamp(),
         hasSeenReasoningUpdate: false,
-        hasSeenMockTestUpdate: false,
+        mockTestUpdateSeenCount: 2, // Set to 2 so new users never see it
       });
 
       toast({
