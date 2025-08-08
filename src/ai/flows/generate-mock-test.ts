@@ -131,12 +131,12 @@ const generateMockTestFlow = ai.defineFlow(
       for (const section of part.sections) {
         
         // This condition is now more specific to only handle image-based reasoning questions
-        if (section.sectionName.toLowerCase() === "non-verbal reasoning") {
+        if (section.sectionName === "Non-Verbal Reasoning") {
             const totalReasoningQuestions = section.questions || 0;
             if (totalReasoningQuestions > 0) {
                 const reasoningQuestions = await getReasoningQuestionsForPartwiseTest(input.examCategory as 'MTS' | 'POSTMAN' | 'PA');
                 if (reasoningQuestions.length < totalReasoningQuestions) {
-                    throw new Error(`Not enough reasoning questions. Found ${reasoningQuestions.length}, but need ${totalReasoningQuestions}.`);
+                    throw new Error(`Not enough non-verbal reasoning questions. Found ${reasoningQuestions.length}, but need ${totalReasoningQuestions}. Please upload more.`);
                 }
                 const selected = shuffleArray(reasoningQuestions).slice(0, totalReasoningQuestions);
                 const formatted: MCQ[] = selected.map(q => ({
@@ -155,26 +155,14 @@ const generateMockTestFlow = ai.defineFlow(
         let randomFromRequest: { topics: string[], questions: number } | null = null;
         
         if (section.topics) {
-            // Handle sections with a single topic and a fixed number of questions
-             if (section.topics.length === 1 && section.topics[0].questions > 0) {
-                const topicDef = section.topics[0];
+             section.topics.forEach(topicDef => {
                 const topicInfo = topicMapByName.get(topicDef.name.toLowerCase());
-                if(topicInfo) {
+                if (topicInfo) {
                     topicRequests.set(topicInfo.id, topicDef.questions);
                 } else {
-                     console.warn(`Blueprint topic "${topicDef.name}" not found in Firestore. Skipping.`);
+                    console.warn(`Blueprint topic "${topicDef.name}" not found in Firestore. Skipping.`);
                 }
-             } else {
-                // Handle sections with multiple topics, each with its own question count
-                 section.topics.forEach(topicDef => {
-                    const topicInfo = topicMapByName.get(topicDef.name.toLowerCase());
-                    if (topicInfo) {
-                        topicRequests.set(topicInfo.id, topicDef.questions);
-                    } else {
-                        console.warn(`Blueprint topic "${topicDef.name}" not found in Firestore. Skipping.`);
-                    }
-                });
-             }
+            });
         }
         
         if (section.randomFrom) {
