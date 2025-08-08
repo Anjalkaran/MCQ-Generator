@@ -199,26 +199,32 @@ export const PA_BLUEPRINT = {
         },
         {
           sectionName: 'Post Office Guide Part II',
-          topics: [{ name: 'Post Office Guide Part II', questions: 10 }],
+          topics: [{ name: 'Post Office Guide Part II', questions: 5 }],
         },
         {
-          sectionName: 'Modernization Project',
+          sectionName: 'Basic terminologies related to IT Modernization Project',
           topics: [{ name: 'Modernization Project', questions: 10 }],
         },
         {
           sectionName: 'Postal Manuals & Orders',
-           topics: [
-              { name: 'Postal Manual Volume VI – Part I', questions: 2 },
-              { name: 'Postal Manual Volume VI – Part III', questions: 2 },
-              { name: 'SB Orders', questions: 1 },
+           randomFrom: {
+            questions: 10,
+            topics: [
+              'Postal Manual Volume VI – Part I',
+              'Postal Manual Volume VI – Part III',
+              'SB Orders',
             ],
+          },
         },
         {
           sectionName: 'Postal Manuals',
-          topics: [
-            { name: 'Postal Manual Volume VII', questions: 3 }, 
-            { name: 'Foreign Post Manual', questions: 2 }
-          ],
+          randomFrom: {
+            questions: 5,
+            topics: [
+              'Postal Manual Volume VII',
+              'Foreign Post Manual'
+            ],
+          }
         },
         {
           sectionName: 'Postal Manual Volume V',
@@ -261,8 +267,8 @@ export const PA_BLUEPRINT = {
           },
         },
         {
-          sectionName: 'Logical Reasoning',
-          topics: [{ name: 'Logical Reasoning', questions: 10 }],
+          sectionName: 'Reasoning and Analytical Ability',
+          topics: [{ name: 'Reasoning and Analytical Ability', questions: 10 }],
         },
         {
           sectionName: 'Non-Verbal Reasoning',
@@ -272,5 +278,3 @@ export const PA_BLUEPRINT = {
     },
   ],
 };
-
-    
