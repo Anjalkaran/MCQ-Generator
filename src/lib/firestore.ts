@@ -703,7 +703,8 @@ const getReasoningTopicTitlesForExam = async (examCategory: 'MTS' | 'POSTMAN' | 
         allCategories
             .filter(c => {
                 const nameLower = c.name.toLowerCase();
-                return nameLower.includes("reasoning") || nameLower.includes("non verbal") || nameLower.includes("non-verbal");
+                // Make this more specific to avoid matching "Logical Reasoning" with image bank logic
+                return nameLower.includes("non verbal") || nameLower.includes("non-verbal");
             })
             .map(c => c.id)
     );
