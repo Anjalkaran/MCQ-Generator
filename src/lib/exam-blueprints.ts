@@ -170,14 +170,25 @@ export const PA_BLUEPRINT = {
       totalQuestions: 50,
       sections: [
         {
-          sectionName: 'Products & Services',
+          sectionName: 'Post Office Guide Part I',
           randomFrom: {
-            questions: 10,
+            questions: 20,
             topics: [
+              'Organization of the Department',
+              'Type of Post Offices',
+              'Business Hours',
+              'Payment of postage, stamps and stationery',
+              'General rules as to packing, sealing and posting, manner of affixing postage stamps',
+              'Methods of address',
+              'Post boxes and Post bags',
+              'Duties of Letter Box peon',
+              'Official postal articles',
+              'Prohibited postal articles',
               'Domestic Item – Mails',
               'International items and services',
               'Stamps',
               'PLI/RPLI',
+              'Jan Suraksha Scheme',
               'SCSS',
               'SSA',
               'PPF',
@@ -190,6 +201,10 @@ export const PA_BLUEPRINT = {
         {
           sectionName: 'Post Office Guide Part II',
           topics: [{ name: 'Post Office Guide Part II', questions: 10 }],
+        },
+        {
+          sectionName: 'Modernization Project',
+          topics: [{ name: 'Modernization Project', questions: 10 }],
         },
         {
           sectionName: 'Postal Manuals & Orders',
@@ -209,14 +224,6 @@ export const PA_BLUEPRINT = {
             topics: ['Postal Manual Volume VII', 'Foreign Post Manual'],
           },
         },
-        {
-          sectionName: 'IT Modernization',
-          topics: [{ name: 'Modernization Project', questions: 10 }],
-        },
-        {
-            sectionName: 'Definitions',
-            topics: [{name: 'Definitions', questions: 10}]
-        }
       ],
     },
     {
@@ -259,7 +266,20 @@ export const PA_BLUEPRINT = {
         },
         {
           sectionName: 'Non-Verbal Reasoning',
-          questions: 10,
+          randomFrom: {
+            questions: 10,
+            topics: [
+              'Cubs and dice',
+              'Dot situation',
+              'Embedded images',
+              'Figure matrix',
+              'Image Analysis',
+              'Mirror Images',
+              'Paper Folding',
+              'Paper Cutting',
+              'Pattern Completion',
+            ]
+          }
         },
       ],
     },
