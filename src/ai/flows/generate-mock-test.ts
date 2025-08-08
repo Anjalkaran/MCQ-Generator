@@ -131,23 +131,19 @@ const generateMockTestFlow = ai.defineFlow(
       for (const section of part.sections) {
         
         // This condition is now more specific to only handle image-based reasoning questions
-        if (section.sectionName === "Non-Verbal Reasoning") {
-            const totalReasoningQuestions = section.questions || 0;
-            if (totalReasoningQuestions > 0) {
-                const reasoningQuestions = await getReasoningQuestionsForPartwiseTest(input.examCategory as 'MTS' | 'POSTMAN' | 'PA');
-                if (reasoningQuestions.length < totalReasoningQuestions) {
-                    throw new Error(`Not enough non-verbal reasoning questions. Found ${reasoningQuestions.length}, but need ${totalReasoningQuestions}. Please upload more.`);
-                }
-                const selected = shuffleArray(reasoningQuestions).slice(0, totalReasoningQuestions);
-                const formatted: MCQ[] = selected.map(q => ({
-                     question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
-                    options: q.options,
-                    correctAnswer: q.correctAnswer,
-                    solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
-                    topic: q.topic,
-                }));
-                allQuestions.push(...formatted);
+        if (section.sectionName === "Non-Verbal Reasoning" && section.nonVerbalTopics) {
+            const reasoningQuestions = await getReasoningQuestionsForPartwiseTest(section.nonVerbalTopics);
+            if (reasoningQuestions.length < section.questions) {
+                throw new Error(`Not enough non-verbal reasoning questions. Found ${reasoningQuestions.length}, but need ${section.questions}. Please upload more.`);
             }
+            const formatted: MCQ[] = reasoningQuestions.map(q => ({
+                question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
+                options: q.options,
+                correctAnswer: q.correctAnswer,
+                solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
+                topic: q.topic,
+            }));
+            allQuestions.push(...formatted);
             continue; // Skip the standard MCQ fetching for this section
         }
 
@@ -262,3 +258,5 @@ const generateMockTestFlow = ai.defineFlow(
     return { quizId: docRef.id };
   }
 );
+
+    

@@ -1,5 +1,4 @@
 
-
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion, runTransaction } from 'firebase/firestore';
 import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ, MCQData } from './types';
@@ -700,36 +699,19 @@ export const getReasoningQuestions = async (): Promise<ReasoningQuestion[]> => {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as ReasoningQuestion));
 };
 
-const getReasoningTopicTitlesForExam = async (examCategory: 'MTS' | 'POSTMAN' | 'PA'): Promise<string[]> => {
-    const allTopics = await getTopics();
-    const allCategories = await getCategories();
-    
-    // Find categories whose names contain "Non-verbal" (case-insensitive)
-    const reasoningCategoryIds = new Set(
-        allCategories
-            .filter(c => {
-                const nameLower = c.name.toLowerCase();
-                return nameLower.includes("non verbal") || nameLower.includes("non-verbal");
-            })
-            .map(c => c.id)
-    );
-
-    if (reasoningCategoryIds.size === 0) return [];
-    
-    return allTopics
-        .filter(t => 
-            reasoningCategoryIds.has(t.categoryId) && 
-            t.examCategories.includes(examCategory) &&
-            t.part === 'Part B'
-        )
-        .map(t => t.title);
-}
-
 export const getReasoningQuestionsForLiveTest = async (examCategory: 'MTS' | 'POSTMAN' | 'PA'): Promise<ReasoningQuestion[]> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
-    const relevantTopicTitles = await getReasoningTopicTitlesForExam(examCategory);
+    const allTopics = await getTopics();
 
+    // Find topic titles that are for non-verbal reasoning for the specified exam category
+    const relevantTopicTitles = allTopics
+        .filter(t => 
+            t.source === 'reasoningBank' &&
+            t.examCategories.includes(examCategory)
+        )
+        .map(t => t.title);
+        
     if (relevantTopicTitles.length === 0) return [];
 
     const q = query(
@@ -741,23 +723,39 @@ export const getReasoningQuestionsForLiveTest = async (examCategory: 'MTS' | 'PO
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as ReasoningQuestion));
 };
 
-export const getReasoningQuestionsForPartwiseTest = async (examCategory: 'MTS' | 'POSTMAN' | 'PA'): Promise<ReasoningQuestion[]> => {
+export const getReasoningQuestionsForPartwiseTest = async (
+  nonVerbalTopicRequests: { name: string, questions: number }[]
+): Promise<ReasoningQuestion[]> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
-    const relevantTopicTitles = await getReasoningTopicTitlesForExam(examCategory);
 
-    if (relevantTopicTitles.length === 0) {
-        console.warn(`No non-verbal reasoning topics found for exam category: ${examCategory}`);
-        return [];
-    };
+    const allFetchedQuestions: ReasoningQuestion[] = [];
     
-    // Fetch all questions from the reasoning bank that match any of the relevant topic titles
-    const q = query(
-        collection(db, 'reasoningBank'), 
-        where('topic', 'in', relevantTopicTitles)
-    );
+    // Fetch all questions from the bank that match any of the requested topics
+    const topicNames = nonVerbalTopicRequests.map(req => req.name);
+    if (topicNames.length === 0) return [];
+
+    const q = query(collection(db, 'reasoningBank'), where('topic', 'in', topicNames));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as ReasoningQuestion));
+    const allAvailableQuestions = snapshot.docs.map(doc => doc.data() as ReasoningQuestion);
+    
+    // Group questions by topic
+    const questionsByTopic = new Map<string, ReasoningQuestion[]>();
+    allAvailableQuestions.forEach(q => {
+        const existing = questionsByTopic.get(q.topic) || [];
+        questionsByTopic.set(q.topic, [...existing, q]);
+    });
+
+    // For each topic, shuffle and slice the required number of questions
+    for (const request of nonVerbalTopicRequests) {
+        const available = questionsByTopic.get(request.name) || [];
+        if (available.length < request.questions) {
+            console.warn(`Not enough questions for reasoning topic "${request.name}". Needed ${request.questions}, found ${available.length}.`);
+        }
+        allFetchedQuestions.push(...shuffleArray(available).slice(0, request.questions));
+    }
+
+    return allFetchedQuestions;
 };
 
 
@@ -867,3 +865,5 @@ export const getGeneratedQuiz = async (quizId: string): Promise<MCQData | null> 
     }
     return null;
 }
+
+    
