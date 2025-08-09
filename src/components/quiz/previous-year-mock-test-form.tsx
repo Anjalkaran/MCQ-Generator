@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -43,7 +42,7 @@ export function PreviousYearMockTestForm() {
   const { user, userData, isLoading, bankedQuestions: allBankedQuestions } = useDashboard();
   const [isGenerating, setIsGenerating] = useState(false);
   const [questionBank, setQuestionBank] = useState<BankedQuestion[]>([]);
-  const [isBankLoading, setIsBankLoading] = useState(false);
+  const [isBankLoading, setIsBankLoading] = useState(true);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -78,6 +77,7 @@ export function PreviousYearMockTestForm() {
         setIsBankLoading(false);
     } else {
         setQuestionBank([]);
+        setIsBankLoading(false);
     }
   }, [selectedExamType, allBankedQuestions]);
 
@@ -133,13 +133,9 @@ export function PreviousYearMockTestForm() {
 
   return (
     <Card>
-        <CardHeader>
-            <CardTitle>Mock Test from Question Bank</CardTitle>
-            <CardDescription>Select an exam to generate a mock test using questions from the uploaded previous year papers.</CardDescription>
-        </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <CardContent>
+            <CardContent className="pt-6">
                 <fieldset disabled={isGenerating || isLoading} className="space-y-6">
                     <FormField
                       control={form.control}
@@ -179,7 +175,7 @@ export function PreviousYearMockTestForm() {
                     {isGenerating || isBankLoading ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                             Generating... Please wait a moment.
+                             {isGenerating ? "Extracting Questions..." : "Loading..."}
                         </>
                     ) : (
                         "Generate Mock Test"
