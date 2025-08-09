@@ -33,6 +33,10 @@ const questionBankSchema = z.object({
     .refine(
         (files) => files.every((file) => file.size <= 4 * 1024 * 1024),
         `File size must be less than 4MB.`
+    )
+    .refine(
+        (files) => files.every((file) => file.type === 'application/json'),
+        'All uploaded files must be in JSON format.'
     ),
 });
 
@@ -89,8 +93,8 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
         throw new Error(errorData.error || 'Failed to upload files.');
       }
 
-      const { newDocuments } = await response.json();
-      setBankedQuestions(prev => [...newDocuments, ...prev]);
+      const { newDocument } = await response.json();
+      setBankedQuestions(prev => [newDocument, ...prev]);
 
       toast({ title: 'Success', description: 'Question bank updated successfully.' });
       form.reset();
@@ -140,23 +144,32 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
   };
   
   const handleDownload = (question: BankedQuestion) => {
-    const blob = new Blob([question.content], { type: 'text/plain;charset=utf-8;' });
+    const blob = new Blob([question.content], { type: 'application/json;charset=utf-8;' });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    const safeFileName = question.fileName.replace('.docx', '.txt');
+    const safeFileName = question.fileName.replace(/\.[^/.]+$/, '.json');
     link.setAttribute("download", safeFileName);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   }
+  
+  const getFormattedContent = (content: string) => {
+    try {
+      const jsonContent = JSON.parse(content);
+      return JSON.stringify(jsonContent, null, 2);
+    } catch (error) {
+      return content;
+    }
+  };
 
   return (
     <div className="space-y-6">
         <Card>
         <CardHeader>
             <CardTitle>Upload Question Papers</CardTitle>
-            <CardDescription>Upload DOCX files containing previous years' questions. These will be used as a reference to generate new MCQs.</CardDescription>
+            <CardDescription>Upload JSON files containing previous years' questions. These will be used to generate new mock tests.</CardDescription>
         </CardHeader>
         <CardContent>
             <Form {...form}>
@@ -186,11 +199,11 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                 name="files"
                 render={({ field: { onChange, value, ...rest } }) => (
                     <FormItem>
-                    <FormLabel>Previous Questions Files</FormLabel>
+                    <FormLabel>Previous Questions Files (.json only)</FormLabel>
                     <FormControl>
                         <Input 
                         type="file" 
-                        accept=".docx"
+                        accept=".json"
                         multiple
                         onChange={(e) => onChange(e.target.files ? Array.from(e.target.files) : [])}
                         {...rest}
@@ -252,7 +265,7 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                                                         <DialogDescription>Content for {bq.examCategory}</DialogDescription>
                                                     </DialogHeader>
                                                     <ScrollArea className="h-96 w-full rounded-md border p-4">
-                                                        <pre className="text-sm whitespace-pre-wrap">{bq.content}</pre>
+                                                        <pre className="text-sm whitespace-pre-wrap">{getFormattedContent(bq.content)}</pre>
                                                     </ScrollArea>
                                                 </DialogContent>
                                             </Dialog>
@@ -298,13 +311,14 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                 <DialogHeader>
                     <DialogTitle>Edit: {editingQuestion?.fileName}</DialogTitle>
                     <DialogDescription>
-                        Make changes to the text content below. This will directly update the document in the database.
+                        Make changes to the JSON content below. This will directly update the document in the database.
                     </DialogDescription>
                 </DialogHeader>
                 <Textarea
                     value={editedContent}
                     onChange={(e) => setEditedContent(e.target.value)}
-                    className="h-96 text-sm"
+                    className="h-96 text-sm font-mono"
+                    placeholder='{ "questions": [ { "question": "...", "options": [...], ... } ] }'
                 />
                 <DialogFooter>
                     <DialogClose asChild>
