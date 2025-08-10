@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Clock, Trash2, Edit, CalendarIcon, Upload, Eye } from 'lucide-react';
-import { addLiveTest, updateLiveTest, deleteLiveTest, deleteLiveTestBankDocument } from '@/lib/firestore';
+import { addLiveTest, updateLiveTest, deleteLiveTest, deleteLiveTestBankDocument, updateLiveTestBankDocument } from '@/lib/firestore';
 import type { BankedQuestion, LiveTest } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -24,6 +24,7 @@ import { cn, normalizeDate } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
 
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
@@ -60,10 +61,14 @@ interface LiveTestManagementProps {
 export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: LiveTestManagementProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [liveTestBank, setLiveTestBank] = useState<BankedQuestion[]>(initialLiveTestBank);
   const [liveTests, setLiveTests] = useState<LiveTest[]>(initialLiveTests);
   const [editingTest, setEditingTest] = useState<LiveTest | null>(null);
+  const [editingPaper, setEditingPaper] = useState<BankedQuestion | null>(null);
+  const [editedContent, setEditedContent] = useState('');
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const scheduleForm = useForm<z.infer<typeof scheduleSchema>>({
@@ -184,6 +189,32 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
     setEditingTest(test);
     setIsScheduleDialogOpen(true);
   }
+  
+  const handleOpenEditDialog = (paper: BankedQuestion) => {
+    setEditingPaper(paper);
+    setEditedContent(paper.content);
+    setIsEditDialogOpen(true);
+  };
+  
+  const handleSaveEdit = async () => {
+    if (!editingPaper) return;
+    setIsSaving(true);
+    try {
+        JSON.parse(editedContent); // Validate JSON before saving
+        await updateLiveTestBankDocument(editingPaper.id, editedContent);
+        setLiveTestBank(prev => prev.map(p => p.id === editingPaper.id ? { ...p, content: editedContent } : p));
+        toast({ title: "Success", description: "Document updated successfully." });
+        setIsEditDialogOpen(false);
+        setEditingPaper(null);
+    } catch (error: any) {
+        console.error("Failed to update document", error);
+        const errorMessage = error instanceof SyntaxError ? "Invalid JSON format. Please check your syntax." : "Could not update the document.";
+        toast({ title: "Error", description: errorMessage, variant: "destructive" });
+    } finally {
+        setIsSaving(false);
+    }
+  };
+
 
   const selectedCategory = scheduleForm.watch('examCategory');
   const filteredPapers = selectedCategory 
@@ -289,6 +320,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                             <TableCell>{p.fileName}</TableCell>
                                             <TableCell className="text-right">
                                                  <Dialog><DialogTrigger asChild><Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button></DialogTrigger><DialogContent className="max-w-3xl"><DialogHeader><DialogTitle>{p.fileName}</DialogTitle></DialogHeader><ScrollArea className="h-96 w-full rounded-md border p-4"><pre className="text-sm whitespace-pre-wrap">{getFormattedContent(p.content)}</pre></ScrollArea></DialogContent></Dialog>
+                                                 <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(p)}><Edit className="h-4 w-4" /></Button>
                                                  <AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will delete "{p.fileName}". This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePaper(p.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
                                             </TableCell>
                                         </TableRow>
@@ -557,6 +589,32 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                 </div>
             </CardContent>
         </Card>
+        
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="max-w-3xl">
+                <DialogHeader>
+                    <DialogTitle>Edit: {editingPaper?.fileName}</DialogTitle>
+                    <DialogDescription>
+                        Make changes to the JSON content below. This will directly update the document in the database.
+                    </DialogDescription>
+                </DialogHeader>
+                <Textarea
+                    value={editedContent}
+                    onChange={(e) => setEditedContent(e.target.value)}
+                    className="h-96 text-sm font-mono"
+                    placeholder='{ "questions": [ { "question": "...", "options": [...], ... } ] }'
+                />
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button onClick={handleSaveEdit} disabled={isSaving}>
+                        {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save Changes
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
