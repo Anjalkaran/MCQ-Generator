@@ -867,6 +867,64 @@ export const getQnAUsage = async (): Promise<QnAUsage[]> => {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), timestamp: doc.data().timestamp.toDate() } as QnAUsage));
 };
 
+export const getUserLanguagePreferences = async (): Promise<{ userId: string; name: string; email: string; preferredLanguage: string; }[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+
+    const [allUsers, allHistory] = await Promise.all([
+        getAllUsers(),
+        getAllExamHistory(),
+    ]);
+
+    const historyByUser = new Map<string, MCQHistory[]>();
+    for (const historyItem of allHistory) {
+        const userHistory = historyByUser.get(historyItem.userId) || [];
+        userHistory.push(historyItem);
+        historyByUser.set(historyItem.userId, userHistory);
+    }
+
+    const preferences: { userId: string; name: string; email: string; preferredLanguage: string; }[] = [];
+
+    for (const user of allUsers) {
+        if (ADMIN_EMAILS.includes(user.email)) continue;
+
+        const userHistory = historyByUser.get(user.uid) || [];
+        if (userHistory.length === 0) {
+            preferences.push({
+                userId: user.uid,
+                name: user.name,
+                email: user.email,
+                preferredLanguage: 'N/A',
+            });
+            continue;
+        }
+
+        const langCounts: Record<string, number> = {};
+        for (const item of userHistory) {
+            const lang = item.language || 'English';
+            langCounts[lang] = (langCounts[lang] || 0) + 1;
+        }
+
+        let preferredLanguage = 'N/A';
+        let maxCount = 0;
+        for (const [lang, count] of Object.entries(langCounts)) {
+            if (count > maxCount) {
+                preferredLanguage = lang;
+                maxCount = count;
+            }
+        }
+        
+        preferences.push({
+            userId: user.uid,
+            name: user.name,
+            email: user.email,
+            preferredLanguage,
+        });
+    }
+
+    return preferences.sort((a,b) => a.name.localeCompare(b.name));
+};
+
 
 // GENERATED QUIZ MANAGEMENT
 export const getGeneratedQuiz = async (quizId: string): Promise<MCQData | null> => {

@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Gem, Download, Loader2, RefreshCw, Trophy, Languages, Users } from 'lucide-react';
+import { Gem, Download, Loader2, RefreshCw, Trophy, Languages, Users, UserCog } from 'lucide-react';
 import type { UserData, MCQHistory } from '@/lib/types';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -25,10 +25,12 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { normalizeDate } from '@/lib/utils';
-import { getAllExamHistory } from '@/lib/firestore';
+import { getAllExamHistory, getUserLanguagePreferences as fetchUserLanguagePreferences } from '@/lib/firestore';
 
 type ExamCategory = 'all' | 'MTS' | 'POSTMAN' | 'PA';
 type ProStatus = 'all' | 'pro' | 'free';
+type UserLanguagePreference = { userId: string; name: string; email: string; preferredLanguage: string; };
+
 
 interface ReportsManagementProps {
     allUsers: UserData[];
@@ -154,7 +156,7 @@ function DataReconciliationCard() {
     )
 }
 
-function LanguageReportCard() {
+function LanguageUsageCard() {
     const [languageData, setLanguageData] = useState<Record<string, number>>({});
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
@@ -229,6 +231,128 @@ function LanguageReportCard() {
         </Card>
     );
 }
+
+function UserLanguagePreferenceCard() {
+    const [preferenceData, setPreferenceData] = useState<UserLanguagePreference[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const { toast } = useToast();
+
+    useEffect(() => {
+        const fetchPreferenceData = async () => {
+            setIsLoading(true);
+            try {
+                const data = await fetchUserLanguagePreferences();
+                setPreferenceData(data);
+            } catch (error) {
+                console.error("Failed to fetch user language preferences:", error);
+                toast({ title: "Error", description: "Could not load user language preferences.", variant: "destructive" });
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchPreferenceData();
+    }, [toast]);
+
+    const filteredData = useMemo(() => {
+        return preferenceData.filter(user =>
+            user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.preferredLanguage.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [preferenceData, searchTerm]);
+
+    const handleDownload = () => {
+        setIsDownloading(true);
+        try {
+            const headers = ["Name", "Email", "Preferred Language"];
+            const csvContent = [
+                headers.join(','),
+                ...filteredData.map(user => 
+                    [
+                        `"${user.name}"`,
+                        `"${user.email}"`,
+                        `"${user.preferredLanguage}"`
+                    ].join(',')
+                )
+            ].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `user_language_preferences_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch(error) {
+            console.error("Failed to generate report", error);
+        } finally {
+            setIsDownloading(false);
+        }
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>User Language Preferences</CardTitle>
+                <CardDescription>Each user's most frequently used language, based on their exam history.</CardDescription>
+                <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                    <Input 
+                        placeholder="Search by name, email, or language..." 
+                        value={searchTerm} 
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="flex-grow"
+                    />
+                     <Button onClick={handleDownload} disabled={isDownloading || filteredData.length === 0}>
+                        {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                        Download CSV
+                    </Button>
+                </div>
+            </CardHeader>
+            <CardContent>
+                {isLoading ? (
+                    <div className="flex items-center justify-center h-24">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                ) : (
+                    <div className="border rounded-md">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>User</TableHead>
+                                    <TableHead>Email</TableHead>
+                                    <TableHead className="text-right">Preferred Language</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredData.length > 0 ? (
+                                    filteredData.map((user) => (
+                                        <TableRow key={user.userId}>
+                                            <TableCell className="font-medium">{user.name}</TableCell>
+                                            <TableCell>{user.email}</TableCell>
+                                            <TableCell className="text-right">
+                                                <Badge variant="outline">{user.preferredLanguage}</Badge>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={3} className="h-24 text-center">
+                                            No users match your search.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
 
 export function ReportsManagement({ allUsers }: ReportsManagementProps) {
     const [examCategoryFilter, setExamCategoryFilter] = useState<ExamCategory>('all');
@@ -318,14 +442,18 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
                     <CardDescription>Generate user reports, view analytics, and manage data integrity.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                          <Button variant={activeTab === 'user-reports' ? 'default' : 'outline'} onClick={() => setActiveTab('user-reports')}>
                             <Users className="mr-2 h-4 w-4" />
                             User Reports
                         </Button>
-                         <Button variant={activeTab === 'language-reports' ? 'default' : 'outline'} onClick={() => setActiveTab('language-reports')}>
+                         <Button variant={activeTab === 'language-usage' ? 'default' : 'outline'} onClick={() => setActiveTab('language-usage')}>
                             <Languages className="mr-2 h-4 w-4" />
-                            Language Reports
+                            Language Usage
+                        </Button>
+                         <Button variant={activeTab === 'user-preferences' ? 'default' : 'outline'} onClick={() => setActiveTab('user-preferences')}>
+                            <UserCog className="mr-2 h-4 w-4" />
+                            User Preferences
                         </Button>
                         <Button variant={activeTab === 'data-tools' ? 'default' : 'outline'} onClick={() => setActiveTab('data-tools')}>
                              <RefreshCw className="mr-2 h-4 w-4" />
@@ -428,8 +556,11 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
                             </div>
                         </div>
                     )}
-                    {activeTab === 'language-reports' && (
-                        <LanguageReportCard />
+                    {activeTab === 'language-usage' && (
+                        <LanguageUsageCard />
+                    )}
+                     {activeTab === 'user-preferences' && (
+                        <UserLanguagePreferenceCard />
                     )}
                      {activeTab === 'data-tools' && (
                         <DataReconciliationCard />
