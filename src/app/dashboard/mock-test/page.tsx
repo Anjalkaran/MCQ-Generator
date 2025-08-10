@@ -9,6 +9,7 @@ import { ADMIN_EMAILS } from "@/lib/constants";
 export default function MockTestPage() {
     const { userData } = useDashboard();
     const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
+    const isPAUser = userData?.examCategory === 'PA';
 
     return (
         <div className="space-y-6 max-w-2xl mx-auto">
@@ -27,11 +28,11 @@ export default function MockTestPage() {
                     <MockTestForm />
                 </TabsContent>
                 <TabsContent value="previous-year">
-                   {isAdmin ? (
+                   {isAdmin || isPAUser ? (
                         <PreviousYearMockTestForm />
                    ) : (
                         <div className="text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg mt-4">
-                            <p>This feature is currently available for Admins only.</p>
+                            <p>This feature is currently available for PA Exam users and Admins only.</p>
                         </div>
                    )}
                 </TabsContent>
