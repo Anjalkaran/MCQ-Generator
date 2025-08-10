@@ -209,41 +209,31 @@ export const updateUserTopicProgress = async (userId: string, topicId: string, l
 }
 
 // MCQ HISTORY MANAGEMENT
-export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promise<void> => {
+export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promise<string> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
 
     const { 
         userId, 
         isMockTest, 
-        score, 
-        totalQuestions, 
-        questions, 
-        topicId, 
-        topicTitle, 
-        liveTestId, 
-        durationInSeconds,
-        takenAt,
+        liveTestId,
+        ...restOfData
     } = historyData;
 
     const dataToSave: { [key: string]: any } = {
         userId,
-        score,
-        totalQuestions,
-        questions: questions || [],
         isMockTest: isMockTest || false,
-        topicId: topicId || (isMockTest ? 'mock_test' : 'unknown_topic'),
-        topicTitle: topicTitle || (isMockTest ? 'Mock Test' : 'Quiz'),
-        takenAt: takenAt || serverTimestamp(),
+        ...restOfData
     };
 
-    if (liveTestId) dataToSave.liveTestId = liveTestId;
-    if (durationInSeconds !== undefined && durationInSeconds !== null) dataToSave.durationInSeconds = durationInSeconds;
-    
+    if (liveTestId) {
+        dataToSave.liveTestId = liveTestId;
+    }
+
     const batch = writeBatch(db);
     const historyRef = doc(collection(db, 'mcqHistory'));
     batch.set(historyRef, dataToSave);
-
+    
     // Only increment exam count if it is NOT a live test
     if (!liveTestId) {
         const userRef = doc(db, 'users', userId);
@@ -251,6 +241,7 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
     }
     
     await batch.commit();
+    return historyRef.id;
 };
 
 
@@ -269,16 +260,33 @@ export const getAllUserQuestions = async (userId: string): Promise<string[]> => 
 };
 
 
-export const getExamHistoryForUser = async (userId: string): Promise<MCQHistory[]> => {
+export const getExamHistoryForUser = async (userId?: string, historyId?: string): Promise<MCQHistory[]> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
+    
+    if (historyId) {
+        const docRef = doc(db, 'mcqHistory', historyId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const takenAt = normalizeDate(data.takenAt) || new Date();
+            return [{ id: docSnap.id, ...data, topicTitle: data.topicTitle || 'Mock Test', takenAt } as MCQHistory];
+        } else {
+            return [];
+        }
+    }
+
+    if (!userId) {
+        throw new Error("User ID is required to fetch history.");
+    }
+
     const historyCollection = collection(db, 'mcqHistory');
     const q = query(historyCollection, where('userId', '==', userId));
     const snapshot = await getDocs(q);
     const history: MCQHistory[] = [];
     snapshot.docs.forEach((doc: any) => {
         const data = doc.data();
-        const takenAt = data.takenAt?.toDate ? data.takenAt.toDate() : new Date();
+        const takenAt = normalizeDate(data.takenAt) || new Date();
         history.push({ id: doc.id, ...data, topicTitle: data.topicTitle || 'Mock Test', takenAt } as MCQHistory);
     });
     history.sort((a, b) => b.takenAt.getTime() - a.takenAt.getTime());

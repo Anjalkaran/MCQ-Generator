@@ -18,11 +18,13 @@ import {
 } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import type { MCQData } from "@/lib/types";
+import type { MCQData, MCQHistory } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Clock, PlusCircle } from "lucide-react";
+import { Clock, PlusCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getGeneratedQuiz } from "@/lib/firestore";
+import { getGeneratedQuiz, saveMCQHistory } from "@/lib/firestore";
+import { getFirebaseAuth } from "@/lib/firebase";
+import type { User } from "firebase/auth";
 
 interface MCQClientProps {
   topicId: string;
@@ -45,28 +47,70 @@ export function MCQClient({ topicId }: MCQClientProps) {
   const [selectedAnswers, setSelectedAnswers] = useState<{ [key: number]: string }>({});
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeExtensionsUsed, setTimeExtensionsUsed] = useState(0);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const quizStartTimeRef = useRef<number | null>(null);
 
-  const handleFinish = useCallback(() => {
+  useEffect(() => {
+    const auth = getFirebaseAuth();
+    if(auth) {
+        const unsubscribe = auth.onAuthStateChanged(user => {
+            setCurrentUser(user);
+        });
+        return () => unsubscribe();
+    }
+  }, []);
+
+  const handleFinish = useCallback(async () => {
     if (timerRef.current) {
         clearInterval(timerRef.current);
     }
-    if (typeof window !== 'undefined' && quizData && quizStartTimeRef.current !== null) {
-      const durationInSeconds = Math.round((Date.now() - quizStartTimeRef.current) / 1000);
-      
-      // Store only the essential results data, not the entire quiz.
-      const resultsToStore = {
-        answers: selectedAnswers,
-        durationInSeconds: durationInSeconds,
-        quizId: topicId,
-      };
-      localStorage.setItem(`quizResults-${topicId}`, JSON.stringify(resultsToStore));
-      
-      router.push(`/quiz/${topicId}/results`);
+
+    if (!currentUser || !quizData || quizStartTimeRef.current === null) {
+      toast({ title: "Error", description: "Could not submit results. User or quiz data is missing.", variant: "destructive" });
+      return;
     }
-  }, [quizData, selectedAnswers, router, topicId]);
+    
+    setIsSubmitting(true);
+    
+    try {
+        const durationInSeconds = Math.round((Date.now() - quizStartTimeRef.current) / 1000);
+
+        const score = quizData.mcqs.reduce((acc, mcq, index) => {
+             const userAnswer = selectedAnswers[index];
+             const isCorrect = userAnswer?.trim().toLowerCase() === mcq.correctAnswer.trim().toLowerCase();
+             return isCorrect ? acc + 1 : acc;
+        }, 0);
+
+        const historyPayload: Omit<MCQHistory, 'id'> = {
+            userId: currentUser.uid,
+            topicId: quizData.topic.id,
+            topicTitle: quizData.topic.title,
+            score: score,
+            totalQuestions: quizData.mcqs.length,
+            questions: quizData.mcqs.map(mcq => mcq.question),
+            isMockTest: quizData.isMockTest || false,
+            liveTestId: quizData.liveTestId,
+            durationInSeconds: durationInSeconds,
+            takenAt: new Date(), // Use client-side date for immediate availability
+        };
+        
+        // Save directly to Firestore
+        const historyId = await saveMCQHistory(historyPayload);
+        
+        // Pass a minimal reference to the results page
+        localStorage.setItem(`quizResults-${topicId}`, JSON.stringify({ historyId }));
+
+        router.push(`/quiz/${topicId}/results`);
+
+    } catch(error: any) {
+        console.error("Error saving exam results:", error);
+        toast({ title: "Submission Error", description: "There was an issue saving your results. Please try again or contact support.", variant: "destructive" });
+        setIsSubmitting(false);
+    }
+  }, [quizData, selectedAnswers, router, topicId, currentUser, toast]);
 
   useEffect(() => {
     setIsClient(true);
@@ -225,20 +269,21 @@ export function MCQClient({ topicId }: MCQClientProps) {
         </RadioGroup>
       </CardContent>
       <CardFooter className="justify-between">
-        <Button onClick={handlePrevious} variant="outline" disabled={isFirstQuestion}>
+        <Button onClick={handlePrevious} variant="outline" disabled={isFirstQuestion || isSubmitting}>
             Previous
         </Button>
         <div className="flex gap-2">
             {isLastQuestion ? (
-            <Button onClick={handleFinish} disabled={!selectedAnswers[currentQuestionIndex]}>
+            <Button onClick={handleFinish} disabled={!selectedAnswers[currentQuestionIndex] || isSubmitting}>
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
                 Finish Exam
             </Button>
             ) : (
             <>
-                <Button onClick={handleSkip} variant="outline">
+                <Button onClick={handleSkip} variant="outline" disabled={isSubmitting}>
                 Skip
                 </Button>
-                <Button onClick={handleNext} disabled={!selectedAnswers[currentQuestionIndex]}>
+                <Button onClick={handleNext} disabled={!selectedAnswers[currentQuestionIndex] || isSubmitting}>
                 Next
                 </Button>
             </>
