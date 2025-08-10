@@ -15,7 +15,7 @@ config();
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import type { MCQ } from '@/lib/types';
-import { getLiveTestQuestionPaper, getReasoningQuestionsForLiveTest } from '@/lib/firestore';
+import { getLiveTestQuestionPaper, getReasoningQuestions } from '@/lib/firestore';
 import { MTS_BLUEPRINT, PA_BLUEPRINT, POSTMAN_BLUEPRINT } from '@/lib/exam-blueprints';
 import { getFirebaseDb } from '@/lib/firebase';
 import { addDoc, collection } from 'firebase/firestore';
@@ -114,7 +114,8 @@ const generateLiveMockTestFlow = ai.defineFlow(
     }
 
     if (reasoningQuestionsNeeded > 0) {
-        const reasoningQuestions = await getReasoningQuestionsForLiveTest(input.examCategory);
+        // Fetch from the general reasoning bank, not just live-test marked ones
+        const reasoningQuestions = await getReasoningQuestions();
         
         if (reasoningQuestions.length < reasoningQuestionsNeeded) {
             throw new Error(`Could not find enough reasoning questions for the ${input.examCategory} live test. Found ${reasoningQuestions.length}, but need ${reasoningQuestionsNeeded}. Please upload more.`);
