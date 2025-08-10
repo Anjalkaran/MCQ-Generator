@@ -16,7 +16,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-blueprints';
 import type { MCQ, ReasoningQuestion, Topic } from '@/lib/types';
-import { getShuffledMCQsForTopics, getTopics, updateTopicMCQWithTranslation, getReasoningQuestionsForPartwiseTest, getTopicMCQs } from '@/lib/firestore';
+import { getShuffledMCQsForTopics, getTopics, updateTopicMCQWithTranslation, getReasoningQuestionsForPartwiseTest, getTopicMCQs, getReasoningQuestions } from '@/lib/firestore';
 import { generate } from '@genkit-ai/ai';
 import { gemini15Pro } from '@genkit-ai/googleai';
 import { zodToJsonSchema } from 'zod-to-json-schema';
@@ -131,14 +131,16 @@ const generateMockTestFlow = ai.defineFlow(
       for (const section of part.sections) {
         
         if (section.nonVerbalTopics) {
-            const reasoningQuestions = await getReasoningQuestionsForPartwiseTest(section.nonVerbalTopics);
+            const allReasoningQuestions = await getReasoningQuestions();
             const totalQuestionsNeeded = section.nonVerbalTopics.reduce((sum, t) => sum + t.questions, 0);
 
-            if (reasoningQuestions.length < totalQuestionsNeeded) {
-                throw new Error(`Not enough non-verbal reasoning questions. Found ${reasoningQuestions.length}, but need ${totalQuestionsNeeded}. Please upload more.`);
+            if (allReasoningQuestions.length < totalQuestionsNeeded) {
+                throw new Error(`Not enough non-verbal reasoning questions in the bank. Found ${allReasoningQuestions.length}, but need ${totalQuestionsNeeded}. Please upload more.`);
             }
 
-            const formatted: MCQ[] = reasoningQuestions.map(q => ({
+            const shuffledReasoning = shuffleArray(allReasoningQuestions).slice(0, totalQuestionsNeeded);
+
+            const formatted: MCQ[] = shuffledReasoning.map(q => ({
                 question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
                 options: q.options,
                 correctAnswer: q.correctAnswer,
@@ -271,7 +273,5 @@ const generateMockTestFlow = ai.defineFlow(
     return { quizId: docRef.id };
   }
 );
-
-    
 
     
