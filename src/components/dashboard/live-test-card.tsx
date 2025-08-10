@@ -17,6 +17,8 @@ import { normalizeDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { ADMIN_EMAILS, RAZORPAY_KEY_ID } from '@/lib/constants';
 import { formatDistanceToNowStrict, format } from 'date-fns';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '../ui/label';
 
 declare global {
     interface Window {
@@ -30,6 +32,8 @@ const blueprintMap = {
     PA: PA_BLUEPRINT,
 };
 
+const languages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
+
 export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const { user, userData, setUserData } = useDashboard();
     const { toast } = useToast();
@@ -39,6 +43,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const [timeRemaining, setTimeRemaining] = useState('');
     const [testState, setTestState] = useState<'upcoming' | 'live' | 'ended' | 'completed' | 'loading'>('loading');
     const [participantCount, setParticipantCount] = useState<number | null>(null);
+    const [selectedLanguage, setSelectedLanguage] = useState<string>('English');
 
     const startTime = useMemo(() => normalizeDate(test.startTime), [test.startTime]);
     const endTime = useMemo(() => normalizeDate(test.endTime), [test.endTime]);
@@ -110,6 +115,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
             const result = await generateLiveMockTest({ 
                 liveTestId: test.questionPaperId,
                 examCategory: test.examCategory,
+                language: selectedLanguage,
             });
 
             if (!result || !result.mcqs) {
@@ -301,6 +307,19 @@ https://anjalkaran.in`;
                         </p>
                     </div>
                  )}
+                 <div className="space-y-2 text-left">
+                    <Label htmlFor={`language-select-${test.id}`}>Language</Label>
+                    <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                        <SelectTrigger id={`language-select-${test.id}`}>
+                            <SelectValue placeholder="Select a language" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {languages.map((lang) => (
+                                <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                 </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-2">
                 <div className="flex w-full gap-2">

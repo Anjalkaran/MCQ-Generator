@@ -20,6 +20,7 @@ import { getLiveTestQuestionPaper, getReasoningQuestionsForLiveTest } from '@/li
 const GenerateLiveMockTestInputSchema = z.object({
   liveTestId: z.string().describe('The ID of the live test paper document in Firestore.'),
   examCategory: z.enum(["MTS", "POSTMAN", "PA"]).describe('The exam category for which the test is being generated.'),
+  language: z.string().optional().default('English').describe('The language for the generated quiz.'),
 });
 export type GenerateLiveMockTestInput = z.infer<typeof GenerateLiveMockTestInputSchema>;
 
@@ -39,6 +40,13 @@ export type GenerateLiveMockTestOutput = z.infer<typeof GenerateLiveMockTestOutp
 export async function generateLiveMockTest(input: GenerateLiveMockTestInput): Promise<GenerateLiveMockTestOutput> {
   return generateLiveMockTestFlow(input);
 }
+
+const languageMap: Record<string, string> = {
+    'tamil': 'ta',
+    'hindi': 'hi',
+    'telugu': 'te',
+    'kannada': 'kn'
+};
 
 const generateLiveMockTestFlow = ai.defineFlow(
   {
@@ -69,6 +77,20 @@ const generateLiveMockTestFlow = ai.defineFlow(
     const canonicalQuestions = parsedData.questions;
     
     let processedQuestions: MCQ[] = canonicalQuestions.map(q => {
+        if (input.language && input.language.toLowerCase() !== 'english') {
+            const langKey = languageMap[input.language.toLowerCase()];
+            if (langKey && q.translations?.[langKey]) {
+                const translated = q.translations[langKey];
+                return {
+                    ...q,
+                    ...translated,
+                    question: translated.question,
+                    options: translated.options,
+                    correctAnswer: translated.correctAnswer,
+                    solution: translated.solution,
+                };
+            }
+        }
         return {
             question: q.question,
             options: q.options,
