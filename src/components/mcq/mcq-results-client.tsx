@@ -82,9 +82,9 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
             totalQuestions: fetchedQuizData.mcqs.length,
             questions: fetchedQuizData.mcqs.map((mcq: MCQ) => mcq.question),
             isMockTest: fetchedQuizData.isMockTest || false,
-            liveTestId: fetchedQuizData.liveTestId, // Ensure this is passed correctly
+            liveTestId: fetchedQuizData.liveTestId,
             durationInSeconds: durationInSeconds,
-            takenAt: new Date(), // Use client-side timestamp for immediate leaderboard update
+            takenAt: new Date(),
         };
 
         try {

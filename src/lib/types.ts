@@ -50,9 +50,6 @@ export interface UserData {
     lastSeen?: any;
     hasSeenReasoningUpdate?: boolean; // New field for the popup
     mockTestUpdateSeenCount?: number;
-    // Deprecated fields, kept for potential data migration
-    topicExamsTaken?: number;
-    mockTestsTaken?: number;
 }
 
 export interface MCQData {
@@ -169,5 +166,3 @@ export interface Feedback {
   reply?: string;
   repliedAt?: Date;
 }
-
-    

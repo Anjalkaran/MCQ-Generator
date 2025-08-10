@@ -90,7 +90,7 @@ function DataReconciliationCard() {
                     <div>
                         <h3 className="font-semibold">Reconcile Exam Counts</h3>
                         <p className="text-sm text-muted-foreground">
-                            Corrects the `topicExamsTaken` and `mockTestsTaken` counts for all users based on their saved exam history.
+                            Corrects the unified `totalExamsTaken` count for all users based on their entire saved exam history.
                         </p>
                     </div>
                      <AlertDialog>
@@ -180,7 +180,7 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
             if (!dateA && !dateB) return 0;
             if (!dateA) return 1;
             if (!dateB) return -1;
-            return dateB.getTime() - dateA.getTime();
+            return dateB.getTime() - a.getTime();
         });
 
         return sortedUsers
@@ -212,7 +212,7 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
                         `"${user.city || 'N/A'}"`,
                         `"${user.examCategory}"`,
                         user.isPro ? "Pro" : "Free",
-                        (user.topicExamsTaken || 0) + (user.mockTestsTaken || 0),
+                        user.totalExamsTaken || 0,
                         `"${formattedDate}"`
                     ].join(',')
                 })
