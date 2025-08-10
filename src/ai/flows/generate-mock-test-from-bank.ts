@@ -3,6 +3,7 @@
 
 /**
  * @fileOverview Generates a mock test by selecting one JSON question paper and extracting its questions.
+ * If the paper has fewer than 100 questions, it's supplemented with reasoning questions.
  *
  * - generateMockTestFromBank - A function that handles the mock test generation process.
  * - GenerateMockTestFromBankInput - The input type for the function.
@@ -14,7 +15,7 @@ config();
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { getQuestionBankDocumentsByCategory } from '@/lib/firestore';
+import { getQuestionBankDocumentsByCategory, getReasoningQuestions } from '@/lib/firestore';
 import type { MCQ } from '@/lib/types';
 import { getFirebaseDb } from '@/lib/firebase';
 import { addDoc, collection } from 'firebase/firestore';
@@ -71,10 +72,33 @@ const generateMockTestFromBankFlow = ai.defineFlow(
         throw new Error(`The question paper '${selectedPaper.fileName}' is empty or incorrectly formatted. It must be a JSON object with a "questions" array.`);
     }
 
+    let finalMCQs = parsedData.questions;
+    const questionsNeeded = 100 - finalMCQs.length;
+
+    if (questionsNeeded > 0) {
+        const reasoningQuestions = await getReasoningQuestions();
+        if (reasoningQuestions.length < questionsNeeded) {
+            throw new Error(`Could not find enough reasoning questions to supplement the test. Found ${reasoningQuestions.length}, but need ${questionsNeeded}.`);
+        }
+
+        const selectedReasoning = reasoningQuestions.sort(() => 0.5 - Math.random()).slice(0, questionsNeeded);
+
+        const formattedReasoningMCQs: MCQ[] = selectedReasoning.map(q => ({
+            question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
+            options: q.options,
+            correctAnswer: q.correctAnswer,
+            solution: q.solutionText ? `${q.solutionText}${q.solutionImage ? `<br/><img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : ''}` : (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : ""),
+            topic: 'Reasoning',
+        }));
+
+        finalMCQs = [...finalMCQs, ...formattedReasoningMCQs];
+    }
+
+
     const blueprint = blueprintMap[input.examCategory];
     const quizId = `mock-test-bank-${input.examCategory}-${Date.now()}`;
     const quizData = {
-        mcqs: parsedData.questions,
+        mcqs: finalMCQs,
         timeLimit: blueprint.totalDurationMinutes * 60,
         isMockTest: true,
         topic: {
