@@ -39,7 +39,7 @@ const normalizeAnswer = (answer: string | undefined): string => {
     return answer
         .trim()
         .toLowerCase()
-        .replace(/^[a-d][\)\.]\s*|^[1-4][\)\.]\s*/, '');
+        .replace(/^[a-d][\\)\.]\\s*|^[1-4][\\)\.]\\s*/, '');
 };
 
 
@@ -131,7 +131,6 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
 
 
   const handleRetake = () => {
-    localStorage.removeItem(`quiz-${topicId}`);
     localStorage.removeItem(`quizState-${topicId}`);
     const destination = isMockTest ? '/dashboard/mock-test' : '/dashboard/topic-wise-mcq';
     router.push(destination);

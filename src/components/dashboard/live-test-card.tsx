@@ -112,35 +112,16 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
         }
 
         try {
-            const result = await generateLiveMockTest({ 
+            const { quizId } = await generateLiveMockTest({ 
                 liveTestId: test.questionPaperId,
                 examCategory: test.examCategory,
                 language: selectedLanguage,
+                testTitle: test.title,
             });
 
-            if (!result || !result.mcqs) {
+            if (!quizId) {
                  throw new Error("The AI failed to generate the test questions. Please try again later.");
             }
-            const { mcqs } = result;
-
-            const blueprint = blueprintMap[test.examCategory];
-            const quizId = `live-test-${test.id}`;
-            const quizData = {
-                mcqs: mcqs,
-                timeLimit: blueprint.totalDurationMinutes * 60,
-                isMockTest: true,
-                liveTestId: test.id,
-                examCategory: test.examCategory,
-                topic: {
-                    id: quizId,
-                    title: test.title,
-                    description: `Live mock test conducted on ${startTime?.toLocaleDateString()}.`,
-                    icon: 'scroll-text',
-                    categoryId: 'live-mock-test',
-                },
-            };
-
-            localStorage.setItem(`quiz-${quizId}`, JSON.stringify(quizData));
             
             if (!isAdmin) {
                 await markLiveTestAsTaken(user.uid, test.id);

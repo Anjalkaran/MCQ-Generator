@@ -14,6 +14,8 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { getTopicMCQs } from '@/lib/firestore';
 import type { MCQ } from '@/lib/types';
+import { getFirebaseDb } from '@/lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
@@ -37,14 +39,14 @@ const MCQSchema = z.object({
 });
 
 const GenerateMCQsOutputSchema = z.object({
-  mcqs: z.array(MCQSchema).describe('The generated multiple-choice questions.'),
+  quizId: z.string().describe('The ID of the generated quiz document in Firestore.'),
 });
 export type GenerateMCQsOutput = z.infer<typeof GenerateMCQsOutputSchema>;
 
 const extractMCQsFromTextPrompt = ai.definePrompt({
     name: 'extractMCQsFromTextPrompt',
     input: { schema: z.object({ textContent: z.string(), topicName: z.string(), numberOfQuestions: z.number(), language: z.string().optional().default('English') }) },
-    output: { schema: GenerateMCQsOutputSchema },
+    output: { schema: z.object({ mcqs: z.array(MCQSchema) }) },
     model: 'googleai/gemini-1.5-pro',
     prompt: `You are an expert at parsing and formatting multiple-choice questions (MCQs).
 
@@ -106,11 +108,12 @@ const generateMCQsFlow = ai.defineFlow(
       throw new Error("A user ID must be provided to generate a quiz.");
     }
     
-    let canonicalQuestions: MCQ[] = [];
+    let finalMCQs: MCQ[] = [];
     
     // **PRIORITY 1: Check for uploaded JSON files in the MCQ Bank**
     const uploadedMCQDocs = await getTopicMCQs(input.topicId);
     if (uploadedMCQDocs && uploadedMCQDocs.length > 0) {
+        let canonicalQuestions: MCQ[] = [];
         uploadedMCQDocs.forEach(doc => {
             try {
                 const parsedContent = JSON.parse(doc.content);
@@ -121,41 +124,38 @@ const generateMCQsFlow = ai.defineFlow(
                 console.warn(`Could not parse JSON from document ${doc.fileName} for topic ${input.topic}`);
             }
         });
-    }
 
-    if (canonicalQuestions.length > 0) {
-        if (canonicalQuestions.length < input.numberOfQuestions) {
-            console.warn(`Could only find ${canonicalQuestions.length} questions in the uploaded JSON files for topic "${input.topic}", though ${input.numberOfQuestions} were requested.`);
-        }
-        
-        const processedQuestions = canonicalQuestions.map(mcq => {
-            if (input.language && input.language !== 'English') {
-                const langKey = languageMap[input.language.toLowerCase()];
-                if (langKey && mcq.translations?.[langKey]) {
-                    const translated = mcq.translations[langKey];
-                    return {
-                        ...mcq,
-                        ...translated,
-                        question: translated.question,
-                        options: translated.options,
-                        correctAnswer: translated.correctAnswer,
-                        solution: translated.solution,
-                    };
-                }
+        if (canonicalQuestions.length > 0) {
+            if (canonicalQuestions.length < input.numberOfQuestions) {
+                console.warn(`Could only find ${canonicalQuestions.length} questions in the uploaded JSON files for topic "${input.topic}", though ${input.numberOfQuestions} were requested.`);
             }
-            return mcq; // Return the original English MCQ
-        });
+            
+            const processedQuestions = canonicalQuestions.map(mcq => {
+                if (input.language && input.language !== 'English') {
+                    const langKey = languageMap[input.language.toLowerCase()];
+                    if (langKey && mcq.translations?.[langKey]) {
+                        const translated = mcq.translations[langKey];
+                        return {
+                            ...mcq,
+                            ...translated,
+                            question: translated.question,
+                            options: translated.options,
+                            correctAnswer: translated.correctAnswer,
+                            solution: translated.solution,
+                        };
+                    }
+                }
+                return mcq; // Return the original English MCQ
+            });
 
-        const finalMCQs = shuffleArray(processedQuestions).slice(0, input.numberOfQuestions);
-
-        return { mcqs: finalMCQs };
+            finalMCQs = shuffleArray(processedQuestions).slice(0, input.numberOfQuestions);
+        }
 
     // **PRIORITY 2: Fallback to generating from raw .docx material**
     } else if (input.material) {
         let collectedMCQs: z.infer<typeof MCQSchema>[] = [];
         const collectedQuestionTexts = new Set<string>();
         
-        // Generate from the entire material in one go if it's small enough, otherwise chunk it.
         const materialChunks: string[] = [];
         if (input.material.length <= MATERIAL_CHUNK_SIZE) {
             materialChunks.push(input.material);
@@ -199,13 +199,38 @@ const generateMCQsFlow = ai.defineFlow(
             throw new Error(`Failed to extract any valid questions for "${input.topic}". Please check the document formatting and content.`);
         }
         
-        const finalMCQs = shuffleArray(collectedMCQs).slice(0, input.numberOfQuestions);
-
-        return { mcqs: finalMCQs };
+        finalMCQs = shuffleArray(collectedMCQs).slice(0, input.numberOfQuestions);
 
     // **PRIORITY 3: No source material available**
     } else {
         throw new Error(`No question file (.json or .docx) is available for the topic "${input.topic}". Please upload a file to generate an exam.`);
     }
+
+    let timeLimit;
+    if (input.category === "Basic Arithmetics") {
+        timeLimit = input.numberOfQuestions * 120; // 2 minutes for Arithmetics
+    } else {
+        timeLimit = input.numberOfQuestions * 45; // 45 seconds for others
+    }
+
+    const quizData = {
+        topic: {
+            id: input.topicId,
+            title: input.topic,
+            description: 'A custom generated exam.',
+            icon: 'file-text',
+            categoryId: input.category,
+        },
+        mcqs: finalMCQs,
+        timeLimit,
+    };
+
+    const db = getFirebaseDb();
+    if (!db) {
+        throw new Error("Firestore is not initialized.");
+    }
+    const docRef = await addDoc(collection(db, "generatedQuizzes"), quizData);
+
+    return { quizId: docRef.id };
   }
 );

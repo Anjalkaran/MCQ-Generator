@@ -10,8 +10,8 @@ export default function MCQPage({
   params: { topicId: string };
 }) {
 
-  // This page now relies on quiz data being passed via localStorage
-  // after being generated on the dashboard.
+  // This page now relies on fetching the quiz data from Firestore
+  // using the quiz ID from the URL.
 
   return (
     <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-6 bg-muted/40">

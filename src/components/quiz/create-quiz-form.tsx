@@ -134,9 +134,9 @@ export function CreateQuizForm() {
       };
 
 
-      const result = await generateMCQs(generationInput);
+      const { quizId } = await generateMCQs(generationInput);
 
-      if (!result || !result.mcqs || result.mcqs.length === 0) {
+      if (!quizId) {
         toast({
           title: 'Exam Generation Failed',
           description: 'The AI could not generate an exam for the selected topic. This may be because no question file (.json or .docx) has been uploaded for it yet.',
@@ -146,30 +146,7 @@ export function CreateQuizForm() {
         return;
       }
 
-      const { mcqs } = result;
-      
-      let timeLimit;
-      if (selectedCategory.name === "Basic Arithmetics") {
-        timeLimit = values.numberOfQuestions * 120; // 2 minutes for Arithmetics
-      } else {
-        timeLimit = values.numberOfQuestions * 45; // 45 seconds for others
-      }
-
-      const topicId = values.topicId;
-      const quizData = {
-        topic: {
-          id: topicId,
-          title: selectedTopic.title,
-          description: 'A custom generated exam.',
-          icon: selectedTopic.icon,
-          categoryId: selectedTopic.categoryId,
-        },
-        mcqs: mcqs,
-        timeLimit,
-      };
-
-      localStorage.setItem(`quiz-${topicId}`, JSON.stringify(quizData));
-      router.push(`/quiz/${topicId}`);
+      router.push(`/quiz/${quizId}`);
 
     } catch (error: any) {
       console.error('Error generating exam:', error);

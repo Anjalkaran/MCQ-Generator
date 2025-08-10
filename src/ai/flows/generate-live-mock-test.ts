@@ -16,24 +16,27 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import type { MCQ } from '@/lib/types';
 import { getLiveTestQuestionPaper, getReasoningQuestionsForLiveTest } from '@/lib/firestore';
+import { MTS_BLUEPRINT, PA_BLUEPRINT, POSTMAN_BLUEPRINT } from '@/lib/exam-blueprints';
+import { getFirebaseDb } from '@/lib/firebase';
+import { addDoc, collection } from 'firebase/firestore';
+
+const blueprintMap = {
+    MTS: MTS_BLUEPRINT,
+    POSTMAN: POSTMAN_BLUEPRINT,
+    PA: PA_BLUEPRINT,
+};
+
 
 const GenerateLiveMockTestInputSchema = z.object({
   liveTestId: z.string().describe('The ID of the live test paper document in Firestore.'),
   examCategory: z.enum(["MTS", "POSTMAN", "PA"]).describe('The exam category for which the test is being generated.'),
   language: z.string().optional().default('English').describe('The language for the generated quiz.'),
+  testTitle: z.string().describe('The title of the live test.'),
 });
 export type GenerateLiveMockTestInput = z.infer<typeof GenerateLiveMockTestInputSchema>;
 
-const MCQSchema = z.object({
-  question: z.string().describe('The multiple-choice question.'),
-  options: z.array(z.string()).min(4, 'There must be four options.').max(4, 'There must be four options.').describe('Four possible answers, including the full text of each option.'),
-  correctAnswer: z.string().describe('The correct answer to the question.'),
-  topic: z.string().optional().describe('The topic the question belongs to.'),
-  solution: z.string().optional().describe('A step-by-step solution, if available from the source text.'),
-});
-
 const GenerateLiveMockTestOutputSchema = z.object({
-  mcqs: z.array(MCQSchema).describe('The generated mock test questions.'),
+  quizId: z.string().describe('The ID of the generated quiz document in Firestore.'),
 });
 export type GenerateLiveMockTestOutput = z.infer<typeof GenerateLiveMockTestOutputSchema>;
 
@@ -130,6 +133,29 @@ const generateLiveMockTestFlow = ai.defineFlow(
         finalMCQs = [...finalMCQs, ...formattedReasoningMCQs];
     }
     
-    return { mcqs: finalMCQs };
+    const blueprint = blueprintMap[input.examCategory];
+    const quizId = `live-test-${input.liveTestId}-${Date.now()}`;
+    const quizData = {
+        mcqs: finalMCQs,
+        timeLimit: blueprint.totalDurationMinutes * 60,
+        isMockTest: true,
+        liveTestId: input.liveTestId,
+        examCategory: input.examCategory,
+        topic: {
+            id: quizId,
+            title: input.testTitle,
+            description: `Live mock test.`,
+            icon: 'scroll-text',
+            categoryId: 'live-mock-test',
+        },
+    };
+
+    const db = getFirebaseDb();
+    if (!db) {
+        throw new Error("Firestore is not initialized.");
+    }
+    const docRef = await addDoc(collection(db, "generatedQuizzes"), quizData);
+    
+    return { quizId: docRef.id };
   }
 );
