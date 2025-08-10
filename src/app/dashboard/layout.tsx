@@ -511,9 +511,9 @@ export default function DashboardLayout({
                 setNotifications(notifications);
                 
             } else {
-                 // Regular user fetches only their relevant data
+                 // Regular user fetches their relevant data
                 const [
-                    { userData: fetchedUserData, categories, topics },
+                    { userData: fetchedUserData, categories, topics, bankedQuestions: userBankedQuestions },
                     feedbackStatus
                 ] = await Promise.all([
                     getDashboardData(currentUser.uid),
@@ -529,6 +529,7 @@ export default function DashboardLayout({
                 setUserData(fetchedUserData);
                 setCategories(categories);
                 setTopics(topics);
+                setBankedQuestions(userBankedQuestions); // Load banked questions for users too
                 setHasGivenFeedback(feedbackStatus);
 
                 // Check for reasoning update popup
@@ -542,9 +543,7 @@ export default function DashboardLayout({
                     setShowMockTestPopup(true);
                 }
 
-
-                // Non-admins don't need this data, so set to empty arrays
-                setBankedQuestions([]);
+                // Set data not needed by regular users to empty arrays
                 setTopicMCQs([]);
                 setLiveTestBank([]);
                 setQnaUsage([]); 

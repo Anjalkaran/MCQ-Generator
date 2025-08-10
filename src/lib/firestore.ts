@@ -817,17 +817,18 @@ export const getDashboardData = async (userId: string, isAdmin: boolean = false)
         return { userData: null, categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, topicMCQs };
     }
 
-    const [userData, categories, allTopics] = await Promise.all([ getUserData(userId), getCategories(), getTopics() ]);
+    const [userData, categories, allTopics, bankedQuestions] = await Promise.all([ getUserData(userId), getCategories(), getTopics(), getQuestionBankDocuments() ]);
     if (!userData) {
         return { userData: null, categories: [], topics: [], bankedQuestions: [], liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [] };
     }
 
-    // Filter categories and topics based on the user's exam category
+    // Filter categories, topics, and banked questions based on the user's exam category
     const userCategories = categories.filter(c => c.examCategories && c.examCategories.includes(userData.examCategory));
     const userCategoryIds = new Set(userCategories.map(c => c.id));
     const userTopics = allTopics.filter(t => userCategoryIds.has(t.categoryId));
+    const userBankedQuestions = bankedQuestions.filter(bq => bq.examCategory === userData.examCategory);
     
-    return { userData, categories: userCategories, topics: userTopics, bankedQuestions: [], liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [] };
+    return { userData, categories: userCategories, topics: userTopics, bankedQuestions: userBankedQuestions, liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [] };
 };
 
 
