@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -90,36 +91,18 @@ export function PreviousYearMockTestForm() {
       return;
     }
     
-    const blueprint = blueprintMap[values.examType];
-    
     try {
-      const { mcqs } = await generateMockTestFromBank({
+      const { quizId } = await generateMockTestFromBank({
           examCategory: values.examType,
           userId: user.uid,
       });
 
-      if (!mcqs || mcqs.length === 0) {
-        toast({ title: 'Generation Failed', description: 'Could not extract a mock test from the question bank. Please ensure relevant documents are uploaded.', variant: 'destructive' });
+      if (!quizId) {
+        toast({ title: 'Generation Failed', description: 'Could not generate a mock test from the question bank.', variant: 'destructive' });
         setIsGenerating(false);
         return;
       }
 
-      const quizId = `mock-test-bank-${values.examType}-${Date.now()}`;
-      
-      const quizData = {
-        mcqs: mcqs,
-        timeLimit: blueprint.totalDurationMinutes * 60,
-        isMockTest: true,
-        topic: {
-          id: quizId,
-          title: `${blueprint.examName} Mock Test (Previous Year)`,
-          description: `A mock test extracted from the question bank for the ${values.examType} blueprint.`,
-          icon: 'scroll-text',
-          categoryId: 'mock-test-bank',
-        },
-      };
-
-      localStorage.setItem(`quiz-${quizId}`, JSON.stringify(quizData));
       router.push(`/quiz/${quizId}`);
 
     } catch (error: any) {

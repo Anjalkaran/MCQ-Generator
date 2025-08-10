@@ -16,6 +16,15 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { getQuestionBankDocumentsByCategory } from '@/lib/firestore';
 import type { MCQ } from '@/lib/types';
+import { getFirebaseDb } from '@/lib/firebase';
+import { addDoc, collection } from 'firebase/firestore';
+import { MTS_BLUEPRINT, PA_BLUEPRINT, POSTMAN_BLUEPRINT } from '@/lib/exam-blueprints';
+
+const blueprintMap = {
+    MTS: MTS_BLUEPRINT,
+    POSTMAN: POSTMAN_BLUEPRINT,
+    PA: PA_BLUEPRINT,
+};
 
 const GenerateMockTestFromBankInputSchema = z.object({
   examCategory: z.enum(["MTS", "POSTMAN", "PA"]).describe('The exam category (e.g., MTS, POSTMAN, PA).'),
@@ -23,16 +32,8 @@ const GenerateMockTestFromBankInputSchema = z.object({
 });
 export type GenerateMockTestFromBankInput = z.infer<typeof GenerateMockTestFromBankInputSchema>;
 
-const MCQSchema = z.object({
-  question: z.string().describe('The multiple-choice question.'),
-  options: z.array(z.string()).min(4, 'There must be four options.').max(4, 'There must be four options.').describe('Four possible answers, including the full text of each option.'),
-  correctAnswer: z.string().describe('The correct answer to the question.'),
-  topic: z.string().optional().describe('The topic the question belongs to.'),
-  solution: z.string().optional().describe('A step-by-step solution, if available.'),
-});
-
 const GenerateMockTestFromBankOutputSchema = z.object({
-  mcqs: z.array(MCQSchema).describe('The generated mock test questions.'),
+  quizId: z.string().describe('The ID of the generated quiz document in Firestore.'),
 });
 export type GenerateMockTestFromBankOutput = z.infer<typeof GenerateMockTestFromBankOutputSchema>;
 
@@ -70,6 +71,27 @@ const generateMockTestFromBankFlow = ai.defineFlow(
         throw new Error(`The question paper '${selectedPaper.fileName}' is empty or incorrectly formatted. It must be a JSON object with a "questions" array.`);
     }
 
-    return { mcqs: parsedData.questions };
+    const blueprint = blueprintMap[input.examCategory];
+    const quizId = `mock-test-bank-${input.examCategory}-${Date.now()}`;
+    const quizData = {
+        mcqs: parsedData.questions,
+        timeLimit: blueprint.totalDurationMinutes * 60,
+        isMockTest: true,
+        topic: {
+            id: quizId,
+            title: `${blueprint.examName} Mock Test (Previous Year)`,
+            description: `A mock test from the question bank file: ${selectedPaper.fileName}.`,
+            icon: 'scroll-text',
+            categoryId: 'mock-test-bank',
+        },
+    };
+    
+    const db = getFirebaseDb();
+    if (!db) {
+        throw new Error("Firestore is not initialized.");
+    }
+    const docRef = await addDoc(collection(db, "generatedQuizzes"), quizData);
+
+    return { quizId: docRef.id };
   }
 );
