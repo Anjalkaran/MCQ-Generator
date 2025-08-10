@@ -140,8 +140,8 @@ export interface LiveTest {
     id: string;
     title: string;
     examCategory: 'MTS' | 'POSTMAN' | 'PA';
-    startTime: Timestamp;
-    endTime: Timestamp;
+    startTime: Timestamp | Date;
+    endTime: Timestamp | Date;
     questionPaperId: string; // Document ID from the 'liveTestBank' collection
     price: number; // Price for the test for non-pro users
 }

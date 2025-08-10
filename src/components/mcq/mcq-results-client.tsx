@@ -84,6 +84,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
             isMockTest: fetchedQuizData.isMockTest || false,
             liveTestId: fetchedQuizData.liveTestId, // Ensure this is passed correctly
             durationInSeconds: durationInSeconds,
+            takenAt: new Date(), // Use client-side timestamp for immediate leaderboard update
         };
 
         try {

@@ -222,7 +222,8 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
         topicId, 
         topicTitle, 
         liveTestId, 
-        durationInSeconds 
+        durationInSeconds,
+        takenAt,
     } = historyData;
 
     const dataToSave: { [key: string]: any } = {
@@ -233,7 +234,7 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
         isMockTest: isMockTest || false,
         topicId: topicId || (isMockTest ? 'mock_test' : 'unknown_topic'),
         topicTitle: topicTitle || (isMockTest ? 'Mock Test' : 'Quiz'),
-        takenAt: serverTimestamp(),
+        takenAt: takenAt || serverTimestamp(),
     };
 
     if (liveTestId) dataToSave.liveTestId = liveTestId;
