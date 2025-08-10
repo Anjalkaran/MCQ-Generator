@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -9,8 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Gem, Download, Loader2, RefreshCw, Trophy } from 'lucide-react';
-import type { UserData } from '@/lib/types';
+import { Gem, Download, Loader2, RefreshCw, Trophy, Languages } from 'lucide-react';
+import type { UserData, MCQHistory } from '@/lib/types';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -25,6 +25,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { normalizeDate } from '@/lib/utils';
+import { getAllExamHistory } from '@/lib/firestore';
 
 type ExamCategory = 'all' | 'MTS' | 'POSTMAN' | 'PA';
 type ProStatus = 'all' | 'pro' | 'free';
@@ -153,12 +154,89 @@ function DataReconciliationCard() {
     )
 }
 
+function LanguageReportCard() {
+    const [languageData, setLanguageData] = useState<Record<string, number>>({});
+    const [isLoading, setIsLoading] = useState(true);
+    const { toast } = useToast();
+
+    useEffect(() => {
+        const fetchLanguageData = async () => {
+            setIsLoading(true);
+            try {
+                const history = await getAllExamHistory();
+                const counts: Record<string, number> = {};
+                history.forEach(item => {
+                    const lang = item.language || 'English'; // Default to English if not set
+                    counts[lang] = (counts[lang] || 0) + 1;
+                });
+                setLanguageData(counts);
+            } catch (error) {
+                console.error("Failed to fetch language data:", error);
+                toast({ title: "Error", description: "Could not load language report.", variant: "destructive" });
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchLanguageData();
+    }, [toast]);
+
+    const sortedLanguages = useMemo(() => {
+        return Object.entries(languageData).sort(([, a], [, b]) => b - a);
+    }, [languageData]);
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Language Usage Report</CardTitle>
+                <CardDescription>
+                    Breakdown of languages used by users to take exams.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                {isLoading ? (
+                    <div className="flex items-center justify-center h-24">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                ) : (
+                    <div className="border rounded-md">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Language</TableHead>
+                                    <TableHead className="text-right">Exams Taken</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {sortedLanguages.length > 0 ? (
+                                    sortedLanguages.map(([language, count]) => (
+                                        <TableRow key={language}>
+                                            <TableCell className="font-medium">{language}</TableCell>
+                                            <TableCell className="text-right">{count}</TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={2} className="h-24 text-center">
+                                            No exam history found.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
 export function ReportsManagement({ allUsers }: ReportsManagementProps) {
     const [examCategoryFilter, setExamCategoryFilter] = useState<ExamCategory>('all');
     const [proStatusFilter, setProStatusFilter] = useState<ProStatus>('all');
     const [cityFilter, setCityFilter] = useState<string>('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState('user-reports');
 
     const uniqueCities = useMemo(() => {
         const cityMap = new Map<string, string>();
@@ -184,7 +262,6 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
         });
 
         return sortedUsers
-            .slice(0, 5) // Take only the latest 5 users
             .filter(user => examCategoryFilter === 'all' || user.examCategory === examCategoryFilter)
             .filter(user => {
                 if (proStatusFilter === 'all') return true;
@@ -237,106 +314,128 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>User Reports</CardTitle>
-                    <CardDescription>Filter and view user data. You can download the filtered list as a CSV file.</CardDescription>
+                    <CardTitle>Reports & Data</CardTitle>
+                    <CardDescription>Generate user reports, view analytics, and manage data integrity.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 border rounded-lg">
-                            <div>
-                                <Label htmlFor="search">Search Name/Email</Label>
-                                <Input id="search" placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-                            </div>
-                            <div>
-                                <Label htmlFor="exam-category">Exam Category</Label>
-                                <Select value={examCategoryFilter} onValueChange={(v) => setExamCategoryFilter(v as ExamCategory)}>
-                                    <SelectTrigger id="exam-category"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Categories</SelectItem>
-                                        <SelectItem value="MTS">MTS</SelectItem>
-                                        <SelectItem value="POSTMAN">POSTMAN</SelectItem>
-                                        <SelectItem value="PA">PA</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div>
-                                <Label htmlFor="pro-status">Subscription Status</Label>
-                                <Select value={proStatusFilter} onValueChange={(v) => setProStatusFilter(v as ProStatus)}>
-                                    <SelectTrigger id="pro-status"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Statuses</SelectItem>
-                                        <SelectItem value="pro">Pro Users</SelectItem>
-                                        <SelectItem value="free">Free Users</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div>
-                                <Label htmlFor="city">City</Label>
-                                <Select value={cityFilter} onValueChange={setCityFilter}>
-                                    <SelectTrigger id="city"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        {uniqueCities.map(city => (
-                                            <SelectItem key={city} value={city}>
-                                                {city === 'all' ? 'All Cities' : city}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                         <Button variant={activeTab === 'user-reports' ? 'default' : 'outline'} onClick={() => setActiveTab('user-reports')}>
+                            <Users className="mr-2 h-4 w-4" />
+                            User Reports
+                        </Button>
+                         <Button variant={activeTab === 'language-reports' ? 'default' : 'outline'} onClick={() => setActiveTab('language-reports')}>
+                            <Languages className="mr-2 h-4 w-4" />
+                            Language Reports
+                        </Button>
+                        <Button variant={activeTab === 'data-tools' ? 'default' : 'outline'} onClick={() => setActiveTab('data-tools')}>
+                             <RefreshCw className="mr-2 h-4 w-4" />
+                            Data Tools
+                        </Button>
+                    </div>
 
-                        <div className="flex justify-between items-center">
-                            <p className="text-sm text-muted-foreground">Showing latest {filteredUsers.length} of {allUsers.length} total users.</p>
-                            <Button onClick={handleDownload} disabled={isLoading || filteredUsers.length === 0}>
-                                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                                Download CSV
-                            </Button>
-                        </div>
+                    {activeTab === 'user-reports' && (
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 border rounded-lg">
+                                <div>
+                                    <Label htmlFor="search">Search Name/Email</Label>
+                                    <Input id="search" placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                                </div>
+                                <div>
+                                    <Label htmlFor="exam-category">Exam Category</Label>
+                                    <Select value={examCategoryFilter} onValueChange={(v) => setExamCategoryFilter(v as ExamCategory)}>
+                                        <SelectTrigger id="exam-category"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All Categories</SelectItem>
+                                            <SelectItem value="MTS">MTS</SelectItem>
+                                            <SelectItem value="POSTMAN">POSTMAN</SelectItem>
+                                            <SelectItem value="PA">PA</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div>
+                                    <Label htmlFor="pro-status">Subscription Status</Label>
+                                    <Select value={proStatusFilter} onValueChange={(v) => setProStatusFilter(v as ProStatus)}>
+                                        <SelectTrigger id="pro-status"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All Statuses</SelectItem>
+                                            <SelectItem value="pro">Pro Users</SelectItem>
+                                            <SelectItem value="free">Free Users</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div>
+                                    <Label htmlFor="city">City</Label>
+                                    <Select value={cityFilter} onValueChange={setCityFilter}>
+                                        <SelectTrigger id="city"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            {uniqueCities.map(city => (
+                                                <SelectItem key={city} value={city}>
+                                                    {city === 'all' ? 'All Cities' : city}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
 
-                        <div className="border rounded-md">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Username</TableHead>
-                                        <TableHead>Email</TableHead>
-                                        <TableHead>City</TableHead>
-                                        <TableHead>Category</TableHead>
-                                        <TableHead>Status</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {filteredUsers.length > 0 ? (
-                                        filteredUsers.map((user) => (
-                                            <TableRow key={user.uid}>
-                                                <TableCell className="font-medium">{user.name}</TableCell>
-                                                <TableCell>{user.email}</TableCell>
-                                                <TableCell>{user.city || 'N/A'}</TableCell>
-                                                <TableCell>{user.examCategory}</TableCell>
-                                                <TableCell>
-                                                    {user.isPro ? (
-                                                        <Badge variant="default" className="bg-green-600 hover:bg-green-700">
-                                                            <Gem className="mr-1 h-3 w-3" /> Pro
-                                                        </Badge>
-                                                    ) : (
-                                                        <Badge variant="secondary">Free</Badge>
-                                                    )}
+                            <div className="flex justify-between items-center">
+                                <p className="text-sm text-muted-foreground">Showing {filteredUsers.length} of {allUsers.length} total users.</p>
+                                <Button onClick={handleDownload} disabled={isLoading || filteredUsers.length === 0}>
+                                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                    Download CSV
+                                </Button>
+                            </div>
+
+                            <div className="border rounded-md">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Username</TableHead>
+                                            <TableHead>Email</TableHead>
+                                            <TableHead>City</TableHead>
+                                            <TableHead>Category</TableHead>
+                                            <TableHead>Status</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredUsers.length > 0 ? (
+                                            filteredUsers.map((user) => (
+                                                <TableRow key={user.uid}>
+                                                    <TableCell className="font-medium">{user.name}</TableCell>
+                                                    <TableCell>{user.email}</TableCell>
+                                                    <TableCell>{user.city || 'N/A'}</TableCell>
+                                                    <TableCell>{user.examCategory}</TableCell>
+                                                    <TableCell>
+                                                        {user.isPro ? (
+                                                            <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+                                                                <Gem className="mr-1 h-3 w-3" /> Pro
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge variant="secondary">Free</Badge>
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={5} className="h-24 text-center">
+                                                    No users match the current filters.
                                                 </TableCell>
                                             </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={5} className="h-24 text-center">
-                                                No users match the current filters.
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </div>
-                    </div>
+                    )}
+                    {activeTab === 'language-reports' && (
+                        <LanguageReportCard />
+                    )}
+                     {activeTab === 'data-tools' && (
+                        <DataReconciliationCard />
+                    )}
                 </CardContent>
             </Card>
-            <DataReconciliationCard />
         </div>
     );
 }

@@ -30,6 +30,7 @@ const blueprintMap = {
 const GenerateMockTestFromBankInputSchema = z.object({
   examCategory: z.enum(["MTS", "POSTMAN", "PA"]).describe('The exam category (e.g., MTS, POSTMAN, PA).'),
   userId: z.string().describe('The ID of the user requesting the quiz.'),
+  language: z.string().optional().default('English').describe('The language for the generated quiz.'),
 });
 export type GenerateMockTestFromBankInput = z.infer<typeof GenerateMockTestFromBankInputSchema>;
 
@@ -101,6 +102,7 @@ const generateMockTestFromBankFlow = ai.defineFlow(
         mcqs: finalMCQs,
         timeLimit: blueprint.totalDurationMinutes * 60,
         isMockTest: true,
+        language: input.language,
         topic: {
             id: quizId,
             title: `${blueprint.examName} Mock Test (Previous Year)`,

@@ -94,7 +94,8 @@ export function MCQClient({ topicId }: MCQClientProps) {
             isMockTest: quizData.isMockTest || false,
             liveTestId: quizData.liveTestId,
             durationInSeconds: durationInSeconds,
-            takenAt: new Date(), // Use client-side date for immediate availability
+            takenAt: new Date(),
+            language: quizData.language || 'English',
         };
         
         // Save directly to Firestore

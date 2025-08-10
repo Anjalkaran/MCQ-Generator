@@ -223,6 +223,7 @@ const generateMCQsFlow = ai.defineFlow(
         },
         mcqs: finalMCQs,
         timeLimit,
+        language: input.language,
     };
 
     const db = getFirebaseDb();

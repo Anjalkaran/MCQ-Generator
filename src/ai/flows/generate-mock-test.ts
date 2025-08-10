@@ -251,6 +251,7 @@ const generateMockTestFlow = ai.defineFlow(
         mcqs: finalMCQs.slice(0, totalExpectedQuestions),
         timeLimit: blueprint.totalDurationMinutes * 60,
         isMockTest: true,
+        language: input.language,
         topic: {
             id: `mock-test-${input.examCategory}-${Date.now()}`,
             title: `${blueprint.examName} Mock Test`,

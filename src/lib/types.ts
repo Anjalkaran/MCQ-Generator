@@ -59,6 +59,7 @@ export interface MCQData {
   isMockTest?: boolean;
   liveTestId?: string; // Add liveTestId to quiz data
   examCategory?: UserData['examCategory'];
+  language?: string;
 }
 
 export interface MCQHistory {
@@ -72,7 +73,8 @@ export interface MCQHistory {
     takenAt: Date;
     durationInSeconds?: number;
     isMockTest?: boolean;
-    liveTestId?: string; // Add liveTestId to history
+    liveTestId?: string;
+    language?: string;
 }
 
 export interface TopicPerformance {

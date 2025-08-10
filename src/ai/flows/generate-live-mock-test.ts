@@ -142,6 +142,7 @@ const generateLiveMockTestFlow = ai.defineFlow(
         isMockTest: true,
         liveTestId: input.liveTestId,
         examCategory: input.examCategory,
+        language: input.language,
         topic: {
             id: quizId,
             title: input.testTitle,

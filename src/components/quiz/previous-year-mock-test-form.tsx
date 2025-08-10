@@ -22,11 +22,14 @@ import { ADMIN_EMAILS } from '@/lib/constants';
 import type { BankedQuestion } from '@/lib/types';
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
+const languages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
+
 
 const formSchema = z.object({
   examType: z.enum(examCategories, {
     required_error: 'Please select an exam type.',
   }),
+  language: z.enum(languages).optional().default('English'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -49,6 +52,7 @@ export function PreviousYearMockTestForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       examType: undefined,
+      language: 'English',
     },
   });
 
@@ -95,6 +99,7 @@ export function PreviousYearMockTestForm() {
       const { quizId } = await generateMockTestFromBank({
           examCategory: values.examType,
           userId: user.uid,
+          language: values.language,
       });
 
       if (!quizId) {
@@ -141,6 +146,28 @@ export function PreviousYearMockTestForm() {
                           <FormMessage />
                           </FormItem>
                       )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="language"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Language</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select a language" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {languages.map((lang) => (
+                                            <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
                     />
                     {selectedExamType && !isBankLoading && !hasQuestionPapers && (
                         <Alert variant="destructive">

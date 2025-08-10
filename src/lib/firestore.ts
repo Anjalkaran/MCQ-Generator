@@ -293,6 +293,17 @@ export const getExamHistoryForUser = async (userId?: string, historyId?: string)
     return history;
 };
 
+export const getAllExamHistory = async (): Promise<MCQHistory[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const historyCollection = collection(db, 'mcqHistory');
+    const snapshot = await getDocs(historyCollection);
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { id: doc.id, ...data, takenAt: normalizeDate(data.takenAt) } as MCQHistory;
+    });
+};
+
 // PERFORMANCE ANALYSIS
 export const getPerformanceByTopic = async (userId: string): Promise<TopicPerformance[]> => {
     const allHistory = await getExamHistoryForUser(userId).then(h => h.filter(item => !item.isMockTest));
@@ -868,5 +879,3 @@ export const getGeneratedQuiz = async (quizId: string): Promise<MCQData | null> 
     }
     return null;
 }
-
-    
