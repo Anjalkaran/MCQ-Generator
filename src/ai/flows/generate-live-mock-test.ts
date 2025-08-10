@@ -28,7 +28,8 @@ const blueprintMap = {
 
 
 const GenerateLiveMockTestInputSchema = z.object({
-  liveTestId: z.string().describe('The ID of the live test paper document in Firestore.'),
+  liveTestId: z.string().describe('The ID of the live test document in Firestore.'),
+  questionPaperId: z.string().describe('The ID of the question paper document in the liveTestBank collection.'),
   examCategory: z.enum(["MTS", "POSTMAN", "PA"]).describe('The exam category for which the test is being generated.'),
   language: z.string().optional().default('English').describe('The language for the generated quiz.'),
   testTitle: z.string().describe('The title of the live test.'),
@@ -59,10 +60,10 @@ const generateLiveMockTestFlow = ai.defineFlow(
   },
   async input => {
     
-    const questionPaper = await getLiveTestQuestionPaper(input.liveTestId);
+    const questionPaper = await getLiveTestQuestionPaper(input.questionPaperId);
     
     if (!questionPaper) {
-        throw new Error(`The live test question paper (${input.liveTestId}) could not be found. Please contact an administrator.`);
+        throw new Error(`The live test question paper (${input.questionPaperId}) could not be found. Please contact an administrator.`);
     }
     
     let parsedData: { questions: any[] };
@@ -114,7 +115,6 @@ const generateLiveMockTestFlow = ai.defineFlow(
     }
 
     if (reasoningQuestionsNeeded > 0) {
-        // Fetch from the general reasoning bank, not just live-test marked ones
         const reasoningQuestions = await getReasoningQuestions();
         
         if (reasoningQuestions.length < reasoningQuestionsNeeded) {

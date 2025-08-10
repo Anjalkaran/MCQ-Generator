@@ -24,7 +24,6 @@ interface MCQResultsClientProps {
 interface StoredResultsData {
   answers: { [key: number]: string };
   durationInSeconds?: number;
-  quizId: string;
 }
 
 // Helper function to normalize answer strings for comparison
@@ -43,20 +42,20 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
   const hasSavedHistory = useRef(false);
 
   useEffect(() => {
-    const savedResults = localStorage.getItem(`quizResults-${topicId}`);
+    const savedResults = localStorage.getItem(`quizState-${topicId}`);
     if (!savedResults) {
       toast({ title: "Error", description: "Could not find your quiz results. You may have already viewed them.", variant: "destructive" });
       router.push('/dashboard/history');
       return;
     }
 
-    const { answers, durationInSeconds, quizId } = JSON.parse(savedResults) as StoredResultsData;
+    const { answers, durationInSeconds } = JSON.parse(savedResults) as StoredResultsData;
     
     const fetchDataAndProcess = async (currentUser: User) => {
         if (hasSavedHistory.current) return;
         hasSavedHistory.current = true;
 
-        const fetchedQuizData = await getGeneratedQuiz(quizId);
+        const fetchedQuizData = await getGeneratedQuiz(topicId);
 
         if (!fetchedQuizData) {
             toast({ title: "Error", description: "Could not load quiz data.", variant: "destructive" });
@@ -83,13 +82,13 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
             totalQuestions: fetchedQuizData.mcqs.length,
             questions: fetchedQuizData.mcqs.map((mcq: MCQ) => mcq.question),
             isMockTest: fetchedQuizData.isMockTest || false,
-            liveTestId: fetchedQuizData.liveTestId,
+            liveTestId: fetchedQuizData.liveTestId, // Ensure this is passed correctly
             durationInSeconds: durationInSeconds,
         };
 
         try {
             await saveMCQHistory(historyPayload);
-            localStorage.removeItem(`quizResults-${topicId}`); // Clean up after successful save
+            localStorage.removeItem(`quizState-${topicId}`); // Clean up after successful save
         } catch (err) {
             console.error("Failed to save quiz history:", err);
             toast({ title: "Error", description: "Your exam result could not be saved.", variant: "destructive" });

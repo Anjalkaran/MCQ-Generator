@@ -113,7 +113,8 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
 
         try {
             const { quizId } = await generateLiveMockTest({ 
-                liveTestId: test.questionPaperId,
+                liveTestId: test.id,
+                questionPaperId: test.questionPaperId,
                 examCategory: test.examCategory,
                 language: selectedLanguage,
                 testTitle: test.title,
