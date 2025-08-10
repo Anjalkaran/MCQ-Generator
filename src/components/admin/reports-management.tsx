@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Gem, Download, Loader2, RefreshCw, Trophy, Languages } from 'lucide-react';
+import { Gem, Download, Loader2, RefreshCw, Trophy, Languages, Users } from 'lucide-react';
 import type { UserData, MCQHistory } from '@/lib/types';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
