@@ -55,45 +55,31 @@ export function MCQClient({ topicId }: MCQClientProps) {
     }
     if (typeof window !== 'undefined' && quizData && quizStartTimeRef.current !== null) {
       const durationInSeconds = Math.round((Date.now() - quizStartTimeRef.current) / 1000);
-      const answersToStore = {
-        answers: selectedAnswers,
-        numberOfQuestions: quizData.mcqs.length,
-        mcqs: quizData.mcqs,
-        topic: quizData.topic,
-        isMockTest: quizData.isMockTest || false,
-        liveTestId: quizData.liveTestId,
-        durationInSeconds: durationInSeconds,
-      };
-      localStorage.setItem(`quizState-${quizData.topic.id}`, JSON.stringify(answersToStore));
       
-      // Always redirect to results page
-      router.push(`/quiz/${quizData.topic.id}/results`);
+      // Store only the essential results data, not the entire quiz.
+      const resultsToStore = {
+        answers: selectedAnswers,
+        durationInSeconds: durationInSeconds,
+        quizId: topicId,
+      };
+      localStorage.setItem(`quizResults-${topicId}`, JSON.stringify(resultsToStore));
+      
+      router.push(`/quiz/${topicId}/results`);
     }
-  }, [quizData, selectedAnswers, router]);
+  }, [quizData, selectedAnswers, router, topicId]);
 
   useEffect(() => {
     setIsClient(true);
     const fetchQuizData = async () => {
-        // First, check localStorage for topic-wise quizzes
-        const savedTopicQuiz = localStorage.getItem(`quiz-${topicId}`);
-        if (savedTopicQuiz) {
-            const parsedData: MCQData = JSON.parse(savedTopicQuiz);
-            setQuizData(parsedData);
-            if (parsedData.timeLimit) {
-                setTimeLeft(parsedData.timeLimit);
+        const firestoreQuiz = await getGeneratedQuiz(topicId);
+        if (firestoreQuiz) {
+            setQuizData(firestoreQuiz);
+            if (firestoreQuiz.timeLimit) {
+                setTimeLeft(firestoreQuiz.timeLimit);
             }
         } else {
-            // If not in localStorage, assume it's a mock test and fetch from Firestore
-            const firestoreQuiz = await getGeneratedQuiz(topicId);
-            if (firestoreQuiz) {
-                setQuizData(firestoreQuiz);
-                if (firestoreQuiz.timeLimit) {
-                    setTimeLeft(firestoreQuiz.timeLimit);
-                }
-            } else {
-                toast({ title: "Error", description: "Quiz not found. It may have expired.", variant: "destructive" });
-                router.push('/dashboard');
-            }
+            toast({ title: "Error", description: "Quiz not found. It may have expired.", variant: "destructive" });
+            router.push('/dashboard');
         }
         quizStartTimeRef.current = Date.now();
     };

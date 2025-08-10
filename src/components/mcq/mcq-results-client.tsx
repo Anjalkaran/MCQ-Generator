@@ -4,15 +4,15 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle, XCircle, Award, Repeat, Home, Lightbulb, Trophy, Share2 } from "lucide-react";
-import type { MCQ, Topic, UserData } from "@/lib/types";
+import { CheckCircle, XCircle, Award, Repeat, Home, Lightbulb, Trophy, Share2, Loader2 } from "lucide-react";
+import type { MCQ, Topic, UserData, MCQData } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { getFirebaseAuth } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { saveMCQHistory } from "@/lib/firestore";
+import { saveMCQHistory, getGeneratedQuiz } from "@/lib/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
@@ -21,117 +21,132 @@ interface MCQResultsClientProps {
   topicId: string;
 }
 
-interface StoredQuizData {
+interface StoredResultsData {
   answers: { [key: number]: string };
-  numberOfQuestions: number;
-  mcqs: MCQ[];
-  topic: Topic;
-  isMockTest?: boolean;
-  liveTestId?: string;
   durationInSeconds?: number;
-  examCategory?: UserData['examCategory'];
+  quizId: string;
 }
 
 // Helper function to normalize answer strings for comparison
 const normalizeAnswer = (answer: string | undefined): string => {
     if (!answer) return "";
-    // Trim whitespace, convert to lower case, and remove any leading list markers (e.g., "a)", "b.", "1. ").
-    return answer
-        .trim()
-        .toLowerCase()
-        .replace(/^[a-d][\\)\.]\\s*|^[1-4][\\)\.]\\s*/, '');
+    return answer.trim().toLowerCase().replace(/^[a-d][\\)\.]\\s*|^[1-4][\\)\.]\\s*/, '');
 };
-
 
 export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [score, setScore] = useState(0);
   const [userAnswers, setUserAnswers] = useState<{ [key: number]: string }>({});
-  const [quizLength, setQuizLength] = useState(0);
-  const [isClient, setIsClient] = useState(false);
-  const [quizData, setQuizData] = useState<Omit<StoredQuizData, 'answers' | 'numberOfQuestions'> | null>(null);
+  const [quizData, setQuizData] = useState<MCQData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const hasSavedHistory = useRef(false);
 
   useEffect(() => {
-    setIsClient(true);
-    const savedState = localStorage.getItem(`quizState-${topicId}`);
-    
-    if (!savedState) {
-        // If there's no state, no point in setting up auth listener
-        return;
+    const savedResults = localStorage.getItem(`quizResults-${topicId}`);
+    if (!savedResults) {
+      toast({ title: "Error", description: "Could not find your quiz results. You may have already viewed them.", variant: "destructive" });
+      router.push('/dashboard/history');
+      return;
     }
+
+    const { answers, durationInSeconds, quizId } = JSON.parse(savedResults) as StoredResultsData;
+    
+    const fetchDataAndProcess = async (currentUser: User) => {
+        if (hasSavedHistory.current) return;
+        hasSavedHistory.current = true;
+
+        const fetchedQuizData = await getGeneratedQuiz(quizId);
+
+        if (!fetchedQuizData) {
+            toast({ title: "Error", description: "Could not load quiz data.", variant: "destructive" });
+            setIsLoading(false);
+            return;
+        }
+
+        setQuizData(fetchedQuizData);
+        setUserAnswers(answers);
+
+        let correctCount = 0;
+        fetchedQuizData.mcqs.forEach((mcq: MCQ, index: number) => {
+            if (normalizeAnswer(answers[index]) === normalizeAnswer(mcq.correctAnswer)) {
+                correctCount++;
+            }
+        });
+        setScore(correctCount);
+
+        const historyPayload = {
+            userId: currentUser.uid,
+            topicId: fetchedQuizData.topic.id,
+            topicTitle: fetchedQuizData.topic.title,
+            score: correctCount,
+            totalQuestions: fetchedQuizData.mcqs.length,
+            questions: fetchedQuizData.mcqs.map((mcq: MCQ) => mcq.question),
+            isMockTest: fetchedQuizData.isMockTest || false,
+            liveTestId: fetchedQuizData.liveTestId,
+            durationInSeconds: durationInSeconds,
+        };
+
+        try {
+            await saveMCQHistory(historyPayload);
+            localStorage.removeItem(`quizResults-${topicId}`); // Clean up after successful save
+        } catch (err) {
+            console.error("Failed to save quiz history:", err);
+            toast({ title: "Error", description: "Your exam result could not be saved.", variant: "destructive" });
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const auth = getFirebaseAuth();
-    if (!auth) {
-        console.error("Firebase Auth not initialized.");
-        toast({ title: "Error", description: "Could not connect to authentication service.", variant: "destructive" });
-        return;
+    if (auth) {
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            if (currentUser) {
+                fetchDataAndProcess(currentUser);
+            } else {
+                setIsLoading(false);
+                toast({ title: "Authentication Error", description: "You must be logged in to save your results.", variant: "destructive" });
+            }
+        });
+        return () => unsubscribe();
+    } else {
+        setIsLoading(false);
     }
+  }, [topicId, router, toast]);
 
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-        if (currentUser && !hasSavedHistory.current) {
-            hasSavedHistory.current = true; // Prevent re-runs
-            
-            const { answers, numberOfQuestions, mcqs, topic, isMockTest, liveTestId, durationInSeconds, examCategory } = JSON.parse(savedState) as StoredQuizData;
-            setUserAnswers(answers);
-            setQuizLength(numberOfQuestions);
-            setQuizData({ mcqs, topic, isMockTest, liveTestId, examCategory });
-
-            let correctCount = 0;
-            mcqs.forEach((mcq: MCQ, index: number) => {
-                if (normalizeAnswer(answers[index]) === normalizeAnswer(mcq.correctAnswer)) {
-                    correctCount++;
-                }
-            });
-            setScore(correctCount);
-
-            const historyPayload = {
-                userId: currentUser.uid,
-                topicId: topic.id,
-                topicTitle: topic.title,
-                score: correctCount,
-                totalQuestions: numberOfQuestions,
-                questions: mcqs.map((mcq: MCQ) => mcq.question),
-                isMockTest: isMockTest || false,
-                liveTestId: liveTestId,
-                durationInSeconds: durationInSeconds,
-            };
-
-            saveMCQHistory(historyPayload).catch(err => {
-                // Log the actual error from Firestore to the console for detailed debugging
-                console.error("Failed to save quiz history. Error object:", err);
-                
-                // Also log the data you attempted to send
-                console.log("Data that failed to save:", historyPayload);
-
-                toast({
-                    title: "Error",
-                    description: "Your exam result could not be saved.",
-                    variant: "destructive"
-                });
-            });
-        }
-    });
-
-    // Cleanup subscription on component unmount
-    return () => unsubscribe();
-
-  }, [topicId, toast]);
-
-  if (!isClient || !quizData) {
-    return null; // or a loading spinner
+  if (isLoading) {
+    return (
+      <div className="flex h-[50vh] w-full items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="ml-4 text-muted-foreground">Calculating your results...</p>
+      </div>
+    );
+  }
+  
+  if (!quizData) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Error</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p>Could not load quiz results. Please go back to your dashboard.</p>
+                 <Button asChild className="mt-4">
+                    <Link href="/dashboard">Go to Dashboard</Link>
+                </Button>
+            </CardContent>
+        </Card>
+    );
   }
   
   const { topic, mcqs: quizMcqs, isMockTest, liveTestId, examCategory } = quizData;
+  const quizLength = quizMcqs.length;
   
   const marksPerQuestion = (liveTestId && examCategory === 'PA') ? 1 : 2;
   const totalMarks = score * marksPerQuestion;
   const maxMarks = quizLength * marksPerQuestion;
 
-
   const handleRetake = () => {
-    localStorage.removeItem(`quizState-${topicId}`);
     const destination = isMockTest ? '/dashboard/mock-test' : '/dashboard/topic-wise-mcq';
     router.push(destination);
   };
