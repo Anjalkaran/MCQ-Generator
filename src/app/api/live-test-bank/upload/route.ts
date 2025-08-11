@@ -52,10 +52,28 @@ export async function POST(req: NextRequest) {
         try {
             jsonData = JSON.parse(textContent);
         } catch (e) {
-            if (e instanceof SyntaxError) {
+             // Handle files with multiple concatenated JSON objects (common copy-paste error)
+            if (e instanceof SyntaxError && textContent.trim().startsWith('{') && textContent.trim().endsWith('}')) {
+                const objects = textContent.trim().replace(/}\s*{/g, '}|--|{').split('|--|');
+                jsonData = [];
+                for (const objStr of objects) {
+                    try {
+                        const parsedObj = JSON.parse(objStr);
+                        if (parsedObj.questions && Array.isArray(parsedObj.questions)) {
+                             (jsonData as any[]).push(...parsedObj.questions);
+                        } else {
+                            // If it's just a single question object, add it to the array
+                            (jsonData as any[]).push(parsedObj);
+                        }
+                    } catch (innerError) {
+                         return NextResponse.json({ error: `Syntax error in JSON file: ${file.name}. Please check for issues like trailing commas or invalid structure.` }, { status: 400 });
+                    }
+                }
+            } else if (e instanceof SyntaxError) {
                 return NextResponse.json({ error: `Syntax error in JSON file: ${file.name}. Please check for issues like trailing commas.` }, { status: 400 });
+            } else {
+                throw e; // re-throw other errors
             }
-            throw e; // re-throw other errors
         }
         
         // Try parsing as {"questions": [...]} first
