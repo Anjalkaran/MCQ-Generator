@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { FeatureCards } from "@/components/home/feature-cards";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PricingCards } from "@/components/home/pricing-cards";
 
 const translations = {
   en: {
@@ -71,6 +72,12 @@ export default function Home() {
                 </Link>
               </Button>
             </div>
+          </div>
+        </section>
+
+        <section className="w-full pb-12 md:pb-24 lg:pb-32 bg-background">
+          <div className="container px-4 md:px-6">
+            <PricingCards />
           </div>
         </section>
 
