@@ -8,7 +8,7 @@ import PaymentButton from "@/components/quiz/payment-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { normalizeDate } from "@/lib/utils";
-import { Gem, Loader2, PartyPopper, CheckCircle } from "lucide-react";
+import { Gem, Loader2, PartyPopper, CheckCircle, Calendar, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ADMIN_EMAILS, RAZORPAY_KEY_ID } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,7 @@ export default function UpgradePage() {
         razorpay_payment_id: string;
         razorpay_order_id: string;
         razorpay_signature: string;
+        planType: 'yearly' | 'promo';
     }) => {
         if (!user) return;
         setPaymentState('processing');
@@ -57,12 +58,9 @@ export default function UpgradePage() {
                 className: "bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-700",
             });
 
-            // Optimistically update local state to reflect Pro status immediately
-            const proValidUntil = new Date();
-            proValidUntil.setFullYear(proValidUntil.getFullYear() + 1);
+            const proValidUntil = new Date(result.proValidUntil);
             setUserData(prev => prev ? ({ ...prev, isPro: true, proValidUntil }) : null);
 
-            // Redirect after a short delay to allow user to see success message
             setTimeout(() => {
                 router.push('/dashboard');
             }, 2000);
@@ -118,56 +116,91 @@ export default function UpgradePage() {
         );
     }
 
-    let price;
-    if (userData.examCategory === 'PA') price = 799;
-    else if (userData.examCategory === 'POSTMAN') price = 599;
-    else price = 499;
+    let standardPrice;
+    if (userData.examCategory === 'PA') standardPrice = 799;
+    else if (userData.examCategory === 'POSTMAN') standardPrice = 599;
+    else standardPrice = 499;
+
+    const isPAUser = userData.examCategory === 'PA';
 
     return (
         <>
             <Script id="razorpay-checkout-js" src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
-            <div className="space-y-6 max-w-2xl mx-auto">
-                <div className="space-y-0.5">
+            <div className="space-y-6 max-w-4xl mx-auto">
+                <div className="space-y-0.5 text-center">
                     <h1 className="text-2xl font-bold tracking-tight">Upgrade Your Plan</h1>
                     <p className="text-muted-foreground">Unlock unlimited exam access to continue practicing.</p>
                 </div>
                 
-                <Card>
-                    <CardHeader className="text-center">
-                         <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit">
-                            <Gem className="h-8 w-8 text-primary" />
-                         </div>
-                        <CardTitle className="text-2xl pt-4">Free Limit Reached</CardTitle>
-                        <CardDescription className="max-w-md mx-auto">
-                            You've used up your free exam allocation. To unlock unlimited practice, please complete the payment below.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex flex-col items-center space-y-4">
-                        {paymentState === 'success' ? (
-                            <div className="text-center space-y-4 p-8">
-                                <CheckCircle className="h-16 w-16 text-green-500 mx-auto animate-pulse" />
-                                <h3 className="text-xl font-semibold">Upgrade Successful!</h3>
-                                <p className="text-muted-foreground">Redirecting you to the dashboard...</p>
-                            </div>
-                        ) : (
-                            <>
+                {paymentState === 'success' ? (
+                     <Card>
+                        <CardContent className="text-center space-y-4 p-8">
+                            <CheckCircle className="h-16 w-16 text-green-500 mx-auto animate-pulse" />
+                            <h3 className="text-xl font-semibold">Upgrade Successful!</h3>
+                            <p className="text-muted-foreground">Redirecting you to the dashboard...</p>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <div className={`grid grid-cols-1 ${isPAUser ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-6`}>
+                        {/* Standard Plan */}
+                        <Card className={`flex flex-col ${isPAUser ? 'border-muted' : 'border-primary border-2 shadow-lg'}`}>
+                            <CardHeader className="text-center">
+                                <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit">
+                                    <Gem className="h-8 w-8 text-primary" />
+                                </div>
+                                <CardTitle className="text-2xl pt-4">Pro Plan</CardTitle>
+                                <CardDescription>Unlimited access to all features.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex-grow flex flex-col items-center space-y-4">
                                 <div className="text-4xl font-bold">
-                                    ₹{price}
+                                    ₹{standardPrice}
                                     <span className="text-lg font-normal text-muted-foreground"> / year</span>
                                 </div>
-                                <p className="text-sm text-muted-foreground">This will grant you unlimited exam access for one year.</p>
-                                <div className="w-full max-w-sm pt-4">
+                                <p className="text-sm text-muted-foreground">This will grant you unlimited exam access for one full year.</p>
+                            </CardContent>
+                             <CardFooter>
+                                <PaymentButton
+                                    user={userData}
+                                    onPaymentSuccess={(details) => handleSuccessfulPayment({...details, planType: 'yearly'})}
+                                    onPaymentError={handlePaymentError}
+                                    amount={standardPrice}
+                                    planType="yearly"
+                                />
+                            </CardFooter>
+                        </Card>
+
+                        {/* Promotional Plan for PA Users */}
+                        {isPAUser && (
+                             <Card className="flex flex-col border-primary border-2 shadow-lg">
+                                <CardHeader className="text-center">
+                                    <div className="mx-auto bg-amber-400/10 p-4 rounded-full w-fit">
+                                        <Star className="h-8 w-8 text-amber-500" />
+                                    </div>
+                                    <CardTitle className="text-2xl pt-4">Exam Special Offer</CardTitle>
+                                    <CardDescription>Limited-time offer for PA aspirants!</CardDescription>
+                                </CardHeader>
+                                <CardContent className="flex-grow flex flex-col items-center space-y-4">
+                                    <div className="text-4xl font-bold">
+                                        ₹99
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Calendar className="h-4 w-4" />
+                                        <span>Valid until August 17, 2025</span>
+                                    </div>
+                                </CardContent>
+                                <CardFooter>
                                     <PaymentButton
                                         user={userData}
-                                        onPaymentSuccess={handleSuccessfulPayment}
+                                        onPaymentSuccess={(details) => handleSuccessfulPayment({...details, planType: 'promo'})}
                                         onPaymentError={handlePaymentError}
-                                        amount={price}
+                                        amount={99}
+                                        planType="promo"
                                     />
-                                </div>
-                            </>
+                                </CardFooter>
+                            </Card>
                         )}
-                    </CardContent>
-                </Card>
+                    </div>
+                )}
             </div>
         </>
     )

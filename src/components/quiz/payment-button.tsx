@@ -17,11 +17,17 @@ declare global {
 interface PaymentButtonProps {
   user: UserData;
   amount: number;
-  onPaymentSuccess: (details: { razorpay_payment_id: string }) => void;
+  planType: 'yearly' | 'promo';
+  onPaymentSuccess: (details: { 
+      razorpay_payment_id: string;
+      razorpay_order_id: string;
+      razorpay_signature: string;
+      planType: 'yearly' | 'promo';
+  }) => void;
   onPaymentError: (error: string) => void;
 }
 
-export default function PaymentButton({ user, amount, onPaymentSuccess, onPaymentError }: PaymentButtonProps) {
+export default function PaymentButton({ user, amount, planType, onPaymentSuccess, onPaymentError }: PaymentButtonProps) {
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
 
@@ -46,7 +52,8 @@ export default function PaymentButton({ user, amount, onPaymentSuccess, onPaymen
                 },
                 body: JSON.stringify({ 
                     userId: user.uid, 
-                    amount: amount 
+                    amount: amount,
+                    planType: planType,
                 }),
             });
 
@@ -61,14 +68,15 @@ export default function PaymentButton({ user, amount, onPaymentSuccess, onPaymen
                 key: RAZORPAY_KEY_ID,
                 amount: order.amount,
                 currency: order.currency,
-                name: "Anjalkaran Pro",
-                description: "1-Year Unlimited Exam Access",
+                name: planType === 'promo' ? "Anjalkaran Exam Special" : "Anjalkaran Pro",
+                description: planType === 'promo' ? "Access until 17/08/2025" : "1-Year Unlimited Exam Access",
                 order_id: order.id,
                 handler: function (response: any) {
                     onPaymentSuccess({
                         razorpay_payment_id: response.razorpay_payment_id,
                         razorpay_order_id: response.razorpay_order_id,
                         razorpay_signature: response.razorpay_signature,
+                        planType: planType,
                     });
                 },
                 prefill: {
@@ -77,6 +85,7 @@ export default function PaymentButton({ user, amount, onPaymentSuccess, onPaymen
                 },
                 notes: {
                     userId: user.uid,
+                    planType: planType,
                 },
                 theme: {
                     color: "#D62927" 
@@ -114,7 +123,7 @@ export default function PaymentButton({ user, amount, onPaymentSuccess, onPaymen
             className="w-full"
             size="lg"
         >
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Pay Now'}
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : `Pay ₹${amount}`}
         </Button>
     );
 }

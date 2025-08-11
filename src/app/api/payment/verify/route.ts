@@ -32,9 +32,9 @@ export async function POST(req: NextRequest) {
 
     try {
         const body = await req.json();
-        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, userId } = body;
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, userId, planType } = body;
 
-        if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !userId) {
+        if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !userId || !planType) {
             return NextResponse.json({ error: 'Missing payment verification details.' }, { status: 400 });
         }
 
@@ -47,22 +47,32 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Payment verification failed. Signature mismatch.' }, { status: 400 });
         }
         
-        // --- Signature is valid, proceed to upgrade user ---
-        const proValidUntil = new Date();
-        proValidUntil.setFullYear(proValidUntil.getFullYear() + 1);
+        let proValidUntil;
+
+        if (planType === 'promo') {
+            // Set expiry to 17th August 2025
+            proValidUntil = new Date('2025-08-17T23:59:59');
+        } else {
+            // Default to 1 year from now
+            proValidUntil = new Date();
+            proValidUntil.setFullYear(proValidUntil.getFullYear() + 1);
+        }
 
         const userRef = adminDb.collection('users').doc(userId);
         
         await userRef.update({
             isPro: true,
             proValidUntil: proValidUntil,
-            totalExamsTaken: 0, // Reset the exam counter upon upgrade
+            totalExamsTaken: 0, 
         });
         
-        // After successfully upgrading, create the notification
         await createNotification(userId);
 
-        return NextResponse.json({ status: 'success', message: 'Payment verified and user upgraded to Pro.' });
+        return NextResponse.json({ 
+            status: 'success', 
+            message: 'Payment verified and user upgraded to Pro.',
+            proValidUntil: proValidUntil.toISOString(), // Send back the new expiry date
+        });
 
     } catch (error: any) {
         console.error("Error during payment verification and user upgrade:", error);

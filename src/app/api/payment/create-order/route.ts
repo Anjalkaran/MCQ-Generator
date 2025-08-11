@@ -8,11 +8,11 @@ export const runtime = 'nodejs';
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { userId, amount } = body;
+        const { userId, amount, planType } = body;
 
         // --- Robust Server-Side Validation ---
-        if (!userId || !amount) {
-            return NextResponse.json({ error: 'User ID and amount are required.' }, { status: 400 });
+        if (!userId || !amount || !planType) {
+            return NextResponse.json({ error: 'User ID, amount, and plan type are required.' }, { status: 400 });
         }
         
         const amountInPaise = Math.round(amount * 100);
@@ -22,7 +22,6 @@ export async function POST(req: NextRequest) {
         }
         // --- End Validation ---
         
-        // Use a more robust random receipt ID
         const receiptId = `receipt_${userId.slice(0,4)}_${crypto.randomBytes(4).toString('hex')}`;
 
         const options = {
@@ -31,6 +30,7 @@ export async function POST(req: NextRequest) {
             receipt: receiptId,
             notes: {
                 userId: userId,
+                planType: planType, // yearly or promo
             }
         };
 
@@ -40,10 +40,7 @@ export async function POST(req: NextRequest) {
 
     } catch (error: any) {
         console.error('Razorpay order creation error:', error);
-
-        // Extract a more specific error message if available from Razorpay's response
         const errorMessage = error.error?.description || error.message || 'An unknown error occurred while creating the payment order.';
-        
         return NextResponse.json(
             { error: `Failed to create payment order: ${errorMessage}` },
             { status: 500 }
