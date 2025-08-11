@@ -1,3 +1,4 @@
+
 "use client";
 
 import { MockTestForm } from "@/components/quiz/mock-test-form";
@@ -32,7 +33,7 @@ export default function MockTestPage() {
                         <PreviousYearMockTestForm />
                    ) : (
                         <div className="text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg mt-4">
-                            <p>This feature is currently available for PA Exam users and Admins only.</p>
+                            <p>This feature is currently available for PA Exam users only.</p>
                         </div>
                    )}
                 </TabsContent>
