@@ -221,43 +221,36 @@ https://anjalkaran.in`;
                 )}
             </Button>;
         }
+        
+        if (!isPro) {
+            return (
+                <Button asChild className="w-full">
+                    <Link href="/dashboard/upgrade">
+                        <Gem className="mr-2 h-4 w-4" /> Upgrade to Pro to Join
+                    </Link>
+                </Button>
+            );
+        }
 
         if (testState === 'loading') return <Button disabled className="w-full"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading Status...</Button>;
         if (testState === 'upcoming') return <Button disabled className="w-full"><Lock className="mr-2 h-4 w-4" />Starts In: {timeRemaining}</Button>;
         if (testState === 'completed') return <Button disabled className="w-full"><CheckCircle className="mr-2 h-4 w-4" />Test Already Attempted</Button>;
         if (testState === 'ended') return <Button disabled className="w-full"><TimerOff className="mr-2 h-4 w-4" />Test Has Ended</Button>;
 
-        // Test is 'live'
-        if (test.price === 0 || isPro) {
-            return <Button onClick={startTest} disabled={isGenerating} className="w-full bg-green-600 hover:bg-green-700">
-                {isGenerating ? (
-                    <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Generating... Please wait
-                    </>
-                ) : (
-                    <>
-                        <PlayCircle className="mr-2 h-4 w-4" />
-                        {test.price === 0 && !isPro ? 'Start Free Test' : 'Start Live Test'}
-                    </>
-                )}
-            </Button>;
-        }
-        
-        // Non-pro user, test requires payment
-        return (
-            <div className="w-full space-y-2">
-                <Button onClick={handlePaymentAndStart} disabled={isPaying || isGenerating} className="w-full">
-                    {isPaying || isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
-                    Pay ₹{test.price} and Start
-                </Button>
-                <Button variant="outline" asChild className="w-full">
-                    <Link href="/dashboard/upgrade">
-                        <Gem className="mr-2 h-4 w-4" /> Upgrade to Pro
-                    </Link>
-                </Button>
-            </div>
-        );
+        // Test is 'live' and user is Pro
+        return <Button onClick={startTest} disabled={isGenerating} className="w-full bg-green-600 hover:bg-green-700">
+            {isGenerating ? (
+                <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating... Please wait
+                </>
+            ) : (
+                <>
+                    <PlayCircle className="mr-2 h-4 w-4" />
+                    Start Live Test
+                </>
+            )}
+        </Button>;
     };
     
     if (!startTime || !endTime) {
@@ -279,7 +272,7 @@ https://anjalkaran.in`;
                 </CardDescription>
             </CardHeader>
             <CardContent className="text-center space-y-4 flex-grow">
-                 {!isAdmin && (
+                 {!isAdmin && isPro && (
                      <div className="p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">
                             {testState === 'upcoming' ? 'Starts in' : 'Ends in'}

@@ -1,6 +1,6 @@
 
 export const ADMIN_EMAILS = ["admin@anjalkaran.com", "raamamoorthy@gmail.com"];
-export const FREE_EXAM_LIMIT = 0;
+export const FREE_EXAM_LIMIT = 3;
 
 // This key is safe to expose on the client-side
 export const RAZORPAY_KEY_ID = "rzp_live_XNruThYCl1M0Gu";

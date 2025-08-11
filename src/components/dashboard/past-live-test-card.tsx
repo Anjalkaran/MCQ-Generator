@@ -5,26 +5,21 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { useDashboard } from '@/app/dashboard/layout';
-import { Loader2, PlayCircle, CheckCircle, Trophy, Ban, Repeat } from 'lucide-react';
+import { Loader2, PlayCircle, CheckCircle, Trophy, Ban, Repeat, Gem } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { generateLiveMockTest } from '@/ai/flows/generate-live-mock-test';
-import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-blueprints';
 import type { LiveTest } from '@/lib/types';
 import { normalizeDate } from '@/lib/utils';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { Badge } from '@/components/ui/badge';
 import { getExamHistoryForUser } from '@/lib/firestore';
 import { format } from 'date-fns';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '../ui/label';
 
-const blueprintMap = {
-    MTS: MTS_BLUEPRINT,
-    POSTMAN: POSTMAN_BLUEPRINT,
-    PA: PA_BLUEPRINT,
-};
-
-const MAX_ATTEMPTS = 2;
+const languages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
 
 export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
     const { user, userData } = useDashboard();
@@ -33,9 +28,13 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [practiceAttempts, setPracticeAttempts] = useState(0);
     const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+    const [selectedLanguage, setSelectedLanguage] = useState<string>('English');
 
     const startTime = normalizeDate(test.startTime);
     const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
+    const proValidUntilDate = normalizeDate(userData?.proValidUntil);
+    const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
+    const MAX_ATTEMPTS = isPro ? 1000 : 0; // Effectively unlimited for pro, 0 for free
 
     useEffect(() => {
         const checkPracticeHistory = async () => {
@@ -45,8 +44,8 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
             }
             try {
                 const history = await getExamHistoryForUser(user.uid);
-                const practiceQuizId = `live-test-${test.id}`;
-                const attempts = history.filter(item => item.topicId === practiceQuizId).length;
+                const practiceQuizIdPrefix = `live-test-${test.id}`;
+                const attempts = history.filter(item => item.topicId?.startsWith(practiceQuizIdPrefix)).length;
                 setPracticeAttempts(attempts);
             } catch (error) {
                 console.error("Failed to check practice test history:", error);
@@ -63,7 +62,7 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
         if (hasReachedLimit && !isAdmin) {
             toast({
                 title: "Attempt Limit Reached",
-                description: `You have already taken this practice test ${MAX_ATTEMPTS} times.`,
+                description: `You have reached the practice limit for this test.`,
                 variant: "destructive",
             });
             return;
@@ -77,51 +76,44 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
         }
 
         try {
-            const { mcqs } = await generateLiveMockTest({ 
-                liveTestId: test.questionPaperId,
-                examCategory: test.examCategory,
-             });
-            const blueprint = blueprintMap[test.examCategory];
-            const quizId = `live-test-${test.id}`;
-            const quizData = {
-                mcqs: mcqs,
-                timeLimit: blueprint.totalDurationMinutes * 60,
-                isMockTest: true,
+            const { quizId } = await generateLiveMockTest({ 
                 liveTestId: test.id,
-                topic: {
-                    id: quizId,
-                    title: `${test.title} (Practice)`,
-                    description: `Practice session for the live test conducted on ${startTime ? format(startTime, 'dd/MM/yyyy') : 'a past date'}.`,
-                    icon: 'scroll-text',
-                    categoryId: 'live-mock-test',
-                },
-            };
+                questionPaperId: test.questionPaperId,
+                examCategory: test.examCategory,
+                language: selectedLanguage,
+                testTitle: `${test.title} (Practice)`,
+            });
 
-            localStorage.setItem(`quiz-${quizId}`, JSON.stringify(quizData));
+            if (!quizId) {
+                 throw new Error("The AI failed to generate the test questions. Please try again later.");
+            }
+            
             router.push(`/quiz/${quizId}`);
 
         } catch (error: any) {
             console.error("Error generating past live test:", error);
             toast({ title: 'Error', description: error.message || 'Could not generate the test. Please try again.', variant: 'destructive' });
+        } finally {
             setIsGenerating(false);
         }
     };
     
     const getButton = () => {
+        if (!isPro) {
+            return (
+                <Button asChild className="w-full">
+                    <Link href="/dashboard/upgrade">
+                        <Gem className="mr-2 h-4 w-4" /> Upgrade to Practice
+                    </Link>
+                </Button>
+            );
+        }
+
         if (isLoadingHistory) {
             return (
                 <Button disabled className="w-full">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Checking History...
-                </Button>
-            );
-        }
-
-        if (isAdmin) {
-            return (
-                 <Button onClick={startTest} disabled={isGenerating} className="w-full">
-                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Repeat className="mr-2 h-4 w-4" />}
-                    Re-take Test (Admin)
                 </Button>
             );
         }
@@ -145,7 +137,7 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
                 ) : (
                     <>
                         <PlayCircle className="mr-2 h-4 w-4" />
-                        Practice Test ({practiceAttempts}/{MAX_ATTEMPTS})
+                        Practice Test ({practiceAttempts}/{isPro ? '∞' : MAX_ATTEMPTS})
                     </>
                 )}
             </Button>
@@ -159,7 +151,7 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
                 <CardDescription>
                     Conducted on: {startTime ? format(startTime, 'dd/MM/yyyy') : 'N/A'}
                 </CardDescription>
-                 {practiceAttempts > 0 && (
+                 {practiceAttempts > 0 && isPro && (
                     <Badge variant="secondary" className="w-fit mt-2">
                         <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
                         Attempted {practiceAttempts} time(s)
@@ -167,6 +159,19 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
                 )}
             </CardHeader>
             <CardContent className="flex-grow space-y-4">
+                 <div className="space-y-2 text-left">
+                    <Label htmlFor={`past-language-select-${test.id}`}>Language</Label>
+                    <Select value={selectedLanguage} onValueChange={setSelectedLanguage} disabled={!isPro}>
+                        <SelectTrigger id={`past-language-select-${test.id}`}>
+                            <SelectValue placeholder="Select a language" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {languages.map((lang) => (
+                                <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                 </div>
             </CardContent>
             <CardFooter className="flex-col items-stretch gap-2">
                 {getButton()}
