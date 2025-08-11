@@ -34,7 +34,6 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
     const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
     const proValidUntilDate = normalizeDate(userData?.proValidUntil);
     const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
-    const MAX_ATTEMPTS = isPro ? 1000 : 0; // Effectively unlimited for pro, 0 for free
 
     useEffect(() => {
         const checkPracticeHistory = async () => {
@@ -56,18 +55,7 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
         checkPracticeHistory();
     }, [user, test.id]);
     
-    const hasReachedLimit = practiceAttempts >= MAX_ATTEMPTS;
-
     const startTest = async () => {
-        if (hasReachedLimit && !isAdmin) {
-            toast({
-                title: "Attempt Limit Reached",
-                description: `You have reached the practice limit for this test.`,
-                variant: "destructive",
-            });
-            return;
-        }
-
         setIsGenerating(true);
         if (!user) {
             toast({ title: 'Authentication Error', description: 'You must be logged in to start the test.', variant: 'destructive' });
@@ -117,15 +105,6 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
                 </Button>
             );
         }
-
-        if (hasReachedLimit) {
-            return (
-                <Button disabled className="w-full">
-                    <Ban className="mr-2 h-4 w-4" />
-                    Attempt Limit Reached
-                </Button>
-            );
-        }
         
         return (
             <Button onClick={startTest} disabled={isGenerating} className="w-full">
@@ -137,12 +116,14 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
                 ) : (
                     <>
                         <PlayCircle className="mr-2 h-4 w-4" />
-                        Practice Test ({practiceAttempts}/{isPro ? '∞' : MAX_ATTEMPTS})
+                        Practice Test ({practiceAttempts} attempt(s))
                     </>
                 )}
             </Button>
         );
     }
+    
+    const showLanguageSelect = !test.title.includes("Live Test 1") && !test.title.includes("Live Test 2");
 
     return (
         <Card className="flex flex-col">
@@ -159,19 +140,21 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
                 )}
             </CardHeader>
             <CardContent className="flex-grow space-y-4">
-                 <div className="space-y-2 text-left">
-                    <Label htmlFor={`past-language-select-${test.id}`}>Language</Label>
-                    <Select value={selectedLanguage} onValueChange={setSelectedLanguage} disabled={!isPro}>
-                        <SelectTrigger id={`past-language-select-${test.id}`}>
-                            <SelectValue placeholder="Select a language" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {languages.map((lang) => (
-                                <SelectItem key={lang} value={lang}>{lang}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                 </div>
+                 {showLanguageSelect && (
+                    <div className="space-y-2 text-left">
+                        <Label htmlFor={`past-language-select-${test.id}`}>Language</Label>
+                        <Select value={selectedLanguage} onValueChange={setSelectedLanguage} disabled={!isPro}>
+                            <SelectTrigger id={`past-language-select-${test.id}`}>
+                                <SelectValue placeholder="Select a language" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {languages.map((lang) => (
+                                    <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                 )}
             </CardContent>
             <CardFooter className="flex-col items-stretch gap-2">
                 {getButton()}
