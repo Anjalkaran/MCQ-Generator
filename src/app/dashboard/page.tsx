@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useDashboard } from "@/app/dashboard/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, BookCopy, FileText, Rss, BrainCircuit } from 'lucide-react';
+import { Loader2, BookCopy, FileText, Rss, BrainCircuit, History } from 'lucide-react';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getLiveTests } from '@/lib/firestore';
@@ -16,6 +16,7 @@ import { ADMIN_EMAILS } from '@/lib/constants';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
 import { formatDistanceToNowStrict } from 'date-fns';
+import { PreviousYearMockTestForm } from '@/components/quiz/previous-year-mock-test-form';
 
 function Countdown({ test }: { test: LiveTest }) {
     const [timeRemaining, setTimeRemaining] = useState('');
@@ -145,6 +146,7 @@ export default function DashboardPage() {
 
   const isAdmin = userData.email ? ADMIN_EMAILS.includes(userData.email) : false;
   const canSeeReasoning = isAdmin || userData.examCategory === 'PA' || userData.examCategory === 'POSTMAN';
+  const canSeePreviousYearPaper = isAdmin || userData.examCategory === 'PA';
 
   return (
     <div className="space-y-6">
@@ -216,7 +218,7 @@ export default function DashboardPage() {
               <div className="bg-primary/10 p-3 rounded-full">
                 <FileText className="h-6 w-6 text-primary" />
               </div>
-              <CardTitle>Practice Mock Test</CardTitle>
+              <CardTitle>Syllabus Mock Test</CardTitle>
             </div>
             <CardDescription className="pt-4">
               Generate a full-length mock test that simulates the real exam, based on the official blueprint for your selected category.
@@ -228,6 +230,27 @@ export default function DashboardPage() {
             </Button>
           </CardContent>
         </Card>
+
+         {canSeePreviousYearPaper && (
+          <Card className="flex flex-col">
+            <CardHeader>
+              <div className="flex items-center gap-4">
+                <div className="bg-primary/10 p-3 rounded-full">
+                  <History className="h-6 w-6 text-primary" />
+                </div>
+                <CardTitle>Previous Year Paper</CardTitle>
+              </div>
+              <CardDescription className="pt-4">
+                Practice with a mock test created from a randomly selected past question paper for your exam category.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow flex items-end">
+               <Button asChild className="w-full">
+                <Link href="/dashboard/mock-test/previous-year">Practice Now</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
       </div>
     </div>
