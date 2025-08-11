@@ -8,14 +8,9 @@ import { razorpayInstance } from '@/lib/razorpay';
 
 export const runtime = 'nodejs';
 
-async function createNotification(userId: string) {
+async function createNotification(userId: string, userName: string) {
     if (!adminDb) return;
     try {
-        const userRef = adminDb.collection('users').doc(userId);
-        const userSnap = await userRef.get();
-        const userData = userSnap.data();
-        const userName = userData?.name || 'A user';
-
         await addAdminNotification({
             userId: userId,
             userName: userName,
@@ -48,25 +43,24 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Payment verification failed. Signature mismatch.' }, { status: 400 });
         }
         
-        // Fetch payment details to get the phone number
         const paymentDetails = await razorpayInstance.payments.fetch(razorpay_payment_id);
         const phoneNumber = paymentDetails.contact ? paymentDetails.contact.replace(/^\+91/, '') : undefined;
         
         let proValidUntil;
 
         if (planType === 'promo_pa') {
-            // Set expiry to 17th August 2025 for PA promo
             proValidUntil = new Date('2025-08-17T23:59:59');
         } else if (planType === 'promo_mts_pm') {
-            // Set expiry to 31st August 2025 for MTS/Postman promo
             proValidUntil = new Date('2025-08-31T23:59:59');
         } else {
-            // Default to 1 year from now for 'yearly' plan
             proValidUntil = new Date();
             proValidUntil.setFullYear(proValidUntil.getFullYear() + 1);
         }
 
         const userRef = adminDb.collection('users').doc(userId);
+        const userSnap = await userRef.get();
+        const userData = userSnap.data();
+        const userName = userData?.name || 'A user';
         
         const updateData: { [key: string]: any } = {
             isPro: true,
@@ -80,12 +74,12 @@ export async function POST(req: NextRequest) {
         
         await userRef.update(updateData);
         
-        await createNotification(userId);
+        await createNotification(userId, userName);
 
         return NextResponse.json({ 
             status: 'success', 
             message: 'Payment verified and user upgraded to Pro.',
-            proValidUntil: proValidUntil.toISOString(), // Send back the new expiry date
+            proValidUntil: proValidUntil.toISOString(),
         });
 
     } catch (error: any) {
