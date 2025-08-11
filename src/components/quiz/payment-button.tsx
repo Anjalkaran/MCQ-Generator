@@ -89,6 +89,7 @@ export default function PaymentButton({ user, amount, planType, onPaymentSuccess
                 prefill: {
                     name: user.name,
                     email: user.email,
+                    contact: user.phone || '',
                 },
                 notes: {
                     userId: user.uid,

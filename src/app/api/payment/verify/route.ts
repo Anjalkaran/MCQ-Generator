@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { adminDb } from '@/lib/firebase-admin';
 import { addAdminNotification } from '@/lib/firestore';
 import { RAZORPAY_KEY_SECRET } from '@/lib/constants';
+import { razorpayInstance } from '@/lib/razorpay';
 
 export const runtime = 'nodejs';
 
@@ -47,6 +48,10 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Payment verification failed. Signature mismatch.' }, { status: 400 });
         }
         
+        // Fetch payment details to get the phone number
+        const paymentDetails = await razorpayInstance.payments.fetch(razorpay_payment_id);
+        const phoneNumber = paymentDetails.contact ? paymentDetails.contact.replace(/^\+91/, '') : undefined;
+        
         let proValidUntil;
 
         if (planType === 'promo_pa') {
@@ -63,11 +68,17 @@ export async function POST(req: NextRequest) {
 
         const userRef = adminDb.collection('users').doc(userId);
         
-        await userRef.update({
+        const updateData: { [key: string]: any } = {
             isPro: true,
             proValidUntil: proValidUntil,
-            totalExamsTaken: 0, 
-        });
+            totalExamsTaken: 0,
+        };
+
+        if (phoneNumber) {
+            updateData.phone = phoneNumber;
+        }
+        
+        await userRef.update(updateData);
         
         await createNotification(userId);
 
