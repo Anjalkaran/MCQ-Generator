@@ -49,11 +49,14 @@ export async function POST(req: NextRequest) {
         
         let proValidUntil;
 
-        if (planType === 'promo') {
-            // Set expiry to 17th August 2025
+        if (planType === 'promo_pa') {
+            // Set expiry to 17th August 2025 for PA promo
             proValidUntil = new Date('2025-08-17T23:59:59');
+        } else if (planType === 'promo_mts_pm') {
+            // Set expiry to 31st August 2025 for MTS/Postman promo
+            proValidUntil = new Date('2025-08-31T23:59:59');
         } else {
-            // Default to 1 year from now
+            // Default to 1 year from now for 'yearly' plan
             proValidUntil = new Date();
             proValidUntil.setFullYear(proValidUntil.getFullYear() + 1);
         }

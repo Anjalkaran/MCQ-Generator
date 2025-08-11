@@ -17,12 +17,12 @@ declare global {
 interface PaymentButtonProps {
   user: UserData;
   amount: number;
-  planType: 'yearly' | 'promo';
+  planType: 'yearly' | 'promo_pa' | 'promo_mts_pm';
   onPaymentSuccess: (details: { 
       razorpay_payment_id: string;
       razorpay_order_id: string;
       razorpay_signature: string;
-      planType: 'yearly' | 'promo';
+      planType: 'yearly' | 'promo_pa' | 'promo_mts_pm';
   }) => void;
   onPaymentError: (error: string) => void;
 }
@@ -63,13 +63,20 @@ export default function PaymentButton({ user, amount, planType, onPaymentSuccess
             }
 
             const order = await response.json();
+            
+            let description = "1-Year Unlimited Exam Access";
+            if (planType === 'promo_pa') {
+                description = "Access until 17/08/2025";
+            } else if (planType === 'promo_mts_pm') {
+                description = "Access until 31/08/2025";
+            }
 
             const options = {
                 key: RAZORPAY_KEY_ID,
                 amount: order.amount,
                 currency: order.currency,
-                name: planType === 'promo' ? "Anjalkaran Exam Special" : "Anjalkaran Pro",
-                description: planType === 'promo' ? "Access until 17/08/2025" : "1-Year Unlimited Exam Access",
+                name: "Anjalkaran Pro",
+                description: description,
                 order_id: order.id,
                 handler: function (response: any) {
                     onPaymentSuccess({

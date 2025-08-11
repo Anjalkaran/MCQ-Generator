@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import Script from 'next/script';
 import { useDashboard } from "@/app/dashboard/layout";
 import PaymentButton from "@/components/quiz/payment-button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { normalizeDate } from "@/lib/utils";
 import { Gem, Loader2, PartyPopper, CheckCircle, Calendar, Star } from "lucide-react";
@@ -32,7 +32,7 @@ export default function UpgradePage() {
         razorpay_payment_id: string;
         razorpay_order_id: string;
         razorpay_signature: string;
-        planType: 'yearly' | 'promo';
+        planType: 'yearly' | 'promo_pa' | 'promo_mts_pm';
     }) => {
         if (!user) return;
         setPaymentState('processing');
@@ -122,6 +122,8 @@ export default function UpgradePage() {
     else standardPrice = 499;
 
     const isPAUser = userData.examCategory === 'PA';
+    const isMtsOrPostmanUser = userData.examCategory === 'MTS' || userData.examCategory === 'POSTMAN';
+    const showTwoPlans = isPAUser || isMtsOrPostmanUser;
 
     return (
         <>
@@ -141,9 +143,9 @@ export default function UpgradePage() {
                         </CardContent>
                     </Card>
                 ) : (
-                    <div className={`grid grid-cols-1 ${isPAUser ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-6`}>
+                    <div className={`grid grid-cols-1 ${showTwoPlans ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-6`}>
                         {/* Standard Plan */}
-                        <Card className={`flex flex-col ${isPAUser ? 'border-muted' : 'border-primary border-2 shadow-lg'}`}>
+                        <Card className={`flex flex-col ${!showTwoPlans ? 'border-primary border-2 shadow-lg' : 'border-muted'}`}>
                             <CardHeader className="text-center">
                                 <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit">
                                     <Gem className="h-8 w-8 text-primary" />
@@ -176,7 +178,7 @@ export default function UpgradePage() {
                                     <div className="mx-auto bg-amber-400/10 p-4 rounded-full w-fit">
                                         <Star className="h-8 w-8 text-amber-500" />
                                     </div>
-                                    <CardTitle className="text-2xl pt-4">Exam Special Offer</CardTitle>
+                                    <CardTitle className="text-2xl pt-4">PA Exam Special Offer</CardTitle>
                                     <CardDescription>Limited-time offer for PA aspirants!</CardDescription>
                                 </CardHeader>
                                 <CardContent className="flex-grow flex flex-col items-center space-y-4">
@@ -191,10 +193,41 @@ export default function UpgradePage() {
                                 <CardFooter>
                                     <PaymentButton
                                         user={userData}
-                                        onPaymentSuccess={(details) => handleSuccessfulPayment({...details, planType: 'promo'})}
+                                        onPaymentSuccess={(details) => handleSuccessfulPayment({...details, planType: 'promo_pa'})}
                                         onPaymentError={handlePaymentError}
                                         amount={99}
-                                        planType="promo"
+                                        planType="promo_pa"
+                                    />
+                                </CardFooter>
+                            </Card>
+                        )}
+                        
+                         {/* Promotional Plan for MTS/Postman Users */}
+                        {isMtsOrPostmanUser && (
+                             <Card className="flex flex-col border-primary border-2 shadow-lg">
+                                <CardHeader className="text-center">
+                                    <div className="mx-auto bg-amber-400/10 p-4 rounded-full w-fit">
+                                        <Star className="h-8 w-8 text-amber-500" />
+                                    </div>
+                                    <CardTitle className="text-2xl pt-4">Exam Special Offer</CardTitle>
+                                    <CardDescription>Limited-time offer for MTS & Postman!</CardDescription>
+                                </CardHeader>
+                                <CardContent className="flex-grow flex flex-col items-center space-y-4">
+                                    <div className="text-4xl font-bold">
+                                        ₹149
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Calendar className="h-4 w-4" />
+                                        <span>Valid until August 31, 2025</span>
+                                    </div>
+                                </CardContent>
+                                <CardFooter>
+                                    <PaymentButton
+                                        user={userData}
+                                        onPaymentSuccess={(details) => handleSuccessfulPayment({...details, planType: 'promo_mts_pm'})}
+                                        onPaymentError={handlePaymentError}
+                                        amount={149}
+                                        planType="promo_mts_pm"
                                     />
                                 </CardFooter>
                             </Card>
