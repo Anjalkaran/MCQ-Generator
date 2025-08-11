@@ -166,7 +166,8 @@ export function CreateQuizForm() {
         c.examCategories && 
         c.examCategories.includes(selectedExamType) &&
         !c.name.toLowerCase().includes("reasoning") &&
-        !c.name.toLowerCase().includes("non-verbal")
+        !c.name.toLowerCase().includes("non-verbal") &&
+        !c.name.toLowerCase().includes("non verbal")
     );
   }, [selectedExamType, categories]);
   

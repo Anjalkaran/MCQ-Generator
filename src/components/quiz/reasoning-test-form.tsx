@@ -19,6 +19,9 @@ import { useDashboard } from '@/app/dashboard/layout';
 import { getReasoningQuestions } from '@/lib/firestore';
 import type { ReasoningQuestion, MCQ } from '@/lib/types';
 import { ADMIN_EMAILS, FREE_EXAM_LIMIT } from '@/lib/constants';
+import { getFirebaseDb } from '@/lib/firebase';
+import { addDoc, collection } from 'firebase/firestore';
+
 
 const examCategories = ["POSTMAN", "PA"] as const;
 
@@ -123,13 +126,13 @@ export function ReasoningTestForm() {
         topic: q.topic,
       }));
 
-      const quizId = `reasoning-test-${values.topic.replace(/\s+/g, '-')}-${Date.now()}`;
+      const quizId = `reasoning-${Date.now()}`;
       const timeLimit = values.numberOfQuestions * 60; // 60 seconds per question
 
       const quizData = {
         mcqs: mcqs,
         timeLimit: timeLimit,
-        isMockTest: true,
+        isMockTest: true, // Treat as mock to show topic breakdown in results
         topic: {
           id: quizId,
           title: `${values.topic} Test`,
@@ -138,9 +141,13 @@ export function ReasoningTestForm() {
           categoryId: 'reasoning-test',
         },
       };
+      
+      const db = getFirebaseDb();
+      if (!db) throw new Error("Firestore is not initialized.");
+      
+      const docRef = await addDoc(collection(db, "generatedQuizzes"), quizData);
 
-      localStorage.setItem(`quiz-${quizId}`, JSON.stringify(quizData));
-      router.push(`/quiz/${quizId}`);
+      router.push(`/quiz/${docRef.id}`);
 
     } catch (error: any) {
       console.error('Error generating reasoning test:', error);
