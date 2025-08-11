@@ -417,6 +417,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                 <TableRow>
                 <TableHead>Username</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
                 <TableHead>City</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Status</TableHead>
@@ -429,6 +430,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                     <TableRow key={user.uid}>
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.phone || 'N/A'}</TableCell>
                     <TableCell>{user.city}</TableCell>
                     <TableCell>{user.examCategory}</TableCell>
                     <TableCell>
@@ -483,7 +485,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                 ))
                 ) : (
                 <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
+                    <TableCell colSpan={7} className="h-24 text-center">
                     No users match your criteria.
                     </TableCell>
                 </TableRow>
