@@ -128,7 +128,7 @@ function AppSidebar() {
       isAdmin
   ));
   
-  const showUpgradeButton = userData && !isPro && !isAdmin;
+  const showUpgradeButton = (userData && !isPro) || isAdmin;
   const canSeeReasoning = isAdmin || userData?.examCategory === 'PA' || userData?.examCategory === 'POSTMAN';
 
   const getWelcomeMessage = () => {
