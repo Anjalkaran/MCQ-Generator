@@ -26,7 +26,7 @@ export default function UpgradePage() {
 
     const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
     const proValidUntilDate = normalizeDate(userData?.proValidUntil);
-    const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
+    const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date());
 
     const handleSuccessfulPayment = async (paymentDetails: {
         razorpay_payment_id: string;
@@ -98,7 +98,7 @@ export default function UpgradePage() {
         );
     }
 
-    if (isPro) {
+    if (isPro && !isAdmin) {
         return (
             <div className="space-y-6 max-w-2xl mx-auto">
                 <Card>
