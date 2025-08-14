@@ -48,12 +48,13 @@ export default function StudyMaterialPage() {
     const [searchTerm, setSearchTerm] = useState('');
 
     const filteredMaterials = useMemo(() => {
+        const materials = studyMaterials || [];
         if (!searchTerm) {
-            return studyMaterials;
+            return materials;
         }
 
         const lowercasedFilter = searchTerm.toLowerCase();
-        return studyMaterials.filter(material =>
+        return materials.filter(material =>
             material.title.toLowerCase().includes(lowercasedFilter)
         );
     }, [studyMaterials, searchTerm]);
