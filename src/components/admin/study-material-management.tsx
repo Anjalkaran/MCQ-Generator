@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import type { StudyMaterial } from '@/lib/types';
-import { Loader2, PlusCircle, Trash2, Upload, Edit, Search, Eye } from 'lucide-react';
+import { Loader2, Trash2, Upload, Search, Eye } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,7 +27,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
-import { deleteStudyMaterial, addStudyMaterial } from '@/lib/firestore';
+import { deleteStudyMaterial } from '@/lib/firestore';
 import { ScrollArea } from '../ui/scroll-area';
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
@@ -41,7 +41,7 @@ const materialSchema = z.object({
     .instanceof(File)
     .refine((file) => file.size > 0, 'Please upload a file.')
     .refine((file) => file.size <= 4 * 1024 * 1024, `File size must be less than 4MB.`)
-    .refine((file) => file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'File must be a .docx document.'),
+    .refine((file) => file.type === 'application/pdf', 'File must be a .pdf document.'),
 });
 
 interface StudyMaterialManagementProps {
@@ -185,11 +185,11 @@ export function StudyMaterialManagement({ initialMaterials = [] }: StudyMaterial
                                 name="file"
                                 render={({ field: { onChange, ...fieldProps } }) => (
                                     <FormItem>
-                                        <FormLabel>Material File (.docx)</FormLabel>
+                                        <FormLabel>Material File (.pdf)</FormLabel>
                                         <FormControl>
                                             <Input 
                                                 type="file" 
-                                                accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                                accept=".pdf"
                                                 onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
                                             />
                                         </FormControl>
@@ -211,7 +211,7 @@ export function StudyMaterialManagement({ initialMaterials = [] }: StudyMaterial
             <Card>
                 <CardHeader>
                     <CardTitle>Manage Study Materials</CardTitle>
-                    <CardDescription>View, edit, or delete existing study materials.</CardDescription>
+                    <CardDescription>View or delete existing study materials.</CardDescription>
                     <div className="relative pt-2">
                         <Search className="absolute left-2.5 top-4 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -245,9 +245,7 @@ export function StudyMaterialManagement({ initialMaterials = [] }: StudyMaterial
                                                     <DialogTrigger asChild><Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button></DialogTrigger>
                                                     <DialogContent className="max-w-4xl h-[90vh]">
                                                         <DialogHeader><DialogTitle>{material.title}</DialogTitle></DialogHeader>
-                                                        <ScrollArea className="h-full w-full rounded-md border p-4">
-                                                            <pre className="text-sm whitespace-pre-wrap font-sans">{material.content}</pre>
-                                                        </ScrollArea>
+                                                        <iframe src={material.content} className="w-full h-full" title={material.title}></iframe>
                                                     </DialogContent>
                                                 </Dialog>
                                                 <AlertDialog>

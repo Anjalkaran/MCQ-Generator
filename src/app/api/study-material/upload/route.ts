@@ -1,6 +1,5 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import mammoth from 'mammoth';
 import { addStudyMaterial } from '@/lib/firestore';
 import type { StudyMaterial } from '@/lib/types';
 
@@ -16,26 +15,20 @@ export async function POST(req: NextRequest) {
     if (!file || !title || !examCategories || examCategories.length === 0) {
       return NextResponse.json({ error: 'Missing required fields: file, title, and examCategories are required.' }, { status: 400 });
     }
+    
+    if (file.type !== 'application/pdf') {
+        return NextResponse.json({ error: 'Unsupported file type. Please upload a PDF file.' }, { status: 415 });
+    }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    let textContent: string;
+    const base64Content = buffer.toString('base64');
+    const dataUri = `data:application/pdf;base64,${base64Content}`;
 
-    if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      const result = await mammoth.extractRawText({ buffer });
-      textContent = result.value;
-    } else {
-      return NextResponse.json({ error: 'Unsupported file type. Please upload a DOCX file.' }, { status: 415 });
-    }
-
-    if (!textContent.trim()) {
-      return NextResponse.json({ error: 'Could not extract any text from the file.' }, { status: 400 });
-    }
-    
     const newMaterialData: Omit<StudyMaterial, 'id'> = {
         title,
         examCategories: examCategories as ('MTS' | 'POSTMAN' | 'PA')[],
         fileName: file.name,
-        content: textContent,
+        content: dataUri,
         uploadedAt: new Date(),
     };
     

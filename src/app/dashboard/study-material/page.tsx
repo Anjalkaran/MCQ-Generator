@@ -3,26 +3,45 @@
 
 import { useState, useMemo } from 'react';
 import { useDashboard } from '@/app/dashboard/layout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { BookOpen, FileText, Search, Loader2 } from 'lucide-react';
+import { BookOpen, Search, Loader2 } from 'lucide-react';
 import type { StudyMaterial } from '@/lib/types';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
 
-function StudyMaterialViewer({ material }: { material: StudyMaterial }) {
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+
+function PDFViewer({ material }: { material: StudyMaterial }) {
+    const [numPages, setNumPages] = useState<number | null>(null);
+
+    function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
+        setNumPages(numPages);
+    }
+    
     return (
-        <DialogContent className="max-w-4xl h-[90vh]">
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
             <DialogHeader>
                 <DialogTitle>{material.title}</DialogTitle>
             </DialogHeader>
-            <ScrollArea className="h-full w-full rounded-md border p-4 bg-muted/40">
-                <pre className="text-sm whitespace-pre-wrap font-sans">{material.content}</pre>
-            </ScrollArea>
+            <div className="flex-1 overflow-auto" onContextMenu={(e) => e.preventDefault()}>
+                <Document
+                    file={material.content}
+                    onLoadSuccess={onDocumentLoadSuccess}
+                    loading={<div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>}
+                >
+                    {Array.from(new Array(numPages), (el, index) => (
+                        <Page key={`page_${index + 1}`} pageNumber={index + 1} renderTextLayer={false} />
+                    ))}
+                </Document>
+            </div>
         </DialogContent>
     );
 }
+
 
 export default function StudyMaterialPage() {
     const { studyMaterials, isLoading } = useDashboard();
@@ -86,7 +105,7 @@ export default function StudyMaterialPage() {
                                    </DialogTrigger>
                                  </CardContent>
                                </Card>
-                               <StudyMaterialViewer material={material} />
+                               <PDFViewer material={material} />
                              </Dialog>
                            ))}
                          </div>

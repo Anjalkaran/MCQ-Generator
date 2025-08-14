@@ -17,7 +17,7 @@ export interface StudyMaterial {
   title: string;
   examCategories: ('MTS' | 'POSTMAN' | 'PA')[];
   fileName: string;
-  content: string;
+  content: string; // Will store the PDF as a Base64 Data URI
   uploadedAt: Date;
 }
 
