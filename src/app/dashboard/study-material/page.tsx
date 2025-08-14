@@ -29,21 +29,23 @@ function PDFViewer({ material }: { material: StudyMaterial }) {
     
     return (
         <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
-            <DialogHeader>
-                <DialogTitle>{material.title}</DialogTitle>
+            <DialogHeader className="flex-none border-b">
+                 <div className="flex justify-between items-center py-2">
+                    <DialogTitle>{material.title}</DialogTitle>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" size="icon" onClick={zoomOut} disabled={scale <= 0.5}>
+                            <ZoomOut className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" onClick={resetZoom}>
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                            Reset ({Math.round(scale * 100)}%)
+                        </Button>
+                        <Button variant="outline" size="icon" onClick={zoomIn} disabled={scale >= 3.0}>
+                            <ZoomIn className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
             </DialogHeader>
-            <div className="flex-none flex justify-center items-center gap-2 py-2 border-b">
-                <Button variant="outline" size="icon" onClick={zoomOut} disabled={scale <= 0.5}>
-                    <ZoomOut className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" onClick={resetZoom}>
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    Reset ({Math.round(scale * 100)}%)
-                </Button>
-                <Button variant="outline" size="icon" onClick={zoomIn} disabled={scale >= 3.0}>
-                    <ZoomIn className="h-4 w-4" />
-                </Button>
-            </div>
             <div className="flex-1 overflow-auto" onContextMenu={(e) => e.preventDefault()}>
                 <Document
                     file={material.content}
