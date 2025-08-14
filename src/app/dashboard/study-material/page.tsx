@@ -32,6 +32,18 @@ function PDFViewer({ material }: { material: StudyMaterial }) {
             <DialogHeader>
                 <DialogTitle>{material.title}</DialogTitle>
             </DialogHeader>
+            <div className="flex-none flex justify-center items-center gap-2 py-2 border-b">
+                <Button variant="outline" size="icon" onClick={zoomOut} disabled={scale <= 0.5}>
+                    <ZoomOut className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" onClick={resetZoom}>
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Reset ({Math.round(scale * 100)}%)
+                </Button>
+                <Button variant="outline" size="icon" onClick={zoomIn} disabled={scale >= 3.0}>
+                    <ZoomIn className="h-4 w-4" />
+                </Button>
+            </div>
             <div className="flex-1 overflow-auto" onContextMenu={(e) => e.preventDefault()}>
                 <Document
                     file={material.content}
@@ -43,18 +55,6 @@ function PDFViewer({ material }: { material: StudyMaterial }) {
                     ))}
                 </Document>
             </div>
-            <DialogFooter className="flex-row justify-center items-center gap-2 pt-4">
-                <Button variant="outline" size="icon" onClick={zoomOut} disabled={scale <= 0.5}>
-                    <ZoomOut className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" onClick={resetZoom}>
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    Reset ({Math.round(scale * 100)}%)
-                </Button>
-                <Button variant="outline" size="icon" onClick={zoomIn} disabled={scale >= 3.0}>
-                    <ZoomIn className="h-4 w-4" />
-                </Button>
-            </DialogFooter>
         </DialogContent>
     );
 }
