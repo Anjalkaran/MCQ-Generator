@@ -5,9 +5,9 @@ import { useState, useMemo } from 'react';
 import { useDashboard } from '@/app/dashboard/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Search, Loader2 } from 'lucide-react';
+import { BookOpen, Search, Loader2, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import type { StudyMaterial } from '@/lib/types';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
@@ -17,10 +17,15 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 
 function PDFViewer({ material }: { material: StudyMaterial }) {
     const [numPages, setNumPages] = useState<number | null>(null);
+    const [scale, setScale] = useState(1.0);
 
     function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
         setNumPages(numPages);
     }
+
+    const zoomIn = () => setScale(prev => Math.min(prev + 0.2, 3.0));
+    const zoomOut = () => setScale(prev => Math.max(prev - 0.2, 0.5));
+    const resetZoom = () => setScale(1.0);
     
     return (
         <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
@@ -34,10 +39,22 @@ function PDFViewer({ material }: { material: StudyMaterial }) {
                     loading={<div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>}
                 >
                     {Array.from(new Array(numPages), (el, index) => (
-                        <Page key={`page_${index + 1}`} pageNumber={index + 1} renderTextLayer={false} />
+                        <Page key={`page_${index + 1}`} pageNumber={index + 1} scale={scale} renderTextLayer={false} />
                     ))}
                 </Document>
             </div>
+            <DialogFooter className="flex-row justify-center items-center gap-2 pt-4">
+                <Button variant="outline" size="icon" onClick={zoomOut} disabled={scale <= 0.5}>
+                    <ZoomOut className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" onClick={resetZoom}>
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Reset ({Math.round(scale * 100)}%)
+                </Button>
+                <Button variant="outline" size="icon" onClick={zoomIn} disabled={scale >= 3.0}>
+                    <ZoomIn className="h-4 w-4" />
+                </Button>
+            </DialogFooter>
         </DialogContent>
     );
 }
