@@ -4,7 +4,7 @@
 import React, { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageCircle, BrainCircuit, Star } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageCircle, BrainCircuit, Star, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
@@ -179,6 +179,14 @@ function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           )}
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/study-material')} tooltip="Study Material">
+                <Link href="/dashboard/study-material" onClick={onLinkClick}>
+                  <BookOpen />
+                  <span>Study Material</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/topic-wise-mcq')} tooltip="Practice MCQ">
                 <Link href="/dashboard/topic-wise-mcq" onClick={onLinkClick}>
