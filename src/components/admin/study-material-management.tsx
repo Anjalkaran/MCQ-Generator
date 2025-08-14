@@ -27,7 +27,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
-import { deleteStudyMaterial } from '@/lib/firestore';
+import { deleteStudyMaterial, addStudyMaterial } from '@/lib/firestore';
 import { ScrollArea } from '../ui/scroll-area';
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
@@ -48,7 +48,7 @@ interface StudyMaterialManagementProps {
     initialMaterials: StudyMaterial[];
 }
 
-export function StudyMaterialManagement({ initialMaterials }: StudyMaterialManagementProps) {
+export function StudyMaterialManagement({ initialMaterials = [] }: StudyMaterialManagementProps) {
     const [materials, setMaterials] = useState<StudyMaterial[]>(initialMaterials);
     const [isUploading, setIsUploading] = useState(false);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -234,7 +234,7 @@ export function StudyMaterialManagement({ initialMaterials }: StudyMaterialManag
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {filteredMaterials.length > 0 ? (
+                                {filteredMaterials && filteredMaterials.length > 0 ? (
                                     filteredMaterials.map((material) => (
                                         <TableRow key={material.id}>
                                             <TableCell className="font-medium">{material.title}</TableCell>
