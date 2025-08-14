@@ -1,7 +1,7 @@
 
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion, runTransaction } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ, MCQData } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ, MCQData, StudyMaterial } from './types';
 import { ADMIN_EMAILS } from './constants';
 import { normalizeDate } from './utils';
 
@@ -169,14 +169,6 @@ export const updateTopic = async (topicId: string, data: Partial<Topic>): Promis
     const topicRef = doc(db, "topics", topicId);
     await updateDoc(topicRef, data);
 };
-
-export const addMaterialToTopic = async (topicId: string, material: string): Promise<void> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    const topicRef = doc(db, 'topics', topicId);
-    await updateDoc(topicRef, { material });
-};
-
 
 export const deleteTopic = async (topicId: string): Promise<void> => {
     const db = getFirebaseDb();
@@ -832,6 +824,28 @@ export const replyToFeedback = async (feedbackId: string, reply: string): Promis
     await updateDoc(feedbackRef, { reply, repliedAt: new Date() });
 };
 
+// STUDY MATERIAL MANAGEMENT
+export const getStudyMaterials = async (): Promise<StudyMaterial[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const materialsCollection = collection(db, 'studyMaterials');
+    const q = query(materialsCollection, orderBy('uploadedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as StudyMaterial));
+};
+
+export const addStudyMaterial = async (data: Omit<StudyMaterial, 'id'>): Promise<DocumentReference> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    return await addDoc(collection(db, 'studyMaterials'), data);
+};
+
+export const deleteStudyMaterial = async (materialId: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    await deleteDoc(doc(db, 'studyMaterials', materialId));
+};
+
 
 // CONSOLIDATED DASHBOARD DATA FETCHING
 export const getDashboardData = async (userId: string, isAdmin: boolean = false) => {
@@ -839,23 +853,31 @@ export const getDashboardData = async (userId: string, isAdmin: boolean = false)
     if (!db) throw new Error("Firestore is not initialized");
 
     if (isAdmin) {
-        const [categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, topicMCQs] = await Promise.all([
-            getCategories(), getTopics(), getQuestionBankDocuments(), getLiveTestBankDocuments(), getQnAUsage(), getAdminNotifications(), getTopicMCQs()
+        const [categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, topicMCQs, studyMaterials] = await Promise.all([
+            getCategories(), 
+            getTopics(), 
+            getQuestionBankDocuments(), 
+            getLiveTestBankDocuments(), 
+            getQnAUsage(), 
+            getAdminNotifications(), 
+            getTopicMCQs(),
+            getStudyMaterials()
         ]);
-        return { userData: null, categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, topicMCQs };
+        return { userData: null, categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, topicMCQs, studyMaterials };
     }
 
-    const [userData, allCategories, allTopics, allBankedQuestions] = await Promise.all([
-        getUserData(userId), getCategories(), getTopics(), getQuestionBankDocuments()
+    const [userData, allCategories, allTopics, allBankedQuestions, allStudyMaterials] = await Promise.all([
+        getUserData(userId), getCategories(), getTopics(), getQuestionBankDocuments(), getStudyMaterials()
     ]);
     
     if (!userData) {
         // Return a default structure to avoid crashing the app if user data is somehow missing.
-        return { userData: null, categories: [], topics: [], bankedQuestions: [], liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [] };
+        return { userData: null, categories: [], topics: [], bankedQuestions: [], liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [], studyMaterials: [] };
     }
 
     // Filter categories, topics, and banked questions based on the user's exam category
     const userExamCategory = userData.examCategory;
+    
     const userCategories = allCategories.filter(c => c.examCategories && c.examCategories.includes(userExamCategory));
     const userCategoryIds = new Set(userCategories.map(c => c.id));
     
@@ -865,7 +887,9 @@ export const getDashboardData = async (userId: string, isAdmin: boolean = false)
     
     const userBankedQuestions = allBankedQuestions.filter(bq => bq.examCategory === userExamCategory);
     
-    return { userData, categories: userCategories, topics: userTopics, bankedQuestions: userBankedQuestions, liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [] };
+    const userStudyMaterials = allStudyMaterials.filter(sm => sm.examCategories && sm.examCategories.includes(userExamCategory));
+
+    return { userData, categories: userCategories, topics: userTopics, bankedQuestions: userBankedQuestions, liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [], studyMaterials: userStudyMaterials };
 };
 
 
