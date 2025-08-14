@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
             proValidUntil = new Date('2025-08-17T23:59:59');
         } else if (planType === 'promo_mts_pm') {
             proValidUntil = new Date('2025-08-31T23:59:59');
-        } else {
+        } else { // 'yearly' plan
             proValidUntil = new Date();
             proValidUntil.setFullYear(proValidUntil.getFullYear() + 1);
         }

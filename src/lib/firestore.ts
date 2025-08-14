@@ -330,11 +330,18 @@ export const getPerformanceByTopic = async (userId: string): Promise<TopicPerfor
 };
 
 // QUESTION BANK MANAGEMENT
-export const getQuestionBankDocuments = async (): Promise<BankedQuestion[]> => {
+export const getQuestionBankDocuments = async (examCategory?: 'MTS' | 'POSTMAN' | 'PA'): Promise<BankedQuestion[]> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     const bankCollection = collection(db, 'questionBank');
-    const q = query(bankCollection, orderBy('uploadedAt', 'desc'));
+    
+    let q;
+    if (examCategory) {
+        q = query(bankCollection, where('examCategory', '==', examCategory), orderBy('uploadedAt', 'desc'));
+    } else {
+        q = query(bankCollection, orderBy('uploadedAt', 'desc'));
+    }
+
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as BankedQuestion));
 };
@@ -838,16 +845,25 @@ export const getDashboardData = async (userId: string, isAdmin: boolean = false)
         return { userData: null, categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, topicMCQs };
     }
 
-    const [userData, categories, allTopics, bankedQuestions] = await Promise.all([ getUserData(userId), getCategories(), getTopics(), getQuestionBankDocuments() ]);
+    const [userData, allCategories, allTopics, allBankedQuestions] = await Promise.all([
+        getUserData(userId), getCategories(), getTopics(), getQuestionBankDocuments()
+    ]);
+    
     if (!userData) {
+        // Return a default structure to avoid crashing the app if user data is somehow missing.
         return { userData: null, categories: [], topics: [], bankedQuestions: [], liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [] };
     }
 
     // Filter categories, topics, and banked questions based on the user's exam category
-    const userCategories = categories.filter(c => c.examCategories && c.examCategories.includes(userData.examCategory));
+    const userExamCategory = userData.examCategory;
+    const userCategories = allCategories.filter(c => c.examCategories && c.examCategories.includes(userExamCategory));
     const userCategoryIds = new Set(userCategories.map(c => c.id));
-    const userTopics = allTopics.filter(t => userCategoryIds.has(t.categoryId));
-    const userBankedQuestions = bankedQuestions.filter(bq => bq.examCategory === userData.examCategory);
+    
+    const userTopics = allTopics.filter(t => 
+        t.examCategories && t.examCategories.includes(userExamCategory) && userCategoryIds.has(t.categoryId)
+    );
+    
+    const userBankedQuestions = allBankedQuestions.filter(bq => bq.examCategory === userExamCategory);
     
     return { userData, categories: userCategories, topics: userTopics, bankedQuestions: userBankedQuestions, liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [] };
 };

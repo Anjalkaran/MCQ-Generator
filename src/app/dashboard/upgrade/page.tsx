@@ -11,7 +11,6 @@ import { normalizeDate } from "@/lib/utils";
 import { Gem, Loader2, PartyPopper, CheckCircle, Calendar, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ADMIN_EMAILS, RAZORPAY_KEY_ID } from '@/lib/constants';
-import { Button } from '@/components/ui/button';
 
 export default function UpgradePage() {
     const { user, userData, isLoading, setUserData } = useDashboard();
@@ -123,7 +122,13 @@ export default function UpgradePage() {
 
     const isPAUser = userData.examCategory === 'PA';
     const isMtsOrPostmanUser = userData.examCategory === 'MTS' || userData.examCategory === 'POSTMAN';
-    const showTwoPlans = isPAUser || isMtsOrPostmanUser;
+    
+    const showPromoPlan = isPAUser || isMtsOrPostmanUser;
+    
+    const promoDetails = isPAUser 
+        ? { title: "PA Exam Special Offer", description: "Limited-time offer for PA aspirants!", amount: 99, validUntil: "August 17, 2025", planType: 'promo_pa' as const }
+        : { title: "Exam Special Offer", description: "Limited-time deal for MTS & Postman!", amount: 149, validUntil: "August 31, 2025", planType: 'promo_mts_pm' as const };
+
 
     return (
         <>
@@ -143,9 +148,9 @@ export default function UpgradePage() {
                         </CardContent>
                     </Card>
                 ) : (
-                    <div className={`grid grid-cols-1 ${showTwoPlans ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-6`}>
+                    <div className={`grid grid-cols-1 ${showPromoPlan ? 'md:grid-cols-2' : 'md:grid-cols-1 justify-center'} gap-6`}>
                         {/* Standard Plan */}
-                        <Card className={`flex flex-col ${!showTwoPlans ? 'border-primary border-2 shadow-lg' : 'border-muted'}`}>
+                        <Card className={`flex flex-col ${!showPromoPlan ? 'border-primary border-2 shadow-lg' : 'border-muted'}`}>
                             <CardHeader className="text-center">
                                 <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit">
                                     <Gem className="h-8 w-8 text-primary" />
@@ -171,63 +176,32 @@ export default function UpgradePage() {
                             </CardFooter>
                         </Card>
 
-                        {/* Promotional Plan for PA Users */}
-                        {isPAUser && (
+                        {/* Promotional Plan */}
+                        {showPromoPlan && (
                              <Card className="flex flex-col border-primary border-2 shadow-lg">
                                 <CardHeader className="text-center">
                                     <div className="mx-auto bg-amber-400/10 p-4 rounded-full w-fit">
                                         <Star className="h-8 w-8 text-amber-500" />
                                     </div>
-                                    <CardTitle className="text-2xl pt-4">PA Exam Special Offer</CardTitle>
-                                    <CardDescription>Limited-time offer for PA aspirants!</CardDescription>
+                                    <CardTitle className="text-2xl pt-4">{promoDetails.title}</CardTitle>
+                                    <CardDescription>{promoDetails.description}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="flex-grow flex flex-col items-center space-y-4">
                                     <div className="text-4xl font-bold">
-                                        ₹99
+                                        ₹{promoDetails.amount}
                                     </div>
                                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                         <Calendar className="h-4 w-4" />
-                                        <span>Valid until August 17, 2025</span>
+                                        <span>Valid until {promoDetails.validUntil}</span>
                                     </div>
                                 </CardContent>
                                 <CardFooter>
                                     <PaymentButton
                                         user={userData}
-                                        onPaymentSuccess={(details) => handleSuccessfulPayment({...details, planType: 'promo_pa'})}
+                                        onPaymentSuccess={(details) => handleSuccessfulPayment({...details, planType: promoDetails.planType})}
                                         onPaymentError={handlePaymentError}
-                                        amount={99}
-                                        planType="promo_pa"
-                                    />
-                                </CardFooter>
-                            </Card>
-                        )}
-                        
-                         {/* Promotional Plan for MTS/Postman Users */}
-                        {isMtsOrPostmanUser && (
-                             <Card className="flex flex-col border-primary border-2 shadow-lg">
-                                <CardHeader className="text-center">
-                                    <div className="mx-auto bg-amber-400/10 p-4 rounded-full w-fit">
-                                        <Star className="h-8 w-8 text-amber-500" />
-                                    </div>
-                                    <CardTitle className="text-2xl pt-4">Exam Special Offer</CardTitle>
-                                    <CardDescription>Limited-time offer for MTS & Postman!</CardDescription>
-                                </CardHeader>
-                                <CardContent className="flex-grow flex flex-col items-center space-y-4">
-                                    <div className="text-4xl font-bold">
-                                        ₹149
-                                    </div>
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                        <Calendar className="h-4 w-4" />
-                                        <span>Valid until August 31, 2025</span>
-                                    </div>
-                                </CardContent>
-                                <CardFooter>
-                                    <PaymentButton
-                                        user={userData}
-                                        onPaymentSuccess={(details) => handleSuccessfulPayment({...details, planType: 'promo_mts_pm'})}
-                                        onPaymentError={handlePaymentError}
-                                        amount={149}
-                                        planType="promo_mts_pm"
+                                        amount={promoDetails.amount}
+                                        planType={promoDetails.planType}
                                     />
                                 </CardFooter>
                             </Card>
