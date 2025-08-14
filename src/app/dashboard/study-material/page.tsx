@@ -5,56 +5,39 @@ import { useState, useMemo } from 'react';
 import { useDashboard } from '@/app/dashboard/layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { BookOpen, FileText, Search, Loader2 } from 'lucide-react';
-import type { Topic } from '@/lib/types';
+import type { StudyMaterial } from '@/lib/types';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
-function StudyMaterialViewer({ material }: { material: string }) {
+function StudyMaterialViewer({ material }: { material: StudyMaterial }) {
     return (
         <DialogContent className="max-w-4xl h-[90vh]">
             <DialogHeader>
-                <DialogTitle>Study Material</DialogTitle>
+                <DialogTitle>{material.title}</DialogTitle>
             </DialogHeader>
-            <div className="h-full overflow-y-auto p-4 border rounded-md bg-muted/40">
-                <pre className="text-sm whitespace-pre-wrap font-sans">{material}</pre>
-            </div>
+            <ScrollArea className="h-full w-full rounded-md border p-4 bg-muted/40">
+                <pre className="text-sm whitespace-pre-wrap font-sans">{material.content}</pre>
+            </ScrollArea>
         </DialogContent>
     );
 }
 
-
 export default function StudyMaterialPage() {
-    const { topics, categories, isLoading } = useDashboard();
+    const { studyMaterials, isLoading } = useDashboard();
     const [searchTerm, setSearchTerm] = useState('');
 
-    const materials = useMemo(() => {
-        const topicsWithMaterial = topics.filter(topic => topic.material && topic.material.trim() !== '');
-
+    const filteredMaterials = useMemo(() => {
         if (!searchTerm) {
-            return topicsWithMaterial;
+            return studyMaterials;
         }
 
         const lowercasedFilter = searchTerm.toLowerCase();
-        return topicsWithMaterial.filter(topic =>
-            topic.title.toLowerCase().includes(lowercasedFilter) ||
-            categories.find(c => c.id === topic.categoryId)?.name.toLowerCase().includes(lowercasedFilter)
+        return studyMaterials.filter(material =>
+            material.title.toLowerCase().includes(lowercasedFilter)
         );
-    }, [topics, categories, searchTerm]);
-    
-    const materialsByCategory = useMemo(() => {
-        const grouped: { [key: string]: Topic[] } = {};
-        materials.forEach(topic => {
-            const categoryName = categories.find(c => c.id === topic.categoryId)?.name || 'Uncategorized';
-            if (!grouped[categoryName]) {
-                grouped[categoryName] = [];
-            }
-            grouped[categoryName].push(topic);
-        });
-        return Object.entries(grouped).sort((a, b) => a[0].localeCompare(b[0]));
-    }, [materials, categories]);
-
+    }, [studyMaterials, searchTerm]);
 
     if (isLoading) {
         return (
@@ -69,7 +52,7 @@ export default function StudyMaterialPage() {
             <div className="space-y-2">
                 <h1 className="text-3xl font-bold tracking-tight">Study Material</h1>
                 <p className="text-muted-foreground">
-                    Access and read study materials uploaded for various topics.
+                    Access and read study materials for your exam preparation.
                 </p>
             </div>
 
@@ -78,7 +61,7 @@ export default function StudyMaterialPage() {
                     <div className="relative">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Search by topic or category..."
+                            placeholder="Search by title..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-8 w-full"
@@ -86,29 +69,27 @@ export default function StudyMaterialPage() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    {materialsByCategory.length > 0 ? (
-                        <Accordion type="single" collapsible className="w-full">
-                            {materialsByCategory.map(([categoryName, topics]) => (
-                                <AccordionItem value={categoryName} key={categoryName}>
-                                    <AccordionTrigger className="text-lg font-semibold">{categoryName}</AccordionTrigger>
-                                    <AccordionContent>
-                                        <div className="space-y-2 pl-4">
-                                            {topics.map(topic => (
-                                                <Dialog key={topic.id}>
-                                                    <DialogTrigger asChild>
-                                                        <Button variant="ghost" className="w-full justify-start">
-                                                            <FileText className="mr-2 h-4 w-4" />
-                                                            {topic.title}
-                                                        </Button>
-                                                    </DialogTrigger>
-                                                    {topic.material && <StudyMaterialViewer material={topic.material} />}
-                                                </Dialog>
-                                            ))}
-                                        </div>
-                                    </AccordionContent>
-                                </AccordionItem>
-                            ))}
-                        </Accordion>
+                    {filteredMaterials.length > 0 ? (
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                           {filteredMaterials.map(material => (
+                             <Dialog key={material.id}>
+                               <Card>
+                                 <CardHeader>
+                                   <CardTitle className="text-lg">{material.title}</CardTitle>
+                                 </CardHeader>
+                                 <CardContent>
+                                   <DialogTrigger asChild>
+                                      <Button className="w-full">
+                                        <BookOpen className="mr-2 h-4 w-4" />
+                                        Read Material
+                                      </Button>
+                                   </DialogTrigger>
+                                 </CardContent>
+                               </Card>
+                               <StudyMaterialViewer material={material} />
+                             </Dialog>
+                           ))}
+                         </div>
                     ) : (
                         <div className="text-center text-muted-foreground py-10">
                             <BookOpen className="mx-auto h-12 w-12 mb-4" />

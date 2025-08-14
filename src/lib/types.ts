@@ -12,9 +12,13 @@ export interface MCQ {
   translations?: Record<string, MCQ>;
 }
 
-export interface Material {
-  name: string;
+export interface StudyMaterial {
+  id: string;
+  title: string;
+  examCategories: ('MTS' | 'POSTMAN' | 'PA')[];
+  fileName: string;
   content: string;
+  uploadedAt: Date;
 }
 
 export interface Topic {
@@ -24,7 +28,6 @@ export interface Topic {
   icon: string; 
   categoryId: string;
   categoryName?: string; 
-  material?: string;
   part: 'Part A' | 'Part B';
   examCategories: ('MTS' | 'POSTMAN' | 'PA')[];
   source?: 'reasoningBank'; // Flag to identify virtual topics

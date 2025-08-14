@@ -11,8 +11,9 @@ import { LiveTestManagement } from '@/components/admin/live-test-management';
 import { ReportsManagement } from '@/components/admin/reports-management';
 import { ReasoningBankManagement } from '@/components/admin/reasoning-bank-management';
 import { FeedbackManagement } from '@/components/admin/feedback-management';
+import { StudyMaterialManagement } from '@/components/admin/study-material-management';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, BrainCircuit, MessageSquare } from "lucide-react";
+import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, BrainCircuit, MessageSquare, BookOpen } from "lucide-react";
 import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback } from "@/lib/firestore";
 import type { UserData, QnAUsage, LiveTest, ReasoningQuestion, Feedback } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -57,6 +58,7 @@ function AnalyticsTab({ qnaUsage }: { qnaUsage: QnAUsage[] }) {
 const adminSections = [
     { value: 'users', label: 'User Management', icon: Shield },
     { value: 'topics', label: 'Topic Management', icon: BookCopy },
+    { value: 'study-material', label: 'Study Material', icon: BookOpen },
     { value: 'topic-mcq', label: 'MCQ Bank', icon: FileQuestion },
     { value: 'question-bank', label: 'Question Bank', icon: FileText },
     { value: 'reasoning-bank', label: 'Reasoning Bank', icon: BrainCircuit },
@@ -69,7 +71,7 @@ const adminSections = [
 type AdminSection = typeof adminSections[number]['value'];
 
 export default function AdminPage() {
-  const { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, isLoading: isDashboardLoading } = useDashboard();
+  const { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, studyMaterials, isLoading: isDashboardLoading } = useDashboard();
   const [users, setUsers] = useState<UserData[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [allLiveTests, setAllLiveTests] = useState<LiveTest[]>([]);
@@ -147,6 +149,8 @@ export default function AdminPage() {
             return <UserManagement initialUsers={users} />;
         case 'topics':
             return <TopicManagement initialCategories={categories} initialTopics={topics} />;
+        case 'study-material':
+            return <StudyMaterialManagement initialMaterials={studyMaterials} />;
         case 'topic-mcq':
             return <TopicMCQManagement initialTopics={topics} initialTopicMCQs={topicMCQs} />;
         case 'question-bank':
@@ -175,7 +179,7 @@ export default function AdminPage() {
           </p>
         </div>
         
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-9">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-10">
           {adminSections.map((section) => (
             <Card
               key={section.value}
