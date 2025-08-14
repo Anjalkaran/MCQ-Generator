@@ -4,7 +4,7 @@
 import React, { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageCircle, BrainCircuit, Star, BookOpen } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageCircle, BrainCircuit, Star, BookOpen, PenSquare } from 'lucide-react';
 import Link from 'next/link';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback } from '@/lib/firestore';
-import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification } from "@/lib/types";
+import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, StudyMaterial } from "@/lib/types";
 import { ADMIN_EMAILS, FREE_EXAM_LIMIT } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
@@ -38,6 +38,7 @@ interface DashboardContextType {
   bankedQuestions: BankedQuestion[];
   topicMCQs: TopicMCQ[];
   liveTestBank: BankedQuestion[];
+  studyMaterials: StudyMaterial[];
   qnaUsage: QnAUsage[];
   notifications: Notification[];
   onlineUsers: OnlineUser[];
@@ -179,37 +180,19 @@ function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           )}
+           <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/online-test')} tooltip="Online Tests">
+                <Link href="/dashboard/online-test" onClick={onLinkClick}>
+                  <PenSquare />
+                  <span>Online Tests</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/study-material')} tooltip="Study Material">
                 <Link href="/dashboard/study-material" onClick={onLinkClick}>
                   <BookOpen />
                   <span>Study Material</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/topic-wise-mcq')} tooltip="Practice MCQ">
-                <Link href="/dashboard/topic-wise-mcq" onClick={onLinkClick}>
-                  <BookCopy />
-                  <span>Practice MCQ</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            {canSeeReasoning && (
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/reasoning-test')} tooltip="Reasoning Test">
-                  <Link href="/dashboard/reasoning-test" onClick={onLinkClick}>
-                    <BrainCircuit />
-                    <span>Reasoning Test</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            )}
-              <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/mock-test')} tooltip="Mock Test">
-                <Link href="/dashboard/mock-test" onClick={onLinkClick}>
-                  <FileText />
-                  <span>Mock Test</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -378,6 +361,7 @@ export default function DashboardLayout({
   const [bankedQuestions, setBankedQuestions] = useState<BankedQuestion[]>([]);
   const [topicMCQs, setTopicMCQs] = useState<TopicMCQ[]>([]);
   const [liveTestBank, setLiveTestBank] = useState<BankedQuestion[]>([]);
+  const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
@@ -508,20 +492,21 @@ export default function DashboardLayout({
                     isPro: true,
                 };
                 // Admin needs ALL data
-                const { categories, topics, bankedQuestions, topicMCQs, liveTestBank, qnaUsage, notifications } = await getDashboardData(currentUser.uid, true);
+                const { categories, topics, bankedQuestions, topicMCQs, liveTestBank, studyMaterials, qnaUsage, notifications } = await getDashboardData(currentUser.uid, true);
                 setUserData(adminUserData);
                 setCategories(categories);
                 setTopics(topics);
                 setBankedQuestions(bankedQuestions);
                 setTopicMCQs(topicMCQs);
                 setLiveTestBank(liveTestBank);
+                setStudyMaterials(studyMaterials);
                 setQnaUsage(qnaUsage);
                 setNotifications(notifications);
                 
             } else {
                  // Regular user fetches their relevant data
                 const [
-                    { userData: fetchedUserData, categories, topics, bankedQuestions: userBankedQuestions },
+                    { userData: fetchedUserData, categories, topics, bankedQuestions: userBankedQuestions, studyMaterials: userStudyMaterials },
                     feedbackStatus
                 ] = await Promise.all([
                     getDashboardData(currentUser.uid),
@@ -537,7 +522,8 @@ export default function DashboardLayout({
                 setUserData(fetchedUserData);
                 setCategories(categories);
                 setTopics(topics);
-                setBankedQuestions(userBankedQuestions); // Load banked questions for users too
+                setBankedQuestions(userBankedQuestions);
+                setStudyMaterials(userStudyMaterials);
                 setHasGivenFeedback(feedbackStatus);
 
                 // Check for reasoning update popup
@@ -576,6 +562,7 @@ export default function DashboardLayout({
         setBankedQuestions([]);
         setTopicMCQs([]);
         setLiveTestBank([]);
+        setStudyMaterials([]);
         setQnaUsage([]);
         setNotifications([]);
         setOnlineUsers([]);
@@ -614,7 +601,7 @@ export default function DashboardLayout({
     }
   };
 
-  const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, qnaUsage, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback };
+  const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, studyMaterials, qnaUsage, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback };
 
   return (
     <DashboardContext.Provider value={contextValue}>
