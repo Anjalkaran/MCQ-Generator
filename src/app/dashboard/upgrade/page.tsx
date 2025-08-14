@@ -149,33 +149,6 @@ export default function UpgradePage() {
                     </Card>
                 ) : (
                     <div className={`grid grid-cols-1 ${showPromoPlan ? 'md:grid-cols-2' : 'md:grid-cols-1 justify-center'} gap-6`}>
-                        {/* Standard Plan */}
-                        <Card className={`flex flex-col ${!showPromoPlan ? 'border-primary border-2 shadow-lg' : 'border-muted'}`}>
-                            <CardHeader className="text-center">
-                                <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit">
-                                    <Gem className="h-8 w-8 text-primary" />
-                                </div>
-                                <CardTitle className="text-2xl pt-4">Pro Plan</CardTitle>
-                                <CardDescription>Unlimited access to all features.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="flex-grow flex flex-col items-center space-y-4">
-                                <div className="text-4xl font-bold">
-                                    ₹{standardPrice}
-                                    <span className="text-lg font-normal text-muted-foreground"> / year</span>
-                                </div>
-                                <p className="text-sm text-muted-foreground">This will grant you unlimited exam access for one full year.</p>
-                            </CardContent>
-                             <CardFooter>
-                                <PaymentButton
-                                    user={userData}
-                                    onPaymentSuccess={(details) => handleSuccessfulPayment({...details, planType: 'yearly'})}
-                                    onPaymentError={handlePaymentError}
-                                    amount={standardPrice}
-                                    planType="yearly"
-                                />
-                            </CardFooter>
-                        </Card>
-
                         {/* Promotional Plan */}
                         {showPromoPlan && (
                              <Card className="flex flex-col border-primary border-2 shadow-lg">
@@ -206,6 +179,32 @@ export default function UpgradePage() {
                                 </CardFooter>
                             </Card>
                         )}
+                         {/* Standard Plan */}
+                        <Card className={`flex flex-col ${!showPromoPlan ? 'border-primary border-2 shadow-lg' : 'border-muted'}`}>
+                            <CardHeader className="text-center">
+                                <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit">
+                                    <Gem className="h-8 w-8 text-primary" />
+                                </div>
+                                <CardTitle className="text-2xl pt-4">Pro Plan</CardTitle>
+                                <CardDescription>Unlimited access to all features.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex-grow flex flex-col items-center space-y-4">
+                                <div className="text-4xl font-bold">
+                                    ₹{standardPrice}
+                                    <span className="text-lg font-normal text-muted-foreground"> / year</span>
+                                </div>
+                                <p className="text-sm text-muted-foreground">This will grant you unlimited exam access for one full year.</p>
+                            </CardContent>
+                             <CardFooter>
+                                <PaymentButton
+                                    user={userData}
+                                    onPaymentSuccess={(details) => handleSuccessfulPayment({...details, planType: 'yearly'})}
+                                    onPaymentError={handlePaymentError}
+                                    amount={standardPrice}
+                                    planType="yearly"
+                                />
+                            </CardFooter>
+                        </Card>
                     </div>
                 )}
             </div>
