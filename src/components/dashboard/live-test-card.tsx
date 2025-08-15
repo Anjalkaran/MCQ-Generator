@@ -53,13 +53,13 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
     const hasTakenTest = userData?.liveTestsTaken?.includes(test.id);
 
-    const isLanguageLocked = test.title === "PA Mock Test - 5";
+    const isFreeTest = test.title === "PA Mock Test - 5";
     
     useEffect(() => {
-        if (isLanguageLocked) {
+        if (isFreeTest) {
             setSelectedLanguage('English');
         }
-    }, [isLanguageLocked]);
+    }, [isFreeTest]);
     
     useEffect(() => {
         const fetchParticipantCount = async () => {
@@ -230,7 +230,7 @@ https://anjalkaran.in`;
             </Button>;
         }
         
-        if (!isPro) {
+        if (!isPro && !isFreeTest) {
             return (
                 <Button asChild className="w-full">
                     <Link href="/dashboard/upgrade">
@@ -245,7 +245,7 @@ https://anjalkaran.in`;
         if (testState === 'completed') return <Button disabled className="w-full"><CheckCircle className="mr-2 h-4 w-4" />Test Already Attempted</Button>;
         if (testState === 'ended') return <Button disabled className="w-full"><TimerOff className="mr-2 h-4 w-4" />Test Has Ended</Button>;
 
-        // Test is 'live' and user is Pro
+        // Test is 'live' and user is Pro or it's a free test
         return <Button onClick={startTest} disabled={isGenerating} className="w-full bg-green-600 hover:bg-green-700">
             {isGenerating ? (
                 <>
@@ -280,7 +280,7 @@ https://anjalkaran.in`;
                 </CardDescription>
             </CardHeader>
             <CardContent className="text-center space-y-4 flex-grow">
-                 {!isAdmin && isPro && (
+                 {(!isAdmin && (isPro || isFreeTest)) && (
                      <div className="p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">
                             {testState === 'upcoming' ? 'Starts in' : 'Ends in'}
@@ -292,7 +292,7 @@ https://anjalkaran.in`;
                  )}
                  <div className="space-y-2 text-left">
                     <Label htmlFor={`language-select-${test.id}`}>Language</Label>
-                    <Select value={selectedLanguage} onValueChange={setSelectedLanguage} disabled={isLanguageLocked}>
+                    <Select value={selectedLanguage} onValueChange={setSelectedLanguage} disabled={isFreeTest}>
                         <SelectTrigger id={`language-select-${test.id}`}>
                             <SelectValue placeholder="Select a language" />
                         </SelectTrigger>
@@ -302,7 +302,7 @@ https://anjalkaran.in`;
                             ))}
                         </SelectContent>
                     </Select>
-                    {isLanguageLocked && (
+                    {isFreeTest && (
                         <p className="text-xs text-muted-foreground text-center">This test is available in English only.</p>
                     )}
                  </div>
