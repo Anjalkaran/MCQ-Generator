@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import type { StudyMaterial } from '@/lib/types';
-import { Loader2, Trash2, Upload, Search, Eye } from 'lucide-react';
+import { Loader2, Trash2, Upload, Search, Eye, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +29,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { format } from 'date-fns';
 import { deleteStudyMaterial } from '@/lib/firestore';
 import { ScrollArea } from '../ui/scroll-area';
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 const examCategories = ["MTS", "POSTMAN", "PA"] as const;
 
@@ -46,6 +51,52 @@ const materialSchema = z.object({
 
 interface StudyMaterialManagementProps {
     initialMaterials: StudyMaterial[];
+}
+
+function PDFViewer({ material }: { material: StudyMaterial }) {
+    const [numPages, setNumPages] = useState<number | null>(null);
+    const [scale, setScale] = useState(1.0);
+
+    function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
+        setNumPages(numPages);
+    }
+
+    const zoomIn = () => setScale(prev => Math.min(prev + 0.2, 3.0));
+    const zoomOut = () => setScale(prev => Math.max(prev - 0.2, 0.5));
+    const resetZoom = () => setScale(1.0);
+    
+    return (
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+            <DialogHeader className="flex-none border-b">
+                 <div className="flex justify-between items-center py-2">
+                    <DialogTitle>{material.title}</DialogTitle>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" size="icon" onClick={zoomOut} disabled={scale <= 0.5}>
+                            <ZoomOut className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" onClick={resetZoom}>
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                            Reset ({Math.round(scale * 100)}%)
+                        </Button>
+                        <Button variant="outline" size="icon" onClick={zoomIn} disabled={scale >= 3.0}>
+                            <ZoomIn className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+            </DialogHeader>
+            <div className="flex-1 overflow-auto" onContextMenu={(e) => e.preventDefault()}>
+                <Document
+                    file={material.content}
+                    onLoadSuccess={onDocumentLoadSuccess}
+                    loading={<div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>}
+                >
+                    {Array.from(new Array(numPages), (el, index) => (
+                        <Page key={`page_${index + 1}`} pageNumber={index + 1} scale={scale} renderTextLayer={false} />
+                    ))}
+                </Document>
+            </div>
+        </DialogContent>
+    );
 }
 
 export function StudyMaterialManagement({ initialMaterials = [] }: StudyMaterialManagementProps) {
@@ -108,13 +159,14 @@ export function StudyMaterialManagement({ initialMaterials = [] }: StudyMaterial
     };
     
     const filteredMaterials = useMemo(() => {
+        const currentMaterials = materials || [];
         if (!searchTerm) {
-          return materials;
+          return currentMaterials;
         }
         const lowercasedFilter = searchTerm.toLowerCase();
-        return materials.filter(material =>
+        return currentMaterials.filter(material =>
           material.title.toLowerCase().includes(lowercasedFilter) ||
-          material.fileName.toLowerCase().includes(lowercasedFilter)
+          (material.fileName && material.fileName.toLowerCase().includes(lowercasedFilter))
         );
     }, [searchTerm, materials]);
 
@@ -241,13 +293,10 @@ export function StudyMaterialManagement({ initialMaterials = [] }: StudyMaterial
                                             <TableCell>{material.fileName}</TableCell>
                                             <TableCell>{format(material.uploadedAt, "dd/MM/yyyy p")}</TableCell>
                                             <TableCell className="text-right space-x-1">
-                                                <Dialog>
+                                                 <Dialog>
                                                     <DialogTrigger asChild><Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button></DialogTrigger>
-                                                    <DialogContent className="max-w-4xl h-[90vh]">
-                                                        <DialogHeader><DialogTitle>{material.title}</DialogTitle></DialogHeader>
-                                                        <iframe src={material.content} className="w-full h-full" title={material.title}></iframe>
-                                                    </DialogContent>
-                                                </Dialog>
+                                                    <PDFViewer material={material} />
+                                                 </Dialog>
                                                 <AlertDialog>
                                                     <AlertDialogTrigger asChild>
                                                         <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
