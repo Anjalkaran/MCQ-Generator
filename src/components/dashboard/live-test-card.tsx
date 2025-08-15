@@ -52,6 +52,14 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const proValidUntilDate = normalizeDate(userData?.proValidUntil);
     const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
     const hasTakenTest = userData?.liveTestsTaken?.includes(test.id);
+
+    const isLanguageLocked = test.title === "PA Mock Test 5";
+    
+    useEffect(() => {
+        if (isLanguageLocked) {
+            setSelectedLanguage('English');
+        }
+    }, [isLanguageLocked]);
     
     useEffect(() => {
         const fetchParticipantCount = async () => {
@@ -284,7 +292,7 @@ https://anjalkaran.in`;
                  )}
                  <div className="space-y-2 text-left">
                     <Label htmlFor={`language-select-${test.id}`}>Language</Label>
-                    <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                    <Select value={selectedLanguage} onValueChange={setSelectedLanguage} disabled={isLanguageLocked}>
                         <SelectTrigger id={`language-select-${test.id}`}>
                             <SelectValue placeholder="Select a language" />
                         </SelectTrigger>
@@ -294,6 +302,9 @@ https://anjalkaran.in`;
                             ))}
                         </SelectContent>
                     </Select>
+                    {isLanguageLocked && (
+                        <p className="text-xs text-muted-foreground text-center">This test is available in English only.</p>
+                    )}
                  </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-2">
