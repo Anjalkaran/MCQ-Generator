@@ -80,6 +80,7 @@ export function MCQClient({ topicId }: MCQClientProps) {
 
         const score = quizData.mcqs.reduce((acc, mcq, index) => {
              const userAnswer = selectedAnswers[index];
+             // Ensure comparison is case-insensitive and trims whitespace
              const isCorrect = userAnswer?.trim().toLowerCase() === mcq.correctAnswer.trim().toLowerCase();
              return isCorrect ? acc + 1 : acc;
         }, 0);
