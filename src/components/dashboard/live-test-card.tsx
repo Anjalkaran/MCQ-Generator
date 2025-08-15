@@ -53,7 +53,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
     const hasTakenTest = userData?.liveTestsTaken?.includes(test.id);
 
-    const isLanguageLocked = test.title === "PA Mock Test 5";
+    const isLanguageLocked = test.title === "PA Mock Test - 5";
     
     useEffect(() => {
         if (isLanguageLocked) {
