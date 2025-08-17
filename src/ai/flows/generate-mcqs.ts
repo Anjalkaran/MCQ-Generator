@@ -76,8 +76,8 @@ Your final output must be a single, valid JSON object containing an 'mcqs' array
 `
 });
 
-const generateGeneralKnowledgeMCQsPrompt = ai.definePrompt({
-    name: 'generateGeneralKnowledgeMCQsPrompt',
+const generateKnowledgeMCQsPrompt = ai.definePrompt({
+    name: 'generateKnowledgeMCQsPrompt',
     input: { schema: z.object({ topicName: z.string(), numberOfQuestions: z.number(), language: z.string().optional().default('English') }) },
     output: { schema: z.object({ mcqs: z.array(MCQSchema) }) },
     model: 'googleai/gemini-1.5-pro',
@@ -131,9 +131,100 @@ const generateMCQsFlow = ai.defineFlow(
     
     let finalMCQs: MCQ[] = [];
     
-    // **PRIORITY 0: Special handling for General Awareness topics**
-    if (input.category === 'General Awareness/Knowledge') {
-        const { output } = await generateGeneralKnowledgeMCQsPrompt({
+    // **PRIORITY 1: Check for uploaded JSON files in the MCQ Bank**
+    const uploadedMCQDocs = await getTopicMCQs(input.topicId);
+    let canonicalQuestions: MCQ[] = [];
+    if (uploadedMCQDocs && uploadedMCQDocs.length > 0) {
+        uploadedMCQDocs.forEach(doc => {
+            try {
+                const parsedContent = JSON.parse(doc.content);
+                if (parsedContent.mcqs && Array.isArray(parsedContent.mcqs)) {
+                    canonicalQuestions.push(...parsedContent.mcqs);
+                }
+            } catch (error) {
+                console.warn(`Could not parse JSON from document ${doc.fileName} for topic ${input.topic}`);
+            }
+        });
+    }
+
+    if (canonicalQuestions.length > 0) {
+        if (canonicalQuestions.length < input.numberOfQuestions) {
+            console.warn(`Could only find ${canonicalQuestions.length} questions in the uploaded JSON files for topic "${input.topic}", though ${input.numberOfQuestions} were requested.`);
+        }
+        
+        const processedQuestions = canonicalQuestions.map(mcq => {
+            if (input.language && input.language !== 'English') {
+                const langKey = languageMap[input.language.toLowerCase()];
+                if (langKey && mcq.translations?.[langKey]) {
+                    const translated = mcq.translations[langKey];
+                    return {
+                        ...mcq,
+                        ...translated,
+                        question: translated.question,
+                        options: translated.options,
+                        correctAnswer: translated.correctAnswer,
+                        solution: translated.solution,
+                    };
+                }
+            }
+            return mcq; // Return the original English MCQ
+        });
+
+        finalMCQs = shuffleArray(processedQuestions).slice(0, input.numberOfQuestions);
+
+    // **PRIORITY 2: Fallback to generating from raw .docx material**
+    } else if (input.material) {
+        let collectedMCQs: z.infer<typeof MCQSchema>[] = [];
+        const collectedQuestionTexts = new Set<string>();
+        
+        const materialChunks: string[] = [];
+        if (input.material.length <= MATERIAL_CHUNK_SIZE) {
+            materialChunks.push(input.material);
+        } else {
+            for (let i = 0; i < input.material.length; i += MATERIAL_CHUNK_SIZE) {
+                materialChunks.push(input.material.substring(i, i + MATERIAL_CHUNK_SIZE));
+            }
+        }
+        
+        for (const chunk of materialChunks) {
+            if (collectedMCQs.length >= input.numberOfQuestions) break;
+
+             const { output: extractedOutput } = await extractMCQsFromTextPrompt({
+                textContent: chunk,
+                topicName: input.topic,
+                numberOfQuestions: input.numberOfQuestions - collectedMCQs.length,
+                language: input.language,
+            });
+
+            if (extractedOutput && extractedOutput.mcqs) {
+                 const validNewMcqs = extractedOutput.mcqs.filter(mcq => {
+                    const questionText = mcq.question.trim();
+                    const hasValidQuestion = questionText.toLowerCase() !== "string" && questionText.length > 1;
+                    const hasValidOptions = mcq.options.every(opt => opt.trim().toLowerCase() !== "string" && opt.trim().length > 0);
+                    const isNew = !collectedQuestionTexts.has(questionText);
+                    return hasValidQuestion && hasValidOptions && isNew;
+                });
+                
+                validNewMcqs.forEach(mcq => {
+                    collectedMCQs.push(mcq);
+                    collectedQuestionTexts.add(mcq.question.trim());
+                });
+            }
+        }
+
+        if (collectedMCQs.length < input.numberOfQuestions) {
+            console.warn(`Could only find ${collectedMCQs.length} unique questions for topic "${input.topic}" after scanning the material, though ${input.numberOfQuestions} were requested.`);
+        }
+        
+        if (collectedMCQs.length === 0) {
+            throw new Error(`Failed to extract any valid questions for "${input.topic}". Please check the document formatting and content.`);
+        }
+        
+        finalMCQs = shuffleArray(collectedMCQs).slice(0, input.numberOfQuestions);
+
+    // **PRIORITY 3: Fallback to AI Generation if no material exists**
+    } else {
+        const { output } = await generateKnowledgeMCQsPrompt({
             topicName: input.topic,
             numberOfQuestions: input.numberOfQuestions,
             language: input.language,
@@ -143,102 +234,6 @@ const generateMCQsFlow = ai.defineFlow(
             throw new Error(`The AI failed to generate any questions for "${input.topic}". Please try again.`);
         }
         finalMCQs = output.mcqs;
-    } else {
-        // **PRIORITY 1: Check for uploaded JSON files in the MCQ Bank**
-        const uploadedMCQDocs = await getTopicMCQs(input.topicId);
-        if (uploadedMCQDocs && uploadedMCQDocs.length > 0) {
-            let canonicalQuestions: MCQ[] = [];
-            uploadedMCQDocs.forEach(doc => {
-                try {
-                    const parsedContent = JSON.parse(doc.content);
-                    if (parsedContent.mcqs && Array.isArray(parsedContent.mcqs)) {
-                        canonicalQuestions.push(...parsedContent.mcqs);
-                    }
-                } catch (error) {
-                    console.warn(`Could not parse JSON from document ${doc.fileName} for topic ${input.topic}`);
-                }
-            });
-
-            if (canonicalQuestions.length > 0) {
-                if (canonicalQuestions.length < input.numberOfQuestions) {
-                    console.warn(`Could only find ${canonicalQuestions.length} questions in the uploaded JSON files for topic "${input.topic}", though ${input.numberOfQuestions} were requested.`);
-                }
-                
-                const processedQuestions = canonicalQuestions.map(mcq => {
-                    if (input.language && input.language !== 'English') {
-                        const langKey = languageMap[input.language.toLowerCase()];
-                        if (langKey && mcq.translations?.[langKey]) {
-                            const translated = mcq.translations[langKey];
-                            return {
-                                ...mcq,
-                                ...translated,
-                                question: translated.question,
-                                options: translated.options,
-                                correctAnswer: translated.correctAnswer,
-                                solution: translated.solution,
-                            };
-                        }
-                    }
-                    return mcq; // Return the original English MCQ
-                });
-
-                finalMCQs = shuffleArray(processedQuestions).slice(0, input.numberOfQuestions);
-            }
-
-        // **PRIORITY 2: Fallback to generating from raw .docx material**
-        } else if (input.material) {
-            let collectedMCQs: z.infer<typeof MCQSchema>[] = [];
-            const collectedQuestionTexts = new Set<string>();
-            
-            const materialChunks: string[] = [];
-            if (input.material.length <= MATERIAL_CHUNK_SIZE) {
-                materialChunks.push(input.material);
-            } else {
-                for (let i = 0; i < input.material.length; i += MATERIAL_CHUNK_SIZE) {
-                    materialChunks.push(input.material.substring(i, i + MATERIAL_CHUNK_SIZE));
-                }
-            }
-            
-            for (const chunk of materialChunks) {
-                if (collectedMCQs.length >= input.numberOfQuestions) break;
-
-                 const { output: extractedOutput } = await extractMCQsFromTextPrompt({
-                    textContent: chunk,
-                    topicName: input.topic,
-                    numberOfQuestions: input.numberOfQuestions - collectedMCQs.length,
-                    language: input.language,
-                });
-
-                if (extractedOutput && extractedOutput.mcqs) {
-                     const validNewMcqs = extractedOutput.mcqs.filter(mcq => {
-                        const questionText = mcq.question.trim();
-                        const hasValidQuestion = questionText.toLowerCase() !== "string" && questionText.length > 1;
-                        const hasValidOptions = mcq.options.every(opt => opt.trim().toLowerCase() !== "string" && opt.trim().length > 0);
-                        const isNew = !collectedQuestionTexts.has(questionText);
-                        return hasValidQuestion && hasValidOptions && isNew;
-                    });
-                    
-                    validNewMcqs.forEach(mcq => {
-                        collectedMCQs.push(mcq);
-                        collectedQuestionTexts.add(mcq.question.trim());
-                    });
-                }
-            }
-
-            if (collectedMCQs.length < input.numberOfQuestions) {
-                console.warn(`Could only find ${collectedMCQs.length} unique questions for topic "${input.topic}" after scanning the material, though ${input.numberOfQuestions} were requested.`);
-            }
-            
-            if (collectedMCQs.length === 0) {
-                throw new Error(`Failed to extract any valid questions for "${input.topic}". Please check the document formatting and content.`);
-            }
-            
-            finalMCQs = shuffleArray(collectedMCQs).slice(0, input.numberOfQuestions);
-
-        // **PRIORITY 3: No source material available**
-        } else {
-            throw new Error(`No question file (.json or .docx) is available for the topic "${input.topic}". Please upload a file to generate an exam.`);
-        }
     }
 
 
