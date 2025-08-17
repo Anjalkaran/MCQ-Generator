@@ -22,7 +22,7 @@ interface MCQResultsClientProps {
 // Helper function to normalize answer strings for comparison
 const normalizeAnswer = (answer: string | undefined): string => {
     if (!answer) return "";
-    return answer.trim().toLowerCase().replace(/^[a-d][\\)\.]\\s*|^[1-4][\\)\.]\\s*/, '');
+    return answer.trim().toLowerCase();
 };
 
 export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
@@ -87,7 +87,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
   }
   
   const { topic, mcqs: quizMcqs, isMockTest, liveTestId, examCategory } = quizData;
-  const { score, totalQuestions } = historyEntry;
+  const { score, totalQuestions, userAnswers } = historyEntry;
   
   const marksPerQuestion = (liveTestId && examCategory === 'PA') ? 1 : 2;
   const totalMarks = score * marksPerQuestion;
@@ -157,9 +157,10 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
           <CardTitle className="font-headline">Review Your Answers</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground mb-4">Note: Your answers are not stored. This review is based on the questions from your exam session.</p>
           <ul className="space-y-6">
             {quizMcqs.map((mcq, index) => {
+              const userAnswer = userAnswers[index];
+              const isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(mcq.correctAnswer);
               const isArithmetic = quizData.isMockTest ? isArithmeticQuestion(mcq) : false;
               const explanationLabel = isArithmetic ? "View Solution" : "View Explanation";
 
@@ -171,6 +172,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
                    )}
                   <div className="space-y-2">
                     {mcq.options.map((option) => {
+                      const isUserChoice = normalizeAnswer(userAnswer) === normalizeAnswer(option);
                       const isTheCorrectAnswer = normalizeAnswer(mcq.correctAnswer) === normalizeAnswer(option);
 
                       return (
@@ -178,10 +180,17 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
                           key={option}
                           className={cn(
                             "flex items-center gap-3 p-3 rounded-md border",
-                            isTheCorrectAnswer ? "bg-green-100 border-green-300 dark:bg-green-900/30 dark:border-green-700" : ""
+                            isTheCorrectAnswer ? "bg-green-100 border-green-300 dark:bg-green-900/30 dark:border-green-700" : "",
+                            isUserChoice && !isTheCorrectAnswer ? "bg-red-100 border-red-300 dark:bg-red-900/30 dark:border-red-700" : ""
                           )}
                         >
-                          {isTheCorrectAnswer ? <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" /> : <div className="w-5 h-5"/>}
+                          {isTheCorrectAnswer ? (
+                            <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+                          ) : isUserChoice ? (
+                            <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                          ) : (
+                            <div className="w-5 h-5"/>
+                          )}
                           <span className="flex-1">{option}</span>
                         </div>
                       );

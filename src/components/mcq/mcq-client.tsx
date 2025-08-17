@@ -92,6 +92,7 @@ export function MCQClient({ topicId }: MCQClientProps) {
             score: score,
             totalQuestions: quizData.mcqs.length,
             questions: quizData.mcqs.map(mcq => mcq.question),
+            userAnswers: selectedAnswers,
             isMockTest: quizData.isMockTest || false,
             liveTestId: quizData.liveTestId,
             durationInSeconds: durationInSeconds,

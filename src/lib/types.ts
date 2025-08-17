@@ -74,6 +74,7 @@ export interface MCQHistory {
     score: number;
     totalQuestions: number;
     questions: string[];
+    userAnswers: { [key: number]: string }; // Add userAnswers field
     takenAt: Date;
     durationInSeconds?: number;
     isMockTest?: boolean;
