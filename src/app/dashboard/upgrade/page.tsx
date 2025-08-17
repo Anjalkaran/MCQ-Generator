@@ -120,14 +120,11 @@ export default function UpgradePage() {
     else if (userData.examCategory === 'POSTMAN') standardPrice = 599;
     else standardPrice = 499;
 
-    const isPAUser = userData.examCategory === 'PA';
     const isMtsOrPostmanUser = userData.examCategory === 'MTS' || userData.examCategory === 'POSTMAN';
     
-    const showPromoPlan = isPAUser || isMtsOrPostmanUser;
+    const showPromoPlan = isMtsOrPostmanUser;
     
-    const promoDetails = isPAUser 
-        ? { title: "PA Exam Special Offer", description: "Limited-time offer for PA aspirants!", amount: 99, validUntil: "August 17, 2025", planType: 'promo_pa' as const }
-        : { title: "Exam Special Offer", description: "Limited-time deal for MTS & Postman!", amount: 149, validUntil: "August 31, 2025", planType: 'promo_mts_pm' as const };
+    const promoDetails = { title: "Exam Special Offer", description: "Limited-time deal for MTS & Postman!", amount: 149, validUntil: "August 31, 2025", planType: 'promo_mts_pm' as const };
 
 
     return (
@@ -148,7 +145,7 @@ export default function UpgradePage() {
                         </CardContent>
                     </Card>
                 ) : (
-                    <div className={`grid grid-cols-1 ${showPromoPlan ? 'md:grid-cols-2' : 'md:grid-cols-1 justify-center'} gap-6`}>
+                    <div className={`grid grid-cols-1 ${showPromoPlan ? 'md:grid-cols-2' : ''} gap-6 justify-center`}>
                         {/* Promotional Plan */}
                         {showPromoPlan && (
                              <Card className="flex flex-col border-primary border-2 shadow-lg">

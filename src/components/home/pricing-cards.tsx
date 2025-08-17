@@ -8,21 +8,6 @@ import Link from "next/link";
 
 const plans = [
     {
-        title: "PA Exam Special Offer",
-        description: "Limited-time offer for PA aspirants!",
-        price: "₹99",
-        validUntil: "Valid until August 17, 2025",
-        features: [
-            "Unlimited Mock Tests",
-            "Unlimited Practice MCQs",
-            "Performance Analysis",
-            "Ask Your Doubt Feature",
-        ],
-        icon: Star,
-        iconClass: "text-amber-500",
-        isFeatured: true,
-    },
-    {
         title: "MTS & Postman Offer",
         description: "Special deal for MTS & Postman exams!",
         price: "₹149",
@@ -63,7 +48,7 @@ export function PricingCards() {
                     Select the best plan to supercharge your exam preparation. All plans unlock unlimited access to our premium features.
                 </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
                 {plans.map((plan) => (
                     <Card key={plan.title} className={`flex flex-col ${plan.isFeatured ? 'border-primary border-2 shadow-lg' : ''}`}>
                         <CardHeader className="text-center">
