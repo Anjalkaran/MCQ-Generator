@@ -369,7 +369,6 @@ export default function DashboardLayout({
   const [showReasoningPopup, setShowReasoningPopup] = useState(false);
   const [showMockTestPopup, setShowMockTestPopup] = useState(false);
   const [hasGivenFeedback, setHasGivenFeedback] = useState(false);
-  const idleTimer = useRef<NodeJS.Timeout | null>(null);
 
   const handleLogout = useCallback(async (authInstance = getFirebaseAuth(), showToast = true, message?: string) => {
     if (!authInstance) {
@@ -384,33 +383,6 @@ export default function DashboardLayout({
       if (showToast) toast({ title: 'Logout Failed', description: error.message || 'An unexpected error occurred.', variant: 'destructive' });
     }
   }, [router, toast]);
-
-  // Idle timeout effect
-  useEffect(() => {
-    const IDLE_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
-
-    const resetIdleTimer = () => {
-      if (idleTimer.current) {
-        clearTimeout(idleTimer.current);
-      }
-      idleTimer.current = setTimeout(() => {
-        handleLogout(getFirebaseAuth(), true, "You have been logged out due to inactivity.");
-      }, IDLE_TIMEOUT_MS);
-    };
-
-    if (user) {
-      const events = ['mousemove', 'keydown', 'click', 'scroll'];
-      events.forEach(event => window.addEventListener(event, resetIdleTimer));
-      resetIdleTimer(); // Initialize timer
-
-      return () => {
-        events.forEach(event => window.removeEventListener(event, resetIdleTimer));
-        if (idleTimer.current) {
-          clearTimeout(idleTimer.current);
-        }
-      };
-    }
-  }, [user, handleLogout]);
 
   // Heartbeat effect
   useEffect(() => {
