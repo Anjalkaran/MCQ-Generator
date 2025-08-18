@@ -8,9 +8,6 @@
  * - SummarizeTopicMaterialOutput - The return type for the summarizeTopicMaterial function.
  */
 
-import { config } from 'dotenv';
-config();
-
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 

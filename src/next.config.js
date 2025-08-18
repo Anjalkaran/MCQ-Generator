@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 
-require('dotenv').config({ path: '../.env' });
+// Correctly load environment variables from the root .env file
+require('dotenv').config({ path: './.env' });
 
 const nextConfig = {
   /* config options here */

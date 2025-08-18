@@ -10,9 +10,6 @@
  * - GenerateMockTestFromBankOutput - The return type for the function.
  */
 
-import { config } from 'dotenv';
-config();
-
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { getQuestionBankDocumentsByCategory, getReasoningQuestions } from '@/lib/firestore';

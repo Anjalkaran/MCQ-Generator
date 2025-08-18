@@ -9,9 +9,6 @@
  * - GeneratePartwiseMCQsOutput - The return type for the generatePartwiseMCQs function.
  */
 
-import { config } from 'dotenv';
-config();
-
 import { z } from 'zod';
 import { getTopicsByPartAndExam, getTopicMCQs, updateTopicMCQWithTranslation } from '@/lib/firestore';
 import type { MCQ } from '@/lib/types';
