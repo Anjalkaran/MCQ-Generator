@@ -3,7 +3,7 @@
 
 /**
  * @fileOverview Generates a mock test by selecting one JSON question paper and extracting its questions.
- * If the paper has fewer than 100 questions, it's supplemented with reasoning questions.
+ * The number of questions selected is based on the exam blueprint to prevent document size errors.
  *
  * - generateMockTestFromBank - A function that handles the mock test generation process.
  * - GenerateMockTestFromBankInput - The input type for the function.
@@ -78,17 +78,19 @@ const generateMockTestFromBankFlow = ai.defineFlow(
     if (!parsedData.questions || !Array.isArray(parsedData.questions) || parsedData.questions.length === 0) {
         throw new Error(`The question paper '${selectedPaper.fileName}' is empty or incorrectly formatted. It must be a JSON object with a "questions" array.`);
     }
+    
+    const blueprint = blueprintMap[input.examCategory];
+    const totalQuestions = blueprint.parts.reduce((sum, part) => sum + part.totalQuestions, 0);
 
     let allAvailableMCQs = parsedData.questions;
 
-    // Randomly select 100 questions to ensure the document size is under the 1MB limit.
-    const finalMCQs = shuffleArray(allAvailableMCQs).slice(0, 100);
+    // Randomly select the correct number of questions based on the blueprint to ensure the document is under the 1MB limit.
+    const finalMCQs = shuffleArray(allAvailableMCQs).slice(0, totalQuestions);
 
-    if (finalMCQs.length < 100) {
-        console.warn(`Selected paper has only ${finalMCQs.length} questions. Test will be shorter than expected.`);
+    if (finalMCQs.length < totalQuestions) {
+        console.warn(`Selected paper has only ${finalMCQs.length} questions. Test will be shorter than the expected ${totalQuestions}.`);
     }
 
-    const blueprint = blueprintMap[input.examCategory];
     const quizId = `mock-test-bank-${input.examCategory}-${Date.now()}`;
     const quizData = {
         mcqs: finalMCQs,
