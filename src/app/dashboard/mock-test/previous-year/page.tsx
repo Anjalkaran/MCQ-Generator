@@ -14,6 +14,7 @@ export default function PreviousYearMockTestPage() {
     const { userData } = useDashboard();
     const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
     const isPAUser = userData?.examCategory === 'PA';
+    const isMTSUser = userData?.examCategory === 'MTS';
 
     return (
         <div className="space-y-6 max-w-2xl mx-auto">
@@ -30,7 +31,7 @@ export default function PreviousYearMockTestPage() {
                 </p>
             </div>
             
-            {isAdmin || isPAUser ? (
+            {isAdmin || isPAUser || isMTSUser ? (
                 <PreviousYearMockTestForm />
             ) : (
                 <Card>
@@ -39,7 +40,7 @@ export default function PreviousYearMockTestPage() {
                     </CardHeader>
                     <CardContent>
                         <p className="text-center text-muted-foreground p-8">
-                            This feature is currently available for PA Exam users only.
+                            This feature is currently available for PA and MTS Exam users only.
                         </p>
                     </CardContent>
                 </Card>
