@@ -41,6 +41,15 @@ export async function generateMockTestFromBank(input: GenerateMockTestFromBankIn
   return generateMockTestFromBankFlow(input);
 }
 
+function shuffleArray<T>(array: T[]): T[] {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+
 const generateMockTestFromBankFlow = ai.defineFlow(
   {
     name: 'generateMockTestFromBankFlow',
@@ -70,28 +79,14 @@ const generateMockTestFromBankFlow = ai.defineFlow(
         throw new Error(`The question paper '${selectedPaper.fileName}' is empty or incorrectly formatted. It must be a JSON object with a "questions" array.`);
     }
 
-    let finalMCQs = parsedData.questions;
-    const questionsNeeded = 100 - finalMCQs.length;
+    let allAvailableMCQs = parsedData.questions;
 
-    if (questionsNeeded > 0) {
-        const reasoningQuestions = await getReasoningQuestions();
-        if (reasoningQuestions.length < questionsNeeded) {
-            throw new Error(`Could not find enough reasoning questions to supplement the test. Found ${reasoningQuestions.length}, but need ${questionsNeeded}.`);
-        }
+    // Randomly select 100 questions to ensure the document size is under the 1MB limit.
+    const finalMCQs = shuffleArray(allAvailableMCQs).slice(0, 100);
 
-        const selectedReasoning = reasoningQuestions.sort(() => 0.5 - Math.random()).slice(0, questionsNeeded);
-
-        const formattedReasoningMCQs: MCQ[] = selectedReasoning.map(q => ({
-            question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
-            options: q.options,
-            correctAnswer: q.correctAnswer,
-            solution: q.solutionText ? `${q.solutionText}${q.solutionImage ? `<br/><img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : ''}` : (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : ""),
-            topic: 'Reasoning',
-        }));
-
-        finalMCQs = [...finalMCQs, ...formattedReasoningMCQs];
+    if (finalMCQs.length < 100) {
+        console.warn(`Selected paper has only ${finalMCQs.length} questions. Test will be shorter than expected.`);
     }
-
 
     const blueprint = blueprintMap[input.examCategory];
     const quizId = `mock-test-bank-${input.examCategory}-${Date.now()}`;
