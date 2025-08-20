@@ -87,8 +87,8 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
         }
 
         const interval = setInterval(() => {
-            // Pro users and Admins should not be blocked from retaking tests.
-            if (hasTakenTest && !isPro) {
+            // All users (except Admins) should not be able to retake a live test.
+            if (hasTakenTest) {
                 if(testState !== 'completed') setTestState('completed');
                 clearInterval(interval);
                 return;
@@ -110,7 +110,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [startTime, endTime, testState, hasTakenTest, isAdmin, isPro]);
+    }, [startTime, endTime, testState, hasTakenTest, isAdmin]);
 
     const startTest = async () => {
         setIsGenerating(true);
