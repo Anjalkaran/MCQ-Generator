@@ -87,7 +87,8 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
         }
 
         const interval = setInterval(() => {
-            if (hasTakenTest) {
+            // Pro users and Admins should not be blocked from retaking tests.
+            if (hasTakenTest && !isPro) {
                 if(testState !== 'completed') setTestState('completed');
                 clearInterval(interval);
                 return;
@@ -109,7 +110,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [startTime, endTime, testState, hasTakenTest, isAdmin]);
+    }, [startTime, endTime, testState, hasTakenTest, isAdmin, isPro]);
 
     const startTest = async () => {
         setIsGenerating(true);
@@ -132,7 +133,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
                  throw new Error("The AI failed to generate the test questions. Please try again later.");
             }
             
-            if (!isAdmin) {
+            if (!isAdmin && !hasTakenTest) {
                 await markLiveTestAsTaken(user.uid, test.id);
                 // Optimistically update local user data state
                 setUserData(prev => prev ? ({ ...prev, liveTestsTaken: [...(prev.liveTestsTaken || []), test.id] }) : null);
@@ -255,7 +256,7 @@ https://anjalkaran.in`;
             ) : (
                 <>
                     <PlayCircle className="mr-2 h-4 w-4" />
-                    Start Live Test
+                    {hasTakenTest ? "Start Again (Practice)" : "Start Live Test"}
                 </>
             )}
         </Button>;
