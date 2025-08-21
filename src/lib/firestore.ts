@@ -975,5 +975,10 @@ export const getGeneratedQuiz = async (quizId: string): Promise<MCQData | null> 
     if (docSnap.exists()) {
         return docSnap.data() as MCQData;
     }
+    // Fallback for old local storage quizzes
+    const localQuiz = localStorage.getItem(`quiz-${quizId}`);
+    if (localQuiz) {
+        return JSON.parse(localQuiz);
+    }
     return null;
 }

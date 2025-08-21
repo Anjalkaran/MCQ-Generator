@@ -57,7 +57,7 @@ export interface UserData {
 }
 
 export interface MCQData {
-  topic: Topic;
+  topic: Pick<Topic, 'id' | 'title' | 'description' | 'icon' | 'categoryId'>;
   mcqs: MCQ[];
   timeLimit?: number;
   isMockTest?: boolean;

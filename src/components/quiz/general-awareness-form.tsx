@@ -93,10 +93,16 @@ export function GeneralAwarenessForm() {
         },
         mcqs: mcqs,
         timeLimit,
+        language: values.language,
       };
 
-      localStorage.setItem(`quiz-${quizId}`, JSON.stringify(quizData));
-      router.push(`/quiz/${quizId}`);
+      const db = getFirebaseDb();
+      if (!db) {
+        throw new Error("Firestore is not initialized.");
+      }
+      const docRef = await addDoc(collection(db, "generatedQuizzes"), quizData);
+      
+      router.push(`/quiz/${docRef.id}`);
 
     } catch (error: any) {
       console.error('Error generating G.K. exam:', error);
