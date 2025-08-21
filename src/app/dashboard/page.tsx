@@ -3,9 +3,10 @@
 
 import { useDashboard } from "@/app/dashboard/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, BookOpen, PenSquare, Video } from 'lucide-react';
+import { Loader2, BookOpen, PenSquare, Video, Sparkles } from 'lucide-react';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Marquee } from "@/components/ui/marquee";
 
 export default function DashboardPage() {
   const { user, userData, isLoading } = useDashboard();
@@ -33,10 +34,19 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2 text-center pt-4">
+       <div className="space-y-2 text-center pt-4">
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">Select an option to get started.</p>
       </div>
+
+      <Marquee>
+        <div className="flex items-center gap-2 px-4">
+          <Sparkles className="h-5 w-5 text-primary" />
+          <span className="font-semibold">New Feature:</span>
+          <span>G.K Test has been added! You can access it now from the "Online Tests" section.</span>
+        </div>
+      </Marquee>
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="flex flex-col border-primary border-2 shadow-lg">
           <CardHeader>
