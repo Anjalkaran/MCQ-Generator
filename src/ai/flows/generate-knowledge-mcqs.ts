@@ -60,6 +60,8 @@ const generateKnowledgeMCQsPrompt = ai.definePrompt({
 
 {{#if (eq topicName "Current affairs")}}
 **CRITICAL DATE RANGE:** ALL questions MUST be about events that occurred between January 1, 2024, and June 30, 2025.
+{{else}}
+**CRITICAL KNOWLEDGE SOURCE:** For this topic, your questions MUST be based on the syllabus and content found in standard Indian school textbooks (like NCERT) and materials from well-regarded competitive exam coaching institutes.
 {{/if}}
 
 **CRITICAL: Do NOT generate any questions that are the same as or very similar to the 'PREVIOUSLY ANSWERED QUESTIONS' provided below.**
