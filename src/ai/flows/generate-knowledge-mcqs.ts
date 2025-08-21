@@ -53,8 +53,10 @@ const generateKnowledgeMCQsPrompt = ai.definePrompt({
         isCurrentAffairs: z.boolean(),
     }) },
     output: { schema: z.object({ mcqs: z.array(MCQSchema) }) },
-    model: 'googleai/gemini-1.5-pro',
+    model: 'googleai/gemini-1.5-flash',
     prompt: `You are an expert quiz generator for Indian competitive exams. Your task is to generate {{numberOfQuestions}} multiple-choice questions (MCQs) on the topic of "{{topicName}}".
+
+**CRITICAL INSTRUCTION - FACT VERIFICATION:** Before generating any question, you MUST verify every single fact and answer using Google Search and by cross-referencing with standard Indian school textbooks (like NCERT) and materials from reputable competitive exam coaching institutes. Accuracy is paramount.
 
 **CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
 **CRITICAL RULE FOR TRANSLATION:** When translating to any language other than English (e.g., Tamil, Hindi, Telugu, Kannada), you MUST keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", "Head Office", "Sub Office", etc.
