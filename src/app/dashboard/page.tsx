@@ -43,7 +43,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2 px-4">
           <Sparkles className="h-5 w-5 text-primary" />
           <span className="font-semibold">New Feature:</span>
-          <span>G.K Test has been added! You can access it now from the "Online Tests" section.</span>
+          <span>General Knowledge Test has been added! You can access it now from the "Online Tests" section.</span>
         </div>
       </Marquee>
 
