@@ -11,7 +11,7 @@ const Marquee = React.forwardRef<
   return (
     <div
       ref={ref}
-      className={cn("relative flex h-10 w-full items-center overflow-x-hidden rounded-lg border bg-background shadow-sm", className)}
+      className={cn("relative flex h-10 w-full items-center overflow-x-hidden rounded-lg border bg-accent text-accent-foreground shadow-sm", className)}
       {...props}
     >
       <div className="animate-marquee whitespace-nowrap">
