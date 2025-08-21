@@ -2,7 +2,7 @@
 'use server';
 
 /**
- * @fileOverview Generates multiple-choice questions (MCQs) from general knowledge on a given topic.
+ * @fileOverview Generates multiple-choice questions (MCQs) from general knowledge on a given topic, avoiding repetition for the user.
  *
  * - generateKnowledgeMCQs - A function that handles the knowledge-based MCQ generation process.
  * - GenerateKnowledgeMCQsInput - The input type for the function.
@@ -12,11 +12,13 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { getFirebaseDb } from '@/lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
+import { getExamHistoryForUser } from '@/lib/firestore';
 
 const GenerateKnowledgeMCQsInputSchema = z.object({
   topicName: z.string().describe('The topic for which MCQs are generated.'),
   numberOfQuestions: z.number().describe('The number of MCQs to generate.'),
   language: z.string().optional().default('English').describe('The language for the generated quiz (e.g., "English", "Tamil", "Hindi").'),
+  userId: z.string().describe('The ID of the user requesting the quiz, used to avoid repeating questions.'),
 });
 export type GenerateKnowledgeMCQsInput = z.infer<typeof GenerateKnowledgeMCQsInputSchema>;
 
@@ -43,7 +45,12 @@ export async function generateKnowledgeMCQs(
 
 const generateKnowledgeMCQsPrompt = ai.definePrompt({
     name: 'generateKnowledgeMCQsPrompt',
-    input: { schema: z.object({ topicName: z.string(), numberOfQuestions: z.number(), language: z.string().optional().default('English') }) },
+    input: { schema: z.object({ 
+        topicName: z.string(), 
+        numberOfQuestions: z.number(), 
+        language: z.string().optional().default('English'),
+        previousQuestions: z.array(z.string()).optional(),
+    }) },
     output: { schema: z.object({ mcqs: z.array(MCQSchema) }) },
     model: 'googleai/gemini-1.5-pro',
     prompt: `You are an expert quiz generator for Indian competitive exams. Your task is to generate {{numberOfQuestions}} multiple-choice questions (MCQs) on the topic of "{{topicName}}".
@@ -51,8 +58,18 @@ const generateKnowledgeMCQsPrompt = ai.definePrompt({
 **CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
 **CRITICAL RULE FOR TRANSLATION:** When translating to any language other than English (e.g., Tamil, Hindi, Telugu, Kannada), you MUST keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", "Head Office", "Sub Office", etc.
 
+**CRITICAL: Do NOT generate any questions that are the same as or very similar to the 'PREVIOUSLY ANSWERED QUESTIONS' provided below.**
+
+{{#if previousQuestions}}
+--- PREVIOUSLY ANSWERED QUESTIONS (DO NOT REPEAT) ---
+{{#each previousQuestions}}
+- {{{this}}}
+{{/each}}
+--- END PREVIOUSLY ANSWERED QUESTIONS ---
+{{/if}}
+
 **Instructions:**
-1.  Create {{numberOfQuestions}} distinct and relevant questions.
+1.  Create {{numberOfQuestions}} distinct and relevant questions that are NOT in the list above.
 2.  For each question, provide four plausible options.
 3.  The 'correctAnswer' field MUST be an EXACT, case-sensitive match to one of the four strings in the 'options' array.
 4.  Provide a brief but clear 'solution' or explanation for why the correct answer is right.
@@ -70,10 +87,18 @@ const generateKnowledgeMCQsFlow = ai.defineFlow(
     outputSchema: GenerateKnowledgeMCQsOutputSchema,
   },
   async (input) => {
+    
+    const userHistory = await getExamHistoryForUser(input.userId);
+    const quizTitle = `${input.topicName} Quiz`;
+    const previousQuestions = userHistory
+        .filter(h => h.topicTitle === quizTitle && h.questions)
+        .flatMap(h => h.questions);
+
     const { output } = await generateKnowledgeMCQsPrompt({
         topicName: input.topicName,
         numberOfQuestions: input.numberOfQuestions,
         language: input.language,
+        previousQuestions: previousQuestions,
     });
 
     if (!output || !output.mcqs || output.mcqs.length === 0) {
@@ -86,7 +111,7 @@ const generateKnowledgeMCQsFlow = ai.defineFlow(
     const quizData = {
       topic: {
         id: quizId,
-        title: `${input.topicName} Quiz`,
+        title: quizTitle,
         description: 'A custom generated quiz.',
         icon: 'globe',
         categoryId: 'general-knowledge',

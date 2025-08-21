@@ -19,6 +19,8 @@ import { useDashboard } from '@/app/dashboard/layout';
 import { ADMIN_EMAILS, FREE_EXAM_LIMIT } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { generateKnowledgeMCQs } from '@/ai/flows/generate-knowledge-mcqs';
+import { getFirebaseDb } from '@/lib/firebase';
+import { addDoc, collection } from 'firebase/firestore';
 
 const languages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
 
@@ -64,13 +66,14 @@ export function GeneralAwarenessForm() {
     }
 
     try {
-      const { mcqs } = await generateKnowledgeMCQs({
+      const { quizId } = await generateKnowledgeMCQs({
           topicName: values.topic,
           numberOfQuestions: values.numberOfQuestions,
           language: values.language,
+          userId: user.uid,
       });
 
-      if (!mcqs || mcqs.length === 0) {
+      if (!quizId) {
         toast({
           title: 'Exam Generation Failed',
           description: 'The AI could not generate an exam for the selected topic. Please try again later.',
@@ -79,30 +82,8 @@ export function GeneralAwarenessForm() {
         setIsGenerating(false);
         return;
       }
-
-      const quizId = `gk-${values.topic.replace(/\s+/g, '-')}-${Date.now()}`;
-      const timeLimit = values.numberOfQuestions * 45;
-
-      const quizData = {
-        topic: {
-          id: quizId,
-          title: `${values.topic} Quiz`,
-          description: 'A custom generated quiz.',
-          icon: 'globe',
-          categoryId: 'general-knowledge',
-        },
-        mcqs: mcqs,
-        timeLimit,
-        language: values.language,
-      };
-
-      const db = getFirebaseDb();
-      if (!db) {
-        throw new Error("Firestore is not initialized.");
-      }
-      const docRef = await addDoc(collection(db, "generatedQuizzes"), quizData);
       
-      router.push(`/quiz/${docRef.id}`);
+      router.push(`/quiz/${quizId}`);
 
     } catch (error: any) {
       console.error('Error generating G.K. exam:', error);
