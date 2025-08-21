@@ -191,7 +191,13 @@ export function CreateQuizForm() {
     const relevantTopics = topics.filter(t => t.part === selectedPart && t.examCategories.includes(selectedExamType));
     const relevantCategoryIds = new Set(relevantTopics.map(t => t.categoryId));
 
-    return filteredCategoriesByExam.filter(c => relevantCategoryIds.has(c.id));
+    let finalCategories = filteredCategoriesByExam.filter(c => relevantCategoryIds.has(c.id));
+
+    if (selectedPart === 'Part B') {
+        finalCategories = finalCategories.filter(c => c.name !== "General Awareness");
+    }
+
+    return finalCategories;
     
   }, [selectedPart, selectedExamType, filteredCategoriesByExam, topics]);
 
