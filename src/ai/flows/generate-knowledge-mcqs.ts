@@ -10,6 +10,8 @@
  */
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
+import { getFirebaseDb } from '@/lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 const GenerateKnowledgeMCQsInputSchema = z.object({
   topicName: z.string().describe('The topic for which MCQs are generated.'),
@@ -27,7 +29,7 @@ const MCQSchema = z.object({
 });
 
 const GenerateKnowledgeMCQsOutputSchema = z.object({
-  mcqs: z.array(MCQSchema).describe('The generated quiz questions.'),
+  quizId: z.string().describe('The ID of the generated quiz document in Firestore.'),
 });
 export type GenerateKnowledgeMCQsOutput = z.infer<typeof GenerateKnowledgeMCQsOutputSchema>;
 
@@ -78,6 +80,28 @@ const generateKnowledgeMCQsFlow = ai.defineFlow(
         throw new Error(`The AI failed to generate any questions for "${input.topicName}". Please try again.`);
     }
     
-    return { mcqs: output.mcqs };
+    const quizId = `gk-${input.topicName.replace(/\s+/g, '-')}-${Date.now()}`;
+    const timeLimit = input.numberOfQuestions * 45;
+
+    const quizData = {
+      topic: {
+        id: quizId,
+        title: `${input.topicName} Quiz`,
+        description: 'A custom generated quiz.',
+        icon: 'globe',
+        categoryId: 'general-knowledge',
+      },
+      mcqs: output.mcqs,
+      timeLimit,
+      language: input.language,
+    };
+
+    const db = getFirebaseDb();
+    if (!db) {
+      throw new Error("Firestore is not initialized.");
+    }
+    const docRef = await addDoc(collection(db, "generatedQuizzes"), quizData);
+    
+    return { quizId: docRef.id };
   }
 );
