@@ -50,6 +50,7 @@ const generateKnowledgeMCQsPrompt = ai.definePrompt({
         numberOfQuestions: z.number(), 
         language: z.string().optional().default('English'),
         previousQuestions: z.array(z.string()).optional(),
+        isCurrentAffairs: z.boolean(),
     }) },
     output: { schema: z.object({ mcqs: z.array(MCQSchema) }) },
     model: 'googleai/gemini-1.5-pro',
@@ -58,7 +59,7 @@ const generateKnowledgeMCQsPrompt = ai.definePrompt({
 **CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
 **CRITICAL RULE FOR TRANSLATION:** When translating to any language other than English (e.g., Tamil, Hindi, Telugu, Kannada), you MUST keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", "Head Office", "Sub Office", etc.
 
-{{#if (eq topicName "Current affairs")}}
+{{#if isCurrentAffairs}}
 **CRITICAL DATE RANGE:** ALL questions MUST be about events that occurred between January 1, 2024, and June 30, 2025.
 {{else}}
 **CRITICAL KNOWLEDGE SOURCE:** For this topic, your questions MUST be based on the syllabus and content found in standard Indian school textbooks (like NCERT) and materials from well-regarded competitive exam coaching institutes.
@@ -100,11 +101,14 @@ const generateKnowledgeMCQsFlow = ai.defineFlow(
         .filter(h => h.topicTitle === quizTitle && h.questions)
         .flatMap(h => h.questions);
 
+    const isCurrentAffairs = input.topicName.toLowerCase().includes("current affairs");
+
     const { output } = await generateKnowledgeMCQsPrompt({
         topicName: input.topicName,
         numberOfQuestions: input.numberOfQuestions,
         language: input.language,
         previousQuestions: previousQuestions,
+        isCurrentAffairs: isCurrentAffairs,
     });
 
     if (!output || !output.mcqs || output.mcqs.length === 0) {
