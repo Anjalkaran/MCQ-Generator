@@ -58,6 +58,10 @@ const generateKnowledgeMCQsPrompt = ai.definePrompt({
 **CRITICAL LANGUAGE INSTRUCTION: The language for the ENTIRE output, including the 'question', all strings in the 'options' array, the 'correctAnswer', and the 'solution', MUST be in {{language}}. Every single field must be in the requested language.**
 **CRITICAL RULE FOR TRANSLATION:** When translating to any language other than English (e.g., Tamil, Hindi, Telugu, Kannada), you MUST keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", "Head Office", "Sub Office", etc.
 
+{{#if (eq topicName "Current affairs")}}
+**CRITICAL DATE RANGE:** ALL questions MUST be about events that occurred between January 1, 2024, and June 30, 2025.
+{{/if}}
+
 **CRITICAL: Do NOT generate any questions that are the same as or very similar to the 'PREVIOUSLY ANSWERED QUESTIONS' provided below.**
 
 {{#if previousQuestions}}
