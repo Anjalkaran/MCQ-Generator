@@ -161,13 +161,14 @@ export function CreateQuizForm() {
   
   const filteredCategoriesByExam = useMemo(() => {
     if (!selectedExamType) return [];
-    // Exclude reasoning categories
+    // Exclude reasoning and general awareness categories
     return categories.filter(c => 
         c.examCategories && 
         c.examCategories.includes(selectedExamType) &&
         !c.name.toLowerCase().includes("reasoning") &&
         !c.name.toLowerCase().includes("non-verbal") &&
-        !c.name.toLowerCase().includes("non verbal")
+        !c.name.toLowerCase().includes("non verbal") &&
+        !c.name.toLowerCase().includes("general awareness")
     );
   }, [selectedExamType, categories]);
   
@@ -191,11 +192,7 @@ export function CreateQuizForm() {
     const relevantTopics = topics.filter(t => t.part === selectedPart && t.examCategories.includes(selectedExamType));
     const relevantCategoryIds = new Set(relevantTopics.map(t => t.categoryId));
 
-    let finalCategories = filteredCategoriesByExam.filter(c => relevantCategoryIds.has(c.id));
-
-    if (selectedPart === 'Part B') {
-        finalCategories = finalCategories.filter(c => c.name !== "General Awareness");
-    }
+    const finalCategories = filteredCategoriesByExam.filter(c => relevantCategoryIds.has(c.id));
 
     return finalCategories;
     
