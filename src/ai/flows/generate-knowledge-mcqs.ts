@@ -53,7 +53,7 @@ const generateKnowledgeMCQsPrompt = ai.definePrompt({
         isCurrentAffairs: z.boolean(),
     }) },
     output: { schema: z.object({ mcqs: z.array(MCQSchema) }) },
-    model: 'googleai/gemini-1.5-flash',
+    model: 'googleai/gemini-1.5-pro',
     prompt: `You are an expert quiz generator for Indian competitive exams. Your task is to generate {{numberOfQuestions}} multiple-choice questions (MCQs) on the topic of "{{topicName}}".
 
 **CRITICAL INSTRUCTION - FACT VERIFICATION:** Before generating any question, you MUST verify every single fact and answer using Google Search and by cross-referencing with standard Indian school textbooks (like NCERT) and materials from reputable competitive exam coaching institutes. Accuracy is paramount.
