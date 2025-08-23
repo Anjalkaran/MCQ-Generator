@@ -4,7 +4,8 @@
 import { useRef } from 'react';
 import { useDashboard } from "@/app/dashboard/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, BookCopy, FileText, Rss, BrainCircuit, History, Globe } from 'lucide-react';
+import { Loader2, BookCopy, FileText, Rss, History, Globe } from 'lucide-react';
+import { NewLogoIcon } from '@/components/icons/new-logo-icon';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ADMIN_EMAILS } from '@/lib/constants';
@@ -110,7 +111,7 @@ export default function OnlineTestPage() {
             <CardHeader>
               <div className="flex items-center gap-4">
                 <div className="bg-primary/10 p-3 rounded-full">
-                  <BrainCircuit className="h-6 w-6 text-primary" />
+                  <NewLogoIcon className="h-6 w-6 text-primary" />
                 </div>
                 <CardTitle>Reasoning Test</CardTitle>
               </div>

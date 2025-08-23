@@ -13,7 +13,8 @@ import { ReasoningBankManagement } from '@/components/admin/reasoning-bank-manag
 import { FeedbackManagement } from '@/components/admin/feedback-management';
 import { StudyMaterialManagement } from '@/components/admin/study-material-management';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, BrainCircuit, MessageSquare, BookOpen } from "lucide-react";
+import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, MessageSquare, BookOpen } from "lucide-react";
+import { NewLogoIcon } from '@/components/icons/new-logo-icon';
 import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback } from "@/lib/firestore";
 import type { UserData, QnAUsage, LiveTest, ReasoningQuestion, Feedback } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -61,7 +62,7 @@ const adminSections = [
     { value: 'study-material', label: 'Study Material', icon: BookOpen },
     { value: 'topic-mcq', label: 'MCQ Bank', icon: FileQuestion },
     { value: 'question-bank', label: 'Question Bank', icon: FileText },
-    { value: 'reasoning-bank', label: 'Reasoning Bank', icon: BrainCircuit },
+    { value: 'reasoning-bank', label: 'Reasoning Bank', icon: NewLogoIcon },
     { value: 'live-test', label: 'Live Test', icon: Trophy },
     { value: 'analytics', label: 'Analytics', icon: BarChart3 },
     { value: 'feedback', label: 'Feedback', icon: MessageSquare },
