@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 const inter = Inter({subsets: ['latin'], variable: '--font-sans'});
 
 const siteUrl = "https://anjalkaran.in";
-const siteTitle = "Anjalkaran MCQ Test";
+const siteTitle = "Anjalkaran";
 const siteDescription = "Generate and take MCQ tests with the Anjalkaran MCQ Test app.";
 const siteImage = `${siteUrl}/logo.png`;
 
