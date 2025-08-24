@@ -45,7 +45,7 @@ const materialSchema = z.object({
   file: z
     .instanceof(File)
     .refine((file) => file.size > 0, 'Please upload a file.')
-    .refine((file) => file.size <= 4 * 1024 * 1024, `File size must be less than 4MB.`)
+    .refine((file) => file.size <= 700 * 1024, `File size must be less than 700KB.`)
     .refine((file) => file.type === 'application/pdf', 'File must be a .pdf document.'),
 });
 
