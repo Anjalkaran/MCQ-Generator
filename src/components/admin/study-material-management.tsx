@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -45,7 +44,7 @@ const materialSchema = z.object({
   file: z
     .instanceof(File)
     .refine((file) => file.size > 0, 'Please upload a file.')
-    .refine((file) => file.size <= 700 * 1024, `File size must be less than 700KB.`)
+    .refine((file) => file.size <= 1 * 1024 * 1024, `File size must be less than 1MB.`)
     .refine((file) => file.type === 'application/pdf', 'File must be a .pdf document.'),
 });
 
