@@ -40,7 +40,7 @@ export default function OnlineTestPage() {
 
   const isAdmin = userData.email ? ADMIN_EMAILS.includes(userData.email) : false;
   const canSeeReasoning = isAdmin || userData.examCategory === 'PA' || userData.examCategory === 'POSTMAN';
-  const canSeePreviousYearPaper = isAdmin || userData.examCategory === 'PA';
+  const canSeePreviousYearPaper = isAdmin || userData.examCategory === 'PA' || userData.examCategory === 'POSTMAN' || userData.examCategory === 'MTS';
 
   return (
     <div className="space-y-6">
