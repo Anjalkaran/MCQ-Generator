@@ -44,7 +44,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="flex flex-col border-primary border-2 shadow-lg md:col-span-2 lg:col-span-2">
+        <Card className="flex flex-col border-primary border-2 shadow-lg">
             <CardHeader>
                 <div className="flex items-center gap-4">
                 <div className="bg-primary/10 p-3 rounded-full">
