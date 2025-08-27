@@ -43,7 +43,7 @@ const blueprintMap = {
 export function PreviousYearMockTestForm() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user, userData, isLoading, bankedQuestions: allBankedQuestions } = useDashboard();
+  const { user, userData, isLoading, bankedQuestions: allBankedQuestions, setUserData } = useDashboard();
   const [isGenerating, setIsGenerating] = useState(false);
   const [questionBank, setQuestionBank] = useState<BankedQuestion[]>([]);
   const [isBankLoading, setIsBankLoading] = useState(true);
@@ -117,14 +117,18 @@ export function PreviousYearMockTestForm() {
     }
   };
   
-  const hasQuestionPapers = questionBank.length > 0;
+  const completedTestIds = new Set(userData?.completedMockBankTests || []);
+  const availablePapers = questionBank.filter(p => !completedTestIds.has(p.id));
+  const hasCompletedAllPapers = selectedExamType && !isBankLoading && questionBank.length > 0 && availablePapers.length === 0;
+
+  const hasQuestionPapersForCategory = questionBank.length > 0;
 
   return (
     <Card>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CardContent className="pt-6">
-                <fieldset disabled={isGenerating || isLoading} className="space-y-6">
+                <fieldset disabled={isGenerating || isLoading || hasCompletedAllPapers} className="space-y-6">
                     <FormField
                       control={form.control}
                       name="examType"
@@ -169,7 +173,7 @@ export function PreviousYearMockTestForm() {
                             </FormItem>
                         )}
                     />
-                    {selectedExamType && !isBankLoading && !hasQuestionPapers && (
+                    {selectedExamType && !isBankLoading && !hasQuestionPapersForCategory && (
                         <Alert variant="destructive">
                             <AlertTriangle className="h-4 w-4" />
                             <AlertTitle>No Question Papers Found</AlertTitle>
@@ -178,10 +182,19 @@ export function PreviousYearMockTestForm() {
                             </AlertDescription>
                         </Alert>
                     )}
+                    {hasCompletedAllPapers && (
+                         <Alert variant="default" className="border-green-500">
+                            <Gem className="h-4 w-4" />
+                            <AlertTitle>Congratulations!</AlertTitle>
+                            <AlertDescription>
+                                You have completed all available previous year papers for the {selectedExamType} category.
+                            </AlertDescription>
+                        </Alert>
+                    )}
                 </fieldset>
              </CardContent>
              <CardFooter>
-                <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading || isBankLoading || !hasQuestionPapers} className="w-full">
+                <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading || isBankLoading || !hasQuestionPapersForCategory || hasCompletedAllPapers} className="w-full">
                     {isGenerating || isBankLoading ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

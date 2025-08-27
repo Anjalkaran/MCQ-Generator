@@ -48,6 +48,7 @@ export interface UserData {
     examCategory: 'MTS' | 'POSTMAN' | 'PA';
     totalExamsTaken: number;
     liveTestsTaken?: string[]; // Array of liveTest IDs
+    completedMockBankTests?: string[]; // Array of questionBank doc IDs
     isPro?: boolean;
     proValidUntil?: any; 
     createdAt?: any;
@@ -62,6 +63,7 @@ export interface MCQData {
   timeLimit?: number;
   isMockTest?: boolean;
   liveTestId?: string; // Add liveTestId to quiz data
+  questionPaperId?: string; // ID of the source paper from questionBank
   examCategory?: UserData['examCategory'];
   language?: string;
 }
@@ -79,6 +81,7 @@ export interface MCQHistory {
     durationInSeconds?: number;
     isMockTest?: boolean;
     liveTestId?: string;
+    questionPaperId?: string; // ID of the source paper from questionBank
     language?: string;
 }
 

@@ -95,6 +95,7 @@ export function MCQClient({ topicId }: MCQClientProps) {
             userAnswers: selectedAnswers,
             isMockTest: quizData.isMockTest || false,
             liveTestId: quizData.liveTestId,
+            questionPaperId: quizData.questionPaperId, // Include question paper ID
             durationInSeconds: durationInSeconds,
             takenAt: new Date(),
             language: quizData.language || 'English',

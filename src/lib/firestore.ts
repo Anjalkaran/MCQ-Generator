@@ -19,6 +19,7 @@ export const getUserData = async (userId: string): Promise<UserData | null> => {
             ...data,
             totalExamsTaken: data.totalExamsTaken || 0,
             liveTestsTaken: data.liveTestsTaken || [],
+            completedMockBankTests: data.completedMockBankTests || [],
         } as UserData;
     }
     return null;
@@ -209,6 +210,7 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
         userId, 
         isMockTest, 
         liveTestId,
+        questionPaperId,
         ...restOfData
     } = historyData;
 
@@ -221,15 +223,24 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
     if (liveTestId) {
         dataToSave.liveTestId = liveTestId;
     }
+    if (questionPaperId) {
+        dataToSave.questionPaperId = questionPaperId;
+    }
 
     const batch = writeBatch(db);
     const historyRef = doc(collection(db, 'mcqHistory'));
     batch.set(historyRef, dataToSave);
     
+    const userRef = doc(db, 'users', userId);
+
     // Only increment exam count if it is NOT a live test
     if (!liveTestId) {
-        const userRef = doc(db, 'users', userId);
         batch.update(userRef, { totalExamsTaken: increment(1) });
+    }
+    
+    // If a question paper was used (i.e., it was a previous year paper), mark it as completed for the user
+    if (questionPaperId) {
+        batch.update(userRef, { completedMockBankTests: arrayUnion(questionPaperId) });
     }
     
     await batch.commit();

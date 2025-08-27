@@ -12,7 +12,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { getQuestionBankDocumentsByCategory, getReasoningQuestions } from '@/lib/firestore';
+import { getQuestionBankDocumentsByCategory, getUserData } from '@/lib/firestore';
 import type { MCQ } from '@/lib/types';
 import { getFirebaseDb } from '@/lib/firebase';
 import { addDoc, collection } from 'firebase/firestore';
@@ -58,14 +58,25 @@ const generateMockTestFromBankFlow = ai.defineFlow(
   },
   async input => {
     
-    const questionPapers = await getQuestionBankDocumentsByCategory(input.examCategory);
+    const allQuestionPapers = await getQuestionBankDocumentsByCategory(input.examCategory);
     
-    if (!questionPapers || questionPapers.length === 0) {
+    if (!allQuestionPapers || allQuestionPapers.length === 0) {
         throw new Error(`No question papers found for exam category: ${input.examCategory}. Please upload some JSON documents.`);
     }
+
+    // Fetch user data to see which tests they have already completed
+    const userData = await getUserData(input.userId);
+    const completedTestIds = new Set(userData?.completedMockBankTests || []);
     
-    // Randomly select one question paper to process
-    const selectedPaper = questionPapers[Math.floor(Math.random() * questionPapers.length)];
+    // Filter out papers the user has already taken
+    const availablePapers = allQuestionPapers.filter(paper => !completedTestIds.has(paper.id));
+    
+    if (availablePapers.length === 0) {
+        throw new Error("You have completed all available previous year papers for this category! Please check back later for new additions.");
+    }
+    
+    // Randomly select one question paper to process from the available ones
+    const selectedPaper = availablePapers[Math.floor(Math.random() * availablePapers.length)];
 
     let parsedData: { questions: MCQ[] };
     try {
@@ -96,6 +107,7 @@ const generateMockTestFromBankFlow = ai.defineFlow(
         mcqs: finalMCQs,
         timeLimit: blueprint.totalDurationMinutes * 60,
         isMockTest: true,
+        questionPaperId: selectedPaper.id, // Store the ID of the paper being used
         language: input.language,
         topic: {
             id: quizId,
