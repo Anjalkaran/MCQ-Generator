@@ -3,9 +3,10 @@
 
 import { useDashboard } from "@/app/dashboard/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, BookOpen, PenSquare, Video, Sparkles } from 'lucide-react';
+import { Loader2, BookOpen, PenSquare, Video, Rss } from 'lucide-react';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { UpcomingLiveTest } from "@/components/dashboard/upcoming-live-test";
 
 export default function DashboardPage() {
   const { user, userData, isLoading } = useDashboard();
@@ -39,21 +40,38 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="flex flex-col border-primary border-2 shadow-lg">
+        <Card className="flex flex-col border-primary border-2 shadow-lg md:col-span-1 lg:col-span-1">
+            <CardHeader>
+                <div className="flex items-center gap-4">
+                <div className="bg-primary/10 p-3 rounded-full">
+                    <Rss className="h-8 w-8 text-primary animate-pulse" />
+                </div>
+                <CardTitle className="text-2xl">Live Mock Test</CardTitle>
+                </div>
+                <UpcomingLiveTest />
+            </CardHeader>
+            <CardContent className="flex-grow flex items-end">
+                <Button asChild className="w-full">
+                <Link href="/dashboard/live-mock-test">View Live Tests</Link>
+                </Button>
+            </CardContent>
+        </Card>
+        
+        <Card className="flex flex-col">
           <CardHeader>
             <div className="flex items-center gap-4">
               <div className="bg-primary/10 p-3 rounded-full">
                 <PenSquare className="h-8 w-8 text-primary" />
               </div>
-              <CardTitle className="text-2xl">Online Tests</CardTitle>
+              <CardTitle className="text-2xl">Practice Exams</CardTitle>
             </div>
             <CardDescription className="pt-4">
-              Access all exam types including live tests, mock tests, practice MCQs, and reasoning tests.
+              Access all other exam types including mock tests, practice MCQs, and reasoning tests.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-grow flex items-end">
             <Button asChild className="w-full">
-              <Link href="/dashboard/online-test">Go to Tests</Link>
+              <Link href="/dashboard/online-test">Go to Practice</Link>
             </Button>
           </CardContent>
         </Card>
@@ -77,7 +95,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="flex flex-col border-dashed bg-muted/50">
+        <Card className="flex flex-col border-dashed bg-muted/50 md:col-span-2 lg:col-span-1">
           <CardHeader>
             <div className="flex items-center gap-4">
               <div className="bg-muted p-3 rounded-full">
