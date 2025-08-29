@@ -124,6 +124,7 @@ function AppSidebar() {
   };
 
   const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
+  const isIPUser = userData?.examCategory === 'IP';
   const proValidUntilDate = normalizeDate(userData?.proValidUntil);
   const isPro = !!(userData && (
       (userData.isPro && proValidUntilDate && proValidUntilDate > new Date()) ||
@@ -181,22 +182,26 @@ function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           )}
-           <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/online-test')} tooltip="Online Tests">
-                <Link href="/dashboard/online-test" onClick={onLinkClick}>
-                  <PenSquare />
-                  <span>Online Tests</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/study-material')} tooltip="Study Material">
-                <Link href="/dashboard/study-material" onClick={onLinkClick}>
-                  <BookOpen />
-                  <span>Study Material</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+           {!isIPUser && (
+            <>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/online-test')} tooltip="Online Tests">
+                  <Link href="/dashboard/online-test" onClick={onLinkClick}>
+                    <PenSquare />
+                    <span>Online Tests</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/study-material')} tooltip="Study Material">
+                  <Link href="/dashboard/study-material" onClick={onLinkClick}>
+                    <BookOpen />
+                    <span>Study Material</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </>
+           )}
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/q-and-a')} tooltip="Ask Your Doubt">
                 <Link href="/dashboard/q-and-a" onClick={onLinkClick}>
