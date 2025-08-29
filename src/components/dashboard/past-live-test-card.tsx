@@ -19,7 +19,9 @@ import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '../ui/label';
 
-const languages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
+const allLanguages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
+const ipLanguages = ["English", "Hindi"] as const;
+
 
 export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
     const { user, userData } = useDashboard();
@@ -34,6 +36,8 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
     const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
     const proValidUntilDate = normalizeDate(userData?.proValidUntil);
     const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
+    const isIPTest = test.examCategory === 'IP';
+    const availableLanguages = isIPTest ? ipLanguages : allLanguages;
 
     useEffect(() => {
         const checkPracticeHistory = async () => {
@@ -148,7 +152,7 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
                                 <SelectValue placeholder="Select a language" />
                             </SelectTrigger>
                             <SelectContent>
-                                {languages.map((lang) => (
+                                {availableLanguages.map((lang) => (
                                     <SelectItem key={lang} value={lang}>{lang}</SelectItem>
                                 ))}
                             </SelectContent>

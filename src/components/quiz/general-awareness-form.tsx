@@ -22,7 +22,9 @@ import { generateKnowledgeMCQs } from '@/ai/flows/generate-knowledge-mcqs';
 import { getFirebaseDb } from '@/lib/firebase';
 import { addDoc, collection } from 'firebase/firestore';
 
-const languages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
+const allLanguages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
+const ipLanguages = ["English", "Hindi"] as const;
+
 
 const gkTopics = [
     "Indian Geography", 
@@ -36,7 +38,7 @@ const gkTopics = [
 const formSchema = z.object({
   topic: z.enum(gkTopics, { required_error: 'Please select a topic.' }),
   numberOfQuestions: z.coerce.number().min(3).max(25),
-  language: z.enum(languages).optional().default('English'),
+  language: z.enum(allLanguages).optional().default('English'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -55,6 +57,9 @@ export function GeneralAwarenessForm() {
       language: 'English',
     },
   });
+
+  const isIPUser = userData?.examCategory === 'IP';
+  const availableLanguages = isIPUser ? ipLanguages : allLanguages;
 
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
@@ -160,7 +165,7 @@ export function GeneralAwarenessForm() {
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {languages.map((lang) => (
+                                        {availableLanguages.map((lang) => (
                                             <SelectItem key={lang} value={lang}>{lang}</SelectItem>
                                         ))}
                                     </SelectContent>

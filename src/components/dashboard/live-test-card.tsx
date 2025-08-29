@@ -32,7 +32,8 @@ const blueprintMap = {
     PA: PA_BLUEPRINT,
 };
 
-const languages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
+const allLanguages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
+const ipLanguages = ["English", "Hindi"] as const;
 
 export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const { user, userData, setUserData } = useDashboard();
@@ -52,6 +53,10 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const proValidUntilDate = normalizeDate(userData?.proValidUntil);
     const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
     const hasTakenTest = userData?.liveTestsTaken?.includes(test.id);
+
+    const isIPTest = test.examCategory === 'IP';
+    const availableLanguages = isIPTest ? ipLanguages : allLanguages;
+
 
     const isFreeTest = test.title === "PA Mock Test - 5";
     
@@ -298,7 +303,7 @@ https://anjalkaran.in`;
                             <SelectValue placeholder="Select a language" />
                         </SelectTrigger>
                         <SelectContent>
-                            {languages.map((lang) => (
+                            {availableLanguages.map((lang) => (
                                 <SelectItem key={lang} value={lang}>{lang}</SelectItem>
                             ))}
                         </SelectContent>

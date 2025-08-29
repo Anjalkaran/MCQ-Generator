@@ -21,7 +21,9 @@ import { FREE_EXAM_LIMIT, ADMIN_EMAILS } from '@/lib/constants';
 import Link from 'next/link';
 import { useDashboard } from '@/app/dashboard/layout';
 
-const languages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
+const allLanguages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
+const ipLanguages = ["English", "Hindi"] as const;
+
 
 const formSchema = z.object({
   examType: z.string().min(1, 'Please select an exam type.'),
@@ -29,7 +31,7 @@ const formSchema = z.object({
   categoryId: z.string().min(1, 'Please select a category.'),
   topicId: z.string().min(1, 'Please select a topic.'),
   numberOfQuestions: z.coerce.number().min(3).max(25),
-  language: z.enum(languages).optional().default('English'),
+  language: z.enum(allLanguages).optional().default('English'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -85,6 +87,8 @@ export function CreateQuizForm() {
   const selectedCategoryId = form.watch('categoryId');
   const isIPUser = userData?.examCategory === 'IP';
   const availableParts = isIPUser ? ["Paper-I", "Paper-III"] : ["Part A", "Part B"];
+  const availableLanguages = isIPUser ? ipLanguages : allLanguages;
+
 
   // Effect to reset dependent fields when a parent selection changes
   useEffect(() => {
@@ -272,7 +276,7 @@ export function CreateQuizForm() {
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {languages.map((lang) => (
+                                        {availableLanguages.map((lang) => (
                                             <SelectItem key={lang} value={lang}>{lang}</SelectItem>
                                         ))}
                                     </SelectContent>

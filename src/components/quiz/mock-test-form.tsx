@@ -22,13 +22,15 @@ import { normalizeDate } from '@/lib/utils';
 import Link from 'next/link';
 
 const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
-const languages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
+const allLanguages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
+const ipLanguages = ["English", "Hindi"] as const;
+
 
 const formSchema = z.object({
   examType: z.enum(examCategories, {
     required_error: 'Please select an exam type.',
   }),
-  language: z.enum(languages).optional().default('English'),
+  language: z.enum(allLanguages).optional().default('English'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -79,6 +81,8 @@ export function MockTestForm() {
 
 
   const selectedExamType = form.watch('examType');
+  const isIPUser = userData?.examCategory === 'IP';
+  const availableLanguages = isIPUser ? ipLanguages : allLanguages;
 
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
@@ -173,7 +177,7 @@ export function MockTestForm() {
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {languages.map((lang) => (
+                                        {availableLanguages.map((lang) => (
                                             <SelectItem key={lang} value={lang}>{lang}</SelectItem>
                                         ))}
                                     </SelectContent>
