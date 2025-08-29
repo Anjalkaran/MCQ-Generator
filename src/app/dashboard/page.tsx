@@ -8,6 +8,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { UpcomingLiveTest } from "@/components/dashboard/upcoming-live-test";
 import { ADMIN_EMAILS } from "@/lib/constants";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { FileWarning } from "lucide-react";
+
 
 export default function DashboardPage() {
   const { user, userData, isLoading } = useDashboard();
@@ -53,7 +56,7 @@ export default function DashboardPage() {
                             <CardTitle className="text-2xl">Paper I</CardTitle>
                         </div>
                         <CardDescription className="pt-4">
-                            Practice MCQs for Paper I topics.
+                            Practice MCQs and generate full mock tests for Paper I.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="flex-grow flex items-end">
@@ -66,18 +69,16 @@ export default function DashboardPage() {
                     <CardHeader>
                         <div className="flex items-center gap-4">
                             <div className="bg-primary/10 p-3 rounded-full">
-                                <PenSquare className="h-8 w-8 text-primary" />
+                                <FileWarning className="h-8 w-8 text-primary" />
                             </div>
                             <CardTitle className="text-2xl">Paper II</CardTitle>
                         </div>
                         <CardDescription className="pt-4">
-                            Practice MCQs for Paper II topics.
+                           Paper II is a descriptive test (Noting & Drafting). This app only supports MCQ practice.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="flex-grow flex items-end">
-                        <Button asChild className="w-full">
-                            <Link href="/dashboard/online-test">Start Practice</Link>
-                        </Button>
+                       <Button disabled className="w-full">MCQ Not Applicable</Button>
                     </CardContent>
                 </Card>
                  <Card className="flex flex-col">
@@ -89,7 +90,7 @@ export default function DashboardPage() {
                             <CardTitle className="text-2xl">Paper III</CardTitle>
                         </div>
                         <CardDescription className="pt-4">
-                            Practice MCQs for Paper III topics.
+                            Practice MCQs and generate full mock tests for Paper III.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="flex-grow flex items-end">
