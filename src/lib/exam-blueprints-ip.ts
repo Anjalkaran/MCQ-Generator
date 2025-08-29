@@ -1,16 +1,16 @@
 
 export const IP_BLUEPRINT = {
     examName: 'Inspector Posts Exam',
-    totalDurationMinutes: 180, // Example, adjust as needed
+    totalDurationMinutes: 150,
     parts: [
       {
         partName: 'Paper-I',
-        totalQuestions: 100, // Example total
+        totalQuestions: 125,
         sections: [
           {
             sectionName: 'Acts',
             randomFrom: {
-              questions: 50, // Assigning 50 questions, can be adjusted
+              questions: 60, // Approximate split
               topics: [
                 'The Post Office Act, 2023 (Act No.43 of 2023)',
                 'Government Savings Promotion Act-1873',
@@ -23,7 +23,7 @@ export const IP_BLUEPRINT = {
           {
             sectionName: 'Rules',
             randomFrom: {
-                questions: 50, // Assigning 50 questions, can be adjusted
+                questions: 65, // Approximate split
                 topics: [
                     'The Post office Rules, 2024 & The Post office Regulations, 2024',
                     'Government Savings Promotion Rules, 2018',
@@ -39,20 +39,28 @@ export const IP_BLUEPRINT = {
           }
         ],
       },
+      // Paper II is omitted as it is descriptive (Noting & Drafting) and not MCQ-based.
+      // The current application only supports MCQ exams.
       {
-        partName: 'Paper-II',
-        totalQuestions: 50, // Example total
+        partName: 'Paper-III',
+        totalQuestions: 150,
+        totalDurationMinutes: 180,
         sections: [
           {
-            sectionName: 'General Awareness & English',
-             // Add specific topics here for Paper II
+            sectionName: 'Paper III Syllabus',
             randomFrom: {
-              questions: 50,
-              topics: ['Topic for IP Paper 2 - A', 'Topic for IP Paper 2 - B'],
-            },
-          },
-        ],
-      },
+              questions: 150,
+              topics: [
+                'Rules relating to Children Education Allowance and reimbursement of Tuition fees.',
+                'General Financial Rules-2017',
+                'C.C.S (Conduct) Rules, 1964',
+                'C.C.S (Leave) Rules, 1972',
+                'C.C.S (Pension) Rules, 2021',
+                'Fundamental Rules and Supplementary Rules'
+              ]
+            }
+          }
+        ]
+      }
     ],
   };
-
