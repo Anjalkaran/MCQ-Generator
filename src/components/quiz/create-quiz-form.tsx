@@ -33,8 +33,8 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
-const parts = ["Part A", "Part B"] as const;
-const examCategories = ["MTS", "POSTMAN", "PA"] as const;
+const parts = ["Part A", "Part B", "Paper-I", "Paper-III"] as const;
+const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
 
 export function CreateQuizForm() {
   const router = useRouter();
@@ -58,6 +58,8 @@ export function CreateQuizForm() {
     if (!userData) return [];
     if (userData.email && ADMIN_EMAILS.includes(userData.email)) return examCategories;
     switch (userData.examCategory) {
+        case 'IP':
+            return ['IP'];
         case 'PA':
             return ['PA', 'POSTMAN', 'MTS'];
         case 'POSTMAN':
@@ -70,8 +72,8 @@ export function CreateQuizForm() {
   }, [userData]);
 
   useEffect(() => {
-    if (userData?.examCategory === 'MTS') {
-        form.setValue('examType', 'MTS');
+    if (userData?.examCategory) {
+        form.setValue('examType', userData.examCategory);
     } else {
         form.setValue('examType', '');
     }
@@ -81,6 +83,8 @@ export function CreateQuizForm() {
   const selectedExamType = form.watch('examType');
   const selectedPart = form.watch('part');
   const selectedCategoryId = form.watch('categoryId');
+  const isIPUser = userData?.examCategory === 'IP';
+  const availableParts = isIPUser ? ["Paper-I", "Paper-III"] : ["Part A", "Part B"];
 
   // Effect to reset dependent fields when a parent selection changes
   useEffect(() => {
@@ -225,34 +229,36 @@ export function CreateQuizForm() {
                     </Alert>
                 ) : (
                 <fieldset disabled={isGenerating || isLoading} className="space-y-6">
-                    <FormField
-                      control={form.control}
-                      name="examType"
-                      render={({ field }) => (
-                          <FormItem>
-                          <FormLabel>Select Exam</FormLabel>
-                          <Select 
-                            onValueChange={field.onChange} 
-                            value={field.value} 
-                            disabled={!user}
-                           >
-                              <FormControl>
-                              <SelectTrigger>
-                                  <SelectValue placeholder="Select Exam" />
-                              </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                              {availableExams.map((exam) => (
-                                  <SelectItem key={exam} value={exam}>
-                                  {exam}
-                                  </SelectItem>
-                              ))}
-                              </SelectContent>
-                          </Select>
-                          <FormMessage />
-                          </FormItem>
-                      )}
-                    />
+                    {!isIPUser && (
+                        <FormField
+                            control={form.control}
+                            name="examType"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Select Exam</FormLabel>
+                                <Select 
+                                    onValueChange={field.onChange} 
+                                    value={field.value} 
+                                    disabled={!user}
+                                >
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select Exam" />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                    {availableExams.map((exam) => (
+                                        <SelectItem key={exam} value={exam}>
+                                        {exam}
+                                        </SelectItem>
+                                    ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    )}
                     <FormField
                         control={form.control}
                         name="language"
@@ -280,15 +286,15 @@ export function CreateQuizForm() {
                     name="part"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Part</FormLabel>
+                        <FormLabel>{isIPUser ? 'Paper' : 'Part'}</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value} disabled={!selectedExamType}>
                             <FormControl>
                             <SelectTrigger>
-                                <SelectValue placeholder={!selectedExamType ? "Select an exam first" : "Select a part"} />
+                                <SelectValue placeholder={!selectedExamType ? "Select an exam first" : (isIPUser ? "Select a paper" : "Select a part")} />
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                            {parts.map((part) => (
+                            {availableParts.map((part) => (
                                 <SelectItem key={part} value={part}>
                                 {part}
                                 </SelectItem>
@@ -308,7 +314,7 @@ export function CreateQuizForm() {
                         <Select onValueChange={field.onChange} value={field.value} disabled={!selectedPart || filteredCategoriesByPart.length === 0}>
                             <FormControl>
                             <SelectTrigger>
-                                <SelectValue placeholder={!selectedPart ? "Select a part first" : (filteredCategoriesByPart.length === 0 ? "No categories in this part" : "Select a category")} />
+                                <SelectValue placeholder={!selectedPart ? "Select a part/paper first" : (filteredCategoriesByPart.length === 0 ? "No categories in this part" : "Select a category")} />
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>

@@ -42,7 +42,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
-const parts = ["Part A", "Part B"] as const;
+const parts = ["Part A", "Part B", "Paper-I", "Paper-III"] as const;
 
 const categorySchema = z.object({
   name: z.string().min(2, { message: 'Category name must be at least 2 characters.' }),
@@ -166,7 +166,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
             const newTopic = { id: newTopicDoc.id, ...topicData };
             setTopics(prev => [...prev, newTopic].sort((a,b) => a.title.localeCompare(b.title)));
             toast({ title: 'Success', description: 'New topic added.' });
-            topicForm.reset({ title: '', description: '', categoryId: values.categoryId, part: 'Part A', examCategories: [] });
+            topicForm.reset({ title: '', description: '', categoryId: values.categoryId, part: undefined, examCategories: [] });
         }
     } catch (error) {
       toast({ title: 'Error', description: editingTopic ? 'Failed to update topic.' : 'Failed to add topic.', variant: 'destructive' });
@@ -384,21 +384,19 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                 name="part"
                                 render={({ field }) => (
                                     <FormItem className="space-y-3">
-                                    <FormLabel>Part</FormLabel>
+                                    <FormLabel>Part / Paper</FormLabel>
                                     <FormControl>
                                         <RadioGroup
                                         onValueChange={field.onChange}
                                         defaultValue={field.value}
-                                        className="flex space-x-4"
+                                        className="flex flex-wrap gap-4"
                                         >
-                                        <FormItem className="flex items-center space-x-2 space-y-0">
-                                            <FormControl><RadioGroupItem value="Part A" /></FormControl>
-                                            <FormLabel className="font-normal">Part A</FormLabel>
-                                        </FormItem>
-                                        <FormItem className="flex items-center space-x-2 space-y-0">
-                                            <FormControl><RadioGroupItem value="Part B" /></FormControl>
-                                            <FormLabel className="font-normal">Part B</FormLabel>
-                                        </FormItem>
+                                        {parts.map(part => (
+                                            <FormItem key={part} className="flex items-center space-x-2 space-y-0">
+                                                <FormControl><RadioGroupItem value={part} /></FormControl>
+                                                <FormLabel className="font-normal">{part}</FormLabel>
+                                            </FormItem>
+                                        ))}
                                         </RadioGroup>
                                     </FormControl>
                                     <FormMessage />

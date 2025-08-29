@@ -28,7 +28,7 @@ export interface Topic {
   icon: string; 
   categoryId: string;
   categoryName?: string; 
-  part: 'Part A' | 'Part B';
+  part: 'Part A' | 'Part B' | 'Paper-I' | 'Paper-III';
   examCategories: ('MTS' | 'POSTMAN' | 'PA' | 'IP')[];
   source?: 'reasoningBank'; // Flag to identify virtual topics
 }
