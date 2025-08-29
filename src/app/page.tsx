@@ -14,21 +14,21 @@ const translations = {
     title: "Your Ultimate Postal Exam Prep Tool",
     description: "Elevate your preparation with smartly generated quizzes, realistic mock tests, and detailed performance tracking.",
     button: "Start Practicing Now",
-    footer: "© 2025 Anjalkaran. All rights reserved.",
+    footer: "© 2024 Anjalkaran. All rights reserved.",
     label: "English"
   },
   hi: {
     title: "डाक परीक्षा की तैयारी के लिए आपका सबसे बेहतरीन टूल",
     description: "स्मार्ट क्विज़, असली जैसे मॉक टेस्ट और अपनी तैयारी की विस्तृत रिपोर्ट के साथ अपनी तैयारी को और बेहतर बनाएं।",
     button: "अभी प्रैक्टिस शुरू करें",
-    footer: "© 2025 अंजलकरन। सर्वाधिकार सुरक्षित।",
+    footer: "© 2024 अंजलकरन। सर्वाधिकार सुरक्षित।",
     label: "हिन्दी"
   },
   ta: {
     title: "உங்கள் தபால் தேர்வு தயாரிப்பிற்கான சிறந்த கருவி",
     description: "ஸ்மார்ட் வினாவிடை, யதார்த்தமான மாதிரி தேர்வுகள் மற்றும் விரிவான செயல்திறன் கண்காணிப்பு மூலம் உங்கள் தயாரிப்பை அடுத்த கட்டத்திற்கு கொண்டு செல்லுங்கள்.",
     button: "இப்போதே பயிற்சி தொடங்குங்கள்",
-    footer: "© 2025 அஞ்சல்காரன். அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.",
+    footer: "© 2024 அஞ்சல்காரன். அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.",
     label: "தமிழ்"
   },
 };
