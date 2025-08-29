@@ -102,7 +102,7 @@ function OnlineTestContent() {
 
           <Card className={cn(
                 "flex flex-col",
-                paper ? "md:col-span-2" : "" // Span full width if a specific paper is selected
+                paper ? "md:col-span-2" : ""
             )}>
                 <CardHeader>
                 <div className="flex items-center gap-4">
