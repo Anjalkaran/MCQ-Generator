@@ -14,7 +14,6 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, AlertTriangle, Gem } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Category, Topic } from '@/lib/types';
 import { normalizeDate } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { FREE_EXAM_LIMIT, ADMIN_EMAILS } from '@/lib/constants';
@@ -56,6 +55,18 @@ export function CreateQuizForm() {
     },
   });
   
+  const isIPUser = userData?.examCategory === 'IP';
+
+  useEffect(() => {
+    if (isIPUser) {
+        form.setValue('examType', 'IP');
+    } else if (userData?.examCategory) {
+        form.setValue('examType', userData.examCategory);
+    } else {
+        form.setValue('examType', '');
+    }
+  }, [userData?.examCategory, isIPUser, form]);
+
   const availableExams = useMemo(() => {
     if (!userData) return [];
     if (userData.email && ADMIN_EMAILS.includes(userData.email)) return examCategories;
@@ -73,19 +84,9 @@ export function CreateQuizForm() {
     }
   }, [userData]);
 
-  useEffect(() => {
-    if (userData?.examCategory) {
-        form.setValue('examType', userData.examCategory);
-    } else {
-        form.setValue('examType', '');
-    }
-  }, [userData?.examCategory, form]);
-
-
   const selectedExamType = form.watch('examType');
   const selectedPart = form.watch('part');
   const selectedCategoryId = form.watch('categoryId');
-  const isIPUser = userData?.examCategory === 'IP';
   const availableParts = isIPUser ? ["Paper-I", "Paper-III"] : ["Part A", "Part B"];
   const availableLanguages = isIPUser ? ipLanguages : allLanguages;
 
