@@ -3,13 +3,12 @@
 
 import { useDashboard } from "@/app/dashboard/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, BookOpen, PenSquare, Video, Rss, History } from 'lucide-react';
+import { Loader2, BookOpen, PenSquare, Video, Rss, History, FileWarning } from 'lucide-react';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { UpcomingLiveTest } from "@/components/dashboard/upcoming-live-test";
 import { ADMIN_EMAILS } from "@/lib/constants";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { FileWarning } from "lucide-react";
 
 
 export default function DashboardPage() {
@@ -61,7 +60,7 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent className="flex-grow flex items-end">
                         <Button asChild className="w-full">
-                            <Link href="/dashboard/online-test">Start Practice</Link>
+                            <Link href="/dashboard/online-test?paper=Paper-I">Start Practice</Link>
                         </Button>
                     </CardContent>
                 </Card>
@@ -95,7 +94,7 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent className="flex-grow flex items-end">
                         <Button asChild className="w-full">
-                            <Link href="/dashboard/online-test">Start Practice</Link>
+                            <Link href="/dashboard/online-test?paper=Paper-III">Start Practice</Link>
                         </Button>
                     </CardContent>
                 </Card>
