@@ -12,6 +12,7 @@ import { UpcomingLiveTest } from '@/components/dashboard/upcoming-live-test';
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { ChevronLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 function OnlineTestContent() {
   const { user, userData, isLoading } = useDashboard();
@@ -98,19 +99,20 @@ function OnlineTestContent() {
               </CardContent>
             </Card>
           )}
-        </div>
-        
-        <div className="pt-6">
-            <Card className="flex flex-col">
+
+          <Card className={cn(
+                "flex flex-col",
+                paper ? "md:col-span-2" : "" // Span full width if a specific paper is selected
+            )}>
                 <CardHeader>
                 <div className="flex items-center gap-4">
                     <div className="bg-primary/10 p-3 rounded-full">
                     <FileText className="h-6 w-6 text-primary" />
                     </div>
-                    <CardTitle>Full Mock Test for {paper}</CardTitle>
+                    <CardTitle>Full Mock Test for {paper || "IP Exam"}</CardTitle>
                 </div>
                 <CardDescription className="pt-4">
-                    Generate a full-length mock test for {paper} based on the official syllabus.
+                    Generate a full-length mock test for {paper || "the Inspector Posts exam"} based on the official syllabus.
                 </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow flex items-end">
