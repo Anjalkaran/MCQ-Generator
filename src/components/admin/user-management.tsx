@@ -81,10 +81,10 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     const sortedUsers = [...initialUsers].sort((a, b) => {
         const dateA = normalizeDate(a.createdAt);
         const dateB = normalizeDate(b.createdAt);
-        if (!dateA && !dateB) return 0; // Both are null/undefined, keep order
-        if (!dateA) return 1;          // a is null, should come after b
-        if (!dateB) return -1;         // b is null, should come after a
-        return dateB.getTime() - a.getTime(); // Both are valid dates, sort descending
+        // Treat null dates as older than any valid date
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        return dateB.getTime() - dateA.getTime();
     });
     setUsers(sortedUsers);
   }, [initialUsers]);
