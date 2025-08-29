@@ -212,6 +212,7 @@ export function RegisterForm() {
                       <SelectItem value="MTS">MTS</SelectItem>
                       <SelectItem value="POSTMAN">POSTMAN</SelectItem>
                       <SelectItem value="PA">PA</SelectItem>
+                      <SelectItem value="IP">IP (Inspector Posts)</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

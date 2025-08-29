@@ -41,7 +41,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-const examCategories = ["MTS", "POSTMAN", "PA"] as const;
+const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
 const parts = ["Part A", "Part B"] as const;
 
 const categorySchema = z.object({
@@ -590,7 +590,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                                     <TableRow key={cat.id}>
                                         <TableCell className="font-medium">{cat.name}</TableCell>
                                         <TableCell>
-                                            <div className="flex gap-1">
+                                            <div className="flex gap-1 flex-wrap">
                                                 {cat.examCategories?.map(ec => <Badge key={ec} variant="secondary">{ec}</Badge>)}
                                             </div>
                                         </TableCell>

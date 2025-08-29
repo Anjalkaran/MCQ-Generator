@@ -15,13 +15,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useDashboard } from '@/app/dashboard/layout';
 import { generateMockTest } from '@/ai/flows/generate-mock-test';
-import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-blueprints';
+import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT, IP_BLUEPRINT } from '@/lib/exam-blueprints';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { Input } from '@/components/ui/input';
 import { normalizeDate } from '@/lib/utils';
 import Link from 'next/link';
 
-const examCategories = ["MTS", "POSTMAN", "PA"] as const;
+const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
 const languages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
 
 const formSchema = z.object({
@@ -37,6 +37,7 @@ const blueprintMap = {
     MTS: MTS_BLUEPRINT,
     POSTMAN: POSTMAN_BLUEPRINT,
     PA: PA_BLUEPRINT,
+    IP: IP_BLUEPRINT,
 };
 
 export function MockTestForm() {
@@ -57,6 +58,8 @@ export function MockTestForm() {
     if (!userData) return [];
     if (userData.email && ADMIN_EMAILS.includes(userData.email)) return examCategories;
     switch (userData.examCategory) {
+        case 'IP':
+            return ['IP'];
         case 'PA':
             return ['PA', 'POSTMAN', 'MTS'];
         case 'POSTMAN':

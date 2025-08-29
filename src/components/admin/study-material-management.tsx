@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -34,7 +35,7 @@ import 'react-pdf/dist/Page/TextLayer.css';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-const examCategories = ["MTS", "POSTMAN", "PA"] as const;
+const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
 
 const materialSchema = z.object({
   title: z.string().min(3, 'Title is required and must be at least 3 characters.'),

@@ -21,7 +21,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 
-const examCategories = ["MTS", "POSTMAN", "PA"] as const;
+const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
 
 const questionBankSchema = z.object({
   examCategory: z.enum(examCategories, {
@@ -31,8 +31,8 @@ const questionBankSchema = z.object({
     .array(z.instanceof(File))
     .min(1, 'Please upload at least one file.')
     .refine(
-        (files) => files.every((file) => file.size <= 4 * 1024 * 1024),
-        `File size must be less than 4MB.`
+        (files) => files.every((file) => file.size <= 1 * 1024 * 1024),
+        `File size must be less than 1MB.`
     )
     .refine(
         (files) => files.every((file) => file.type === 'application/json'),

@@ -42,7 +42,7 @@ import { format } from 'date-fns';
 const userUpdateSchema = z.object({
   name: z.string().min(1, { message: 'Username is required.' }),
   city: z.string().min(2, { message: "City is required." }),
-  examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA'>,
+  examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA' | 'IP'>,
   isPro: z.boolean().default(false).optional(),
   proValidUntil: z.date().optional().nullable(),
 });
@@ -57,7 +57,7 @@ const userCreateSchema = z.object({
   ),
   city: z.string().min(2, { message: "City is required." }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
-  examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA'>,
+  examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA' | 'IP'>,
   isPro: z.boolean().default(false).optional(),
 });
 
@@ -84,7 +84,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
         if (!dateA && !dateB) return 0; // Both are null/undefined, keep order
         if (!dateA) return 1;          // a is null, should come after b
         if (!dateB) return -1;         // b is null, should come after a
-        return dateB.getTime() - dateA.getTime(); // Both are valid dates, sort descending
+        return dateB.getTime() - a.getTime(); // Both are valid dates, sort descending
     });
     setUsers(sortedUsers);
   }, [initialUsers]);
@@ -326,6 +326,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                                         <SelectItem value="MTS">MTS</SelectItem>
                                         <SelectItem value="POSTMAN">POSTMAN</SelectItem>
                                         <SelectItem value="PA">PA</SelectItem>
+                                        <SelectItem value="IP">IP</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
@@ -391,6 +392,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                         <SelectItem value="MTS">MTS</SelectItem>
                         <SelectItem value="POSTMAN">POSTMAN</SelectItem>
                         <SelectItem value="PA">PA</SelectItem>
+                        <SelectItem value="IP">IP</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -537,6 +539,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                                         <SelectItem value="MTS">MTS</SelectItem>
                                         <SelectItem value="POSTMAN">POSTMAN</SelectItem>
                                         <SelectItem value="PA">PA</SelectItem>
+                                        <SelectItem value="IP">IP</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />

@@ -1,4 +1,6 @@
 
+import { IP_BLUEPRINT } from './exam-blueprints-ip';
+
 export const MTS_BLUEPRINT = {
   examName: 'MTS Exam',
   totalDurationMinutes: 60,
@@ -258,3 +260,5 @@ export const PA_BLUEPRINT = {
     },
   ],
 };
+
+export { IP_BLUEPRINT };

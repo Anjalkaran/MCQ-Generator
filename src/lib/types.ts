@@ -15,7 +15,7 @@ export interface MCQ {
 export interface StudyMaterial {
   id: string;
   title: string;
-  examCategories: ('MTS' | 'POSTMAN' | 'PA')[];
+  examCategories: ('MTS' | 'POSTMAN' | 'PA' | 'IP')[];
   fileName: string;
   content: string; // Will store the PDF as a Base64 Data URI
   uploadedAt: Date;
@@ -29,14 +29,14 @@ export interface Topic {
   categoryId: string;
   categoryName?: string; 
   part: 'Part A' | 'Part B';
-  examCategories: ('MTS' | 'POSTMAN' | 'PA')[];
+  examCategories: ('MTS' | 'POSTMAN' | 'PA' | 'IP')[];
   source?: 'reasoningBank'; // Flag to identify virtual topics
 }
 
 export interface Category {
     id: string;
     name: string;
-    examCategories: ('MTS' | 'POSTMAN' | 'PA')[];
+    examCategories: ('MTS' | 'POSTMAN' | 'PA' | 'IP')[];
 }
 
 export interface UserData {
@@ -45,7 +45,7 @@ export interface UserData {
     email: string;
     phone?: string;
     city?: string;
-    examCategory: 'MTS' | 'POSTMAN' | 'PA';
+    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP';
     totalExamsTaken: number;
     liveTestsTaken?: string[]; // Array of liveTest IDs
     completedMockBankTests?: string[]; // Array of questionBank doc IDs
@@ -94,7 +94,7 @@ export interface TopicPerformance {
 
 export interface BankedQuestion {
     id: string;
-    examCategory: 'MTS' | 'POSTMAN' | 'PA';
+    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP';
     fileName: string;
     content: string;
     uploadedAt: Date;
@@ -112,7 +112,7 @@ export interface LeaderboardEntry {
     rank: number;
     userId: string;
     userName: string;
-    examCategory: 'MTS' | 'POSTMAN' | 'PA';
+    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP';
     averageScore: number;
     totalExams?: number;
     score?: number;
@@ -146,7 +146,7 @@ export interface Notification {
 export interface LiveTest {
     id: string;
     title: string;
-    examCategory: 'MTS' | 'POSTMAN' | 'PA';
+    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP';
     startTime: Timestamp | Date;
     endTime: Timestamp | Date;
     questionPaperId: string; // Document ID from the 'liveTestBank' collection
