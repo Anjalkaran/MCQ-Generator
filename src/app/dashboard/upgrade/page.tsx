@@ -116,7 +116,8 @@ export default function UpgradePage() {
     }
 
     let standardPrice;
-    if (userData.examCategory === 'PA') standardPrice = 799;
+    if (userData.examCategory === 'IP') standardPrice = 999;
+    else if (userData.examCategory === 'PA') standardPrice = 799;
     else if (userData.examCategory === 'POSTMAN') standardPrice = 599;
     else standardPrice = 499;
 
