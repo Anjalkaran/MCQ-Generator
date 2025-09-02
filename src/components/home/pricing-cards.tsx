@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -7,21 +6,6 @@ import { Calendar, Check, Gem, Star } from "lucide-react";
 import Link from "next/link";
 
 const plans = [
-    {
-        title: "MTS & Postman Offer",
-        description: "Special deal for MTS & Postman exams!",
-        price: "₹149",
-        validUntil: "Valid until August 31, 2025",
-        features: [
-            "Unlimited Mock Tests",
-            "Unlimited Practice MCQs",
-            "Performance Analysis",
-            "Ask Your Doubt Feature",
-        ],
-        icon: Star,
-        iconClass: "text-amber-500",
-        isFeatured: true,
-    },
     {
         title: "Standard Pro Plan",
         description: "Full access for one year.",
@@ -35,7 +19,7 @@ const plans = [
         ],
         icon: Gem,
         iconClass: "text-primary",
-        isFeatured: false,
+        isFeatured: true, // Make this the featured plan now
     }
 ];
 
@@ -48,9 +32,9 @@ export function PricingCards() {
                     Select the best plan to supercharge your exam preparation. All plans unlock unlimited access to our premium features.
                 </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto justify-center">
                 {plans.map((plan) => (
-                    <Card key={plan.title} className={`flex flex-col ${plan.isFeatured ? 'border-primary border-2 shadow-lg' : ''}`}>
+                    <Card key={plan.title} className={`flex flex-col md:col-start-1 md:col-span-2 lg:col-start-auto lg:col-span-1 ${plan.isFeatured ? 'border-primary border-2 shadow-lg' : ''}`}>
                         <CardHeader className="text-center">
                             <div className={`mx-auto bg-primary/10 p-4 rounded-full w-fit ${plan.isFeatured ? 'bg-amber-400/10' : ''}`}>
                                 <plan.icon className={`h-8 w-8 ${plan.iconClass}`} />
