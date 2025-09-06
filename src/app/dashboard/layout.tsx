@@ -476,7 +476,7 @@ export default function DashboardLayout({
                     uid: currentUser.uid,
                     name: currentUser.displayName || 'Admin',
                     email: currentUser.email!,
-                    examCategory: 'PA', 
+                    examCategory: 'IP', 
                     totalExamsTaken: 0,
                     isPro: true,
                 };
