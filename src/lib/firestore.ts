@@ -333,7 +333,7 @@ export const getPerformanceByTopic = async (userId: string): Promise<TopicPerfor
 };
 
 // QUESTION BANK MANAGEMENT
-export const getQuestionBankDocuments = async (examCategory?: 'MTS' | 'POSTMAN' | 'PA'): Promise<BankedQuestion[]> => {
+export const getQuestionBankDocuments = async (examCategory?: UserData['examCategory']): Promise<BankedQuestion[]> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     const bankCollection = collection(db, 'questionBank');
@@ -349,7 +349,7 @@ export const getQuestionBankDocuments = async (examCategory?: 'MTS' | 'POSTMAN' 
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as BankedQuestion));
 };
 
-export const getQuestionBankDocumentsByCategory = async (examCategory: 'MTS' | 'POSTMAN' | 'PA'): Promise<BankedQuestion[] | null> => {
+export const getQuestionBankDocumentsByCategory = async (examCategory: UserData['examCategory']): Promise<BankedQuestion[] | null> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     const bankCollection = collection(db, 'questionBank');
@@ -608,7 +608,7 @@ function shuffleArray<T>(array: T[]): T[] {
 export const getShuffledMCQsForTopics = async (
     fixedRequests: Map<string, number>,
     randomRequest: { topics: string[], questions: number } | null,
-    examCategory: 'MTS' | 'POSTMAN' | 'PA',
+    examCategory: UserData['examCategory'],
     allMcqsForCategory: (MCQ & { sourceDocId: string; topicId: string })[]
 ): Promise<(MCQ & { sourceDocId: string })[]> => {
 

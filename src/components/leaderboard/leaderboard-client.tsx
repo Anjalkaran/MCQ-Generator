@@ -23,7 +23,7 @@ interface LeaderboardClientProps {
 }
 
 type ExamCategory = UserData['examCategory'];
-const examCategories: ExamCategory[] = ['MTS', 'POSTMAN', 'PA'];
+const examCategories: ExamCategory[] = ['MTS', 'POSTMAN', 'PA', 'IP'];
 
 
 function LeaderboardTable({ data, type = 'general' }: { data: LeaderboardEntry[], type?: 'general' | 'live' }) {
