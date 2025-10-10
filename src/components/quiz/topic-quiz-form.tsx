@@ -63,11 +63,14 @@ export function TopicQuizForm({ topic }: TopicQuizFormProps) {
         });
         setAvailableMCQs(totalMCQs);
         
-        // Fetch number of attended questions
+        // Fetch number of unique attended questions
         const history = await getExamHistoryForUser(user.uid);
         const topicHistory = history.filter(h => h.topicId === topic.id);
-        const totalAttended = topicHistory.reduce((sum, item) => sum + item.totalQuestions, 0);
-        setAttendedQuestions(totalAttended);
+        const uniqueQuestions = new Set<string>();
+        topicHistory.forEach(item => {
+            item.questions.forEach(q => uniqueQuestions.add(q));
+        });
+        setAttendedQuestions(uniqueQuestions.size);
     }
     fetchTopicData();
   }, [topic.id, user]);
