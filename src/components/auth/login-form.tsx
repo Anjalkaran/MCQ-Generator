@@ -13,9 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Wrench } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { ADMIN_EMAILS } from '@/lib/constants';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -34,11 +33,6 @@ export function LoginForm() {
       password: '',
     },
   });
-
-  const emailInput = form.watch('email').toLowerCase();
-  const allowedUsers = [...ADMIN_EMAILS, "arulkumaran5566@gmail.com"];
-  const showLoginForm = allowedUsers.includes(emailInput) || emailInput === '';
-
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
@@ -88,57 +82,45 @@ export function LoginForm() {
         <CardDescription>Enter your credentials to access your account.</CardDescription>
       </CardHeader>
       <CardContent>
-        {showLoginForm ? (
-            <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                        <Input placeholder="name@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                        <Input type="password" placeholder="********" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <div className="flex items-center justify-end">
-                    <Link href="/auth/forgot-password" passHref>
-                        <Button variant="link" className="px-0">Forgot password?</Button>
-                    </Link>
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Log In
-                </Button>
-            </form>
-            </Form>
-        ) : (
-             <div className="flex flex-col items-center space-y-4 text-center">
-              <Wrench className="h-12 w-12 text-primary" />
-              <h2 className="text-xl font-bold tracking-tight">
-                Under Maintenance
-              </h2>
-              <p className="text-muted-foreground">
-                We are currently performing scheduled maintenance and will be back online shortly. Thank you for your patience!
-              </p>
-            </div>
-        )}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                  <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                      <Input placeholder="name@example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                  </FormItem>
+              )}
+              />
+              <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                  <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                      <Input type="password" placeholder="********" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                  </FormItem>
+              )}
+              />
+              <div className="flex items-center justify-end">
+                  <Link href="/auth/forgot-password" passHref>
+                      <Button variant="link" className="px-0">Forgot password?</Button>
+                  </Link>
+              </div>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Log In
+              </Button>
+          </form>
+        </Form>
         <div className="mt-4 text-center text-sm">
             Don&apos;t have an account?{' '}
             <Link href="/auth/register" className="underline">
