@@ -40,7 +40,7 @@ export default function GenerateTopicQuizPage({ params }: { params: { topicId: s
             <div className="space-y-2 text-center">
                 <h1 className="text-3xl font-bold tracking-tight">{topic.title}</h1>
                 <p className="text-muted-foreground">
-                    Configure and start your practice exam for this topic.
+                    Generate a custom practice exam for this topic from the available question bank.
                 </p>
             </div>
             <TopicQuizForm topic={topic} />

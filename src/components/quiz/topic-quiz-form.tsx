@@ -1,14 +1,14 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { generateMCQs } from '@/ai/flows/generate-mcqs';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -19,7 +19,8 @@ import Link from 'next/link';
 import { useDashboard } from '@/app/dashboard/layout';
 import { ADMIN_EMAILS, FREE_EXAM_LIMIT } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
-import type { Topic } from '@/lib/types';
+import type { Topic, MCQ } from '@/lib/types';
+import { getTopicMCQs, getExamHistoryForUser } from '@/lib/firestore';
 
 const allLanguages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
 const ipLanguages = ["English", "Hindi"] as const;
@@ -40,7 +41,37 @@ export function TopicQuizForm({ topic }: TopicQuizFormProps) {
   const { toast } = useToast();
   const { user, userData, isLoading } = useDashboard();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [availableMCQs, setAvailableMCQs] = useState(0);
+  const [attendedQuestions, setAttendedQuestions] = useState(0);
   
+  useEffect(() => {
+    async function fetchTopicData() {
+        if (!user) return;
+        
+        // Fetch number of available questions
+        const mcqDocs = await getTopicMCQs(topic.id);
+        let totalMCQs = 0;
+        mcqDocs.forEach(doc => {
+            try {
+                const data = JSON.parse(doc.content);
+                if (data.mcqs && Array.isArray(data.mcqs)) {
+                    totalMCQs += data.mcqs.length;
+                }
+            } catch (e) {
+                console.warn(`Could not parse content of ${doc.fileName}`);
+            }
+        });
+        setAvailableMCQs(totalMCQs);
+        
+        // Fetch number of attended questions
+        const history = await getExamHistoryForUser(user.uid);
+        const topicHistory = history.filter(h => h.topicId === topic.id);
+        const totalAttended = topicHistory.reduce((sum, item) => sum + item.totalQuestions, 0);
+        setAttendedQuestions(totalAttended);
+    }
+    fetchTopicData();
+  }, [topic.id, user]);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -107,9 +138,18 @@ export function TopicQuizForm({ topic }: TopicQuizFormProps) {
   
   return (
     <Card>
+       <CardHeader>
+          <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <span>Exam Setup</span>
+            <div className="text-sm font-normal text-muted-foreground flex gap-4 mt-2 sm:mt-0">
+                <span>Available: <span className="font-bold text-foreground">{availableMCQs}</span></span>
+                <span>Attempted: <span className="font-bold text-foreground">{attendedQuestions}</span></span>
+            </div>
+          </CardTitle>
+        </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <CardContent className="pt-6">
+            <CardContent>
                 {hasExceededFreeLimit ? (
                     <Alert variant="destructive">
                         <AlertTriangle className="h-4 w-4" />
