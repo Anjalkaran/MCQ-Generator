@@ -9,7 +9,7 @@
  */
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { getTopicMCQs } from '@/lib/firestore';
+import { getTopicMCQs, getExamHistoryForUser } from '@/lib/firestore';
 import type { MCQ } from '@/lib/types';
 import { getFirebaseDb } from '@/lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
@@ -130,6 +130,10 @@ const generateMCQsFlow = ai.defineFlow(
     
     let finalMCQs: MCQ[] = [];
     
+    const userHistory = await getExamHistoryForUser(input.userId);
+    const topicHistory = userHistory.filter(h => h.topicId === input.topicId);
+    const answeredQuestionTexts = new Set(topicHistory.flatMap(h => h.questions));
+
     // **PRIORITY 1: Check for uploaded JSON files in the MCQ Bank**
     const uploadedMCQDocs = await getTopicMCQs(input.topicId);
     let canonicalQuestions: MCQ[] = [];
@@ -145,13 +149,16 @@ const generateMCQsFlow = ai.defineFlow(
             }
         });
     }
+    
+    // Filter out questions the user has already answered
+    const unansweredQuestions = canonicalQuestions.filter(mcq => !answeredQuestionTexts.has(mcq.question.trim()));
 
-    if (canonicalQuestions.length > 0) {
-        if (canonicalQuestions.length < input.numberOfQuestions) {
-            console.warn(`Could only find ${canonicalQuestions.length} questions in the uploaded JSON files for topic "${input.topic}", though ${input.numberOfQuestions} were requested.`);
+    if (unansweredQuestions.length > 0) {
+        if (unansweredQuestions.length < input.numberOfQuestions) {
+            console.warn(`Could only find ${unansweredQuestions.length} unique, unanswered questions in the MCQ bank for topic "${input.topic}", though ${input.numberOfQuestions} were requested.`);
         }
         
-        const processedQuestions = canonicalQuestions.map(mcq => {
+        const processedQuestions = unansweredQuestions.map(mcq => {
             if (input.language && input.language !== 'English') {
                 const langKey = languageMap[input.language.toLowerCase()];
                 if (langKey && mcq.translations?.[langKey]) {
@@ -221,7 +228,7 @@ const generateMCQsFlow = ai.defineFlow(
         
         finalMCQs = shuffleArray(collectedMCQs).slice(0, input.numberOfQuestions);
 
-    // **PRIORITY 3: Fallback to AI Generation if no material exists**
+    // **PRIORITY 3: Fallback to AI Generation if no material or bank questions are available**
     } else {
         const { output } = await generateKnowledgeMCQsPrompt({
             topicName: input.topic,
