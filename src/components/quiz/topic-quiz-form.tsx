@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -152,7 +151,7 @@ export function TopicQuizForm({ topic }: TopicQuizFormProps) {
                  <div className="grid grid-cols-2 gap-4 mb-6">
                     <Card>
                         <CardHeader className="p-4">
-                            <CardDescription>Available</CardDescription>
+                            <CardDescription>Total MCQs available</CardDescription>
                             <CardTitle className="text-2xl">{availableMCQs}</CardTitle>
                         </CardHeader>
                     </Card>
