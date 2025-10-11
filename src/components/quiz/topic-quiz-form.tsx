@@ -142,17 +142,27 @@ export function TopicQuizForm({ topic }: TopicQuizFormProps) {
   return (
     <Card>
        <CardHeader>
-          <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-            <span>Exam Setup</span>
-            <div className="text-sm font-normal text-muted-foreground flex gap-4 mt-2 sm:mt-0">
-                <span>Available: <span className="font-bold text-foreground">{availableMCQs}</span></span>
-                <span>Attempted: <span className="font-bold text-foreground">{attendedQuestions}</span></span>
-            </div>
+          <CardTitle>
+            Exam Setup
           </CardTitle>
         </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CardContent>
+                 <div className="grid grid-cols-2 gap-4 mb-6">
+                    <Card>
+                        <CardHeader className="p-4">
+                            <CardDescription>Available</CardDescription>
+                            <CardTitle className="text-2xl">{availableMCQs}</CardTitle>
+                        </CardHeader>
+                    </Card>
+                    <Card>
+                        <CardHeader className="p-4">
+                            <CardDescription>Attempted</CardDescription>
+                            <CardTitle className="text-2xl">{attendedQuestions}</CardTitle>
+                        </CardHeader>
+                    </Card>
+                </div>
                 {hasExceededFreeLimit ? (
                     <Alert variant="destructive">
                         <AlertTriangle className="h-4 w-4" />
