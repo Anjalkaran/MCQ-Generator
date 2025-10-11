@@ -15,6 +15,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { normalizeDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useSearchParams } from 'next/navigation';
+import { useDashboard } from '@/app/dashboard/layout';
+import { ADMIN_EMAILS } from '@/lib/constants';
+
 
 interface LeaderboardClientProps {
   initialTopicLeaderboards: Record<UserData['examCategory'], LeaderboardEntry[]>;
@@ -23,7 +26,6 @@ interface LeaderboardClientProps {
 }
 
 type ExamCategory = UserData['examCategory'];
-const examCategories: ExamCategory[] = ['MTS', 'POSTMAN', 'PA', 'IP'];
 
 
 function LeaderboardTable({ data, type = 'general' }: { data: LeaderboardEntry[], type?: 'general' | 'live' }) {
@@ -101,26 +103,30 @@ function LeaderboardTable({ data, type = 'general' }: { data: LeaderboardEntry[]
   );
 }
 
-function CategorySelector({ selectedCategory, setSelectedCategory }: { selectedCategory: ExamCategory, setSelectedCategory: (category: ExamCategory) => void }) {
-  return (
-    <RadioGroup
-      value={selectedCategory}
-      onValueChange={(value) => setSelectedCategory(value as ExamCategory)}
-      className="flex items-center space-x-4 mb-4"
-    >
-      <Label>Exam Category:</Label>
-      {examCategories.map(cat => (
-        <div key={cat} className="flex items-center space-x-2">
-          <RadioGroupItem value={cat} id={`cat-${cat}`} />
-          <Label htmlFor={`cat-${cat}`}>{cat}</Label>
-        </div>
-      ))}
-    </RadioGroup>
-  );
+function CategorySelector({ selectedCategory, setSelectedCategory, availableCategories }: { selectedCategory: ExamCategory, setSelectedCategory: (category: ExamCategory) => void, availableCategories: ExamCategory[] }) {
+    if (availableCategories.length <= 1) {
+        return null; // Don't show the selector if there's only one option
+    }
+
+    return (
+        <RadioGroup
+        value={selectedCategory}
+        onValueChange={(value) => setSelectedCategory(value as ExamCategory)}
+        className="flex items-center space-x-4 mb-4"
+        >
+        <Label>Exam Category:</Label>
+        {availableCategories.map(cat => (
+            <div key={cat} className="flex items-center space-x-2">
+            <RadioGroupItem value={cat} id={`cat-${cat}`} />
+            <Label htmlFor={`cat-${cat}`}>{cat}</Label>
+            </div>
+        ))}
+        </RadioGroup>
+    );
 }
 
-function LiveTestLeaderboard({ pastLiveTests, initialTestId }: { pastLiveTests: LiveTest[], initialTestId?: string }) {
-    const [selectedCategory, setSelectedCategory] = useState<ExamCategory>('MTS');
+function LiveTestLeaderboard({ pastLiveTests, initialTestId, availableCategories, defaultCategory }: { pastLiveTests: LiveTest[], initialTestId?: string, availableCategories: ExamCategory[], defaultCategory: ExamCategory }) {
+    const [selectedCategory, setSelectedCategory] = useState<ExamCategory>(defaultCategory);
     const [selectedTestId, setSelectedTestId] = useState<string | undefined>(undefined);
     const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -141,11 +147,14 @@ function LiveTestLeaderboard({ pastLiveTests, initialTestId }: { pastLiveTests: 
             }
         }
         setSelectedTestId(filteredLiveTests[0]?.id);
-    }, [initialTestId, pastLiveTests]);
+    }, [initialTestId, pastLiveTests, filteredLiveTests]);
     
      useEffect(() => {
+        if (availableCategories.length === 1) {
+            setSelectedCategory(availableCategories[0]);
+        }
         setSelectedTestId(filteredLiveTests[0]?.id);
-    }, [selectedCategory, filteredLiveTests]);
+    }, [selectedCategory, filteredLiveTests, availableCategories]);
 
     useEffect(() => {
         const fetchLeaderboard = async () => {
@@ -176,7 +185,7 @@ function LiveTestLeaderboard({ pastLiveTests, initialTestId }: { pastLiveTests: 
         <div className="space-y-4">
              <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
                 <div className="w-full sm:w-auto">
-                    <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} />
+                    <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} availableCategories={availableCategories} />
                 </div>
                 <div className="flex-grow">
                     <Select value={selectedTestId} onValueChange={setSelectedTestId}>
@@ -212,10 +221,35 @@ function LiveTestLeaderboard({ pastLiveTests, initialTestId }: { pastLiveTests: 
 
 
 export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLeaderboards, pastLiveTests }: LeaderboardClientProps) {
-  const [selectedCategory, setSelectedCategory] = useState<ExamCategory>('MTS');
+  const { userData } = useDashboard();
   const searchParams = useSearchParams();
   const liveTestIdFromUrl = searchParams.get('liveTestId');
   const initialTab = liveTestIdFromUrl ? "live" : "topic";
+
+  const availableCategories = useMemo(() => {
+    if (!userData) return [];
+    if (userData.email && ADMIN_EMAILS.includes(userData.email)) return ['MTS', 'POSTMAN', 'PA', 'IP'];
+    switch (userData.examCategory) {
+        case 'IP':
+            return ['IP'];
+        case 'PA':
+            return ['PA', 'POSTMAN', 'MTS'];
+        case 'POSTMAN':
+            return ['POSTMAN', 'MTS'];
+        case 'MTS':
+            return ['MTS'];
+        default:
+            return [];
+    }
+  }, [userData]);
+  
+  const [selectedCategory, setSelectedCategory] = useState<ExamCategory>(userData?.examCategory || 'MTS');
+  
+  useEffect(() => {
+    if (userData?.examCategory) {
+        setSelectedCategory(userData.examCategory);
+    }
+  }, [userData]);
 
 
   return (
@@ -232,7 +266,7 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
             <CardDescription>Ranking based on average scores from all topic-wise quizzes. Only users who have completed more than six exams are included.</CardDescription>
           </CardHeader>
           <CardContent>
-            <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} />
+            <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} availableCategories={availableCategories} />
             <LeaderboardTable data={initialTopicLeaderboards[selectedCategory]} />
           </CardContent>
         </Card>
@@ -244,7 +278,7 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
             <CardDescription>Ranking based on average scores from all mock tests. Only users who have completed more than six exams are included.</CardDescription>
           </CardHeader>
           <CardContent>
-             <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} />
+             <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} availableCategories={availableCategories} />
             <LeaderboardTable data={initialMockTestLeaderboards[selectedCategory]} />
           </CardContent>
         </Card>
@@ -257,7 +291,12 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
           </CardHeader>
           <CardContent>
              {pastLiveTests.length > 0 ? (
-                <LiveTestLeaderboard pastLiveTests={pastLiveTests} initialTestId={liveTestIdFromUrl ?? undefined} />
+                <LiveTestLeaderboard 
+                    pastLiveTests={pastLiveTests} 
+                    initialTestId={liveTestIdFromUrl ?? undefined}
+                    availableCategories={availableCategories}
+                    defaultCategory={userData?.examCategory || 'MTS'}
+                />
              ) : (
                 <div className="text-center text-muted-foreground py-10">
                     No live tests have been completed yet.
