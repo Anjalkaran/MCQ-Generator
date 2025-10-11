@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -215,7 +214,7 @@ export function ReasoningTestForm() {
                         name="numberOfQuestions"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Number of Questions (1-10)</FormLabel>
+                            <FormLabel>Number of Questions per Exam (Max 10)</FormLabel>
                             <FormControl>
                                 <Input type="number" min="1" max="10" {...field} />
                             </FormControl>
