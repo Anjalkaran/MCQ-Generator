@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -204,7 +205,7 @@ export function TopicQuizForm({ topic }: TopicQuizFormProps) {
                     name="numberOfQuestions"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Questions per Exam (Max 25)</FormLabel>
+                        <FormLabel>Enter Questions per Exam (Max 25)</FormLabel>
                         <FormControl>
                             <Input type="number" min="3" max="25" {...field} />
                         </FormControl>

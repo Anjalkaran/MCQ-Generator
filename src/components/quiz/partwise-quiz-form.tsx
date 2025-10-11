@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -237,7 +238,7 @@ export function PartwiseQuizForm() {
                     name="numberOfQuestions"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Number of Questions per Exam (Max 50)</FormLabel>
+                        <FormLabel>Enter Questions per Exam (Max 50)</FormLabel>
                         <FormControl>
                             <Input type="number" min="5" max="50" {...field} />
                         </FormControl>
