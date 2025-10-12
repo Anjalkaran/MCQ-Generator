@@ -1,4 +1,5 @@
 
+
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion, runTransaction } from 'firebase/firestore';
 import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ, MCQData, StudyMaterial } from './types';
@@ -487,7 +488,10 @@ export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategor
     const leaderboard: Omit<LeaderboardEntry, 'rank'>[] = [];
     userPerformance.forEach((perf, userId) => {
         const user = userMap.get(userId);
-        if (user && perf.totalExams > 6) {
+        // For IP users, totalExamsTaken might not be relevant, so we allow them if they have performance entries.
+        const hasTakenEnoughExams = user?.examCategory === 'IP' ? perf.totalExams > 0 : (user?.totalExamsTaken || 0) > 6;
+
+        if (user && hasTakenEnoughExams) {
             leaderboard.push({
                 userId,
                 userName: user.name,
