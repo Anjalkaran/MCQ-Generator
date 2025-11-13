@@ -3,7 +3,7 @@
 
 import { useDashboard } from "@/app/dashboard/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, BookOpen, PenSquare, Video, Rss, History, FileWarning } from 'lucide-react';
+import { Loader2, BookOpen, PenSquare, Video, Rss, History, FileWarning, BrainCircuit } from 'lucide-react';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { UpcomingLiveTest } from "@/components/dashboard/upcoming-live-test";
@@ -164,6 +164,25 @@ export default function DashboardPage() {
           <CardContent className="flex-grow flex items-end">
             <Button asChild className="w-full">
               <Link href="/dashboard/online-test">Go to Practice</Link>
+            </Button>
+          </CardContent>
+        </Card>
+        
+        <Card className="flex flex-col">
+          <CardHeader>
+            <div className="flex items-center gap-4">
+              <div className="bg-primary/10 p-3 rounded-full">
+                <BrainCircuit className="h-8 w-8 text-primary" />
+              </div>
+              <CardTitle className="text-2xl">Aptitude Simulator</CardTitle>
+            </div>
+            <CardDescription className="pt-4">
+              Practice aptitude problems like age, percentage, and profit/loss with step-by-step solutions.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-grow flex items-end">
+            <Button disabled className="w-full">
+              Coming Soon
             </Button>
           </CardContent>
         </Card>
