@@ -10,7 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { gemini15Pro } from '@genkit-ai/googleai';
+import { googleAI } from '@genkit-ai/googleai';
 
 const ExplainAptitudeConceptInputSchema = z.object({
   topic: z.string().describe('The aptitude topic for which to generate an explanation (e.g., "Ages", "Percentage").'),
@@ -37,7 +37,7 @@ const prompt = ai.definePrompt({
   name: 'explainAptitudeConceptPrompt',
   input: {schema: ExplainAptitudeConceptInputSchema},
   output: {schema: ExplainAptitudeConceptOutputSchema},
-  model: gemini15Pro,
+  model: googleAI.model('gemini-1.5-pro'),
   prompt: `You are an expert tutor for quantitative aptitude. Your task is to explain the core concept and list the key formulas for the given topic.
 
 **Topic:** "{{topic}}"

@@ -9,7 +9,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { gemini15Pro } from '@genkit-ai/googleai';
+import { googleAI } from '@genkit-ai/googleai';
 
 const GenerateAptitudeProblemInputSchema = z.object({
   topic: z.string().describe('The aptitude topic for which to generate a problem (e.g., "Ages", "Percentage", "Profit and Loss").'),
@@ -33,7 +33,7 @@ const prompt = ai.definePrompt({
   name: 'generateAptitudeProblemPrompt',
   input: {schema: GenerateAptitudeProblemInputSchema},
   output: {schema: GenerateAptitudeProblemOutputSchema},
-  model: gemini15Pro,
+  model: googleAI.model('gemini-1.5-pro'),
   prompt: `You are an expert tutor specializing in quantitative aptitude for Indian competitive exams. Your task is to generate a single, unique, high-quality aptitude problem based on the given topic.
 
 **CRITICAL INSTRUCTIONS:**
