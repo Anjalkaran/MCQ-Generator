@@ -98,6 +98,24 @@ export default function DashboardPage() {
                         </Button>
                     </CardContent>
                 </Card>
+                <Card className="flex flex-col">
+                    <CardHeader>
+                        <div className="flex items-center gap-4">
+                        <div className="bg-primary/10 p-3 rounded-full">
+                            <BrainCircuit className="h-8 w-8 text-primary" />
+                        </div>
+                        <CardTitle className="text-2xl">Aptitude Simulator</CardTitle>
+                        </div>
+                        <CardDescription className="pt-4">
+                        Practice aptitude problems like age, percentage, and profit/loss with step-by-step solutions.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-grow flex items-end">
+                        <Button disabled className="w-full">
+                        Coming Soon
+                        </Button>
+                    </CardContent>
+                </Card>
             </div>
         </div>
     );
