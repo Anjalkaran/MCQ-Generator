@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -9,9 +10,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Sparkles, BrainCircuit, Lightbulb } from 'lucide-react';
-import { generateAptitudeProblem } from '@/ai/flows/generate-aptitude-problem';
+import { Loader2, Sparkles, BrainCircuit, Lightbulb, BookOpen } from 'lucide-react';
+import { generateAptitudeProblem, type GenerateAptitudeProblemOutput } from '@/ai/flows/generate-aptitude-problem';
+import { explainAptitudeConcept, type ExplainAptitudeConceptOutput } from '@/ai/flows/explain-aptitude-concept';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const aptitudeTopics = [
     "Ages",
@@ -34,10 +38,57 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+function ConceptDialog({ topic, concept, onOpenChange }: { topic: string, concept: ExplainAptitudeConceptOutput | null, onOpenChange: (open: boolean) => void }) {
+    return (
+        <Dialog open={!!concept} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <BookOpen />
+                        Concept: {topic}
+                    </DialogTitle>
+                    <DialogDescription>
+                       A brief overview of the core theory and formulas for this topic.
+                    </DialogDescription>
+                </DialogHeader>
+                {concept ? (
+                    <ScrollArea className="h-96 pr-4">
+                        <div className="space-y-6">
+                            <div>
+                                <h3 className="font-semibold text-lg mb-2">Core Concept</h3>
+                                <p className="text-muted-foreground whitespace-pre-wrap">{concept.concept}</p>
+                            </div>
+                            <Separator />
+                            <div>
+                                <h3 className="font-semibold text-lg mb-2">Key Formulas</h3>
+                                <div className="space-y-4">
+                                    {concept.formulas.map((f, index) => (
+                                        <div key={index} className="p-4 border rounded-lg">
+                                            <p className="font-mono font-semibold text-primary">{f.formula}</p>
+                                            <p className="font-medium mt-1">{f.name}</p>
+                                            <p className="text-sm text-muted-foreground mt-1">{f.explanation}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </ScrollArea>
+                ) : (
+                    <div className="flex items-center justify-center h-48">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                )}
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 export default function AptitudeSimulatorPage() {
     const { toast } = useToast();
     const [isGenerating, setIsGenerating] = useState(false);
-    const [problem, setProblem] = useState<{ question: string; detailedSolution: string } | null>(null);
+    const [isExplaining, setIsExplaining] = useState(false);
+    const [problem, setProblem] = useState<GenerateAptitudeProblemOutput | null>(null);
+    const [concept, setConcept] = useState<ExplainAptitudeConceptOutput | null>(null);
     const [previousQuestions, setPreviousQuestions] = useState<string[]>([]);
     const [showSolution, setShowSolution] = useState(false);
 
@@ -47,6 +98,23 @@ export default function AptitudeSimulatorPage() {
             topic: undefined,
         },
     });
+
+    const selectedTopic = form.watch('topic');
+
+    const handleExplainConcept = async () => {
+        if (!selectedTopic) return;
+        setIsExplaining(true);
+        setConcept(null); // Clear previous concept while fetching
+
+        try {
+            const result = await explainAptitudeConcept({ topic: selectedTopic });
+            setConcept(result);
+        } catch (error: any) {
+            console.error('Error explaining concept:', error);
+            toast({ title: 'Error', description: error.message || 'Failed to explain concept.', variant: 'destructive' });
+            setIsExplaining(false); // Close dialog on error
+        }
+    };
 
     const onSubmit = async (values: FormValues) => {
         setIsGenerating(true);
@@ -69,14 +137,25 @@ export default function AptitudeSimulatorPage() {
     };
     
     const handleNextProblem = () => {
-        const currentTopic = form.getValues("topic");
-        if (currentTopic) {
-            onSubmit({ topic: currentTopic });
+        if (selectedTopic) {
+            onSubmit({ topic: selectedTopic });
         }
     }
 
     return (
         <div className="space-y-6 max-w-3xl mx-auto">
+            {concept && (
+                 <ConceptDialog 
+                    topic={selectedTopic || ''} 
+                    concept={concept} 
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setConcept(null);
+                            setIsExplaining(false);
+                        }
+                    }}
+                />
+            )}
             <div className="space-y-2 text-center">
                 <BrainCircuit className="mx-auto h-12 w-12 text-primary" />
                 <h1 className="text-3xl font-bold tracking-tight">Aptitude Problem Simulator</h1>
@@ -115,8 +194,17 @@ export default function AptitudeSimulatorPage() {
                                 )}
                             />
                         </CardContent>
-                        <CardFooter>
-                            <Button type="submit" disabled={isGenerating || !form.formState.isValid} className="w-full">
+                        <CardFooter className="flex-col sm:flex-row justify-between gap-4">
+                            <Button 
+                                type="button" 
+                                variant="outline"
+                                onClick={handleExplainConcept} 
+                                disabled={isExplaining || !selectedTopic}
+                            >
+                                {isExplaining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BookOpen className="mr-2 h-4 w-4" />}
+                                Show Concept
+                            </Button>
+                            <Button type="submit" disabled={isGenerating || !form.formState.isValid}>
                                 {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                                 Generate Problem
                             </Button>
