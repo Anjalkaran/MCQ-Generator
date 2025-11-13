@@ -111,8 +111,8 @@ export default function DashboardPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="flex-grow flex items-end">
-                        <Button disabled className="w-full">
-                        Coming Soon
+                        <Button asChild className="w-full">
+                            <Link href="/dashboard/aptitude-simulator">Start Simulator</Link>
                         </Button>
                     </CardContent>
                 </Card>
@@ -199,8 +199,8 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-grow flex items-end">
-            <Button disabled className="w-full">
-              Coming Soon
+            <Button asChild className="w-full">
+              <Link href="/dashboard/aptitude-simulator">Start Simulator</Link>
             </Button>
           </CardContent>
         </Card>
