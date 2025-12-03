@@ -16,6 +16,8 @@ const pollData = {
     id: "ip-marks-2025",
     question: "IP Aspirants 2025: Paper 1 & 3 MARKS",
     options: [
+        { id: "opt12", text: "511-530", votes: 0 },
+        { id: "opt11", text: "491-510", votes: 0 },
         { id: "opt1", text: "480-490", votes: 1 },
         { id: "opt2", text: "460-479", votes: 6 },
         { id: "opt3", text: "450-459", votes: 1 },
@@ -25,6 +27,8 @@ const pollData = {
         { id: "opt7", text: "410-419", votes: 9 },
         { id: "opt8", text: "400-409", votes: 4 },
         { id: "opt9", text: "390-399", votes: 7 },
+        { id: "opt10", text: "370-389", votes: 0 },
+        { id: "opt13", text: "350-369", votes: 0 },
     ],
 };
 
