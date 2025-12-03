@@ -30,15 +30,15 @@ const initialPollData: PollData = {
     options: [
         { id: "opt12", text: "511-530", votes: 0 },
         { id: "opt11", text: "491-510", votes: 0 },
-        { id: "opt1", text: "480-490", votes: 1 },
-        { id: "opt2", text: "460-479", votes: 6 },
-        { id: "opt3", text: "450-459", votes: 1 },
-        { id: "opt4", text: "440-449", votes: 4 },
-        { id: "opt5", text: "430-439", votes: 7 },
-        { id: "opt6", text: "420-429", votes: 7 },
-        { id: "opt7", text: "410-419", votes: 9 },
-        { id: "opt8", text: "400-409", votes: 4 },
-        { id: "opt9", text: "390-399", votes: 7 },
+        { id: "opt1", text: "480-490", votes: 0 },
+        { id: "opt2", text: "460-479", votes: 0 },
+        { id: "opt3", text: "450-459", votes: 0 },
+        { id: "opt4", text: "440-449", votes: 0 },
+        { id: "opt5", text: "430-439", votes: 0 },
+        { id: "opt6", text: "420-429", votes: 0 },
+        { id: "opt7", text: "410-419", votes: 0 },
+        { id: "opt8", text: "400-409", votes: 0 },
+        { id: "opt9", text: "390-399", votes: 0 },
         { id: "opt10", text: "370-389", votes: 0 },
         { id: "opt13", text: "350-369", votes: 0 },
     ],
@@ -46,7 +46,7 @@ const initialPollData: PollData = {
 
 export function PollClient() {
     const { toast } = useToast();
-    const [pollData, setPollData] = useState<PollData>(initialPollData);
+    const [pollData, setPollData] = useState<PollData | null>(null);
     const [selectedOption, setSelectedOption] = useState<string | null>(null);
     const [hasVoted, setHasVoted] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -65,7 +65,7 @@ export function PollClient() {
             if (docSnap.exists()) {
                 setPollData(docSnap.data() as PollData);
             } else {
-                // If the poll doesn't exist in Firestore, create it with initial data.
+                // If the poll doesn't exist in Firestore, create it with initial data (votes will be 0)
                 setDoc(pollRef, initialPollData);
                 setPollData(initialPollData);
             }
@@ -81,7 +81,7 @@ export function PollClient() {
         return () => unsubscribe();
     }, [toast]);
 
-    const totalVotes = pollData.options.reduce((acc, option) => acc + option.votes, 0);
+    const totalVotes = pollData ? pollData.options.reduce((acc, option) => acc + option.votes, 0) : 0;
 
     const handleVote = async () => {
         if (!selectedOption) {
@@ -95,7 +95,7 @@ export function PollClient() {
 
         setIsLoading(true);
         const db = getFirebaseDb();
-        if (!db) {
+        if (!db || !pollData) {
              toast({ title: "Error", description: "Could not connect to the database.", variant: "destructive"});
              setIsLoading(false);
              return;
@@ -135,7 +135,7 @@ export function PollClient() {
         }
     };
     
-    if (isLoading) {
+    if (isLoading || !pollData) {
         return (
              <Card>
                 <CardContent className="flex items-center justify-center p-10">
