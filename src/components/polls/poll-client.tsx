@@ -28,6 +28,7 @@ const initialPollData: PollData = {
     id: "ip-marks-2025",
     question: "IP exam mark paper 1 and paper 3 total",
     options: [
+        { id: "opt14", text: "above 530", votes: 0 },
         { id: "opt12", text: "511-530", votes: 0 },
         { id: "opt11", text: "491-510", votes: 0 },
         { id: "opt1", text: "480-490", votes: 1 },
