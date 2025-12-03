@@ -72,14 +72,14 @@ export function PollClient() {
         <Card>
             <CardHeader>
                 <CardTitle>{pollData.question}</CardTitle>
-                <CardDescription>Select one option to cast your vote.</CardDescription>
+                <CardDescription>Select one option to cast your vote or view the results.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
                     {hasVoted ? (
                         <div className="space-y-3">
                             {currentVotes.map(option => {
-                                const percentage = totalVotes > 0 ? (option.votes / (totalVotes + 1)) * 100 : 0;
+                                const percentage = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
                                 const isSelected = option.id === selectedOption;
                                 return (
                                     <div key={option.id} className="space-y-1">
@@ -107,15 +107,21 @@ export function PollClient() {
                     )}
                 </div>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex-col sm:flex-row items-center gap-4">
                 {hasVoted ? (
-                    <div className="text-sm text-muted-foreground">You have voted in this poll.</div>
+                    <Button variant="outline" onClick={() => setHasVoted(false)}>Back to Voting</Button>
                 ) : (
-                    <Button onClick={handleVote} disabled={isLoading || !selectedOption}>
-                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Submit Vote
-                    </Button>
+                    <>
+                        <Button onClick={handleVote} disabled={isLoading || !selectedOption}>
+                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Submit Vote
+                        </Button>
+                        <Button variant="ghost" onClick={() => setHasVoted(true)}>Show Results</Button>
+                    </>
                 )}
+                 <div className="text-sm text-muted-foreground ml-auto">
+                    Total Votes: {totalVotes}
+                </div>
             </CardFooter>
         </Card>
     );
