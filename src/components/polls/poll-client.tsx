@@ -9,10 +9,22 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { Check, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { getFirebaseDb } from '@/lib/firebase';
+import { doc, getDoc, setDoc, onSnapshot, updateDoc, increment } from 'firebase/firestore';
 
-// This data would eventually come from Firestore
-const pollData = {
+interface PollOption {
+    id: string;
+    text: string;
+    votes: number;
+}
+
+interface PollData {
+    id: string;
+    question: string;
+    options: PollOption[];
+}
+
+const initialPollData: PollData = {
     id: "ip-marks-2025",
     question: "IP Aspirants 2025: Paper 1 & 3 MARKS",
     options: [
@@ -34,23 +46,44 @@ const pollData = {
 
 export function PollClient() {
     const { toast } = useToast();
+    const [pollData, setPollData] = useState<PollData>(initialPollData);
     const [selectedOption, setSelectedOption] = useState<string | null>(null);
     const [hasVoted, setHasVoted] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [currentVotes, setCurrentVotes] = useState(pollData.options.map(opt => ({ ...opt })));
-
+    const [isLoading, setIsLoading] = useState(true);
+    
     useEffect(() => {
-        // On component mount, check if the user has already voted.
-        const previousVote = localStorage.getItem(`poll_${pollData.id}`);
+        const db = getFirebaseDb();
+        if (!db) {
+            toast({ title: "Error", description: "Could not connect to the database.", variant: "destructive"});
+            setIsLoading(false);
+            return;
+        }
+
+        const pollRef = doc(db, 'polls', initialPollData.id);
+
+        const unsubscribe = onSnapshot(pollRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setPollData(docSnap.data() as PollData);
+            } else {
+                // If the poll doesn't exist in Firestore, create it with initial data.
+                setDoc(pollRef, initialPollData);
+                setPollData(initialPollData);
+            }
+            setIsLoading(false);
+        });
+
+        const previousVote = localStorage.getItem(`poll_${initialPollData.id}`);
         if (previousVote) {
             setHasVoted(true);
             setSelectedOption(previousVote);
         }
-    }, []);
+        
+        return () => unsubscribe();
+    }, [toast]);
 
-    const totalVotes = currentVotes.reduce((acc, option) => acc + option.votes, 0);
+    const totalVotes = pollData.options.reduce((acc, option) => acc + option.votes, 0);
 
-    const handleVote = () => {
+    const handleVote = async () => {
         if (!selectedOption) {
             toast({
                 title: "No Selection",
@@ -61,25 +94,53 @@ export function PollClient() {
         }
 
         setIsLoading(true);
-        // Simulate an API call to save the vote
-        setTimeout(() => {
-            setCurrentVotes(prevVotes => 
-                prevVotes.map(opt => 
-                    opt.id === selectedOption ? { ...opt, votes: opt.votes + 1 } : opt
-                )
-            );
-            
-            // Store the vote in localStorage to prevent re-voting
-            localStorage.setItem(`poll_${pollData.id}`, selectedOption);
+        const db = getFirebaseDb();
+        if (!db) {
+             toast({ title: "Error", description: "Could not connect to the database.", variant: "destructive"});
+             setIsLoading(false);
+             return;
+        }
+        
+        const pollRef = doc(db, 'polls', pollData.id);
 
-            setHasVoted(true);
+        try {
+            const pollDoc = await getDoc(pollRef);
+            if (pollDoc.exists()) {
+                const currentData = pollDoc.data() as PollData;
+                const optionIndex = currentData.options.findIndex(opt => opt.id === selectedOption);
+                
+                if (optionIndex !== -1) {
+                    const newOptions = [...currentData.options];
+                    newOptions[optionIndex].votes += 1;
+                    
+                    await updateDoc(pollRef, { options: newOptions });
+
+                    localStorage.setItem(`poll_${pollData.id}`, selectedOption);
+                    setHasVoted(true);
+                    toast({
+                        title: "Vote Submitted",
+                        description: "Thank you for participating!",
+                    });
+                }
+            }
+        } catch (error) {
+            console.error("Error submitting vote:", error);
+            toast({ title: "Error", description: "Could not submit your vote.", variant: "destructive" });
+        } finally {
             setIsLoading(false);
-            toast({
-                title: "Vote Submitted",
-                description: "Thank you for participating!",
-            });
-        }, 500);
+        }
     };
+    
+    if (isLoading) {
+        return (
+             <Card>
+                <CardContent className="flex items-center justify-center p-10">
+                    <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                    <p>Loading Poll...</p>
+                </CardContent>
+            </Card>
+        )
+    }
 
     return (
         <Card>
@@ -91,7 +152,7 @@ export function PollClient() {
                 <div className="space-y-4">
                     {hasVoted ? (
                         <div className="space-y-3">
-                            {currentVotes.map(option => {
+                            {pollData.options.map(option => {
                                 const percentage = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
                                 const isSelected = option.id === selectedOption;
                                 return (
@@ -110,7 +171,7 @@ export function PollClient() {
                         </div>
                     ) : (
                         <RadioGroup value={selectedOption ?? ''} onValueChange={setSelectedOption}>
-                            {currentVotes.map(option => (
+                            {pollData.options.map(option => (
                                 <div key={option.id} className="flex items-center space-x-2">
                                     <RadioGroupItem value={option.id} id={option.id} />
                                     <Label htmlFor={option.id} className="cursor-pointer">{option.text}</Label>
