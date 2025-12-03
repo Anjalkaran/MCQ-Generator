@@ -10,7 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { Check, Loader2 } from 'lucide-react';
 import { getFirebaseDb } from '@/lib/firebase';
-import { doc, getDoc, setDoc, onSnapshot, updateDoc, increment } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, updateDoc, increment, runTransaction } from 'firebase/firestore';
 
 interface PollOption {
     id: string;
@@ -104,25 +104,29 @@ export function PollClient() {
         const pollRef = doc(db, 'polls', pollData.id);
 
         try {
-            const pollDoc = await getDoc(pollRef);
-            if (pollDoc.exists()) {
-                const currentData = pollDoc.data() as PollData;
-                const optionIndex = currentData.options.findIndex(opt => opt.id === selectedOption);
-                
-                if (optionIndex !== -1) {
-                    const newOptions = [...currentData.options];
-                    newOptions[optionIndex].votes += 1;
-                    
-                    await updateDoc(pollRef, { options: newOptions });
-
-                    localStorage.setItem(`poll_${pollData.id}`, selectedOption);
-                    setHasVoted(true);
-                    toast({
-                        title: "Vote Submitted",
-                        description: "Thank you for participating!",
-                    });
+            await runTransaction(db, async (transaction) => {
+                const pollDoc = await transaction.get(pollRef);
+                if (!pollDoc.exists()) {
+                    throw "Poll does not exist.";
                 }
-            }
+
+                const currentData = pollDoc.data() as PollData;
+                const newOptions = currentData.options.map(opt => {
+                    if (opt.id === selectedOption) {
+                        return { ...opt, votes: opt.votes + 1 };
+                    }
+                    return opt;
+                });
+                
+                transaction.update(pollRef, { options: newOptions });
+            });
+
+            localStorage.setItem(`poll_${pollData.id}`, selectedOption);
+            setHasVoted(true);
+            toast({
+                title: "Vote Submitted",
+                description: "Thank you for participating!",
+            });
         } catch (error) {
             console.error("Error submitting vote:", error);
             toast({ title: "Error", description: "Could not submit your vote.", variant: "destructive" });
