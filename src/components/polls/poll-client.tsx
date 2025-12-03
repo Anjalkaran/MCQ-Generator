@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -39,6 +39,15 @@ export function PollClient() {
     const [isLoading, setIsLoading] = useState(false);
     const [currentVotes, setCurrentVotes] = useState(pollData.options.map(opt => ({ ...opt })));
 
+    useEffect(() => {
+        // On component mount, check if the user has already voted.
+        const previousVote = localStorage.getItem(`poll_${pollData.id}`);
+        if (previousVote) {
+            setHasVoted(true);
+            setSelectedOption(previousVote);
+        }
+    }, []);
+
     const totalVotes = currentVotes.reduce((acc, option) => acc + option.votes, 0);
 
     const handleVote = () => {
@@ -59,6 +68,10 @@ export function PollClient() {
                     opt.id === selectedOption ? { ...opt, votes: opt.votes + 1 } : opt
                 )
             );
+            
+            // Store the vote in localStorage to prevent re-voting
+            localStorage.setItem(`poll_${pollData.id}`, selectedOption);
+
             setHasVoted(true);
             setIsLoading(false);
             toast({
@@ -108,9 +121,7 @@ export function PollClient() {
                 </div>
             </CardContent>
             <CardFooter className="flex-col sm:flex-row items-center gap-4">
-                {hasVoted ? (
-                    <Button variant="outline" onClick={() => setHasVoted(false)}>Back to Voting</Button>
-                ) : (
+                {!hasVoted && (
                     <>
                         <Button onClick={handleVote} disabled={isLoading || !selectedOption}>
                             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
