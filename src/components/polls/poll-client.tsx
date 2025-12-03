@@ -85,7 +85,7 @@ export function PollClient() {
         <Card>
             <CardHeader>
                 <CardTitle>{pollData.question}</CardTitle>
-                <CardDescription>Select one option to cast your vote or view the results.</CardDescription>
+                <CardDescription>Select one option to cast your vote. You can only vote once per device.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
