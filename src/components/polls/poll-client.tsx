@@ -122,10 +122,15 @@ export function PollClient() {
             </CardContent>
             <CardFooter className="flex-col sm:flex-row items-center gap-4">
                 {!hasVoted && (
-                    <Button onClick={handleVote} disabled={isLoading || !selectedOption}>
-                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Submit Vote
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button onClick={handleVote} disabled={isLoading || !selectedOption}>
+                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Submit Vote
+                        </Button>
+                        <Button variant="outline" onClick={() => setHasVoted(true)}>
+                            Show Results
+                        </Button>
+                    </div>
                 )}
                  <div className="text-sm text-muted-foreground ml-auto">
                     Total Votes: {totalVotes}
