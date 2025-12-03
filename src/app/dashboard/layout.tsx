@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
@@ -209,6 +210,14 @@ function AppSidebar() {
                   <span>Ask Your Doubt</span>
                 </Link>
               </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/polls')} tooltip="Polls">
+                    <Link href="/dashboard/polls" onClick={onLinkClick}>
+                        <BarChart3 />
+                        <span>Polls</span>
+                    </Link>
+                </SidebarMenuButton>
             </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/dashboard/profile'} tooltip="Profile">
