@@ -11,8 +11,6 @@ import { getFirebaseDb } from '@/lib/firebase';
 import { doc, onSnapshot, runTransaction } from 'firebase/firestore';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { FormItem, FormControl, FormLabel } from '@/components/ui/form';
-
 
 interface PollOption {
     id: string;
@@ -164,14 +162,12 @@ export function PollClient() {
                 <CardContent>
                     <RadioGroup value={selectedOption ?? undefined} onValueChange={setSelectedOption}>
                         {pollData.options.map(option => (
-                             <FormItem key={option.id} className="flex items-center space-x-3 space-y-0 p-3 border rounded-md hover:bg-muted/50 cursor-pointer">
-                                <FormControl>
-                                    <RadioGroupItem value={option.id} />
-                                </FormControl>
-                                <FormLabel className="font-normal flex-1 cursor-pointer">
+                             <Label key={option.id} htmlFor={option.id} className="flex items-center space-x-3 space-y-0 p-3 border rounded-md hover:bg-muted/50 cursor-pointer">
+                                <RadioGroupItem value={option.id} id={option.id} />
+                                <span className="font-normal flex-1 cursor-pointer">
                                    {option.text}
-                                </FormLabel>
-                            </FormItem>
+                                </span>
+                            </Label>
                         ))}
                     </RadioGroup>
                 </CardContent>
