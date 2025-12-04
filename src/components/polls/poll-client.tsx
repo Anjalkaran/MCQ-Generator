@@ -11,6 +11,7 @@ import { getFirebaseDb } from '@/lib/firebase';
 import { doc, onSnapshot, runTransaction } from 'firebase/firestore';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { FormItem, FormControl, FormLabel } from '@/components/ui/form';
 
 
 interface PollOption {
@@ -44,6 +45,7 @@ export function PollClient() {
 
         const pollRef = doc(db, 'polls', pollId);
 
+        // Ensure the poll is initialized on the server
         fetch('/api/polls/initialize', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
