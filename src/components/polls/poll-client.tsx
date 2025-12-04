@@ -65,7 +65,6 @@ export function PollClient() {
             if (docSnap.exists()) {
                 setPollData(docSnap.data() as PollData);
             } else {
-                // If the poll doesn't exist in Firestore, create it with initial data (votes will be 0)
                 setDoc(pollRef, initialPollData);
                 setPollData(initialPollData);
             }
@@ -150,7 +149,7 @@ export function PollClient() {
         <Card>
             <CardHeader>
                 <CardTitle>{pollData.question}</CardTitle>
-                <CardDescription>Select one option to cast your vote. You can only vote once per device.</CardDescription>
+                <CardDescription>Select one option to cast your vote or view the results. You can only vote once per device.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
