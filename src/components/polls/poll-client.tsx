@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
@@ -28,11 +27,16 @@ export function PollClient() {
     const { toast } = useToast();
     const [pollData, setPollData] = useState<PollData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [voted, setVoted] = useState(false);
+    const [hasVoted, setHasVoted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const pollId = "ip-marks-2025";
 
     useEffect(() => {
+        const votedInStorage = localStorage.getItem(`voted_${pollId}`);
+        if (votedInStorage === 'true') {
+            setHasVoted(true);
+        }
+
         const db = getFirebaseDb();
         if (!db) {
             toast({ title: "Error", description: "Could not connect to the database.", variant: "destructive"});
@@ -64,7 +68,7 @@ export function PollClient() {
     }, [toast, pollId]);
 
     const handleVote = async (optionId: string) => {
-        if (!optionId || isSubmitting) return;
+        if (!optionId || isSubmitting || hasVoted) return;
 
         const db = getFirebaseDb();
         if (!db) {
@@ -93,8 +97,9 @@ export function PollClient() {
                 transaction.update(pollRef, { options: newOptions });
             });
             
+            localStorage.setItem(`voted_${pollId}`, 'true');
+            setHasVoted(true);
             toast({ title: "Success", description: "Your vote has been counted." });
-            setVoted(true);
 
         } catch (error) {
             console.error("Error submitting vote:", error);
@@ -133,11 +138,11 @@ export function PollClient() {
             <CardHeader>
                 <CardTitle>{pollData.question}</CardTitle>
                 <CardDescription>
-                    {voted ? "Results are updated in real-time." : "Select an option to cast your vote."}
+                    {hasVoted ? "Results are updated in real-time." : "Select an option to cast your vote."}
                 </CardDescription>
             </CardHeader>
             
-            {voted ? (
+            {hasVoted ? (
                 <CardContent>
                     <div className="space-y-4">
                         {pollData.options.sort((a, b) => b.votes - a.votes).map(option => {
@@ -180,12 +185,7 @@ export function PollClient() {
                 </CardContent>
             )}
 
-             <CardFooter className="justify-between">
-                 <div>
-                    {!voted && (
-                         <Button variant="ghost" onClick={() => setVoted(true)}>Show Results</Button>
-                    )}
-                 </div>
+             <CardFooter className="justify-end">
                  <div className="text-sm text-muted-foreground">
                     Total Votes: {totalVotes}
                 </div>
