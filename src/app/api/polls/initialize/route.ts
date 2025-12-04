@@ -21,7 +21,7 @@ const restoredPollData = {
         { id: "opt8", text: "400-409", votes: 7 },
         { id: "opt9", text: "390-399", votes: 9 },
         { id: "opt10", text: "370-389", votes: 2 },
-        { id: "opt13", text: "350-369", votes: 3 },
+        { id: "opt13", text: "350-369", votes: 1 },
     ],
 };
 
