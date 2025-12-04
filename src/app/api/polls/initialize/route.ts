@@ -4,9 +4,8 @@ import { adminDb } from '@/lib/firebase-admin';
 
 export const runtime = 'nodejs';
 
-// This is the initial structure of our poll.
-// The vote counts are now restored based on the user-provided image.
-const initialPollData = {
+// This is the initial structure of our poll, restored with the user-provided data.
+const restoredPollData = {
     id: "ip-marks-2025",
     question: "IP exam mark paper 1 and paper 3 total",
     options: [
@@ -39,19 +38,15 @@ export async function POST(req: NextRequest) {
         }
 
         const pollRef = adminDb.collection('polls').doc(pollId);
-        const pollSnap = await pollRef.get();
-
-        if (!pollSnap.exists) {
-            // If the document does not exist, create it with the initial data.
-            // This prevents the client from ever resetting the data.
-            await pollRef.set(initialPollData);
-            return NextResponse.json({ status: 'success', message: 'Poll initialized successfully with restored data.' });
-        }
-
-        return NextResponse.json({ status: 'success', message: 'Poll already exists.' });
+        
+        // Overwrite the document with the restored data to ensure it is correct.
+        // This will create the document if it doesn't exist or update it if it does.
+        await pollRef.set(restoredPollData);
+        
+        return NextResponse.json({ status: 'success', message: 'Poll data has been successfully set to the restored state.' });
 
     } catch (error: any) {
-        console.error("Error initializing poll:", error);
+        console.error("Error setting poll data:", error);
         return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
     }
 }
