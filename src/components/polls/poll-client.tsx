@@ -29,7 +29,6 @@ export function PollClient() {
     const [pollData, setPollData] = useState<PollData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [voted, setVoted] = useState(false);
-    const [selectedOption, setSelectedOption] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const pollId = "ip-marks-2025";
 
@@ -64,8 +63,8 @@ export function PollClient() {
         return () => unsubscribe();
     }, [toast, pollId]);
 
-    const handleVote = async () => {
-        if (!selectedOption) return;
+    const handleVote = async (optionId: string) => {
+        if (!optionId || isSubmitting) return;
 
         const db = getFirebaseDb();
         if (!db) {
@@ -85,7 +84,7 @@ export function PollClient() {
 
                 const currentPollData = pollDoc.data() as PollData;
                 const newOptions = currentPollData.options.map(option => {
-                    if (option.id === selectedOption) {
+                    if (option.id === optionId) {
                         return { ...option, votes: option.votes + 1 };
                     }
                     return option;
@@ -134,7 +133,7 @@ export function PollClient() {
             <CardHeader>
                 <CardTitle>{pollData.question}</CardTitle>
                 <CardDescription>
-                    {voted ? "Results are updated in real-time." : "Select an option and cast your vote."}
+                    {voted ? "Results are updated in real-time." : "Select an option to cast your vote."}
                 </CardDescription>
             </CardHeader>
             
@@ -160,16 +159,24 @@ export function PollClient() {
                 </CardContent>
             ) : (
                 <CardContent>
-                    <RadioGroup value={selectedOption ?? undefined} onValueChange={setSelectedOption}>
-                        {pollData.options.map(option => (
-                             <Label key={option.id} htmlFor={option.id} className="flex items-center space-x-3 space-y-0 p-3 border rounded-md hover:bg-muted/50 cursor-pointer">
-                                <RadioGroupItem value={option.id} id={option.id} />
-                                <span className="font-normal flex-1 cursor-pointer">
-                                   {option.text}
-                                </span>
-                            </Label>
-                        ))}
-                    </RadioGroup>
+                    <fieldset disabled={isSubmitting}>
+                        <RadioGroup onValueChange={handleVote}>
+                            {pollData.options.map(option => (
+                                <Label key={option.id} htmlFor={option.id} className="flex items-center space-x-3 space-y-0 p-3 border rounded-md hover:bg-muted/50 cursor-pointer has-[:checked]:border-primary">
+                                    <RadioGroupItem value={option.id} id={option.id} />
+                                    <span className="font-normal flex-1 cursor-pointer">
+                                    {option.text}
+                                    </span>
+                                </Label>
+                            ))}
+                        </RadioGroup>
+                    </fieldset>
+                     {isSubmitting && (
+                        <div className="flex items-center justify-center pt-4">
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <span className="text-muted-foreground">Submitting your vote...</span>
+                        </div>
+                    )}
                 </CardContent>
             )}
 
@@ -179,16 +186,8 @@ export function PollClient() {
                          <Button variant="ghost" onClick={() => setVoted(true)}>Show Results</Button>
                     )}
                  </div>
-                 <div className="flex items-center gap-4">
-                    <div className="text-sm text-muted-foreground">
-                        Total Votes: {totalVotes}
-                    </div>
-                    {!voted && (
-                         <Button onClick={handleVote} disabled={!selectedOption || isSubmitting}>
-                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Vote
-                        </Button>
-                    )}
+                 <div className="text-sm text-muted-foreground">
+                    Total Votes: {totalVotes}
                 </div>
             </CardFooter>
         </Card>
