@@ -26,6 +26,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { increment } from 'firebase/firestore';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 interface OnlineUser {
     uid: string;
@@ -89,7 +91,7 @@ function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
-  const { user, userData, isLoading, onlineUsers, hasGivenFeedback } = useDashboard();
+  const { user, userData, isLoading, onlineUsers, hasGivenFeedback, setUserData } = useDashboard();
   const { setOpenMobile } = useSidebar();
   const [isLogoutAlertOpen, setIsLogoutAlertOpen] = useState(false);
 
@@ -127,9 +129,16 @@ function AppSidebar() {
   const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
   const isIPUser = userData?.examCategory === 'IP';
   
-  // All users are now treated as "Pro"
-  const isPro = true;
-
+  const handleAdminViewChange = (category: UserData['examCategory']) => {
+    if (isAdmin && userData) {
+      setUserData({ ...userData, examCategory: category });
+      toast({
+        title: 'View Changed',
+        description: `Now viewing dashboard as a ${category} user.`,
+      });
+    }
+  };
+  
   const getWelcomeMessage = () => {
     if (isLoading || !userData) return null;
     return `Welcome, ${userData.name}!`;
@@ -153,6 +162,22 @@ function AppSidebar() {
               {getWelcomeMessage()}
             </CardDescription>
           </div>
+          {isAdmin && (
+            <div className="px-2 pb-2 group-data-[collapsible=icon]:hidden">
+                <Label htmlFor="admin-view-select" className="text-xs text-muted-foreground px-2">View As</Label>
+                <Select value={userData?.examCategory} onValueChange={handleAdminViewChange}>
+                    <SelectTrigger id="admin-view-select" className="h-9">
+                        <SelectValue placeholder="Select Course" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="MTS">MTS User</SelectItem>
+                        <SelectItem value="POSTMAN">Postman User</SelectItem>
+                        <SelectItem value="PA">PA User</SelectItem>
+                        <SelectItem value="IP">IP User</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+          )}
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/dashboard'} tooltip="Dashboard">
               <Link href="/dashboard" onClick={onLinkClick}>
@@ -451,17 +476,20 @@ export default function DashboardLayout({
 
         try {
             if (userIsAdmin) {
-                const adminUserData: UserData = {
-                    uid: currentUser.uid,
-                    name: currentUser.displayName || 'Admin',
-                    email: currentUser.email!,
-                    examCategory: 'IP', 
-                    totalExamsTaken: 0,
-                    isPro: true,
-                };
+                 if (!userData || userData.uid !== currentUser.uid) {
+                    const adminUserData: UserData = {
+                        uid: currentUser.uid,
+                        name: currentUser.displayName || 'Admin',
+                        email: currentUser.email!,
+                        examCategory: 'PA', // Default view for admin
+                        totalExamsTaken: 0,
+                        isPro: true,
+                    };
+                    setUserData(adminUserData);
+                }
                 // Admin needs ALL data
                 const { categories, topics, bankedQuestions, topicMCQs, liveTestBank, studyMaterials, qnaUsage, notifications } = await getDashboardData(currentUser.uid, true);
-                setUserData(adminUserData);
+
                 setCategories(categories);
                 setTopics(topics);
                 setBankedQuestions(bankedQuestions);
@@ -545,6 +573,34 @@ export default function DashboardLayout({
     return () => unsubscribe();
     
   }, [router, toast, handleLogout, pathname]);
+
+  // This effect filters data based on the selected exam category for admins
+  useEffect(() => {
+    if (userData?.email && ADMIN_EMAILS.includes(userData.email)) {
+        getDashboardData(userData.uid, true).then(data => {
+            const currentViewCategory = userData.examCategory;
+
+            const filteredCategories = data.categories.filter(c => c.examCategories.includes(currentViewCategory));
+            const filteredCategoryIds = new Set(filteredCategories.map(c => c.id));
+            
+            const filteredTopics = data.topics.filter(t => t.examCategories.includes(currentViewCategory));
+            const filteredBankedQuestions = data.bankedQuestions.filter(bq => bq.examCategory === currentViewCategory);
+            const filteredStudyMaterials = data.studyMaterials.filter(sm => sm.examCategories.includes(currentViewCategory));
+            
+            setCategories(filteredCategories);
+            setTopics(filteredTopics);
+            setBankedQuestions(filteredBankedQuestions);
+            setStudyMaterials(filteredStudyMaterials);
+            
+            // Data that is not category-specific
+            setTopicMCQs(data.topicMCQs);
+            setLiveTestBank(data.liveTestBank);
+            setQnaUsage(data.qnaUsage);
+            setNotifications(data.notifications);
+        });
+    }
+  }, [userData]);
+
 
   const handleReasoningPopupClose = async () => {
     setShowReasoningPopup(false);
