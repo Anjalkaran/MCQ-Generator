@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback, getUserData } from '@/lib/firestore';
 import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, StudyMaterial } from "@/lib/types";
-import { ADMIN_EMAILS, FREE_EXAM_LIMIT } from '@/lib/constants';
+import { ADMIN_EMAILS } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
 import packageJson from '../../../package.json';
@@ -126,25 +126,13 @@ function AppSidebar() {
 
   const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
   const isIPUser = userData?.examCategory === 'IP';
-  const proValidUntilDate = normalizeDate(userData?.proValidUntil);
-  const isPro = !!(userData && (
-      (userData.isPro && proValidUntilDate && proValidUntilDate > new Date()) ||
-      isAdmin
-  ));
   
-  const showUpgradeButton = (userData && !isPro) || isAdmin;
-  const canSeeReasoning = isAdmin || userData?.examCategory === 'PA' || userData?.examCategory === 'POSTMAN';
+  // All users are now treated as "Pro"
+  const isPro = true;
 
   const getWelcomeMessage = () => {
     if (isLoading || !userData) return null;
-    
-    if(isPro) {
-        return `Welcome, ${userData.name}!`;
-    }
-
-    const totalExamsTaken = userData.totalExamsTaken || 0;
-    const examsRemaining = FREE_EXAM_LIMIT - totalExamsTaken;
-    return `Welcome, ${userData.name}! You have ${examsRemaining > 0 ? examsRemaining : 0} free exam(s) remaining.`;
+    return `Welcome, ${userData.name}!`;
   }
 
   return (
@@ -259,16 +247,6 @@ function AppSidebar() {
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          {showUpgradeButton && (
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === '/dashboard/upgrade'} variant="outline" className="text-primary hover:bg-primary/10 hover:text-primary border-primary/50" tooltip="Upgrade to Pro">
-                <Link href="/dashboard/upgrade" onClick={onLinkClick}>
-                  <Gem />
-                  <span>Upgrade to Pro</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          )}
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>

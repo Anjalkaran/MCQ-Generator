@@ -33,9 +33,6 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
     const [selectedLanguage, setSelectedLanguage] = useState<string>('English');
 
     const startTime = normalizeDate(test.startTime);
-    const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
-    const proValidUntilDate = normalizeDate(userData?.proValidUntil);
-    const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
     const isIPTest = test.examCategory === 'IP';
     const availableLanguages = isIPTest ? ipLanguages : allLanguages;
 
@@ -91,16 +88,6 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
     };
     
     const getButton = () => {
-        if (!isPro) {
-            return (
-                <Button asChild className="w-full">
-                    <Link href="/dashboard/upgrade">
-                        <Gem className="mr-2 h-4 w-4" /> Upgrade to Practice
-                    </Link>
-                </Button>
-            );
-        }
-
         if (isLoadingHistory) {
             return (
                 <Button disabled className="w-full">
@@ -136,7 +123,7 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
                 <CardDescription>
                     Conducted on: {startTime ? format(startTime, 'dd/MM/yyyy') : 'N/A'}
                 </CardDescription>
-                 {practiceAttempts > 0 && isPro && (
+                 {practiceAttempts > 0 && (
                     <Badge variant="secondary" className="w-fit mt-2">
                         <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
                         Attempted {practiceAttempts} time(s)
@@ -147,7 +134,7 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
                  {showLanguageSelect && (
                     <div className="space-y-2 text-left">
                         <Label htmlFor={`past-language-select-${test.id}`}>Language</Label>
-                        <Select value={selectedLanguage} onValueChange={setSelectedLanguage} disabled={!isPro}>
+                        <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
                             <SelectTrigger id={`past-language-select-${test.id}`}>
                                 <SelectValue placeholder="Select a language" />
                             </SelectTrigger>

@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
 import { useDashboard } from '@/app/dashboard/layout';
-import { ADMIN_EMAILS, FREE_EXAM_LIMIT } from '@/lib/constants';
+import { ADMIN_EMAILS } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { generateKnowledgeMCQs } from '@/ai/flows/generate-knowledge-mcqs';
 import { getFirebaseDb } from '@/lib/firebase';
@@ -101,32 +101,11 @@ export function GeneralAwarenessForm() {
     }
   };
   
-  const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
-  const proValidUntilDate = normalizeDate(userData?.proValidUntil);
-  const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
-  
-  const totalExamsTaken = userData?.totalExamsTaken || 0;
-  const hasExceededFreeLimit = !isPro && userData && totalExamsTaken >= FREE_EXAM_LIMIT;
-  
   return (
     <Card>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CardContent className="pt-6">
-                {hasExceededFreeLimit ? (
-                    <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Free Limit Reached</AlertTitle>
-                        <AlertDescription>
-                            You have used your free exam allocation. Please upgrade for unlimited access.
-                        </AlertDescription>
-                        <Button asChild className="mt-4">
-                            <Link href="/dashboard/upgrade">
-                                Upgrade Now <Gem className="ml-2 h-4 w-4" />
-                            </Link>
-                        </Button>
-                    </Alert>
-                ) : (
                 <fieldset disabled={isGenerating || isLoading} className="space-y-6">
                     <FormField
                         control={form.control}
@@ -188,22 +167,19 @@ export function GeneralAwarenessForm() {
                     )}
                     />
                 </fieldset>
-                )}
              </CardContent>
-            {!hasExceededFreeLimit && (
-                 <CardFooter>
-                    <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading} className="w-full">
-                        {isGenerating ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Generating... Please wait a moment.
-                            </>
-                        ) : (
-                            "Start G.K. Test"
-                        )}
-                    </Button>
-                </CardFooter>
-            )}
+            <CardFooter>
+                <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading} className="w-full">
+                    {isGenerating ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Generating... Please wait a moment.
+                        </>
+                    ) : (
+                        "Start G.K. Test"
+                    )}
+                </Button>
+            </CardFooter>
         </form>
         </Form>
     </Card>

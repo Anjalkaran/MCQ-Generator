@@ -43,7 +43,7 @@ export const createUserDocument = async (userData: Omit<UserData, 'id'>): Promis
       ...userData,
       totalExamsTaken: 0,
       liveTestsTaken: [],
-      isPro: false,
+      isPro: true, // All users are pro now
       proValidUntil: null,
       lastSeen: serverTimestamp(),
     });
@@ -55,18 +55,14 @@ export const updateUserDocument = async (userId: string, data: Partial<UserData>
     const userRef = doc(db, 'users', userId);
     
     const updateData: { [key: string]: any } = { ...data };
-
-    if (data.isPro && !data.proValidUntil) {
-        const proValidUntil = new Date();
-        proValidUntil.setFullYear(proValidUntil.getFullYear() + 1);
-        updateData.proValidUntil = proValidUntil;
-    } else if (data.isPro === false) { // Explicitly check for false to handle un-pro-ing a user
-        updateData.proValidUntil = null;
-    }
     
     // Remove deprecated fields if they are passed in
     delete updateData.topicExamsTaken;
     delete updateData.mockTestsTaken;
+    // Remove payment related fields
+    delete updateData.isPro;
+    delete updateData.proValidUntil;
+
 
     await updateDoc(userRef, updateData);
 };
@@ -234,10 +230,7 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
     
     const userRef = doc(db, 'users', userId);
 
-    // Only increment exam count if it is NOT a live test
-    if (!liveTestId) {
-        batch.update(userRef, { totalExamsTaken: increment(1) });
-    }
+    batch.update(userRef, { totalExamsTaken: increment(1) });
     
     // If a question paper was used (i.e., it was a previous year paper), mark it as completed for the user
     if (questionPaperId) {

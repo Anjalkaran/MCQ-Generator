@@ -10,27 +10,14 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { generateLiveMockTest } from '@/ai/flows/generate-live-mock-test';
-import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-blueprints';
 import type { LiveTest, UserData } from '@/lib/types';
 import { markLiveTestAsTaken } from '@/lib/firestore';
 import { normalizeDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { ADMIN_EMAILS, RAZORPAY_KEY_ID } from '@/lib/constants';
+import { ADMIN_EMAILS } from '@/lib/constants';
 import { formatDistanceToNowStrict, format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '../ui/label';
-
-declare global {
-    interface Window {
-        Razorpay: any;
-    }
-}
-
-const blueprintMap = {
-    MTS: MTS_BLUEPRINT,
-    POSTMAN: POSTMAN_BLUEPRINT,
-    PA: PA_BLUEPRINT,
-};
 
 const allLanguages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
 const ipLanguages = ["English", "Hindi"] as const;
@@ -40,7 +27,6 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const { toast } = useToast();
     const router = useRouter();
     const [isGenerating, setIsGenerating] = useState(false);
-    const [isPaying, setIsPaying] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState('');
     const [testState, setTestState] = useState<'upcoming' | 'live' | 'ended' | 'completed' | 'loading'>('loading');
     const [participantCount, setParticipantCount] = useState<number | null>(null);
@@ -50,21 +36,10 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const endTime = useMemo(() => normalizeDate(test.endTime), [test.endTime]);
     
     const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
-    const proValidUntilDate = normalizeDate(userData?.proValidUntil);
-    const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
     const hasTakenTest = userData?.liveTestsTaken?.includes(test.id);
 
     const isIPTest = test.examCategory === 'IP';
     const availableLanguages = isIPTest ? ipLanguages : allLanguages;
-
-
-    const isFreeTest = test.title === "PA Mock Test - 5";
-    
-    useEffect(() => {
-        if (isFreeTest) {
-            setSelectedLanguage('English');
-        }
-    }, [isFreeTest]);
     
     useEffect(() => {
         const fetchParticipantCount = async () => {
@@ -92,7 +67,6 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
         }
 
         const interval = setInterval(() => {
-            // All users (except Admins) should not be able to retake a live test.
             if (hasTakenTest) {
                 if(testState !== 'completed') setTestState('completed');
                 clearInterval(interval);
@@ -140,7 +114,6 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
             
             if (!isAdmin && !hasTakenTest) {
                 await markLiveTestAsTaken(user.uid, test.id);
-                // Optimistically update local user data state
                 setUserData(prev => prev ? ({ ...prev, liveTestsTaken: [...(prev.liveTestsTaken || []), test.id] }) : null);
             }
 
@@ -154,51 +127,6 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
         }
     };
     
-    const handlePaymentAndStart = async () => {
-        setIsPaying(true);
-        if (!window.Razorpay) {
-            toast({ title: "Payment Not Ready", description: "Please try again in a moment.", variant: "destructive" });
-            setIsPaying(false);
-            return;
-        }
-
-        try {
-            const response = await fetch('/api/payment/create-order', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: user?.uid, amount: test.price }),
-            });
-            if (!response.ok) throw new Error('Failed to create payment order.');
-            const order = await response.json();
-
-            const options = {
-                key: RAZORPAY_KEY_ID,
-                amount: order.amount,
-                currency: order.currency,
-                name: test.title,
-                description: "Single Live Mock Test Attempt",
-                order_id: order.id,
-                handler: async function (response: any) {
-                    await startTest();
-                },
-                prefill: { name: userData?.name, email: userData?.email },
-                theme: { color: "#D62927" },
-                modal: { ondismiss: () => setIsPaying(false) }
-            };
-
-            const paymentObject = new window.Razorpay(options);
-            paymentObject.on('payment.failed', function (response: any) {
-                toast({ title: "Payment Failed", description: response.error.description, variant: "destructive" });
-                setIsPaying(false);
-            });
-            paymentObject.open();
-
-        } catch (error) {
-            toast({ title: "Error", description: 'Could not initiate payment.', variant: "destructive" });
-            setIsPaying(false);
-        }
-    };
-
     const handleShare = () => {
         const message = `📢 *Anjalkaran Live Mock Test Challenge!* 📢
 
@@ -236,22 +164,11 @@ https://anjalkaran.in`;
             </Button>;
         }
         
-        if (!isPro && !isFreeTest) {
-            return (
-                <Button asChild className="w-full">
-                    <Link href="/dashboard/upgrade">
-                        <Gem className="mr-2 h-4 w-4" /> Upgrade to Pro to Join
-                    </Link>
-                </Button>
-            );
-        }
-
         if (testState === 'loading') return <Button disabled className="w-full"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading Status...</Button>;
         if (testState === 'upcoming') return <Button disabled className="w-full"><Lock className="mr-2 h-4 w-4" />Starts In: {timeRemaining}</Button>;
         if (testState === 'completed') return <Button disabled className="w-full"><CheckCircle className="mr-2 h-4 w-4" />Test Already Attempted</Button>;
         if (testState === 'ended') return <Button disabled className="w-full"><TimerOff className="mr-2 h-4 w-4" />Test Has Ended</Button>;
 
-        // Test is 'live' and user is Pro or it's a free test
         return <Button onClick={startTest} disabled={isGenerating} className="w-full bg-green-600 hover:bg-green-700">
             {isGenerating ? (
                 <>
@@ -286,7 +203,7 @@ https://anjalkaran.in`;
                 </CardDescription>
             </CardHeader>
             <CardContent className="text-center space-y-4 flex-grow">
-                 {(!isAdmin && (isPro || isFreeTest)) && (
+                 {!isAdmin && (
                      <div className="p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">
                             {testState === 'upcoming' ? 'Starts in' : 'Ends in'}
@@ -298,7 +215,7 @@ https://anjalkaran.in`;
                  )}
                  <div className="space-y-2 text-left">
                     <Label htmlFor={`language-select-${test.id}`}>Language</Label>
-                    <Select value={selectedLanguage} onValueChange={setSelectedLanguage} disabled={isFreeTest}>
+                    <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
                         <SelectTrigger id={`language-select-${test.id}`}>
                             <SelectValue placeholder="Select a language" />
                         </SelectTrigger>
@@ -308,9 +225,6 @@ https://anjalkaran.in`;
                             ))}
                         </SelectContent>
                     </Select>
-                    {isFreeTest && (
-                        <p className="text-xs text-muted-foreground text-center">This test is available in English only.</p>
-                    )}
                  </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-2">
