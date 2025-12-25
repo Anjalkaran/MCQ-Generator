@@ -11,6 +11,5 @@ import '@/ai/flows/generate-mock-test-from-bank.ts';
 import '@/ai/flows/generate-live-mock-test.ts';
 import '@/ai/flows/answer-question.ts';
 import '@/ai/flows/generate-knowledge-mcqs.ts';
-import '@/ai/flows/generate-aptitude-problem.ts';
-import '@/ai/flows/explain-aptitude-concept.ts';
+
 
