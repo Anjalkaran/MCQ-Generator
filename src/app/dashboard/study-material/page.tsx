@@ -7,11 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Search, Loader2, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { BookOpen, Search, Loader2, ZoomIn, ZoomOut, RotateCcw, Download } from 'lucide-react';
 import type { StudyMaterial } from '@/lib/types';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
+import Link from 'next/link';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -116,13 +117,19 @@ export default function StudyMaterialPage() {
                                  <CardHeader>
                                    <CardTitle className="text-lg">{material.title}</CardTitle>
                                  </CardHeader>
-                                 <CardContent>
+                                 <CardContent className="flex flex-col sm:flex-row gap-2">
                                    <DialogTrigger asChild>
                                       <Button className="w-full">
                                         <BookOpen className="mr-2 h-4 w-4" />
                                         Read Material
                                       </Button>
                                    </DialogTrigger>
+                                   <Button variant="outline" className="w-full" asChild>
+                                      <Link href={material.content} download={material.fileName}>
+                                        <Download className="mr-2 h-4 w-4" />
+                                        Download
+                                      </Link>
+                                   </Button>
                                  </CardContent>
                                </Card>
                                <PDFViewer material={material} />
