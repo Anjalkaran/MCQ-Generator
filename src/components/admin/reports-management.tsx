@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Gem, Download, Loader2, RefreshCw, Trophy, Languages, Users, UserCog } from 'lucide-react';
+import { Gem, Download, Loader2, RefreshCw, Trophy, Languages, Users, UserCog, Trash2 } from 'lucide-react';
 import type { UserData, MCQHistory } from '@/lib/types';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -38,15 +38,19 @@ interface ReportsManagementProps {
 
 function DataReconciliationCard() {
     const [isLoading, setIsLoading] = useState(false);
-    const [reconciliationType, setReconciliationType] = useState<'counts' | 'leaderboard' | null>(null);
+    const [reconciliationType, setReconciliationType] = useState<'counts' | 'leaderboard' | 'clear' | null>(null);
     const { toast } = useToast();
 
-    const handleReconcile = async (type: 'counts' | 'leaderboard') => {
+    const handleDataOperation = async (type: 'counts' | 'leaderboard' | 'clear') => {
         setIsLoading(true);
         setReconciliationType(type);
         
-        const endpoint = type === 'counts' ? '/api/admin/reconcile-counts' : '/api/admin/reconcile-leaderboard';
-        const successTitle = type === 'counts' ? 'Reconciliation Complete' : 'Leaderboard Cleaned';
+        const endpoints = {
+            counts: '/api/admin/reconcile-counts',
+            leaderboard: '/api/admin/reconcile-leaderboard',
+            clear: '/api/admin/clear-history'
+        };
+        const endpoint = endpoints[type];
         
         try {
             const response = await fetch(endpoint, {
@@ -55,20 +59,34 @@ function DataReconciliationCard() {
             const result = await response.json();
 
             if (!response.ok) {
-                throw new Error(result.error || 'Failed to reconcile data.');
+                throw new Error(result.error || `Failed to perform ${type} operation.`);
             }
             
-            const description = type === 'counts' 
-                ? `${result.updatedCount} user exam counts have been successfully updated.`
-                : `${result.deletedCount} duplicate leaderboard entries have been removed.`;
+            let toastTitle = '';
+            let toastDescription = '';
+
+            switch(type) {
+                case 'counts':
+                    toastTitle = 'Reconciliation Complete';
+                    toastDescription = `${result.updatedCount} user exam counts have been successfully updated.`;
+                    break;
+                case 'leaderboard':
+                    toastTitle = 'Leaderboard Cleaned';
+                    toastDescription = `${result.deletedCount} duplicate leaderboard entries have been removed.`;
+                    break;
+                case 'clear':
+                    toastTitle = 'History Cleared';
+                    toastDescription = `Successfully deleted ${result.deletedHistoryItems} history items and reset ${result.updatedUserCount} users.`;
+                    break;
+            }
 
             toast({
-                title: successTitle,
-                description: description,
+                title: toastTitle,
+                description: toastDescription,
             });
 
         } catch (error: any) {
-            console.error('Reconciliation error:', error);
+            console.error(`${type} operation error:`, error);
             toast({
                 title: 'Operation Failed',
                 description: error.message,
@@ -83,9 +101,9 @@ function DataReconciliationCard() {
     return (
          <Card>
             <CardHeader>
-                <CardTitle>Data Reconciliation</CardTitle>
+                <CardTitle>Data Tools</CardTitle>
                 <CardDescription>
-                    Fix inconsistencies in user and exam data. This is useful for correcting data after a bug fix or import.
+                    Run maintenance operations to fix data inconsistencies or clear old records.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -93,26 +111,26 @@ function DataReconciliationCard() {
                     <div>
                         <h3 className="font-semibold">Reconcile Exam Counts</h3>
                         <p className="text-sm text-muted-foreground">
-                            Corrects the unified `totalExamsTaken` count for all users based on their entire saved exam history.
+                            Corrects the total exam count for all users based on their saved exam history.
                         </p>
                     </div>
                      <AlertDialog>
                         <AlertDialogTrigger asChild>
                             <Button variant="outline" disabled={isLoading}>
                                 {isLoading && reconciliationType === 'counts' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                                Reconcile Counts
+                                Reconcile
                             </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    This will scan all users and their entire exam history. It will update any users whose exam counts are incorrect. This action can take a few moments and cannot be undone.
+                                    This will scan all users and their exam history to update any incorrect totals. This action cannot be undone.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleReconcile('counts')} disabled={isLoading}>
+                                <AlertDialogAction onClick={() => handleDataOperation('counts')} disabled={isLoading}>
                                     {isLoading && reconciliationType === 'counts' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Yes, Reconcile Counts
                                 </AlertDialogAction>
@@ -124,28 +142,59 @@ function DataReconciliationCard() {
                     <div>
                         <h3 className="font-semibold">Reconcile Live Test Leaderboard</h3>
                         <p className="text-sm text-muted-foreground">
-                            Removes duplicate entries for any user in a live test, keeping only their best attempt (highest score, then fastest time).
+                            Removes duplicate live test entries, keeping only the best attempt for each user.
                         </p>
                     </div>
                      <AlertDialog>
                         <AlertDialogTrigger asChild>
                             <Button variant="outline" disabled={isLoading}>
                                 {isLoading && reconciliationType === 'leaderboard' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trophy className="mr-2 h-4 w-4" />}
-                                Reconcile Leaderboard
+                                Reconcile
                             </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                   This will scan all live test history and permanently delete any duplicate entries for users. This action cannot be undone.
+                                   This will scan all live test history and permanently delete any duplicate entries. This action cannot be undone.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleReconcile('leaderboard')} disabled={isLoading}>
+                                <AlertDialogAction onClick={() => handleDataOperation('leaderboard')} disabled={isLoading}>
                                     {isLoading && reconciliationType === 'leaderboard' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Yes, Reconcile Leaderboard
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
+                 <div className="flex items-center justify-between p-4 border rounded-lg border-destructive">
+                    <div>
+                        <h3 className="font-semibold text-destructive">Clear All Exam History</h3>
+                        <p className="text-sm text-muted-foreground">
+                            Permanently delete all exam records and reset leaderboards. This is irreversible.
+                        </p>
+                    </div>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" disabled={isLoading}>
+                                {isLoading && reconciliationType === 'clear' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                                Clear History
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>WARNING: Are you absolutely sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                   This will permanently delete all exam histories for all users and reset all exam counts to zero. Leaderboards will be cleared. This action cannot be undone.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction variant="destructive" onClick={() => handleDataOperation('clear')} disabled={isLoading}>
+                                    {isLoading && reconciliationType === 'clear' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Yes, Delete Everything
                                 </AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
