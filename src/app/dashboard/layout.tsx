@@ -211,14 +211,6 @@ function AppSidebar() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-             <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/polls')} tooltip="Polls">
-                    <Link href="/polls" onClick={onLinkClick}>
-                        <BarChart3 />
-                        <span>Polls</span>
-                    </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/dashboard/profile'} tooltip="Profile">
               <Link href="/dashboard/profile" onClick={onLinkClick}>

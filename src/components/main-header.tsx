@@ -13,9 +13,6 @@ export function MainHeader() {
       </Link>
       <nav className="ml-auto flex gap-2 sm:gap-4 items-center">
         <Button variant="ghost" asChild>
-          <Link href="/polls">Polls</Link>
-        </Button>
-        <Button variant="ghost" asChild>
           <Link href="/support">Contact Us</Link>
         </Button>
         <Button variant="ghost" asChild>
