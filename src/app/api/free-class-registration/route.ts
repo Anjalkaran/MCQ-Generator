@@ -18,6 +18,24 @@ export async function POST(req: NextRequest) {
     if (!name || !gender || !mobileNumber || !division || !employeeId || !designation || !email || !courses || !Array.isArray(courses) || courses.length === 0) {
         return NextResponse.json({ error: 'All fields, including at least one course selection, are required.' }, { status: 400 });
     }
+
+    // --- Uniqueness Check ---
+    const registrationsRef = adminDb.collection('freeClassRegistrations');
+    const emailQuery = registrationsRef.where('email', '==', email);
+    const employeeIdQuery = registrationsRef.where('employeeId', '==', employeeId);
+
+    const [emailSnapshot, employeeIdSnapshot] = await Promise.all([
+      emailQuery.get(),
+      employeeIdQuery.get(),
+    ]);
+
+    if (!emailSnapshot.empty) {
+      return NextResponse.json({ error: 'This email address has already been registered for the free class.' }, { status: 409 });
+    }
+    if (!employeeIdSnapshot.empty) {
+      return NextResponse.json({ error: 'This Employee ID has already been registered for the free class.' }, { status: 409 });
+    }
+    // --- End Uniqueness Check ---
     
     // Save registration details to a new collection
     const registrationData = {
@@ -41,10 +59,10 @@ export async function POST(req: NextRequest) {
         userRecord = await adminAuth.getUserByEmail(email);
         
         // If user exists, update their document with the new info
-        await adminDb.collection('users').doc(userRecord.uid).update({
+        await adminDb.collection('users').doc(userRecord.uid).set({
             phone: mobileNumber,
             employeeId: employeeId,
-        });
+        }, { merge: true });
 
     } catch (error: any) {
         if (error.code === 'auth/user-not-found') {
