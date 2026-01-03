@@ -44,6 +44,7 @@ export interface UserData {
     name: string;
     email: string;
     phone?: string;
+    employeeId?: string;
     city?: string;
     examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP';
     totalExamsTaken: number;

@@ -39,6 +39,13 @@ export async function POST(req: NextRequest) {
     try {
         // Check if user already exists
         userRecord = await adminAuth.getUserByEmail(email);
+        
+        // If user exists, update their document with the new info
+        await adminDb.collection('users').doc(userRecord.uid).update({
+            phone: mobileNumber,
+            employeeId: employeeId,
+        });
+
     } catch (error: any) {
         if (error.code === 'auth/user-not-found') {
             // User does not exist, so create one if a password is provided
@@ -60,6 +67,7 @@ export async function POST(req: NextRequest) {
                 name: name,
                 email: email,
                 phone: mobileNumber,
+                employeeId: employeeId,
                 city: division,
                 examCategory: 'PA', // Default exam category, can be changed by user
                 totalExamsTaken: 0,
