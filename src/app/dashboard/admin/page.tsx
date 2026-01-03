@@ -12,8 +12,9 @@ import { ReportsManagement } from '@/components/admin/reports-management';
 import { ReasoningBankManagement } from '@/components/admin/reasoning-bank-management';
 import { FeedbackManagement } from '@/components/admin/feedback-management';
 import { StudyMaterialManagement } from '@/components/admin/study-material-management';
+import { FreeClassManagement } from '@/components/admin/free-class-management';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, MessageSquare, BookOpen } from "lucide-react";
+import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, MessageSquare, BookOpen, GraduationCap } from "lucide-react";
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
 import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback } from "@/lib/firestore";
 import type { UserData, QnAUsage, LiveTest, ReasoningQuestion, Feedback } from "@/lib/types";
@@ -64,6 +65,7 @@ const adminSections = [
     { value: 'question-bank', label: 'Question Bank', icon: FileText },
     { value: 'reasoning-bank', label: 'Reasoning Bank', icon: NewLogoIcon },
     { value: 'live-test', label: 'Live Test', icon: Trophy },
+    { value: 'free-class', label: 'Free Class', icon: GraduationCap },
     { value: 'analytics', label: 'Analytics', icon: BarChart3 },
     { value: 'feedback', label: 'Feedback', icon: MessageSquare },
     { value: 'reports', label: 'Reports', icon: Download },
@@ -160,6 +162,8 @@ export default function AdminPage() {
             return <ReasoningBankManagement initialQuestions={reasoningQuestions} />;
         case 'live-test':
             return <LiveTestManagement initialLiveTestBank={liveTestBank} initialLiveTests={allLiveTests} />;
+        case 'free-class':
+            return <FreeClassManagement />;
         case 'analytics':
             return <AnalyticsTab qnaUsage={qnaUsage} />;
         case 'feedback':
@@ -180,7 +184,7 @@ export default function AdminPage() {
           </p>
         </div>
         
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-10">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-11">
           {adminSections.map((section) => (
             <Card
               key={section.value}

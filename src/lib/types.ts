@@ -177,3 +177,16 @@ export interface Feedback {
   reply?: string;
   repliedAt?: Date;
 }
+
+export interface FreeClassRegistration {
+    id: string;
+    name: string;
+    gender: string;
+    mobileNumber: string;
+    division: string;
+    employeeId: string;
+    designation: string;
+    email: string;
+    courses: string[];
+    registeredAt: Date;
+}
