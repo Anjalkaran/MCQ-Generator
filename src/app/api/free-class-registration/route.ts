@@ -5,16 +5,6 @@ import * as admin from 'firebase-admin';
 
 export const runtime = 'nodejs';
 
-// Function to generate a random password
-const generatePassword = (length = 8) => {
-    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let password = "";
-    for (let i = 0, n = charset.length; i < length; ++i) {
-        password += charset.charAt(Math.floor(Math.random() * n));
-    }
-    return password;
-};
-
 export async function POST(req: NextRequest) {
   if (!adminAuth || !adminDb) {
     return NextResponse.json({ error: "Server configuration error." }, { status: 500 });
@@ -22,7 +12,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { name, gender, mobileNumber, division, employeeId, designation, email } = body;
+    const { name, gender, mobileNumber, division, employeeId, designation, email, password } = body;
 
     // --- Server-Side Validation ---
     if (!name || !gender || !mobileNumber || !division || !employeeId || !designation || !email) {
@@ -50,8 +40,10 @@ export async function POST(req: NextRequest) {
         userRecord = await adminAuth.getUserByEmail(email);
     } catch (error: any) {
         if (error.code === 'auth/user-not-found') {
-            // User does not exist, so create one
-            const password = generatePassword(10);
+            // User does not exist, so create one if a password is provided
+            if (!password || password.length < 6) {
+                return NextResponse.json({ error: 'A password of at least 6 characters is required for new users.' }, { status: 400 });
+            }
             
             userRecord = await adminAuth.createUser({
                 email,
@@ -76,13 +68,8 @@ export async function POST(req: NextRequest) {
                 lastSeen: admin.firestore.FieldValue.serverTimestamp(),
             });
 
-            // You might want to send the user their password via email
-            // This would require an email sending service (e.g., SendGrid, Nodemailer)
-            // For now, we'll log it for the admin.
-            console.log(`New user created. Email: ${email}, Password: ${password}`);
-
         } else {
-            // Some other error occurred
+            // Some other error occurred while checking for the user
             throw error;
         }
     }
@@ -96,6 +83,9 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error("Error during free class registration:", error);
+    if (error.code === 'auth/email-already-exists') {
+        return NextResponse.json({ error: 'This email is already registered.' }, { status: 409 });
+    }
     return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
   }
 }

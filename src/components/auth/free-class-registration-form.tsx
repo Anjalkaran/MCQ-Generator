@@ -13,8 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, PartyPopper } from 'lucide-react';
 import Link from 'next/link';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
-const formSchema = z.object({
+const registrationSchema = z.object({
   name: z.string().min(1, { message: 'Name is required.' }),
   gender: z.string().min(1, { message: 'Please select a gender.' }),
   mobileNumber: z.string().min(10, { message: 'Please enter a valid 10-digit mobile number.' }).max(10),
@@ -24,13 +25,26 @@ const formSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
 });
 
+const passwordSchema = z.object({
+    password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+    confirmPassword: z.string(),
+}).refine(data => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+});
+
+type RegistrationFormValues = z.infer<typeof registrationSchema>;
+type PasswordFormValues = z.infer<typeof passwordSchema>;
+
 export function FreeClassRegistrationForm() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [registrationData, setRegistrationData] = useState<RegistrationFormValues | null>(null);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const registrationForm = useForm<RegistrationFormValues>({
+    resolver: zodResolver(registrationSchema),
     defaultValues: {
       name: '',
       gender: '',
@@ -41,35 +55,88 @@ export function FreeClassRegistrationForm() {
       email: '',
     },
   });
+  
+  const passwordForm = useForm<PasswordFormValues>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: {
+        password: '',
+        confirmPassword: '',
+    }
+  });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const handleRegistrationSubmit = async (values: RegistrationFormValues) => {
     setIsLoading(true);
+    setRegistrationData(values); // Store form data
+
     try {
-        const response = await fetch('/api/free-class-registration', {
+        // Step 1: Check if email exists
+        const checkResponse = await fetch('/api/user/check-email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(values),
+            body: JSON.stringify({ email: values.email }),
         });
 
-        const result = await response.json();
+        const { exists } = await checkResponse.json();
 
-        if (!response.ok) {
-            throw new Error(result.error || 'Something went wrong.');
+        if (exists) {
+            // If user exists, proceed with registration directly
+            await completeRegistration(values);
+        } else {
+            // If user does not exist, open password dialog
+            setIsPasswordDialogOpen(true);
         }
-        
-        setIsSubmitted(true);
-        form.reset();
 
     } catch (error: any) {
         toast({
-            title: 'Registration Failed',
-            description: error.message,
+            title: 'Error',
+            description: error.message || 'Could not check email status.',
             variant: 'destructive',
         });
     } finally {
         setIsLoading(false);
     }
   };
+
+  const handlePasswordSubmit = async (passwordValues: PasswordFormValues) => {
+      if (!registrationData) return;
+      setIsLoading(true);
+      
+      const finalData = {
+          ...registrationData,
+          password: passwordValues.password
+      };
+      
+      await completeRegistration(finalData);
+      setIsPasswordDialogOpen(false);
+      setIsLoading(false);
+  }
+
+  const completeRegistration = async (data: any) => {
+      try {
+            const response = await fetch('/api/free-class-registration', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Something went wrong.');
+            }
+            
+            setIsSubmitted(true);
+            registrationForm.reset();
+
+        } catch (error: any) {
+            toast({
+                title: 'Registration Failed',
+                description: error.message,
+                variant: 'destructive',
+            });
+        }
+  }
+
 
   if (isSubmitted) {
     return (
@@ -80,7 +147,7 @@ export function FreeClassRegistrationForm() {
                 </div>
                 <CardTitle className="text-2xl pt-4">Registration Successful!</CardTitle>
                 <CardDescription className="max-w-md mx-auto">
-                    Thank you for registering. If you are a new user, a password has been sent to your email address. You can now log in.
+                    Thank you for registering. You can now log in to access the platform. If you're a new user, please use the password you just created.
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex justify-center">
@@ -95,17 +162,18 @@ export function FreeClassRegistrationForm() {
   }
 
   return (
+    <>
     <Card className="w-full">
       <CardHeader className="text-center">
         <CardTitle>Free Class Registration</CardTitle>
         <CardDescription>Fill out the form below to register for the free class.</CardDescription>
       </CardHeader>
       <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <Form {...registrationForm}>
+          <form onSubmit={registrationForm.handleSubmit(handleRegistrationSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
-                control={form.control}
+                control={registrationForm.control}
                 name="name"
                 render={({ field }) => (
                     <FormItem>
@@ -116,7 +184,7 @@ export function FreeClassRegistrationForm() {
                 )}
                 />
                  <FormField
-                    control={form.control}
+                    control={registrationForm.control}
                     name="gender"
                     render={({ field }) => (
                         <FormItem>
@@ -134,7 +202,7 @@ export function FreeClassRegistrationForm() {
                     )}
                 />
                  <FormField
-                control={form.control}
+                control={registrationForm.control}
                 name="mobileNumber"
                 render={({ field }) => (
                     <FormItem>
@@ -145,7 +213,7 @@ export function FreeClassRegistrationForm() {
                 )}
                 />
                  <FormField
-                control={form.control}
+                control={registrationForm.control}
                 name="division"
                 render={({ field }) => (
                     <FormItem>
@@ -156,7 +224,7 @@ export function FreeClassRegistrationForm() {
                 )}
                 />
                  <FormField
-                control={form.control}
+                control={registrationForm.control}
                 name="employeeId"
                 render={({ field }) => (
                     <FormItem>
@@ -167,7 +235,7 @@ export function FreeClassRegistrationForm() {
                 )}
                 />
                 <FormField
-                    control={form.control}
+                    control={registrationForm.control}
                     name="designation"
                     render={({ field }) => (
                         <FormItem>
@@ -186,7 +254,7 @@ export function FreeClassRegistrationForm() {
                 />
             </div>
              <FormField
-              control={form.control}
+              control={registrationForm.control}
               name="email"
               render={({ field }) => (
                 <FormItem>
@@ -206,5 +274,50 @@ export function FreeClassRegistrationForm() {
         </Form>
       </CardContent>
     </Card>
+
+    <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Create Your Account</DialogTitle>
+                <DialogDescription>
+                    Welcome! It looks like you're new here. Please create a password to complete your registration.
+                </DialogDescription>
+            </DialogHeader>
+             <Form {...passwordForm}>
+                <form onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)} className="space-y-4">
+                    <FormField
+                        control={passwordForm.control}
+                        name="password"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Password</FormLabel>
+                                <FormControl><Input type="password" placeholder="********" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                    <FormField
+                        control={passwordForm.control}
+                        name="confirmPassword"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Confirm Password</FormLabel>
+                                <FormControl><Input type="password" placeholder="********" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setIsPasswordDialogOpen(false)}>Cancel</Button>
+                        <Button type="submit" disabled={isLoading}>
+                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Create Account
+                        </Button>
+                    </DialogFooter>
+                </form>
+             </Form>
+        </DialogContent>
+    </Dialog>
+    </>
   );
 }
