@@ -262,6 +262,7 @@ export function FreeClassRegistrationForm() {
                                 <SelectItem value="GDS">GDS</SelectItem>
                                 <SelectItem value="MTS">MTS</SelectItem>
                                 <SelectItem value="POSTMAN">Postman</SelectItem>
+                                <SelectItem value="Others">Others</SelectItem>
                             </SelectContent>
                         </Select>
                         <FormMessage />
