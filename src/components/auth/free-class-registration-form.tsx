@@ -14,6 +14,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, PartyPopper } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Checkbox } from '../ui/checkbox';
+
+const courses = ["MTS", "POSTMAN", "PA"] as const;
 
 const registrationSchema = z.object({
   name: z.string().min(1, { message: 'Name is required.' }),
@@ -23,6 +26,9 @@ const registrationSchema = z.object({
   employeeId: z.string().min(1, { message: 'Employee ID is required.' }),
   designation: z.string().min(1, { message: 'Please select a designation.' }),
   email: z.string().email({ message: 'Invalid email address.' }),
+  courses: z.array(z.string()).refine((value) => value.some((item) => item), {
+    message: "You have to select at least one course.",
+  }),
 });
 
 const passwordSchema = z.object({
@@ -53,6 +59,7 @@ export function FreeClassRegistrationForm() {
       employeeId: '',
       designation: '',
       email: '',
+      courses: [],
     },
   });
   
@@ -262,6 +269,53 @@ export function FreeClassRegistrationForm() {
                   <FormControl>
                     <Input type="email" placeholder="your.email@example.com" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={registrationForm.control}
+              name="courses"
+              render={() => (
+                <FormItem>
+                  <div className="mb-4">
+                    <FormLabel className="text-base">Course Register For</FormLabel>
+                  </div>
+                  <div className="flex flex-wrap gap-4">
+                  {courses.map((item) => (
+                    <FormField
+                      key={item}
+                      control={registrationForm.control}
+                      name="courses"
+                      render={({ field }) => {
+                        return (
+                          <FormItem
+                            key={item}
+                            className="flex flex-row items-start space-x-3 space-y-0"
+                          >
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value?.includes(item)}
+                                onCheckedChange={(checked) => {
+                                  return checked
+                                    ? field.onChange([...(field.value || []), item])
+                                    : field.onChange(
+                                        field.value?.filter(
+                                          (value) => value !== item
+                                        )
+                                      )
+                                }}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              {item}
+                            </FormLabel>
+                          </FormItem>
+                        )
+                      }}
+                    />
+                  ))}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}

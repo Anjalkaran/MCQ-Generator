@@ -12,11 +12,11 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { name, gender, mobileNumber, division, employeeId, designation, email, password } = body;
+    const { name, gender, mobileNumber, division, employeeId, designation, email, password, courses } = body;
 
     // --- Server-Side Validation ---
-    if (!name || !gender || !mobileNumber || !division || !employeeId || !designation || !email) {
-        return NextResponse.json({ error: 'All fields are required.' }, { status: 400 });
+    if (!name || !gender || !mobileNumber || !division || !employeeId || !designation || !email || !courses || !Array.isArray(courses) || courses.length === 0) {
+        return NextResponse.json({ error: 'All fields, including at least one course selection, are required.' }, { status: 400 });
     }
     
     // Save registration details to a new collection
@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
         employeeId,
         designation,
         email,
+        courses, // Save selected courses
         registeredAt: admin.firestore.FieldValue.serverTimestamp(),
     };
     await adminDb.collection('freeClassRegistrations').add(registrationData);
