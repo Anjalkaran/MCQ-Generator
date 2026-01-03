@@ -152,18 +152,11 @@ export function FreeClassRegistrationForm() {
                 <div className="mx-auto bg-green-100 dark:bg-green-900/50 p-4 rounded-full w-fit">
                     <PartyPopper className="h-8 w-8 text-green-500" />
                 </div>
-                <CardTitle className="text-2xl pt-4">Registration Successful!</CardTitle>
+                <CardTitle className="text-2xl pt-4">Registered Successfully!</CardTitle>
                 <CardDescription className="max-w-md mx-auto">
-                    Thank you for registering. You can now log in to access the platform. If you're a new user, please use the password you just created.
+                    Thank you for registering for the free class.
                 </CardDescription>
             </CardHeader>
-            <CardContent className="flex justify-center">
-                <Button asChild>
-                    <Link href="/auth/login">
-                        Proceed to Login
-                    </Link>
-                </Button>
-            </CardContent>
         </Card>
     );
   }
