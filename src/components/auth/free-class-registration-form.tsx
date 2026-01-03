@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -12,11 +12,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, PartyPopper } from 'lucide-react';
-import Link from 'next/link';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '../ui/checkbox';
 
-const courses = ["MTS", "POSTMAN", "PA"] as const;
+const allCourses = ["MTS", "POSTMAN", "PA"] as const;
 
 const registrationSchema = z.object({
   name: z.string().min(1, { message: 'Name is required.' }),
@@ -70,6 +69,23 @@ export function FreeClassRegistrationForm() {
         confirmPassword: '',
     }
   });
+  
+  const selectedDesignation = registrationForm.watch('designation');
+
+  const availableCourses = useMemo(() => {
+    if (selectedDesignation === 'MTS') {
+      return allCourses.filter(course => course !== 'MTS');
+    }
+    if (selectedDesignation === 'POSTMAN') {
+      return allCourses.filter(course => course !== 'MTS' && course !== 'POSTMAN');
+    }
+    return allCourses;
+  }, [selectedDesignation]);
+
+  useEffect(() => {
+    registrationForm.setValue('courses', []);
+  }, [selectedDesignation, registrationForm]);
+
 
   const handleRegistrationSubmit = async (values: RegistrationFormValues) => {
     setIsLoading(true);
@@ -275,7 +291,7 @@ export function FreeClassRegistrationForm() {
                     <FormLabel className="text-base">Course Register For</FormLabel>
                   </div>
                   <div className="flex flex-wrap gap-4">
-                  {courses.map((item) => (
+                  {availableCourses.map((item) => (
                     <FormField
                       key={item}
                       control={registrationForm.control}
