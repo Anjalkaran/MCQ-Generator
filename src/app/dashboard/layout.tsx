@@ -5,7 +5,7 @@
 import React, { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageCircle, Star, BookOpen, PenSquare, RefreshCw } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageCircle, Star, BookOpen, PenSquare, RefreshCw, Video } from 'lucide-react';
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
 import Link from 'next/link';
 import { getFirebaseAuth } from '@/lib/firebase';
@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback, getUserData } from '@/lib/firestore';
-import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, StudyMaterial } from "@/lib/types";
+import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, StudyMaterial, VideoClass } from "@/lib/types";
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
@@ -128,6 +128,7 @@ interface DashboardContextType {
   topicMCQs: TopicMCQ[];
   liveTestBank: BankedQuestion[];
   studyMaterials: StudyMaterial[];
+  videoClasses: VideoClass[];
   qnaUsage: QnAUsage[];
   notifications: Notification[];
   onlineUsers: OnlineUser[];
@@ -299,6 +300,14 @@ function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/video-classes')} tooltip="Video Classes">
+                  <Link href="/dashboard/video-classes" onClick={onLinkClick}>
+                    <Video />
+                    <span>Video Classes</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </>
            )}
            {isAdmin && (
@@ -459,6 +468,7 @@ export default function DashboardLayout({
   const [topicMCQs, setTopicMCQs] = useState<TopicMCQ[]>([]);
   const [liveTestBank, setLiveTestBank] = useState<BankedQuestion[]>([]);
   const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
+  const [videoClasses, setVideoClasses] = useState<VideoClass[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
@@ -601,7 +611,7 @@ export default function DashboardLayout({
                     setUserData(adminUserData);
                 }
                 // Admin needs ALL data
-                const { categories, topics, bankedQuestions, topicMCQs, liveTestBank, studyMaterials, qnaUsage, notifications } = await getDashboardData(currentUser.uid, true);
+                const { categories, topics, bankedQuestions, topicMCQs, liveTestBank, studyMaterials, videoClasses, qnaUsage, notifications } = await getDashboardData(currentUser.uid, true);
 
                 setCategories(categories);
                 setTopics(topics);
@@ -609,13 +619,14 @@ export default function DashboardLayout({
                 setTopicMCQs(topicMCQs);
                 setLiveTestBank(liveTestBank);
                 setStudyMaterials(studyMaterials);
+                setVideoClasses(videoClasses);
                 setQnaUsage(qnaUsage);
                 setNotifications(notifications);
                 
             } else {
                  // Regular user fetches their relevant data
                 const [
-                    { categories, topics, bankedQuestions: userBankedQuestions, studyMaterials: userStudyMaterials },
+                    { categories, topics, bankedQuestions: userBankedQuestions, studyMaterials: userStudyMaterials, videoClasses: userVideoClasses },
                     feedbackStatus,
                     fetchedUserData
                 ] = await Promise.all([
@@ -635,6 +646,7 @@ export default function DashboardLayout({
                 setTopics(topics);
                 setBankedQuestions(userBankedQuestions);
                 setStudyMaterials(userStudyMaterials);
+                setVideoClasses(userVideoClasses);
                 setHasGivenFeedback(feedbackStatus);
 
                 const divisionIsEmail = fetchedUserData.division?.includes('@');
@@ -683,6 +695,7 @@ export default function DashboardLayout({
         setTopicMCQs([]);
         setLiveTestBank([]);
         setStudyMaterials([]);
+        setVideoClasses([]);
         setQnaUsage([]);
         setNotifications([]);
         setOnlineUsers([]);
@@ -708,11 +721,13 @@ export default function DashboardLayout({
             const filteredTopics = data.topics.filter(t => t.examCategories.includes(currentViewCategory));
             const filteredBankedQuestions = data.bankedQuestions.filter(bq => bq.examCategory === currentViewCategory);
             const filteredStudyMaterials = data.studyMaterials.filter(sm => sm.examCategories.includes(currentViewCategory));
+            const filteredVideoClasses = data.videoClasses.filter(vc => vc.examCategories.includes(currentViewCategory));
             
             setCategories(filteredCategories);
             setTopics(filteredTopics);
             setBankedQuestions(filteredBankedQuestions);
             setStudyMaterials(filteredStudyMaterials);
+            setVideoClasses(filteredVideoClasses);
             
             // Data that is not category-specific
             setTopicMCQs(data.topicMCQs);
@@ -761,7 +776,7 @@ export default function DashboardLayout({
     }
   };
 
-  const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, studyMaterials, qnaUsage, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback };
+  const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, studyMaterials, videoClasses, qnaUsage, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback };
 
   return (
     <DashboardContext.Provider value={contextValue}>

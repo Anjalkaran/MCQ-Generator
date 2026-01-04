@@ -22,6 +22,15 @@ export interface StudyMaterial {
   uploadedAt: Date;
 }
 
+export interface VideoClass {
+  id: string;
+  title: string;
+  description: string;
+  youtubeVideoId: string;
+  examCategories: ('MTS' | 'POSTMAN' | 'PA' | 'IP')[];
+  uploadedAt: Date;
+}
+
 export interface DownloadHistory {
   id: string;
   userId: string;

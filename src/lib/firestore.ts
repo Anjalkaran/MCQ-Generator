@@ -2,7 +2,7 @@
 
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion, runTransaction } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ, MCQData, StudyMaterial, DownloadHistory } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ, MCQData, StudyMaterial, DownloadHistory, VideoClass } from './types';
 import { ADMIN_EMAILS } from './constants';
 import { normalizeDate } from './utils';
 
@@ -874,13 +874,43 @@ export const getDownloadHistory = async (): Promise<DownloadHistory[]> => {
 };
 
 
+// VIDEO CLASS MANAGEMENT
+export const getVideoClasses = async (): Promise<VideoClass[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const videosCollection = collection(db, 'videoClasses');
+    const q = query(videosCollection, orderBy('uploadedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as VideoClass));
+};
+
+export const addVideoClass = async (data: Omit<VideoClass, 'id'>): Promise<DocumentReference> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    return await addDoc(collection(db, 'videoClasses'), data);
+};
+
+export const updateVideoClass = async (videoId: string, data: Partial<Omit<VideoClass, 'id'>>): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const videoRef = doc(db, 'videoClasses', videoId);
+    await updateDoc(videoRef, data);
+};
+
+export const deleteVideoClass = async (videoId: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    await deleteDoc(doc(db, 'videoClasses', videoId));
+};
+
+
 // CONSOLIDATED DASHBOARD DATA FETCHING
 export const getDashboardData = async (userId: string, isAdmin: boolean = false) => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
 
     if (isAdmin) {
-        const [categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, topicMCQs, studyMaterials] = await Promise.all([
+        const [categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, topicMCQs, studyMaterials, videoClasses] = await Promise.all([
             getCategories(), 
             getTopics(), 
             getQuestionBankDocuments(), 
@@ -888,18 +918,19 @@ export const getDashboardData = async (userId: string, isAdmin: boolean = false)
             getQnAUsage(), 
             getAdminNotifications(), 
             getTopicMCQs(),
-            getStudyMaterials()
+            getStudyMaterials(),
+            getVideoClasses(),
         ]);
-        return { userData: null, categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, topicMCQs, studyMaterials };
+        return { userData: null, categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, topicMCQs, studyMaterials, videoClasses };
     }
 
-    const [userData, allCategories, allTopics, allBankedQuestions, allStudyMaterials] = await Promise.all([
-        getUserData(userId), getCategories(), getTopics(), getQuestionBankDocuments(), getStudyMaterials()
+    const [userData, allCategories, allTopics, allBankedQuestions, allStudyMaterials, allVideoClasses] = await Promise.all([
+        getUserData(userId), getCategories(), getTopics(), getQuestionBankDocuments(), getStudyMaterials(), getVideoClasses()
     ]);
     
     if (!userData) {
         // Return a default structure to avoid crashing the app if user data is somehow missing.
-        return { userData: null, categories: [], topics: [], bankedQuestions: [], liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [], studyMaterials: [] };
+        return { userData: null, categories: [], topics: [], bankedQuestions: [], liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [], studyMaterials: [], videoClasses: [] };
     }
 
     // Filter categories, topics, and banked questions based on the user's exam category
@@ -915,8 +946,9 @@ export const getDashboardData = async (userId: string, isAdmin: boolean = false)
     const userBankedQuestions = allBankedQuestions.filter(bq => bq.examCategory === userExamCategory);
     
     const userStudyMaterials = allStudyMaterials.filter(sm => sm.examCategories && sm.examCategories.includes(userExamCategory));
+    const userVideoClasses = allVideoClasses.filter(vc => vc.examCategories && vc.examCategories.includes(userExamCategory));
 
-    return { userData, categories: userCategories, topics: userTopics, bankedQuestions: userBankedQuestions, liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [], studyMaterials: userStudyMaterials };
+    return { userData, categories: userCategories, topics: userTopics, bankedQuestions: userBankedQuestions, liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [], studyMaterials: userStudyMaterials, videoClasses: userVideoClasses };
 };
 
 
