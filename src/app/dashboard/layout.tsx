@@ -5,7 +5,7 @@
 import React, { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageCircle, Star, BookOpen, PenSquare } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageCircle, Star, BookOpen, PenSquare, RefreshCw } from 'lucide-react';
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
 import Link from 'next/link';
 import { getFirebaseAuth } from '@/lib/firebase';
@@ -468,6 +468,7 @@ export default function DashboardLayout({
   const [hasGivenFeedback, setHasGivenFeedback] = useState(false);
   const [showProfileUpdateModal, setShowProfileUpdateModal] = useState(false);
   const [profileUpdateDefaults, setProfileUpdateDefaults] = useState({ employeeId: '', division: '' });
+  const [showUpdateAlert, setShowUpdateAlert] = useState(false);
 
   const handleLogout = useCallback(async (authInstance = getFirebaseAuth(), showToast = true, message?: string) => {
     if (!authInstance) {
@@ -482,6 +483,29 @@ export default function DashboardLayout({
       if (showToast) toast({ title: 'Logout Failed', description: error.message || 'An unexpected error occurred.', variant: 'destructive' });
     }
   }, [router, toast]);
+
+  // Version Check Effect
+  useEffect(() => {
+    if (!user) return;
+    const currentVersion = process.env.APP_VERSION;
+    
+    const versionCheckInterval = setInterval(async () => {
+        try {
+            const response = await fetch('/api/version');
+            if (response.ok) {
+                const { version: serverVersion } = await response.json();
+                if (currentVersion && serverVersion && currentVersion !== serverVersion) {
+                    setShowUpdateAlert(true);
+                    clearInterval(versionCheckInterval);
+                }
+            }
+        } catch (error) {
+            console.error("Version check failed:", error);
+        }
+    }, 60 * 1000); // Check every 60 seconds
+
+    return () => clearInterval(versionCheckInterval);
+  }, [user]);
 
   // Heartbeat effect
   useEffect(() => {
@@ -754,6 +778,24 @@ export default function DashboardLayout({
               ) : (
                 <>
                   {showProfileUpdateModal && <ProfileUpdateDialog open={showProfileUpdateModal} onUpdateSubmit={handleProfileUpdateSubmit} defaultValues={profileUpdateDefaults} />}
+                  <AlertDialog open={showUpdateAlert}>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle className="flex items-center gap-2">
+                                <RefreshCw className="h-5 w-5" />
+                                Application Updated
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                                A new version of the application is available. Please log in again to get the latest updates.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogAction onClick={() => handleLogout(getFirebaseAuth(), false, "Please log in again to get the latest update.")}>
+                                    OK
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                   {children}
                    <Dialog open={showReasoningPopup} onOpenChange={(isOpen) => !isOpen && handleReasoningPopupClose()}>
                       <DialogContent>
