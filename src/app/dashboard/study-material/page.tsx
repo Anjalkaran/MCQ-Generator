@@ -1,11 +1,10 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
 import { useDashboard } from '@/app/dashboard/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Search, Loader2, ZoomIn, ZoomOut, RotateCcw, Download } from 'lucide-react';
 import type { StudyMaterial } from '@/lib/types';
@@ -13,6 +12,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import Link from 'next/link';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -109,40 +109,50 @@ export default function StudyMaterialPage() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    {filteredMaterials.length > 0 ? (
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                           {filteredMaterials.map(material => (
-                             <Dialog key={material.id}>
-                               <Card>
-                                 <CardHeader>
-                                   <CardTitle className="text-lg">{material.title}</CardTitle>
-                                 </CardHeader>
-                                 <CardContent className="flex flex-col sm:flex-row gap-2">
-                                   <DialogTrigger asChild>
-                                      <Button className="w-full">
-                                        <BookOpen className="mr-2 h-4 w-4" />
-                                        Read Material
-                                      </Button>
-                                   </DialogTrigger>
-                                   <Button variant="outline" className="w-full" asChild>
-                                      <Link href={material.content} download={material.fileName}>
-                                        <Download className="mr-2 h-4 w-4" />
-                                        Download
-                                      </Link>
-                                   </Button>
-                                 </CardContent>
-                               </Card>
-                               <PDFViewer material={material} />
-                             </Dialog>
-                           ))}
-                         </div>
-                    ) : (
-                        <div className="text-center text-muted-foreground py-10">
-                            <BookOpen className="mx-auto h-12 w-12 mb-4" />
-                            <p className="font-semibold">No Study Materials Found</p>
-                            <p className="text-sm">No materials match your search, or none have been uploaded yet.</p>
-                        </div>
-                    )}
+                    <div className="border rounded-md">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Title</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredMaterials.length > 0 ? (
+                                    filteredMaterials.map(material => (
+                                        <Dialog key={material.id}>
+                                            <TableRow>
+                                                <TableCell className="font-medium">{material.title}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex gap-2 justify-end">
+                                                        <DialogTrigger asChild>
+                                                            <Button>
+                                                                <BookOpen className="mr-2 h-4 w-4" />
+                                                                Read Material
+                                                            </Button>
+                                                        </DialogTrigger>
+                                                        <Button variant="outline" asChild>
+                                                            <Link href={material.content} download={material.fileName}>
+                                                                <Download className="mr-2 h-4 w-4" />
+                                                                Download
+                                                            </Link>
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                            <PDFViewer material={material} />
+                                        </Dialog>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={2} className="h-24 text-center">
+                                            {searchTerm ? "No materials match your search." : "No study materials have been uploaded yet."}
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </CardContent>
             </Card>
         </div>
