@@ -30,6 +30,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { format } from 'date-fns';
 import { addVideoClass, updateVideoClass, deleteVideoClass } from '@/lib/firestore';
 import Image from 'next/image';
+import { Badge } from '@/components/ui/badge';
 
 const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
 
