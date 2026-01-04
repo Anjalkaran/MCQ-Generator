@@ -644,7 +644,7 @@ export default function DashboardLayout({
                 setUserData(fetchedUserData);
                 setCategories(categories);
                 setTopics(topics);
-                setBankedQuestions(userBankedQuestions);
+                setBankedQuestions(userBankedQuestions || []);
                 setStudyMaterials(userStudyMaterials);
                 setVideoClasses(userVideoClasses);
                 setHasGivenFeedback(feedbackStatus);
@@ -719,7 +719,7 @@ export default function DashboardLayout({
             const filteredCategoryIds = new Set(filteredCategories.map(c => c.id));
             
             const filteredTopics = data.topics.filter(t => t.examCategories.includes(currentViewCategory));
-            const filteredBankedQuestions = data.bankedQuestions.filter(bq => bq.examCategory === currentViewCategory);
+            const filteredBankedQuestions = data.bankedQuestions ? data.bankedQuestions.filter(bq => bq.examCategory === currentViewCategory) : [];
             const filteredStudyMaterials = data.studyMaterials.filter(sm => sm.examCategories.includes(currentViewCategory));
             const filteredVideoClasses = data.videoClasses.filter(vc => vc.examCategories.includes(currentViewCategory));
             
