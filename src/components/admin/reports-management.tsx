@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -557,8 +556,8 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
             })
             .filter(user => cityFilter === 'all' || user.city?.trim().toLowerCase() === cityFilter.toLowerCase())
             .filter(user =>
-                user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                user.email.toLowerCase().includes(searchTerm.toLowerCase())
+                (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase()))
             );
     }, [allUsers, examCategoryFilter, proStatusFilter, cityFilter, searchTerm]);
     
@@ -741,3 +740,5 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
         </div>
     );
 }
+
+    
