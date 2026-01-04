@@ -645,8 +645,8 @@ export default function DashboardLayout({
                 setCategories(categories);
                 setTopics(topics);
                 setBankedQuestions(userBankedQuestions || []);
-                setStudyMaterials(userStudyMaterials);
-                setVideoClasses(userVideoClasses);
+                setStudyMaterials(userStudyMaterials || []);
+                setVideoClasses(userVideoClasses || []);
                 setHasGivenFeedback(feedbackStatus);
 
                 const divisionIsEmail = fetchedUserData.division?.includes('@');
@@ -715,13 +715,12 @@ export default function DashboardLayout({
         getDashboardData(userData.uid, true).then(data => {
             const currentViewCategory = userData.examCategory;
 
-            const filteredCategories = data.categories.filter(c => c.examCategories.includes(currentViewCategory));
-            const filteredCategoryIds = new Set(filteredCategories.map(c => c.id));
+            const filteredCategories = (data.categories || []).filter(c => c.examCategories.includes(currentViewCategory));
             
-            const filteredTopics = data.topics.filter(t => t.examCategories.includes(currentViewCategory));
-            const filteredBankedQuestions = data.bankedQuestions ? data.bankedQuestions.filter(bq => bq.examCategory === currentViewCategory) : [];
-            const filteredStudyMaterials = data.studyMaterials.filter(sm => sm.examCategories.includes(currentViewCategory));
-            const filteredVideoClasses = data.videoClasses.filter(vc => vc.examCategories.includes(currentViewCategory));
+            const filteredTopics = (data.topics || []).filter(t => t.examCategories.includes(currentViewCategory));
+            const filteredBankedQuestions = (data.bankedQuestions || []).filter(bq => bq.examCategory === currentViewCategory);
+            const filteredStudyMaterials = (data.studyMaterials || []).filter(sm => sm.examCategories.includes(currentViewCategory));
+            const filteredVideoClasses = (data.videoClasses || []).filter(vc => vc.examCategories.includes(currentViewCategory));
             
             setCategories(filteredCategories);
             setTopics(filteredTopics);
@@ -730,10 +729,10 @@ export default function DashboardLayout({
             setVideoClasses(filteredVideoClasses);
             
             // Data that is not category-specific
-            setTopicMCQs(data.topicMCQs);
-            setLiveTestBank(data.liveTestBank);
-            setQnaUsage(data.qnaUsage);
-            setNotifications(data.notifications);
+            setTopicMCQs(data.topicMCQs || []);
+            setLiveTestBank(data.liveTestBank || []);
+            setQnaUsage(data.qnaUsage || []);
+            setNotifications(data.notifications || []);
         });
     }
   }, [userData]);
