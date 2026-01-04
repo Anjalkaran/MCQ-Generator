@@ -943,10 +943,10 @@ export const getDashboardData = async (userId: string, isAdmin: boolean = false)
         t.examCategories && t.examCategories.includes(userExamCategory) && userCategoryIds.has(t.categoryId)
     );
     
-    const userBankedQuestions = allBankedQuestions.filter(bq => bq.examCategory === userExamCategory);
+    const userBankedQuestions = (allBankedQuestions || []).filter(bq => bq.examCategory === userExamCategory);
     
-    const userStudyMaterials = allStudyMaterials.filter(sm => sm.examCategories && sm.examCategories.includes(userExamCategory));
-    const userVideoClasses = allVideoClasses.filter(vc => vc.examCategories && vc.examCategories.includes(userExamCategory));
+    const userStudyMaterials = (allStudyMaterials || []).filter(sm => sm.examCategories && sm.examCategories.includes(userExamCategory));
+    const userVideoClasses = (allVideoClasses || []).filter(vc => vc.examCategories && vc.examCategories.includes(userExamCategory));
 
     return { userData, categories: userCategories, topics: userTopics, bankedQuestions: userBankedQuestions, liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [], studyMaterials: userStudyMaterials, videoClasses: userVideoClasses };
 };
