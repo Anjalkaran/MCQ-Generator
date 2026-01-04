@@ -49,7 +49,7 @@ function PDFViewer({ material }: { material: StudyMaterial }) {
             </DialogHeader>
             <div className="flex-1 overflow-auto" onContextMenu={(e) => e.preventDefault()}>
                 <Document
-                    file={material.content}
+                    file={{ url: material.content }}
                     onLoadSuccess={onDocumentLoadSuccess}
                     loading={<div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>}
                 >
