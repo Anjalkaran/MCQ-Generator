@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -9,8 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Gem, Download, Loader2, RefreshCw, Trophy, Languages, Users, UserCog, Trash2 } from 'lucide-react';
-import type { UserData, MCQHistory } from '@/lib/types';
+import { Gem, Download, Loader2, RefreshCw, Trophy, Languages, Users, UserCog, Trash2, FileDown } from 'lucide-react';
+import type { UserData, MCQHistory, DownloadHistory } from '@/lib/types';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -25,7 +26,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { normalizeDate } from '@/lib/utils';
-import { getAllExamHistory, getUserLanguagePreferences as fetchUserLanguagePreferences } from '@/lib/firestore';
+import { getAllExamHistory, getUserLanguagePreferences as fetchUserLanguagePreferences, getDownloadHistory } from '@/lib/firestore';
 
 type ExamCategory = 'all' | 'MTS' | 'POSTMAN' | 'PA';
 type ProStatus = 'all' | 'pro' | 'free';
@@ -34,6 +35,120 @@ type UserLanguagePreference = { userId: string; name: string; email: string; pre
 
 interface ReportsManagementProps {
     allUsers: UserData[];
+}
+
+function DownloadHistoryCard() {
+    const [history, setHistory] = useState<DownloadHistory[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
+    const { toast } = useToast();
+
+    useEffect(() => {
+        const fetchHistory = async () => {
+            setIsLoading(true);
+            try {
+                const data = await getDownloadHistory();
+                setHistory(data);
+            } catch (error) {
+                console.error("Failed to fetch download history:", error);
+                toast({ title: "Error", description: "Could not load download history.", variant: "destructive" });
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchHistory();
+    }, [toast]);
+
+    const filteredHistory = useMemo(() => {
+        return history.filter(item =>
+            item.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.fileTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.fileName.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [history, searchTerm]);
+
+    const handleDownloadCSV = () => {
+        const headers = ["User", "File Title", "File Name", "Downloaded At"];
+        const csvContent = [
+            headers.join(','),
+            ...filteredHistory.map(item => 
+                [
+                    `"${item.userName}"`,
+                    `"${item.fileTitle}"`,
+                    `"${item.fileName}"`,
+                    `"${format(item.downloadedAt, 'dd/MM/yyyy p')}"`
+                ].join(',')
+            )
+        ].join('\n');
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `download_history_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Download History</CardTitle>
+                <CardDescription>A log of all study materials downloaded by users.</CardDescription>
+                <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                    <Input 
+                        placeholder="Search by user or file..." 
+                        value={searchTerm} 
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="flex-grow"
+                    />
+                    <Button onClick={handleDownloadCSV} disabled={filteredHistory.length === 0}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Download CSV
+                    </Button>
+                </div>
+            </CardHeader>
+            <CardContent>
+                {isLoading ? (
+                    <div className="flex items-center justify-center h-24">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                ) : (
+                    <div className="border rounded-md">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>User</TableHead>
+                                    <TableHead>File Title</TableHead>
+                                    <TableHead>File Name</TableHead>
+                                    <TableHead className="text-right">Downloaded At</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredHistory.length > 0 ? (
+                                    filteredHistory.map((item) => (
+                                        <TableRow key={item.id}>
+                                            <TableCell className="font-medium">{item.userName}</TableCell>
+                                            <TableCell>{item.fileTitle}</TableCell>
+                                            <TableCell className="text-muted-foreground">{item.fileName}</TableCell>
+                                            <TableCell className="text-right">{format(item.downloadedAt, 'dd/MM/yyyy p')}</TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="h-24 text-center">
+                                            No download history found.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
 }
 
 function DataReconciliationCard() {
@@ -491,10 +606,14 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
                     <CardDescription>Generate user reports, view analytics, and manage data integrity.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
                          <Button variant={activeTab === 'user-reports' ? 'default' : 'outline'} onClick={() => setActiveTab('user-reports')}>
                             <Users className="mr-2 h-4 w-4" />
                             User Reports
+                        </Button>
+                         <Button variant={activeTab === 'download-history' ? 'default' : 'outline'} onClick={() => setActiveTab('download-history')}>
+                            <FileDown className="mr-2 h-4 w-4" />
+                            Download History
                         </Button>
                          <Button variant={activeTab === 'language-usage' ? 'default' : 'outline'} onClick={() => setActiveTab('language-usage')}>
                             <Languages className="mr-2 h-4 w-4" />
@@ -604,6 +723,9 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
                                 </Table>
                             </div>
                         </div>
+                    )}
+                    {activeTab === 'download-history' && (
+                        <DownloadHistoryCard />
                     )}
                     {activeTab === 'language-usage' && (
                         <LanguageUsageCard />

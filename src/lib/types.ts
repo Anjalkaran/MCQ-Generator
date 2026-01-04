@@ -22,6 +22,16 @@ export interface StudyMaterial {
   uploadedAt: Date;
 }
 
+export interface DownloadHistory {
+  id: string;
+  userId: string;
+  userName: string;
+  materialId: string;
+  fileTitle: string;
+  fileName: string;
+  downloadedAt: Date;
+}
+
 export interface Topic {
   id: string;
   title: string;

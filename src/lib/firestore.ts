@@ -2,7 +2,7 @@
 
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion, runTransaction } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ, MCQData, StudyMaterial } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ, MCQData, StudyMaterial, DownloadHistory } from './types';
 import { ADMIN_EMAILS } from './constants';
 import { normalizeDate } from './utils';
 
@@ -852,6 +852,24 @@ export const deleteStudyMaterial = async (materialId: string): Promise<void> => 
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     await deleteDoc(doc(db, 'studyMaterials', materialId));
+};
+
+
+// DOWNLOAD HISTORY MANAGEMENT
+export const getDownloadHistory = async (): Promise<DownloadHistory[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const historyCollection = collection(db, 'downloadHistory');
+    const q = query(historyCollection, orderBy('downloadedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            ...data,
+            downloadedAt: data.downloadedAt.toDate()
+        } as DownloadHistory;
+    });
 };
 
 

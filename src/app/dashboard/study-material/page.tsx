@@ -4,15 +4,15 @@ import { useState, useMemo } from 'react';
 import { useDashboard } from '@/app/dashboard/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Search, Loader2, ZoomIn, ZoomOut, RotateCcw, Download } from 'lucide-react';
 import type { StudyMaterial } from '@/lib/types';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
-import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useToast } from '@/hooks/use-toast';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -64,8 +64,49 @@ function PDFViewer({ material }: { material: StudyMaterial }) {
 
 
 export default function StudyMaterialPage() {
-    const { studyMaterials, isLoading } = useDashboard();
+    const { user, userData, studyMaterials, isLoading } = useDashboard();
     const [searchTerm, setSearchTerm] = useState('');
+    const [downloadingId, setDownloadingId] = useState<string | null>(null);
+    const { toast } = useToast();
+
+    const handleDownload = async (material: StudyMaterial) => {
+        if (!user || !userData) {
+            toast({ title: "Authentication Error", description: "You must be logged in to download.", variant: "destructive"});
+            return;
+        }
+        
+        setDownloadingId(material.id);
+
+        try {
+            // Track the download
+            await fetch('/api/track-download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: user.uid,
+                    userName: userData.name,
+                    materialId: material.id,
+                    fileTitle: material.title,
+                    fileName: material.fileName,
+                }),
+            });
+            
+            // Initiate the download
+            const link = document.createElement("a");
+            link.href = material.content;
+            link.download = material.fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+        } catch (error) {
+            console.error("Download failed:", error);
+            toast({ title: "Error", description: "Could not start the download.", variant: "destructive"});
+        } finally {
+            setDownloadingId(null);
+        }
+    };
+
 
     const filteredMaterials = useMemo(() => {
         const materials = studyMaterials || [];
@@ -131,11 +172,9 @@ export default function StudyMaterialPage() {
                                                                 Read Material
                                                             </Button>
                                                         </DialogTrigger>
-                                                        <Button variant="outline" asChild>
-                                                            <Link href={material.content} download={material.fileName}>
-                                                                <Download className="mr-2 h-4 w-4" />
-                                                                Download
-                                                            </Link>
+                                                        <Button variant="outline" onClick={() => handleDownload(material)} disabled={downloadingId === material.id}>
+                                                            {downloadingId === material.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                                            Download
                                                         </Button>
                                                     </div>
                                                 </TableCell>
