@@ -301,6 +301,7 @@ function AppSidebar() {
               </SidebarMenuItem>
             </>
            )}
+           {isAdmin && (
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/q-and-a')} tooltip="Ask Your Doubt">
                 <Link href="/dashboard/q-and-a" onClick={onLinkClick}>
@@ -309,6 +310,7 @@ function AppSidebar() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            )}
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/dashboard/profile'} tooltip="Profile">
               <Link href="/dashboard/profile" onClick={onLinkClick}>
@@ -634,7 +636,7 @@ export default function DashboardLayout({
                 // Set data not needed by regular users to empty arrays
                 setTopicMCQs([]);
                 setLiveTestBank([]);
-                setQnAUsage([]); 
+                setQnaUsage([]); 
                 setNotifications([]);
                 setOnlineUsers([]);
             }
