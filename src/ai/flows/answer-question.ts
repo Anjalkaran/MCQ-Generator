@@ -9,6 +9,7 @@
  */
 
 import { ai } from '@/ai/genkit';
+import { googleAI } from '@genkit-ai/googleai';
 import { z } from 'zod';
 import { logQnAUSage } from '@/lib/firestore';
 
@@ -35,6 +36,7 @@ const prompt = ai.definePrompt({
   name: 'answerQuestionPrompt',
   input: { schema: AnswerQuestionInputSchema },
   output: { schema: AnswerQuestionOutputSchema },
+  model: googleAI.model('gemini-1.5-pro'),
   prompt: `You are a helpful assistant for postal exam preparation.
 
 First, check if the user's question is relevant to the specified topic.
