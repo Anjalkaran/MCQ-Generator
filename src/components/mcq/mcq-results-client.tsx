@@ -116,12 +116,12 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
             <Award className="w-16 h-16 text-primary" />
           </div>
           <CardTitle className="text-3xl font-bold font-headline">Exam Completed!</CardTitle>
-          <p className="text-muted-foreground">You have completed the {topic.title} exam.</p>
+          <p className="text-muted-foreground">You have completed the ${topic.title} exam.</p>
         </CardHeader>
         <CardContent>
-          <p className="text-5xl font-bold text-primary">{totalMarks}</p>
+          <p className="text-5xl font-bold text-primary">${totalMarks}</p>
           <p className="text-xl text-muted-foreground mt-2">
-            Total Marks out of {maxMarks}
+            Total Marks out of ${maxMarks}
           </p>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mt-8">
              {liveTestId && (
@@ -168,7 +168,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
                 <li key={index}>
                   <div className="font-semibold mb-2" dangerouslySetInnerHTML={{ __html: `${index + 1}. ${mcq.question}` }} />
                    {quizData.isMockTest && mcq.topic && (
-                       <Badge variant="outline" className="mb-2">Topic: {mcq.topic}</Badge>
+                       <Badge variant="outline" className="mb-2">Topic: ${mcq.topic}</Badge>
                    )}
                   <div className="space-y-2">
                     {mcq.options.map((option) => {
