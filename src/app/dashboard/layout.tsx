@@ -34,25 +34,32 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
-const employeeIdSchema = z.object({
+const profileUpdateSchema = z.object({
   employeeId: z.string().min(3, { message: 'Employee ID must be at least 3 characters.' }),
+  division: z.string().min(2, { message: 'Division name is required.' }).refine(val => !val.includes('@'), {
+    message: 'Division cannot be an email address.',
+  }),
 });
 
-interface EmployeeIdDialogProps {
+interface ProfileUpdateDialogProps {
   open: boolean;
-  onIdSubmit: (employeeId: string) => Promise<void>;
+  onUpdateSubmit: (values: { employeeId: string; division: string }) => Promise<void>;
+  defaultValues: { employeeId: string; division: string };
 }
 
-function EmployeeIdDialog({ open, onIdSubmit }: EmployeeIdDialogProps) {
+function ProfileUpdateDialog({ open, onUpdateSubmit, defaultValues }: ProfileUpdateDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const form = useForm<z.infer<typeof employeeIdSchema>>({
-    resolver: zodResolver(employeeIdSchema),
-    defaultValues: { employeeId: '' },
+  const form = useForm<z.infer<typeof profileUpdateSchema>>({
+    resolver: zodResolver(profileUpdateSchema),
+    defaultValues: {
+        employeeId: defaultValues.employeeId,
+        division: defaultValues.division,
+    },
   });
 
-  const handleSubmit = async (values: z.infer<typeof employeeIdSchema>) => {
+  const handleSubmit = async (values: z.infer<typeof profileUpdateSchema>) => {
     setIsSubmitting(true);
-    await onIdSubmit(values.employeeId);
+    await onUpdateSubmit(values);
     setIsSubmitting(false);
   };
 
@@ -62,7 +69,7 @@ function EmployeeIdDialog({ open, onIdSubmit }: EmployeeIdDialogProps) {
         <DialogHeader>
           <DialogTitle>Update Required</DialogTitle>
           <DialogDescription>
-            Please enter your Employee ID to continue. This is a one-time requirement.
+            Please provide or correct the following details to continue. This is a one-time requirement.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -76,6 +83,20 @@ function EmployeeIdDialog({ open, onIdSubmit }: EmployeeIdDialogProps) {
                   <FormControl>
                     <Input placeholder="Enter your Employee ID" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="division"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Division Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter your Division Name" {...field} />
+                  </FormControl>
+                   <FormDescription>Please enter your postal division name (e.g., Chennai, Madurai).</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -443,7 +464,8 @@ export default function DashboardLayout({
   const [showReasoningPopup, setShowReasoningPopup] = useState(false);
   const [showMockTestPopup, setShowMockTestPopup] = useState(false);
   const [hasGivenFeedback, setHasGivenFeedback] = useState(false);
-  const [showEmployeeIdModal, setShowEmployeeIdModal] = useState(false);
+  const [showProfileUpdateModal, setShowProfileUpdateModal] = useState(false);
+  const [profileUpdateDefaults, setProfileUpdateDefaults] = useState({ employeeId: '', division: '' });
 
   const handleLogout = useCallback(async (authInstance = getFirebaseAuth(), showToast = true, message?: string) => {
     if (!authInstance) {
@@ -589,9 +611,13 @@ export default function DashboardLayout({
                 setStudyMaterials(userStudyMaterials);
                 setHasGivenFeedback(feedbackStatus);
 
-                // Check if employeeId is missing
-                if (!fetchedUserData.employeeId) {
-                  setShowEmployeeIdModal(true);
+                const divisionIsEmail = fetchedUserData.division?.includes('@');
+                if (!fetchedUserData.employeeId || !fetchedUserData.division || divisionIsEmail) {
+                  setProfileUpdateDefaults({
+                      employeeId: fetchedUserData.employeeId || '',
+                      division: divisionIsEmail ? '' : (fetchedUserData.division || ''),
+                  });
+                  setShowProfileUpdateModal(true);
                 }
 
                 // Check for reasoning update popup
@@ -608,7 +634,7 @@ export default function DashboardLayout({
                 // Set data not needed by regular users to empty arrays
                 setTopicMCQs([]);
                 setLiveTestBank([]);
-                setQnaUsage([]); 
+                setQnAUsage([]); 
                 setNotifications([]);
                 setOnlineUsers([]);
             }
@@ -697,23 +723,15 @@ export default function DashboardLayout({
     }
   };
   
-  const handleEmployeeIdSubmit = async (employeeId: string) => {
+  const handleProfileUpdateSubmit = async (values: { employeeId: string; division: string }) => {
     if (!user) return;
     try {
-      const response = await fetch('/api/user/update-employee-id', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.uid, employeeId }),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update Employee ID.');
-      }
-      setUserData(prev => prev ? { ...prev, employeeId } : null);
-      setShowEmployeeIdModal(false);
-      toast({ title: 'Success', description: 'Employee ID has been updated.' });
+        await updateUserDocument(user.uid, values);
+        setUserData(prev => prev ? { ...prev, ...values } : null);
+        setShowProfileUpdateModal(false);
+        toast({ title: 'Success', description: 'Your profile has been updated.' });
     } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+        toast({ title: 'Error', description: error.message || 'Failed to update your profile.', variant: 'destructive' });
     }
   };
 
@@ -733,7 +751,7 @@ export default function DashboardLayout({
                    </div>
               ) : (
                 <>
-                  {showEmployeeIdModal && <EmployeeIdDialog open={showEmployeeIdModal} onIdSubmit={handleEmployeeIdSubmit} />}
+                  {showProfileUpdateModal && <ProfileUpdateDialog open={showProfileUpdateModal} onUpdateSubmit={handleProfileUpdateSubmit} defaultValues={profileUpdateDefaults} />}
                   {children}
                    <Dialog open={showReasoningPopup} onOpenChange={(isOpen) => !isOpen && handleReasoningPopupClose()}>
                       <DialogContent>

@@ -15,11 +15,11 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { name, email, password, examCategory, isPro, city } = await req.json();
+    const { name, email, password, examCategory, isPro, city, division } = await req.json();
 
     // --- Robust Server-Side Validation ---
-    if (!name || !email || !password || !examCategory || !city) {
-        return NextResponse.json({ error: 'Missing required fields: name, email, password, city, and examCategory are all required.' }, { status: 400 });
+    if (!name || !email || !password || !examCategory || !city || !division) {
+        return NextResponse.json({ error: 'Missing required fields: name, email, password, city, division and examCategory are all required.' }, { status: 400 });
     }
     if (typeof password !== 'string' || password.length < 6) {
         return NextResponse.json({ error: 'Password must be a string with at least 6 characters.' }, { status: 400 });
@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
       name,
       email,
       city,
+      division,
       examCategory,
       totalExamsTaken: 0,
       isPro: isPro || false,
@@ -66,6 +67,7 @@ export async function POST(req: NextRequest) {
         name: newUserForDb.name!,
         email: newUserForDb.email!,
         city: newUserForDb.city,
+        division: newUserForDb.division,
         examCategory: newUserForDb.examCategory!,
         totalExamsTaken: newUserForDb.totalExamsTaken!,
         isPro: newUserForDb.isPro,

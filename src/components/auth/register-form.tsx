@@ -30,6 +30,9 @@ const formSchema = z.object({
     }
   ),
   city: z.string().min(2, { message: "City is required." }),
+  division: z.string().min(2, { message: 'Division name is required.' }).refine(val => !val.includes('@'), {
+    message: 'Division cannot be an email address.',
+  }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
   confirmPassword: z.string(),
   examCategory: z.string().min(1, { message: 'Please select an exam category.' }),
@@ -52,6 +55,7 @@ export function RegisterForm() {
       name: '',
       email: '',
       city: '',
+      division: '',
       password: '',
       confirmPassword: '',
       examCategory: '',
@@ -84,6 +88,7 @@ export function RegisterForm() {
         name: values.name,
         email: values.email,
         city: values.city,
+        division: values.division,
         examCategory: values.examCategory,
         totalExamsTaken: 0,
         isPro: false,
@@ -165,6 +170,19 @@ export function RegisterForm() {
                   <FormLabel>City</FormLabel>
                   <FormControl>
                     <Input placeholder="Your City" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="division"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Division</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Your Postal Division" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

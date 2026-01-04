@@ -1,4 +1,5 @@
 
+
 import type { LucideIcon } from 'lucide-react';
 import type { Timestamp } from 'firebase/firestore';
 
@@ -31,6 +32,7 @@ export interface Topic {
   part: 'Part A' | 'Part B' | 'Paper-I' | 'Paper-III';
   examCategories: ('MTS' | 'POSTMAN' | 'PA' | 'IP')[];
   source?: 'reasoningBank'; // Flag to identify virtual topics
+  material?: string;
 }
 
 export interface Category {
@@ -46,6 +48,7 @@ export interface UserData {
     phone?: string;
     employeeId?: string;
     city?: string;
+    division?: string;
     examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP';
     totalExamsTaken: number;
     liveTestsTaken?: string[]; // Array of liveTest IDs

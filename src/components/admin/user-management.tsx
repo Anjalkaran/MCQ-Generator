@@ -42,6 +42,9 @@ import { format } from 'date-fns';
 const userUpdateSchema = z.object({
   name: z.string().min(1, { message: 'Username is required.' }),
   city: z.string().min(2, { message: "City is required." }),
+  division: z.string().min(2, { message: 'Division name is required.' }).refine(val => !val.includes('@'), {
+    message: 'Division cannot be an email address.',
+  }),
   examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA' | 'IP'>,
   isPro: z.boolean().default(false).optional(),
   proValidUntil: z.date().optional().nullable(),
@@ -56,6 +59,9 @@ const userCreateSchema = z.object({
     }
   ),
   city: z.string().min(2, { message: "City is required." }),
+  division: z.string().min(2, { message: 'Division name is required.' }).refine(val => !val.includes('@'), {
+    message: 'Division cannot be an email address.',
+  }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
   examCategory: z.string().min(1, { message: 'Please select an exam category.' }) as z.ZodType<'MTS' | 'POSTMAN' | 'PA' | 'IP'>,
   isPro: z.boolean().default(false).optional(),
@@ -147,6 +153,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
         name: '',
         email: '',
         city: '',
+        division: '',
         password: '',
         examCategory: 'MTS',
         isPro: false,
@@ -160,6 +167,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     updateUserForm.reset({
       name: user.name,
       city: user.city || '',
+      division: user.division || '',
       examCategory: user.examCategory,
       isPro: user.isPro || false,
       proValidUntil: normalizeDate(user.proValidUntil),
@@ -174,6 +182,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
       const dataToUpdate: Partial<UserData> = {
         name: values.name,
         city: values.city,
+        division: values.division,
         examCategory: values.examCategory,
         isPro: values.isPro,
         proValidUntil: values.proValidUntil,
@@ -292,17 +301,30 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                                     </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={createUserForm.control}
-                                name="city"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>City</FormLabel>
-                                    <FormControl><Input placeholder="User's City" {...field} /></FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                    control={createUserForm.control}
+                                    name="city"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>City</FormLabel>
+                                        <FormControl><Input placeholder="User's City" {...field} /></FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={createUserForm.control}
+                                    name="division"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Division</FormLabel>
+                                        <FormControl><Input placeholder="User's Division" {...field} /></FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
                             <FormField
                                 control={createUserForm.control}
                                 name="password"
@@ -420,7 +442,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                 <TableHead>Username</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Phone / Emp ID</TableHead>
-                <TableHead>City</TableHead>
+                <TableHead>City / Division</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -433,7 +455,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.phone || 'N/A'}<br/>{user.employeeId || ''}</TableCell>
-                    <TableCell>{user.city}</TableCell>
+                    <TableCell>{user.city || 'N/A'}<br/>{user.division || ''}</TableCell>
                     <TableCell>{user.examCategory}</TableCell>
                     <TableCell>
                       {user.isPro ? (
@@ -516,17 +538,30 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                                     </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={updateUserForm.control}
-                                name="city"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>City</FormLabel>
-                                    <FormControl><Input {...field} /></FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                    control={updateUserForm.control}
+                                    name="city"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>City</FormLabel>
+                                        <FormControl><Input {...field} /></FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={updateUserForm.control}
+                                    name="division"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Division</FormLabel>
+                                        <FormControl><Input {...field} /></FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
                             <FormField
                                 control={updateUserForm.control}
                                 name="examCategory"
