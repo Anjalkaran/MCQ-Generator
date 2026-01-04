@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { useDashboard } from '@/app/dashboard/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Search, Loader2, ZoomIn, ZoomOut, RotateCcw, Download } from 'lucide-react';
 import type { StudyMaterial } from '@/lib/types';
