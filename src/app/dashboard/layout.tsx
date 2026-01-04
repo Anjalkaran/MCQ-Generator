@@ -28,6 +28,70 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { increment } from 'firebase/firestore';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
+const employeeIdSchema = z.object({
+  employeeId: z.string().min(3, { message: 'Employee ID must be at least 3 characters.' }),
+});
+
+interface EmployeeIdDialogProps {
+  open: boolean;
+  onIdSubmit: (employeeId: string) => Promise<void>;
+}
+
+function EmployeeIdDialog({ open, onIdSubmit }: EmployeeIdDialogProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const form = useForm<z.infer<typeof employeeIdSchema>>({
+    resolver: zodResolver(employeeIdSchema),
+    defaultValues: { employeeId: '' },
+  });
+
+  const handleSubmit = async (values: z.infer<typeof employeeIdSchema>) => {
+    setIsSubmitting(true);
+    await onIdSubmit(values.employeeId);
+    setIsSubmitting(false);
+  };
+
+  return (
+    <Dialog open={open}>
+      <DialogContent onInteractOutside={(e) => e.preventDefault()} hideCloseButton>
+        <DialogHeader>
+          <DialogTitle>Update Required</DialogTitle>
+          <DialogDescription>
+            Please enter your Employee ID to continue. This is a one-time requirement.
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="employeeId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Employee ID</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter your Employee ID" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <DialogFooter>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save and Continue
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 interface OnlineUser {
     uid: string;
@@ -379,6 +443,7 @@ export default function DashboardLayout({
   const [showReasoningPopup, setShowReasoningPopup] = useState(false);
   const [showMockTestPopup, setShowMockTestPopup] = useState(false);
   const [hasGivenFeedback, setHasGivenFeedback] = useState(false);
+  const [showEmployeeIdModal, setShowEmployeeIdModal] = useState(false);
 
   const handleLogout = useCallback(async (authInstance = getFirebaseAuth(), showToast = true, message?: string) => {
     if (!authInstance) {
@@ -524,6 +589,11 @@ export default function DashboardLayout({
                 setStudyMaterials(userStudyMaterials);
                 setHasGivenFeedback(feedbackStatus);
 
+                // Check if employeeId is missing
+                if (!fetchedUserData.employeeId) {
+                  setShowEmployeeIdModal(true);
+                }
+
                 // Check for reasoning update popup
                 if ((fetchedUserData.examCategory === 'PA' || fetchedUserData.examCategory === 'POSTMAN') && !fetchedUserData.hasSeenReasoningUpdate) {
                     setShowReasoningPopup(true);
@@ -626,6 +696,26 @@ export default function DashboardLayout({
         }
     }
   };
+  
+  const handleEmployeeIdSubmit = async (employeeId: string) => {
+    if (!user) return;
+    try {
+      const response = await fetch('/api/user/update-employee-id', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.uid, employeeId }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update Employee ID.');
+      }
+      setUserData(prev => prev ? { ...prev, employeeId } : null);
+      setShowEmployeeIdModal(false);
+      toast({ title: 'Success', description: 'Employee ID has been updated.' });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  };
 
   const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, studyMaterials, qnaUsage, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback };
 
@@ -643,6 +733,7 @@ export default function DashboardLayout({
                    </div>
               ) : (
                 <>
+                  {showEmployeeIdModal && <EmployeeIdDialog open={showEmployeeIdModal} onIdSubmit={handleEmployeeIdSubmit} />}
                   {children}
                    <Dialog open={showReasoningPopup} onOpenChange={(isOpen) => !isOpen && handleReasoningPopupClose()}>
                       <DialogContent>
