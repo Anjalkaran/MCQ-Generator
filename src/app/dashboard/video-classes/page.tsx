@@ -5,7 +5,7 @@ import { useState, useMemo } from 'react';
 import { useDashboard } from '@/app/dashboard/layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { PlayCircle, Search, Loader2 } from 'lucide-react';
 import type { VideoClass } from '@/lib/types';
