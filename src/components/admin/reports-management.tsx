@@ -70,14 +70,16 @@ function DownloadHistoryCard() {
         const headers = ["User", "File Title", "File Name", "Downloaded At"];
         const csvContent = [
             headers.join(','),
-            ...filteredHistory.map(item => 
-                [
+            ...filteredHistory.map(item => {
+                const downloadedAtDate = normalizeDate(item.downloadedAt);
+                const formattedDate = downloadedAtDate ? format(downloadedAtDate, 'dd/MM/yyyy p') : "N/A";
+                return [
                     `"${item.userName}"`,
                     `"${item.fileTitle}"`,
                     `"${item.fileName}"`,
-                    `"${format(item.downloadedAt, 'dd/MM/yyyy p')}"`
-                ].join(',')
-            )
+                    `"${formattedDate}"`
+                ].join(',');
+            })
         ].join('\n');
         
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -126,14 +128,18 @@ function DownloadHistoryCard() {
                             </TableHeader>
                             <TableBody>
                                 {filteredHistory.length > 0 ? (
-                                    filteredHistory.map((item) => (
-                                        <TableRow key={item.id}>
-                                            <TableCell className="font-medium">{item.userName}</TableCell>
-                                            <TableCell>{item.fileTitle}</TableCell>
-                                            <TableCell className="text-muted-foreground">{item.fileName}</TableCell>
-                                            <TableCell className="text-right">{format(item.downloadedAt, 'dd/MM/yyyy p')}</TableCell>
-                                        </TableRow>
-                                    ))
+                                    filteredHistory.map((item) => {
+                                        const downloadedAtDate = normalizeDate(item.downloadedAt);
+                                        const formattedDate = downloadedAtDate ? format(downloadedAtDate, 'dd/MM/yyyy p') : 'N/A';
+                                        return (
+                                            <TableRow key={item.id}>
+                                                <TableCell className="font-medium">{item.userName}</TableCell>
+                                                <TableCell>{item.fileTitle}</TableCell>
+                                                <TableCell className="text-muted-foreground">{item.fileName}</TableCell>
+                                                <TableCell className="text-right">{formattedDate}</TableCell>
+                                            </TableRow>
+                                        );
+                                    })
                                 ) : (
                                     <TableRow>
                                         <TableCell colSpan={4} className="h-24 text-center">
@@ -741,4 +747,5 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
     );
 }
 
+    
     
