@@ -649,10 +649,10 @@ export default function DashboardLayout({
                 }
                 
                 // Check for mock test update popup
-                const seenCount = userData?.mockTestUpdateSeenCount ?? 0;
-                if (seenCount < 2) {
-                    setShowMockTestPopup(true);
-                }
+                // const seenCount = userData?.mockTestUpdateSeenCount ?? 0;
+                // if (seenCount < 2) {
+                //     setShowMockTestPopup(true);
+                // }
 
                 // Set data not needed by regular users to empty arrays
                 setTopicMCQs([]);
@@ -842,3 +842,5 @@ export default function DashboardLayout({
     </DashboardContext.Provider>
   );
 }
+
+    
