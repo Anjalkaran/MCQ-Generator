@@ -18,7 +18,7 @@ export interface StudyMaterial {
   title: string;
   examCategories: ('MTS' | 'POSTMAN' | 'PA' | 'IP')[];
   fileName: string;
-  content: string; // Will store the PDF as a Base64 Data URI
+  content: string; // Will store the public download URL
   uploadedAt: Date;
 }
 
@@ -170,10 +170,10 @@ export interface LiveTest {
 export interface ReasoningQuestion {
   id: string;
   questionText: string;
-  questionImage: string; // Base64 Data URI
-  options: string[];
+  questionImage: string; // Download URL
+  options: string[]; // Can be text or Download URLs
   correctAnswer: string;
-  solutionImage?: string; // Base64 Data URI
+  solutionImage?: string; // Download URL
   solutionText?: string;
   isForLiveTest: boolean;
   topic: string; // The specific topic (e.g., 'Non-verbal Reasoning')

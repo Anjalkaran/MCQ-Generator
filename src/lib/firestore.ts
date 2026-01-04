@@ -56,14 +56,15 @@ export const updateUserDocument = async (userId: string, data: Partial<UserData>
     
     const updateData: { [key: string]: any } = { ...data };
     
+    // Convert Date objects to Timestamps if they exist
+    if (data.proValidUntil && data.proValidUntil instanceof Date) {
+        updateData.proValidUntil = Timestamp.fromDate(data.proValidUntil);
+    }
+    
     // Remove deprecated fields if they are passed in
     delete updateData.topicExamsTaken;
     delete updateData.mockTestsTaken;
-    // Remove payment related fields
-    delete updateData.isPro;
-    delete updateData.proValidUntil;
-
-
+    
     await updateDoc(userRef, updateData);
 };
 
