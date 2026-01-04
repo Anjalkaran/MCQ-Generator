@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
@@ -29,7 +28,7 @@ import { increment } from 'firebase/firestore';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -650,7 +649,7 @@ export default function DashboardLayout({
                 }
                 
                 // Check for mock test update popup
-                const seenCount = fetchedUserData.mockTestUpdateSeenCount ?? 0;
+                const seenCount = userData?.mockTestUpdateSeenCount ?? 0;
                 if (seenCount < 2) {
                     setShowMockTestPopup(true);
                 }
