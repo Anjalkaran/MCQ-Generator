@@ -13,7 +13,7 @@ import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
-import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback, getUserData } from '@/lib/firestore';
+import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback } from '@/lib/firestore';
 import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, StudyMaterial, VideoClass } from "@/lib/types";
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
@@ -570,17 +570,6 @@ export default function DashboardLayout({
     };
   }, [userData]);
 
-  const fetchUserDataWithRetry = async (uid: string, retries = 3, delay = 500): Promise<UserData | null> => {
-    for (let i = 0; i < retries; i++) {
-        const data = await getUserData(uid);
-        if (data) {
-            return data;
-        }
-        await new Promise(res => setTimeout(res, delay));
-    }
-    return null;
-  };
-
 
   useEffect(() => {
     const auth = getFirebaseAuth();
@@ -624,15 +613,12 @@ export default function DashboardLayout({
                 setNotifications(notifications);
                 
             } else {
-                 // Regular user fetches their relevant data
                 const [
-                    { categories, topics, bankedQuestions: userBankedQuestions, studyMaterials: userStudyMaterials, videoClasses: userVideoClasses },
-                    feedbackStatus,
-                    fetchedUserData
+                    { userData: fetchedUserData, categories, topics, bankedQuestions: userBankedQuestions, studyMaterials: userStudyMaterials, videoClasses: userVideoClasses },
+                    feedbackStatus
                 ] = await Promise.all([
                     getDashboardData(currentUser.uid),
-                    hasUserSubmittedFeedback(currentUser.uid),
-                    fetchUserDataWithRetry(currentUser.uid)
+                    hasUserSubmittedFeedback(currentUser.uid)
                 ]);
 
                 if (!fetchedUserData) {
@@ -642,8 +628,8 @@ export default function DashboardLayout({
                 }
 
                 setUserData(fetchedUserData);
-                setCategories(categories);
-                setTopics(topics);
+                setCategories(categories || []);
+                setTopics(topics || []);
                 setBankedQuestions(userBankedQuestions || []);
                 setStudyMaterials(userStudyMaterials || []);
                 setVideoClasses(userVideoClasses || []);
