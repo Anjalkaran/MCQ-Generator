@@ -15,6 +15,7 @@ const siteImage = `data:image/svg+xml,${encodeURIComponent(
 export const metadata: Metadata = {
   title: siteTitle,
   description: siteDescription,
+  manifest: '/manifest.json',
   openGraph: {
     type: "website",
     url: siteUrl,
@@ -44,7 +45,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full">
-       <head />
+       <head>
+        <meta name="application-name" content={siteTitle} />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content={siteTitle} />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="theme-color" content="#D62927" />
+      </head>
       <body className={`${inter.variable} font-sans antialiased h-full`}>
         {children}
         <Toaster />

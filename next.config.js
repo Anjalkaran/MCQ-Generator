@@ -1,3 +1,4 @@
+
 const packageJson = require('./package.json');
 
 /** @type {import('next').NextConfig} */
