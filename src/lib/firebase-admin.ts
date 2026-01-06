@@ -22,20 +22,17 @@ function initializeAdminApp(): App {
 
   try {
     const app = admin.initializeApp({
-      // The GOOGLE_APPLICATION_CREDENTIALS env var is not set in this environment,
-      // so we need to initialize with a service account explicitly.
       credential: admin.credential.cert({
         projectId: firebaseConfig.projectId,
         clientEmail: clientEmail,
         privateKey: privateKey
       }),
-      storageBucket: firebaseConfig.storageBucket,
+      storageBucket: firebaseConfig.storageBucket, // Explicitly set the storage bucket
     });
     console.log("Firebase Admin SDK initialized successfully.");
     return app;
   } catch (error: any) {
     console.error('Firebase Admin SDK initialization error:', error.message);
-    // Do not throw here, as it can break the app in environments where the admin SDK is not needed.
     return null as any;
   }
 }
