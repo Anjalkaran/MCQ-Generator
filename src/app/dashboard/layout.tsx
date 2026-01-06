@@ -33,6 +33,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { formatDistanceToNow } from 'date-fns';
 
 const profileUpdateSchema = z.object({
   employeeId: z.string().min(3, { message: 'Employee ID must be at least 3 characters.' }),
@@ -112,6 +113,63 @@ function ProfileUpdateDialog({ open, onUpdateSubmit, defaultValues }: ProfileUpd
       </DialogContent>
     </Dialog>
   );
+}
+
+interface NewContentPopupProps {
+  newContent: { materials: StudyMaterial[], videos: VideoClass[] };
+  onClose: () => void;
+}
+
+function NewContentPopup({ newContent, onClose }: NewContentPopupProps) {
+    return (
+        <Dialog open={true} onOpenChange={(isOpen) => !isOpen && onClose()}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>New Content Added!</DialogTitle>
+                    <DialogDescription>
+                        Check out the latest materials and videos we've uploaded for you.
+                    </DialogDescription>
+                </DialogHeader>
+                <ScrollArea className="max-h-80 pr-4">
+                    <div className="space-y-4">
+                        {newContent.videos.length > 0 && (
+                            <div>
+                                <h3 className="font-semibold mb-2 flex items-center gap-2"><Video className="h-5 w-5 text-primary" /> New Video Classes</h3>
+                                <div className="space-y-2">
+                                    {newContent.videos.map(video => (
+                                        <div key={video.id} className="text-sm p-2 border rounded-md">
+                                            <p className="font-medium">{video.title}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Added {formatDistanceToNow(normalizeDate(video.uploadedAt)!, { addSuffix: true })}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {newContent.materials.length > 0 && (
+                             <div>
+                                <h3 className="font-semibold mb-2 flex items-center gap-2"><BookOpen className="h-5 w-5 text-primary" /> New Study Materials</h3>
+                                <div className="space-y-2">
+                                    {newContent.materials.map(material => (
+                                         <div key={material.id} className="text-sm p-2 border rounded-md">
+                                            <p className="font-medium">{material.title}</p>
+                                             <p className="text-xs text-muted-foreground">
+                                                Added {formatDistanceToNow(normalizeDate(material.uploadedAt)!, { addSuffix: true })}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </ScrollArea>
+                <DialogFooter>
+                    <Button onClick={onClose}>Got it, thanks!</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
 }
 
 interface OnlineUser {
@@ -520,11 +578,12 @@ export default function DashboardLayout({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showReasoningPopup, setShowReasoningPopup] = useState(false);
   const [hasGivenFeedback, setHasGivenFeedback] = useState(false);
   const [showProfileUpdateModal, setShowProfileUpdateModal] = useState(false);
   const [profileUpdateDefaults, setProfileUpdateDefaults] = useState({ employeeId: '', division: '' });
   const [showUpdateAlert, setShowUpdateAlert] = useState(false);
+  const [showNewContentPopup, setShowNewContentPopup] = useState(false);
+  const [newContent, setNewContent] = useState<{ materials: StudyMaterial[], videos: VideoClass[] }>({ materials: [], videos: [] });
 
   const handleLogout = useCallback(async (authInstance = getFirebaseAuth(), showToast = true, message?: string) => {
     if (!authInstance) {
@@ -681,6 +740,25 @@ export default function DashboardLayout({
                 setVideoClasses(dashboardData.videoClasses || []);
                 setHasGivenFeedback(feedbackStatus);
 
+                 // New content popup logic
+                const lastSeenTimestamp = localStorage.getItem('lastSeenUpdateTimestamp');
+                const lastSeenDate = lastSeenTimestamp ? new Date(parseInt(lastSeenTimestamp, 10)) : new Date(0);
+
+                const allContent = [...(dashboardData.studyMaterials || []), ...(dashboardData.videoClasses || [])];
+                const mostRecentUpload = allContent.reduce((latest, item) => {
+                    const itemDate = normalizeDate(item.uploadedAt);
+                    return itemDate && itemDate > latest ? itemDate : latest;
+                }, new Date(0));
+
+                if (mostRecentUpload > lastSeenDate) {
+                    const newMaterials = (dashboardData.studyMaterials || []).filter(m => normalizeDate(m.uploadedAt)! > lastSeenDate);
+                    const newVideos = (dashboardData.videoClasses || []).filter(v => normalizeDate(v.uploadedAt)! > lastSeenDate);
+                    if (newMaterials.length > 0 || newVideos.length > 0) {
+                        setNewContent({ materials: newMaterials, videos: newVideos });
+                        setShowNewContentPopup(true);
+                    }
+                }
+
                 const fetchedUserData = dashboardData.userData;
                 const divisionIsEmail = fetchedUserData.division?.includes('@');
                 if (!fetchedUserData.employeeId || !fetchedUserData.division || divisionIsEmail) {
@@ -690,18 +768,6 @@ export default function DashboardLayout({
                   });
                   setShowProfileUpdateModal(true);
                 }
-
-                // Check for reasoning update popup
-                if ((fetchedUserData.examCategory === 'PA' || fetchedUserData.examCategory === 'POSTMAN') && !fetchedUserData.hasSeenReasoningUpdate) {
-                    //setShowReasoningPopup(true);
-                }
-                
-                // Set data not needed by regular users to empty arrays
-                setTopicMCQs([]);
-                setLiveTestBank([]);
-                setQnaUsage([]); 
-                setNotifications([]);
-                setOnlineUsers([]);
             }
 
             if (pathname.startsWith('/dashboard/admin') && !userIsAdmin) {
@@ -763,20 +829,6 @@ export default function DashboardLayout({
         });
     }
   }, [userData]);
-
-
-  const handleReasoningPopupClose = async () => {
-    setShowReasoningPopup(false);
-    if (user && userData && !userData.hasSeenReasoningUpdate) {
-        try {
-            await updateUserDocument(user.uid, { hasSeenReasoningUpdate: true });
-            setUserData(prev => prev ? ({...prev, hasSeenReasoningUpdate: true}) : null);
-        } catch (error) {
-            console.error("Failed to mark reasoning update as seen:", error);
-        }
-    }
-  };
-  
   
   const handleProfileUpdateSubmit = async (values: { employeeId: string; division: string }) => {
     if (!user) return;
@@ -788,6 +840,11 @@ export default function DashboardLayout({
     } catch (error: any) {
         toast({ title: 'Error', description: error.message || 'Failed to update your profile.', variant: 'destructive' });
     }
+  };
+
+  const handleCloseNewContentPopup = () => {
+    setShowNewContentPopup(false);
+    localStorage.setItem('lastSeenUpdateTimestamp', String(Date.now()));
   };
 
   const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, studyMaterials, videoClasses, qnaUsage, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback };
@@ -808,6 +865,7 @@ export default function DashboardLayout({
                 <>
                   <PwaUpdateNotification />
                   {showProfileUpdateModal && <ProfileUpdateDialog open={showProfileUpdateModal} onUpdateSubmit={handleProfileUpdateSubmit} defaultValues={profileUpdateDefaults} />}
+                  {showNewContentPopup && <NewContentPopup newContent={newContent} onClose={handleCloseNewContentPopup} />}
                   <AlertDialog open={showUpdateAlert}>
                         <AlertDialogContent>
                             <AlertDialogHeader>
@@ -827,28 +885,6 @@ export default function DashboardLayout({
                         </AlertDialogContent>
                     </AlertDialog>
                   {children}
-                   <Dialog open={showReasoningPopup} onOpenChange={(isOpen) => !isOpen && handleReasoningPopupClose()}>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle className="flex items-center gap-2">
-                            <NewLogoIcon className="h-6 w-6 text-primary" />
-                            New Feature Added!
-                          </DialogTitle>
-                          <DialogDescription className="pt-2">
-                             We've just added a new **Reasoning Test** section to help you master non-verbal and analytical questions.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <Alert>
-                           <AlertTitle>Where to find it?</AlertTitle>
-                           <AlertDescription>
-                            You can find the new section on your main dashboard. Click the button below to go there now.
-                           </AlertDescription>
-                        </Alert>
-                         <Button asChild onClick={handleReasoningPopupClose}>
-                            <Link href="/dashboard">Got it, thanks!</Link>
-                         </Button>
-                      </DialogContent>
-                   </Dialog>
                 </>
               )}
           </MainContent>
@@ -861,3 +897,4 @@ export default function DashboardLayout({
     
 
     
+
