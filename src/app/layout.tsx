@@ -48,7 +48,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full">
-       <head>
+      <head>
         <meta name="application-name" content={siteTitle} />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -56,9 +56,12 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" content="#D62927" />
+        <link rel="apple-touch-icon" href="/images/logo.png" />
       </head>
       <body className={`${inter.variable} font-sans antialiased h-full`}>
         {children}
         <Toaster />
       </body>
     </html>
+  );
+}
