@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const bucket = adminStorage.bucket();
+    const bucket = adminStorage.bucket("quizwiz-be479.appspot.com");
     const filePath = `study-materials/${Date.now()}-${file.name}`;
     const fileUpload = bucket.file(filePath);
 
