@@ -17,7 +17,7 @@ function initializeAdminApp(): App {
   try {
     const app = admin.initializeApp({
       credential: admin.credential.cert(serviceAccountConfig),
-      storageBucket: `${serviceAccountConfig.projectId}.appspot.com`,
+      storageBucket: "quizwiz-be479.appspot.com",
     });
     console.log("Firebase Admin SDK initialized successfully.");
     return app;
