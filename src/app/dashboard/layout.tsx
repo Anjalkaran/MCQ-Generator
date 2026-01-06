@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
@@ -19,7 +20,7 @@ import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
 import packageJson from '../../../package.json';
 import { AdminNotifications } from '@/components/dashboard/admin-notifications';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -450,6 +451,53 @@ function AppSidebar() {
   )
 }
 
+function PwaUpdateNotification() {
+  const [show, setShow] = useState(false);
+  const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && window.workbox !== undefined) {
+      const wb = window.workbox;
+      
+      const promptNewVersionAvailable = (event: any) => {
+        setWaitingWorker(event.waiting);
+        setShow(true);
+      };
+
+      wb.addEventListener('waiting', promptNewVersionAvailable);
+      wb.register();
+    }
+  }, []);
+
+  const handleUpdate = () => {
+    if (waitingWorker) {
+      waitingWorker.addEventListener('controlling', () => {
+        window.location.reload();
+      });
+      waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+    }
+  };
+
+  if (!show) return null;
+
+  return (
+    <div className="fixed bottom-4 right-4 z-50">
+       <Alert>
+          <AlertTitle className="flex items-center gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Update Available
+          </AlertTitle>
+          <AlertDescription>
+            A new version of the app is ready. Click to reload.
+          </AlertDescription>
+           <Button onClick={handleUpdate} className="mt-2 w-full">
+            Reload
+          </Button>
+        </Alert>
+    </div>
+  );
+}
+
 
 export default function DashboardLayout({
   children,
@@ -473,7 +521,6 @@ export default function DashboardLayout({
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showReasoningPopup, setShowReasoningPopup] = useState(false);
-  const [showMockTestPopup, setShowMockTestPopup] = useState(false);
   const [hasGivenFeedback, setHasGivenFeedback] = useState(false);
   const [showProfileUpdateModal, setShowProfileUpdateModal] = useState(false);
   const [profileUpdateDefaults, setProfileUpdateDefaults] = useState({ employeeId: '', division: '' });
@@ -648,12 +695,6 @@ export default function DashboardLayout({
                     setShowReasoningPopup(true);
                 }
                 
-                // Check for mock test update popup
-                // const seenCount = userData?.mockTestUpdateSeenCount ?? 0;
-                // if (seenCount < 2) {
-                //     setShowMockTestPopup(true);
-                // }
-
                 // Set data not needed by regular users to empty arrays
                 setTopicMCQs([]);
                 setLiveTestBank([]);
@@ -735,18 +776,6 @@ export default function DashboardLayout({
     }
   };
   
-  const handleMockTestPopupClose = async () => {
-    setShowMockTestPopup(false);
-    const seenCount = userData?.mockTestUpdateSeenCount ?? 0;
-    if (user && userData && seenCount < 2) {
-        try {
-            await updateUserDocument(user.uid, { mockTestUpdateSeenCount: increment(1) });
-            setUserData(prev => prev ? ({...prev, mockTestUpdateSeenCount: (prev.mockTestUpdateSeenCount ?? 0) + 1}) : null);
-        } catch (error) {
-            console.error("Failed to update mock test seen count:", error);
-        }
-    }
-  };
   
   const handleProfileUpdateSubmit = async (values: { employeeId: string; division: string }) => {
     if (!user) return;
@@ -776,6 +805,7 @@ export default function DashboardLayout({
                    </div>
               ) : (
                 <>
+                  <PwaUpdateNotification />
                   {showProfileUpdateModal && <ProfileUpdateDialog open={showProfileUpdateModal} onUpdateSubmit={handleProfileUpdateSubmit} defaultValues={profileUpdateDefaults} />}
                   <AlertDialog open={showUpdateAlert}>
                         <AlertDialogContent>
@@ -818,22 +848,6 @@ export default function DashboardLayout({
                          </Button>
                       </DialogContent>
                    </Dialog>
-                   <Dialog open={showMockTestPopup} onOpenChange={(isOpen) => !isOpen && handleMockTestPopupClose()}>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle className="flex items-center gap-2">
-                            <FileText className="h-6 w-6 text-primary" />
-                            Feature Unlocked: Mock Tests!
-                          </DialogTitle>
-                          <DialogDescription className="pt-2">
-                             Practice Mock Tests have been enabled for all users. You can now take unlimited mock tests to prepare for your exam.
-                          </DialogDescription>
-                        </DialogHeader>
-                         <Button asChild onClick={handleMockTestPopupClose}>
-                            <Link href="/dashboard/mock-test">Start a Mock Test</Link>
-                         </Button>
-                      </DialogContent>
-                   </Dialog>
                 </>
               )}
           </MainContent>
@@ -842,5 +856,7 @@ export default function DashboardLayout({
     </DashboardContext.Provider>
   );
 }
+
+    
 
     
