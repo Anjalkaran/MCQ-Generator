@@ -20,7 +20,7 @@ import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
 import packageJson from '../../../package.json';
 import { AdminNotifications } from '@/components/dashboard/admin-notifications';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogTrigger, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -660,27 +660,28 @@ export default function DashboardLayout({
                 
             } else {
                 const [
-                    { userData: fetchedUserData, categories, topics, bankedQuestions: userBankedQuestions, studyMaterials: userStudyMaterials, videoClasses: userVideoClasses },
+                    dashboardData,
                     feedbackStatus
                 ] = await Promise.all([
                     getDashboardData(currentUser.uid),
                     hasUserSubmittedFeedback(currentUser.uid)
                 ]);
 
-                if (!fetchedUserData) {
+                if (!dashboardData.userData) {
                      toast({ title: "Authentication Error", description: "Could not load user profile. Please log in again.", variant: "destructive" });
                      handleLogout(auth, false);
                      return;
                 }
 
-                setUserData(fetchedUserData);
-                setCategories(categories || []);
-                setTopics(topics || []);
-                setBankedQuestions(userBankedQuestions || []);
-                setStudyMaterials(userStudyMaterials || []);
-                setVideoClasses(userVideoClasses || []);
+                setUserData(dashboardData.userData);
+                setCategories(dashboardData.categories || []);
+                setTopics(dashboardData.topics || []);
+                setBankedQuestions(dashboardData.bankedQuestions || []);
+                setStudyMaterials(dashboardData.studyMaterials || []);
+                setVideoClasses(dashboardData.videoClasses || []);
                 setHasGivenFeedback(feedbackStatus);
 
+                const fetchedUserData = dashboardData.userData;
                 const divisionIsEmail = fetchedUserData.division?.includes('@');
                 if (!fetchedUserData.employeeId || !fetchedUserData.division || divisionIsEmail) {
                   setProfileUpdateDefaults({
@@ -692,7 +693,7 @@ export default function DashboardLayout({
 
                 // Check for reasoning update popup
                 if ((fetchedUserData.examCategory === 'PA' || fetchedUserData.examCategory === 'POSTMAN') && !fetchedUserData.hasSeenReasoningUpdate) {
-                    setShowReasoningPopup(true);
+                    //setShowReasoningPopup(true);
                 }
                 
                 // Set data not needed by regular users to empty arrays
