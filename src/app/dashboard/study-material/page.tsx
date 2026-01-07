@@ -15,7 +15,10 @@ import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
 
 function PdfViewer({ fileUrl, fileName }: { fileUrl: string, fileName: string }) {
     const [numPages, setNumPages] = useState<number | null>(null);
@@ -25,7 +28,6 @@ function PdfViewer({ fileUrl, fileName }: { fileUrl: string, fileName: string })
     }
     
     const handleDownload = () => {
-        // Since it's a data URI, we create a temporary link to download it.
         const link = document.createElement('a');
         link.href = fileUrl;
         link.download = fileName;
@@ -38,8 +40,8 @@ function PdfViewer({ fileUrl, fileName }: { fileUrl: string, fileName: string })
         <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
             <DialogHeader>
                 <DialogTitle>{fileName}</DialogTitle>
-                <DialogDescription>
-                    <Button variant="outline" size="sm" onClick={handleDownload}>
+                <DialogDescription asChild>
+                    <Button variant="outline" size="sm" onClick={handleDownload} className="w-fit">
                        <Download className="mr-2 h-4 w-4"/> Download PDF
                     </Button>
                 </DialogDescription>
@@ -54,7 +56,7 @@ function PdfViewer({ fileUrl, fileName }: { fileUrl: string, fileName: string })
                         error={<div className="text-red-500 p-4">Failed to load PDF file. Please try downloading it.</div>}
                     >
                         {Array.from(new Array(numPages), (el, index) => (
-                            <Page key={`page_${index + 1}`} pageNumber={index + 1} className="shadow-md" />
+                            <Page key={`page_${index + 1}`} pageNumber={index + 1} renderTextLayer={false} className="shadow-md" />
                         ))}
                     </Document>
                 </ScrollArea>
@@ -121,7 +123,6 @@ export default function StudyMaterialPage() {
                             <TableBody>
                                 {filteredMaterials.length > 0 ? (
                                     filteredMaterials.map(material => {
-                                        const isPdf = material.fileType === 'application/pdf';
                                         const topic = topics.find(t => t.id === material.topicId);
 
                                         return (
@@ -135,26 +136,8 @@ export default function StudyMaterialPage() {
                                                                 Read Material
                                                             </Button>
                                                         </DialogTrigger>
-                                                        {isPdf ? (
-                                                            <PdfViewer fileUrl={material.content} fileName={material.fileName} />
-                                                        ) : (
-                                                            <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
-                                                                <DialogHeader>
-                                                                    <DialogTitle>{material.fileName}</DialogTitle>
-                                                                    {topic && <DialogDescription>Topic: {topic.title}</DialogDescription>}
-                                                                </DialogHeader>
-                                                                <ScrollArea className="flex-grow rounded-md border p-4">
-                                                                    <pre className="text-sm whitespace-pre-wrap">{material.content}</pre>
-                                                                </ScrollArea>
-                                                            </DialogContent>
-                                                        )}
+                                                        <PdfViewer fileUrl={material.content} fileName={material.fileName} />
                                                     </Dialog>
-                                                     <Button variant="outline" asChild>
-                                                        <a href={material.content} target="_blank" rel="noopener noreferrer" download={material.fileName}>
-                                                            <Download className="mr-2"/>
-                                                            Download
-                                                        </a>
-                                                    </Button>
                                                 </TableCell>
                                             </TableRow>
                                         );
