@@ -42,13 +42,14 @@ export function FreeClassManagement() {
         return registrations.filter(reg => 
             reg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             reg.mobile.includes(searchTerm) ||
+            reg.employeeId.includes(searchTerm) ||
             reg.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
             reg.division.toLowerCase().includes(searchTerm.toLowerCase())
         );
     }, [registrations, searchTerm]);
 
     const handleDownloadCSV = () => {
-        const headers = ["Name", "Mobile", "City", "Division", "Registered At"];
+        const headers = ["Name", "Mobile", "Employee ID", "City", "Division", "Registered At"];
         const csvContent = [
             headers.join(','),
             ...filteredRegistrations.map(reg => {
@@ -57,6 +58,7 @@ export function FreeClassManagement() {
                 return [
                     `"${reg.name}"`,
                     `"${reg.mobile}"`,
+                    `"${reg.employeeId}"`,
                     `"${reg.city}"`,
                     `"${reg.division}"`,
                     `"${formattedDate}"`
@@ -107,6 +109,7 @@ export function FreeClassManagement() {
                                 <TableRow>
                                     <TableHead>Name</TableHead>
                                     <TableHead>Mobile</TableHead>
+                                    <TableHead>Employee ID</TableHead>
                                     <TableHead>City</TableHead>
                                     <TableHead>Division</TableHead>
                                     <TableHead className="text-right">Registered At</TableHead>
@@ -121,6 +124,7 @@ export function FreeClassManagement() {
                                             <TableRow key={reg.id}>
                                                 <TableCell className="font-medium">{reg.name}</TableCell>
                                                 <TableCell>{reg.mobile}</TableCell>
+                                                <TableCell>{reg.employeeId}</TableCell>
                                                 <TableCell>{reg.city}</TableCell>
                                                 <TableCell>{reg.division}</TableCell>
                                                 <TableCell className="text-right">{formattedDate}</TableCell>
@@ -129,7 +133,7 @@ export function FreeClassManagement() {
                                     })
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-24 text-center">
+                                        <TableCell colSpan={6} className="h-24 text-center">
                                             No registrations found.
                                         </TableCell>
                                     </TableRow>

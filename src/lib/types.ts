@@ -194,6 +194,7 @@ export interface FreeClassRegistration {
     id: string;
     name: string;
     mobile: string;
+    employeeId: string;
     city: string;
     division: string;
     registeredAt: Date;
