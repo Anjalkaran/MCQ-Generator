@@ -22,6 +22,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '../ui/checkbox';
+import { getFirebaseAuth, getFirebaseStorage } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useDashboard } from '@/app/dashboard/layout';
+import { v4 as uuidv4 } from 'uuid';
 
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -50,6 +54,7 @@ interface StudyMaterialManagementProps {
 
 export function StudyMaterialManagement({ initialTopics, initialMaterials }: StudyMaterialManagementProps) {
     const { toast } = useToast();
+    const { user } = useDashboard();
     const [isUploading, setIsUploading] = useState(false);
     const [topics, setTopics] = useState<Topic[]>(initialTopics);
     const [materials, setMaterials] = useState<StudyMaterial[]>(initialMaterials);
@@ -80,24 +85,45 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setIsUploading(true);
-        const uploadedFile = values.file[0];
+        if (!user) {
+            toast({ title: "Authentication Error", description: "You must be logged in.", variant: "destructive" });
+            setIsUploading(false);
+            return;
+        }
+        const storage = getFirebaseStorage();
+        if (!storage) {
+            toast({ title: "Storage Error", description: "Firebase Storage is not available.", variant: "destructive" });
+            setIsUploading(false);
+            return;
+        }
+
+        const uploadedFile: File = values.file[0];
         
-        const formData = new FormData();
-        formData.append('file', uploadedFile);
-        formData.append('topicId', values.topicId || 'new');
-        formData.append('examCategories', JSON.stringify(values.examCategories));
-
         try {
-            const response = await fetch('/api/study-material/upload', {
-                method: 'POST',
-                body: formData,
-            });
+            // 1. Client-side upload to a temporary location
+            const tempFilePath = `temp-materials/${user.uid}/${uuidv4()}-${uploadedFile.name}`;
+            const fileRef = ref(storage, tempFilePath);
+            await uploadBytes(fileRef, uploadedFile);
+            const tempFileUrl = await getDownloadURL(fileRef);
 
+            // 2. Call the server to process the file from the temp location
+            const response = await fetch('/api/process-study-material', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    tempFilePath: tempFilePath,
+                    originalFileName: uploadedFile.name,
+                    fileType: uploadedFile.type,
+                    topicId: values.topicId || 'new',
+                    examCategories: values.examCategories,
+                }),
+            });
+            
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to upload material.');
+                throw new Error(errorData.error || 'Failed to process material on the server.');
             }
-
+            
             const { newMaterial, newTopic } = await response.json();
             
             setMaterials(prev => [newMaterial, ...prev].sort((a,b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()));

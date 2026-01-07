@@ -6,6 +6,8 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import pdf from 'pdf-parse';
 import type { Topic } from '@/lib/types';
+import formidable from 'formidable';
+import fs from 'fs/promises';
 
 export async function POST(request: Request) {
     const db = getFirebaseDb();

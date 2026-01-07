@@ -12,10 +12,14 @@ service cloud.firestore {
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Allow read and write access for all authenticated users.
-    // This is suitable for development but should be restricted for production.
-    match /{allPaths=**} {
-      allow read, write: if request.auth != null;
+    // Allow users to write to a temporary path for processing
+    match /temp-materials/{userId}/{fileName} {
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Allow anyone to read study materials (adjust for production)
+    match /study-materials/{allPaths=**} {
+      allow read;
     }
   }
 }
