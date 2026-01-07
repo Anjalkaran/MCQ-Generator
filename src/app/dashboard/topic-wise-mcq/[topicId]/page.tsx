@@ -1,3 +1,4 @@
+
 "use client";
 
 import { TopicQuizForm } from "@/components/quiz/topic-quiz-form";
@@ -11,7 +12,7 @@ import { use } from 'react';
 
 
 export default function GenerateTopicQuizPage({ params }: { params: { topicId: string } }) {
-    const resolvedParams = use(Promise.resolve(params));
+    const resolvedParams = use(params);
     const { topics, isLoading } = useDashboard();
     
     if (isLoading) {
