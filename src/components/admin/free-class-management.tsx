@@ -11,6 +11,7 @@ import type { FreeClassRegistration } from '@/lib/types';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '../ui/badge';
+import { normalizeDate } from '@/lib/utils';
 
 export function FreeClassManagement() {
     const [registrations, setRegistrations] = useState<FreeClassRegistration[]>([]);
@@ -28,7 +29,13 @@ export function FreeClassManagement() {
                     throw new Error('Failed to fetch data');
                 }
                 const data = await response.json();
-                setRegistrations(data.registrations);
+                
+                const normalizedData = data.registrations.map((reg: any) => ({
+                    ...reg,
+                    registeredAt: normalizeDate(reg.registeredAt) || new Date() 
+                }));
+
+                setRegistrations(normalizedData);
             } catch (error) {
                 console.error("Error fetching registrations:", error);
                 toast({ title: "Error", description: "Could not load registration data.", variant: "destructive" });
