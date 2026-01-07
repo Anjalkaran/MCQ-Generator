@@ -5,7 +5,7 @@
 import React, { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageCircle, Star, PenSquare, RefreshCw, Video } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageCircle, Star, PenSquare, RefreshCw, Video, Library } from 'lucide-react';
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
 import Link from 'next/link';
 import { getFirebaseAuth } from '@/lib/firebase';
@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback } from '@/lib/firestore';
-import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, VideoClass } from "@/lib/types";
+import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, VideoClass, StudyMaterial } from "@/lib/types";
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
@@ -111,7 +111,7 @@ function ProfileUpdateDialog({ open, onUpdateSubmit, defaultValues }: ProfileUpd
 
 
 interface NewContentPopupProps {
-  newContent: { videos: VideoClass[] };
+  newContent: { videos: VideoClass[], materials: StudyMaterial[] };
   onClose: () => void;
   topics: Topic[];
 }
@@ -145,6 +145,21 @@ function NewContentPopup({ newContent, onClose, topics }: NewContentPopupProps) 
                                 </div>
                             </div>
                         )}
+                         {newContent.materials.length > 0 && (
+                            <div>
+                                <h3 className="font-semibold mb-2 flex items-center gap-2"><Library className="h-5 w-5 text-primary" /> New Study Materials</h3>
+                                <div className="space-y-2">
+                                    {newContent.materials.map(material => (
+                                        <div key={material.id} className="text-sm p-2 border rounded-md">
+                                            <p className="font-medium">{getTopicTitle(material.topicId)}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                File: {material.fileName}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </ScrollArea>
                 <DialogFooter>
@@ -169,6 +184,7 @@ interface DashboardContextType {
   topicMCQs: TopicMCQ[];
   liveTestBank: BankedQuestion[];
   videoClasses: VideoClass[];
+  studyMaterials: StudyMaterial[];
   qnaUsage: QnAUsage[];
   notifications: Notification[];
   onlineUsers: OnlineUser[];
@@ -337,6 +353,14 @@ function AppSidebar() {
                   <Link href="/dashboard/video-classes" onClick={onLinkClick}>
                     <Video />
                     <span>Video Classes</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+               <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/study-material')} tooltip="Study Material">
+                  <Link href="/dashboard/study-material" onClick={onLinkClick}>
+                    <Library />
+                    <span>Study Material</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -549,6 +573,7 @@ export default function DashboardLayout({
   const [topicMCQs, setTopicMCQs] = useState<TopicMCQ[]>([]);
   const [liveTestBank, setLiveTestBank] = useState<BankedQuestion[]>([]);
   const [videoClasses, setVideoClasses] = useState<VideoClass[]>([]);
+  const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
@@ -558,7 +583,7 @@ export default function DashboardLayout({
   const [profileUpdateDefaults, setProfileUpdateDefaults] = useState({ employeeId: '', mobileNumber: '' });
   const [showUpdateAlert, setShowUpdateAlert] = useState(false);
   const [showNewContentPopup, setShowNewContentPopup] = useState(false);
-  const [newContent, setNewContent] = useState<{ videos: VideoClass[] }>({ videos: [] });
+  const [newContent, setNewContent] = useState<{ videos: VideoClass[], materials: StudyMaterial[] }>({ videos: [], materials: [] });
 
   const handleLogout = useCallback(async (authInstance = getFirebaseAuth(), showToast = true, message?: string) => {
     if (!authInstance) {
@@ -680,7 +705,7 @@ export default function DashboardLayout({
                     setUserData(adminUserData);
                 }
                 // Admin needs ALL data
-                const { categories, topics, bankedQuestions, topicMCQs, liveTestBank, videoClasses, qnaUsage, notifications } = await getDashboardData(currentUser.uid, true);
+                const { categories, topics, bankedQuestions, topicMCQs, liveTestBank, videoClasses, studyMaterials, qnaUsage, notifications } = await getDashboardData(currentUser.uid, true);
 
                 setCategories(categories);
                 setTopics(topics);
@@ -688,6 +713,7 @@ export default function DashboardLayout({
                 setTopicMCQs(topicMCQs);
                 setLiveTestBank(liveTestBank);
                 setVideoClasses(videoClasses);
+                setStudyMaterials(studyMaterials);
                 setQnaUsage(qnaUsage);
                 setNotifications(notifications);
                 
@@ -711,21 +737,25 @@ export default function DashboardLayout({
                 setTopics(dashboardData.topics || []);
                 setBankedQuestions(dashboardData.bankedQuestions || []);
                 setVideoClasses(dashboardData.videoClasses || []);
+                setStudyMaterials(dashboardData.studyMaterials || []);
                 setHasGivenFeedback(feedbackStatus);
 
                 const lastSeenTimestamp = localStorage.getItem('lastSeenUpdateTimestamp');
                 const lastSeenDate = lastSeenTimestamp ? new Date(parseInt(lastSeenTimestamp, 10)) : new Date(0);
 
-                const allContent = [...(dashboardData.videoClasses || [])];
-                const mostRecentUpload = allContent.reduce((latest, item) => {
+                const allContentVideos = (dashboardData.videoClasses || []);
+                const allContentMaterials = (dashboardData.studyMaterials || []);
+
+                const mostRecentUpload = [...allContentVideos, ...allContentMaterials].reduce((latest, item) => {
                     const itemDate = normalizeDate(item.uploadedAt);
                     return itemDate && itemDate > latest ? itemDate : latest;
                 }, new Date(0));
 
                 if (mostRecentUpload > lastSeenDate) {
-                    const newVideos = (dashboardData.videoClasses || []).filter(v => normalizeDate(v.uploadedAt)! > lastSeenDate);
-                    if (newVideos.length > 0) {
-                        setNewContent({ videos: newVideos });
+                    const newVideos = allContentVideos.filter(v => normalizeDate(v.uploadedAt)! > lastSeenDate);
+                    const newMaterials = allContentMaterials.filter(m => normalizeDate(m.uploadedAt)! > lastSeenDate);
+                    if (newVideos.length > 0 || newMaterials.length > 0) {
+                        setNewContent({ videos: newVideos, materials: newMaterials });
                         setShowNewContentPopup(true);
                     }
                 }
@@ -761,6 +791,7 @@ export default function DashboardLayout({
         setTopicMCQs([]);
         setLiveTestBank([]);
         setVideoClasses([]);
+        setStudyMaterials([]);
         setQnaUsage([]);
         setNotifications([]);
         setOnlineUsers([]);
@@ -785,11 +816,16 @@ export default function DashboardLayout({
             const filteredTopics = (data.topics || []).filter(t => t.examCategories.includes(currentViewCategory));
             const filteredBankedQuestions = (data.bankedQuestions || []).filter(bq => bq.examCategory === currentViewCategory);
             const filteredVideoClasses = (data.videoClasses || []).filter(vc => vc.examCategories.includes(currentViewCategory));
+            const filteredStudyMaterials = (data.studyMaterials || []).filter(sm => {
+                const topic = data.topics.find(t => t.id === sm.topicId);
+                return topic && topic.examCategories.includes(currentViewCategory);
+            });
             
             setCategories(filteredCategories);
             setTopics(filteredTopics);
             setBankedQuestions(filteredBankedQuestions);
             setVideoClasses(filteredVideoClasses);
+            setStudyMaterials(filteredStudyMaterials);
             
             // Data that is not category-specific
             setTopicMCQs(data.topicMCQs || []);
@@ -817,7 +853,7 @@ export default function DashboardLayout({
     localStorage.setItem('lastSeenUpdateTimestamp', String(Date.now()));
   };
 
-  const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, videoClasses, qnaUsage, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback };
+  const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, videoClasses, studyMaterials, qnaUsage, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback };
 
   return (
     <DashboardContext.Provider value={contextValue}>
