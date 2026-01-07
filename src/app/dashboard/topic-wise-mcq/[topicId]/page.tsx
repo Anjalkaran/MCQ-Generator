@@ -10,8 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 
 
-export default function GenerateTopicQuizPage({ params }: { params: { topicId: string } }) {
-    const { topicId } = params;
+export default function GenerateTopicQuizPage({ params: { topicId } }: { params: { topicId: string } }) {
     const { topics, isLoading } = useDashboard();
     
     if (isLoading) {
@@ -48,4 +47,3 @@ export default function GenerateTopicQuizPage({ params }: { params: { topicId: s
         </div>
     );
 }
-
