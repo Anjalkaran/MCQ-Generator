@@ -11,6 +11,8 @@ import type { StudyMaterial, Topic } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
@@ -23,10 +25,10 @@ function PdfViewer({ fileUrl, fileName }: { fileUrl: string, fileName: string })
     }
     
     const handleDownload = () => {
+        // Since it's a data URI, we create a temporary link to download it.
         const link = document.createElement('a');
         link.href = fileUrl;
         link.download = fileName;
-        link.target = '_blank';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -52,7 +54,7 @@ function PdfViewer({ fileUrl, fileName }: { fileUrl: string, fileName: string })
                         error={<div className="text-red-500 p-4">Failed to load PDF file. Please try downloading it.</div>}
                     >
                         {Array.from(new Array(numPages), (el, index) => (
-                            <Page key={`page_${index + 1}`} pageNumber={index + 1} renderTextLayer={false} renderAnnotationLayer={false} className="shadow-md" />
+                            <Page key={`page_${index + 1}`} pageNumber={index + 1} className="shadow-md" />
                         ))}
                     </Document>
                 </ScrollArea>
@@ -181,4 +183,3 @@ export default function StudyMaterialPage() {
         </div>
     );
 }
-
