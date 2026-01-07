@@ -1,10 +1,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminStorage, adminDb } from '@/lib/firebase-admin';
-import { addDoc, collection, query, where, getDocs, updateDoc, doc, arrayUnion } from 'firebase/firestore';
 import type { StudyMaterial, Topic } from '@/lib/types';
 import { getDownloadURL } from 'firebase-admin/storage';
 import mammoth from 'mammoth';
+import { arrayUnion } from 'firebase-admin/firestore';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120; 
@@ -15,28 +15,28 @@ const BUCKET_NAME = 'quizwiz-be479-storage';
 async function findOrCreateTopic(topicName: string, examCategories: ('MTS' | 'POSTMAN' | 'PA' | 'IP')[]): Promise<string> {
     if (!adminDb) throw new Error("Firestore is not initialized.");
 
-    const topicsRef = collection(adminDb, "topics");
-    const q = query(topicsRef, where("title", "==", topicName));
-    const querySnapshot = await getDocs(q);
+    const topicsRef = adminDb.collection("topics");
+    const q = topicsRef.where("title", "==", topicName);
+    const querySnapshot = await q.get();
 
     if (!querySnapshot.empty) {
         // Topic exists, update its exam categories to include the new ones
         const topicDoc = querySnapshot.docs[0];
-        const topicRef = doc(adminDb, "topics", topicDoc.id);
-        await updateDoc(topicRef, {
+        const topicRef = adminDb.collection("topics").doc(topicDoc.id);
+        await topicRef.update({
             examCategories: arrayUnion(...examCategories)
         });
         return topicDoc.id;
     } else {
         // Topic does not exist, create it
         // Find 'General' category or create it
-        const categoriesRef = collection(adminDb, "categories");
-        const catQuery = query(categoriesRef, where("name", "==", "General"));
-        const catSnapshot = await getDocs(catQuery);
+        const categoriesRef = adminDb.collection("categories");
+        const catQuery = categoriesRef.where("name", "==", "General");
+        const catSnapshot = await catQuery.get();
         let categoryId = '';
 
         if (catSnapshot.empty) {
-            const newCatRef = await addDoc(categoriesRef, { name: 'General', examCategories: ['MTS', 'POSTMAN', 'PA', 'IP'] });
+            const newCatRef = await categoriesRef.add({ name: 'General', examCategories: ['MTS', 'POSTMAN', 'PA', 'IP'] });
             categoryId = newCatRef.id;
         } else {
             categoryId = catSnapshot.docs[0].id;
@@ -50,7 +50,7 @@ async function findOrCreateTopic(topicName: string, examCategories: ('MTS' | 'PO
             part: 'Part A', // Default part
             examCategories: examCategories,
         };
-        const newTopicRef = await addDoc(topicsRef, newTopic);
+        const newTopicRef = await topicsRef.add(newTopic);
         return newTopicRef.id;
     }
 }
@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
       fileType: finalMimeType,
     };
     
-    const docRef = await addDoc(collection(adminDb, "studyMaterials"), materialData);
+    const docRef = await adminDb.collection("studyMaterials").add(materialData);
 
     return NextResponse.json({ 
         message: 'Material uploaded successfully.', 
