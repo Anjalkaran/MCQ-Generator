@@ -36,6 +36,7 @@ export function StudyMaterialManagement() {
         resolver: zodResolver(materialSchema),
         defaultValues: {
             topicName: '',
+            file: undefined,
         }
     });
 
