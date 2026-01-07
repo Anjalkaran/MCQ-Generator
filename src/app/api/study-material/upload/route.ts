@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminStorage, adminDb } from '@/lib/firebase-admin';
 import { addDoc, collection, query, where, getDocs, updateDoc, doc, arrayUnion } from 'firebase/firestore';
-import { getFirebaseDb } from '@/lib/firebase';
 import type { StudyMaterial, Topic } from '@/lib/types';
 import { getDownloadURL } from 'firebase-admin/storage';
 import mammoth from 'mammoth';
@@ -10,21 +9,20 @@ import mammoth from 'mammoth';
 export const runtime = 'nodejs';
 export const maxDuration = 120; 
 
-const BUCKET_NAME = "quizwiz-be479-storage";
+const BUCKET_NAME = 'quizwiz-be479-storage';
 
 // Function to find or create a topic and return its ID
 async function findOrCreateTopic(topicName: string, examCategories: ('MTS' | 'POSTMAN' | 'PA' | 'IP')[]): Promise<string> {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized.");
+    if (!adminDb) throw new Error("Firestore is not initialized.");
 
-    const topicsRef = collection(db, "topics");
+    const topicsRef = collection(adminDb, "topics");
     const q = query(topicsRef, where("title", "==", topicName));
     const querySnapshot = await getDocs(q);
 
     if (!querySnapshot.empty) {
         // Topic exists, update its exam categories to include the new ones
         const topicDoc = querySnapshot.docs[0];
-        const topicRef = doc(db, "topics", topicDoc.id);
+        const topicRef = doc(adminDb, "topics", topicDoc.id);
         await updateDoc(topicRef, {
             examCategories: arrayUnion(...examCategories)
         });
@@ -32,7 +30,7 @@ async function findOrCreateTopic(topicName: string, examCategories: ('MTS' | 'PO
     } else {
         // Topic does not exist, create it
         // Find 'General' category or create it
-        const categoriesRef = collection(db, "categories");
+        const categoriesRef = collection(adminDb, "categories");
         const catQuery = query(categoriesRef, where("name", "==", "General"));
         const catSnapshot = await getDocs(catQuery);
         let categoryId = '';
@@ -59,8 +57,7 @@ async function findOrCreateTopic(topicName: string, examCategories: ('MTS' | 'PO
 
 
 export async function POST(req: NextRequest) {
-  const db = getFirebaseDb();
-  if (!db || !adminStorage) {
+  if (!adminDb || !adminStorage) {
     return NextResponse.json({ error: "Server configuration error." }, { status: 500 });
   }
 
@@ -131,7 +128,7 @@ export async function POST(req: NextRequest) {
       fileType: finalMimeType,
     };
     
-    const docRef = await addDoc(collection(db, "studyMaterials"), materialData);
+    const docRef = await addDoc(collection(adminDb, "studyMaterials"), materialData);
 
     return NextResponse.json({ 
         message: 'Material uploaded successfully.', 
