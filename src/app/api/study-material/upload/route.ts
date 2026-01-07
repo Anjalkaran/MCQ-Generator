@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminStorage, adminDb } from '@/lib/firebase-admin';
-import { addDoc, collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { addDoc, collection, query, where, getDocs, updateDoc, doc, arrayUnion } from 'firebase/firestore';
 import { getFirebaseDb } from '@/lib/firebase';
 import type { StudyMaterial, Topic } from '@/lib/types';
 import { getDownloadURL } from 'firebase-admin/storage';
@@ -13,7 +13,7 @@ export const maxDuration = 120;
 const BUCKET_NAME = "quizwiz-be479-storage";
 
 // Function to find or create a topic and return its ID
-async function findOrCreateTopic(topicName: string): Promise<string> {
+async function findOrCreateTopic(topicName: string, examCategories: ('MTS' | 'POSTMAN' | 'PA' | 'IP')[]): Promise<string> {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized.");
 
@@ -22,8 +22,13 @@ async function findOrCreateTopic(topicName: string): Promise<string> {
     const querySnapshot = await getDocs(q);
 
     if (!querySnapshot.empty) {
-        // Topic exists, return its ID
-        return querySnapshot.docs[0].id;
+        // Topic exists, update its exam categories to include the new ones
+        const topicDoc = querySnapshot.docs[0];
+        const topicRef = doc(db, "topics", topicDoc.id);
+        await updateDoc(topicRef, {
+            examCategories: arrayUnion(...examCategories)
+        });
+        return topicDoc.id;
     } else {
         // Topic does not exist, create it
         // Find 'General' category or create it
@@ -33,7 +38,7 @@ async function findOrCreateTopic(topicName: string): Promise<string> {
         let categoryId = '';
 
         if (catSnapshot.empty) {
-            const newCatRef = await addDoc(categoriesRef, { name: 'General', examCategories: ['MTS'] });
+            const newCatRef = await addDoc(categoriesRef, { name: 'General', examCategories: ['MTS', 'POSTMAN', 'PA', 'IP'] });
             categoryId = newCatRef.id;
         } else {
             categoryId = catSnapshot.docs[0].id;
@@ -44,8 +49,8 @@ async function findOrCreateTopic(topicName: string): Promise<string> {
             description: `Auto-created topic for ${topicName}`,
             icon: 'file-text',
             categoryId: categoryId,
-            part: 'Part A',
-            examCategories: ['MTS'],
+            part: 'Part A', // Default part
+            examCategories: examCategories,
         };
         const newTopicRef = await addDoc(topicsRef, newTopic);
         return newTopicRef.id;
@@ -63,12 +68,23 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
     const topicName = formData.get('topicName') as string | null;
+    const examCategoriesStr = formData.get('examCategories') as string | null;
 
-    if (!file || !topicName) {
-      return NextResponse.json({ error: 'File and Topic Name are required.' }, { status: 400 });
+    if (!file || !topicName || !examCategoriesStr) {
+      return NextResponse.json({ error: 'File, Topic Name, and Exam Categories are required.' }, { status: 400 });
     }
     
-    const topicId = await findOrCreateTopic(topicName);
+    let examCategories: ('MTS' | 'POSTMAN' | 'PA' | 'IP')[];
+    try {
+        examCategories = JSON.parse(examCategoriesStr);
+        if (!Array.isArray(examCategories) || examCategories.length === 0) {
+            throw new Error("Invalid format");
+        }
+    } catch(e) {
+        return NextResponse.json({ error: 'Exam Categories are in an invalid format.' }, { status: 400 });
+    }
+
+    const topicId = await findOrCreateTopic(topicName, examCategories);
     
     let buffer: Buffer;
     let finalFileName = file.name;
