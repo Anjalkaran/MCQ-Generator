@@ -9,9 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload, Trash2, Eye, FileText, Check, ChevronsUpDown, Search, Library } from 'lucide-react';
+import { getFirebaseDb, getFirebaseStorage } from '@/lib/firebase';
+import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { v4 as uuidv4 } from 'uuid';
 import { deleteStudyMaterial } from '@/lib/firestore';
 import type { Topic, StudyMaterial } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -23,6 +26,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '../ui/checkbox';
+import pdf from 'pdf-parse/lib/pdf-parse';
 
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -52,7 +56,7 @@ interface StudyMaterialManagementProps {
 export function StudyMaterialManagement({ initialTopics, initialMaterials }: StudyMaterialManagementProps) {
     const { toast } = useToast();
     const [isUploading, setIsUploading] = useState(false);
-    const [topics] = useState<Topic[]>(initialTopics);
+    const [topics, setTopics] = useState<Topic[]>(initialTopics);
     const [materials, setMaterials] = useState<StudyMaterial[]>(initialMaterials);
     const [popoverOpen, setPopoverOpen] = useState(false);
     const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
@@ -81,25 +85,64 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setIsUploading(true);
-        const formData = new FormData();
-        formData.append('file', values.file[0]);
-        if (values.topicId) {
-            formData.append('topicId', values.topicId);
+        
+        const db = getFirebaseDb();
+        const storage = getFirebaseStorage();
+        if (!db || !storage) {
+            toast({ title: 'Error', description: 'Firebase is not initialized.', variant: 'destructive'});
+            setIsUploading(false);
+            return;
         }
-        formData.append('examCategories', values.examCategories.join(','));
+
+        const uploadedFile = values.file[0];
 
         try {
-            const response = await fetch('/api/study-material/upload', {
-                method: 'POST',
-                body: formData,
-            });
+            const fileBuffer = await uploadedFile.arrayBuffer();
+            const pdfData = await pdf(fileBuffer);
+            const textContent = pdfData.text;
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to upload file.');
+            const filePath = `study-materials/${uuidv4()}-${uploadedFile.name}`;
+            const fileRef = storageRef(storage, filePath);
+            await uploadBytes(fileRef, fileBuffer, { contentType: uploadedFile.type });
+            const downloadURL = await getDownloadURL(fileRef);
+
+            let finalTopicId = values.topicId;
+            const topicsCollection = collection(db, 'topics');
+
+            if (finalTopicId === 'new') {
+                const newTopic: Omit<Topic, 'id'> = {
+                    title: uploadedFile.name?.replace(/\.[^/.]+$/, "") || "Untitled Topic",
+                    description: "Auto-generated topic from study material upload.",
+                    icon: 'file-text',
+                    categoryId: 'uncategorized',
+                    part: 'Part A',
+                    examCategories: values.examCategories as ('MTS' | 'POSTMAN' | 'PA' | 'IP')[],
+                    material: textContent
+                };
+                const topicRef = await addDoc(topicsCollection, newTopic);
+                finalTopicId = topicRef.id;
+                setTopics(prev => [...prev, { id: finalTopicId!, ...newTopic}]);
+
+            } else if (finalTopicId) {
+                const topicRef = doc(db, 'topics', finalTopicId);
+                await updateDoc(topicRef, { material: textContent });
             }
+            
+            if (!finalTopicId) {
+                throw new Error('Topic ID is missing.');
+            }
+            
+            const studyMaterialDoc: Omit<StudyMaterial, 'id'> = {
+                topicId: finalTopicId,
+                fileName: uploadedFile.name || 'unnamed-file',
+                fileType: uploadedFile.type || 'application/octet-stream',
+                content: downloadURL,
+                uploadedAt: new Date(),
+            };
 
-            const { document: newDocument } = await response.json();
+            const docRef = await addDoc(collection(db, 'studyMaterials'), studyMaterialDoc);
+            const newDocument = { id: docRef.id, ...studyMaterialDoc };
+
             setMaterials(prev => [newDocument, ...prev].sort((a,b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()));
 
             toast({ title: 'Success', description: 'Study material uploaded successfully.' });
