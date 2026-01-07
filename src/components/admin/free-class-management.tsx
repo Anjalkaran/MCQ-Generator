@@ -7,14 +7,25 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Download, Loader2, Search } from 'lucide-react';
-import type { FreeClassRegistration } from '@/lib/types';
-import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '../ui/badge';
-import { normalizeDate } from '@/lib/utils';
+
+// Define the type for a single registration, mirroring the expected data structure
+interface Registration {
+    id: string;
+    name: string;
+    email: string;
+    mobileNumber: string;
+    gender: string;
+    division: string;
+    employeeId: string;
+    designation: string;
+    courses: string[];
+    registeredAt: string;
+}
 
 export function FreeClassManagement() {
-    const [registrations, setRegistrations] = useState<FreeClassRegistration[]>([]);
+    const [registrations, setRegistrations] = useState<Registration[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isDownloading, setIsDownloading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -29,13 +40,7 @@ export function FreeClassManagement() {
                     throw new Error('Failed to fetch data');
                 }
                 const data = await response.json();
-                
-                const normalizedData = data.registrations.map((reg: any) => ({
-                    ...reg,
-                    registeredAt: normalizeDate(reg.registeredAt) || new Date() 
-                }));
-
-                setRegistrations(normalizedData);
+                setRegistrations(data.registrations || []);
             } catch (error) {
                 console.error("Error fetching registrations:", error);
                 toast({ title: "Error", description: "Could not load registration data.", variant: "destructive" });
@@ -75,8 +80,8 @@ export function FreeClassManagement() {
                         `"${reg.division}"`,
                         `"${reg.employeeId}"`,
                         `"${reg.designation}"`,
-                        `"${reg.courses.join(', ')}"`,
-                        `"${format(reg.registeredAt, 'dd/MM/yyyy p')}"`
+                        `"${(reg.courses || []).join(', ')}"`,
+                        `"${reg.registeredAt}"`
                     ].join(',')
                 )
             ].join('\n');
@@ -158,7 +163,7 @@ export function FreeClassManagement() {
                                             </TableCell>
                                             <TableCell>
                                                <div className="flex flex-wrap gap-1">
-                                                 {reg.courses.map(course => <Badge key={course} variant="secondary">{course}</Badge>)}
+                                                 {(reg.courses || []).map(course => <Badge key={course} variant="secondary">{course}</Badge>)}
                                                </div>
                                             </TableCell>
                                         </TableRow>
