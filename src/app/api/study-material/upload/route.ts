@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const bucket = adminStorage.bucket(bucketName);
-    const filePath = `study-materials/${Date.now()}-${file.name}`;
+    const filePath = `study-materials/${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
     const fileUpload = bucket.file(filePath);
 
     await fileUpload.save(buffer, {
@@ -39,7 +39,9 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Correct method to get public URL for Admin SDK
+    // Make the file public to get a shareable URL
+    await fileUpload.makePublic();
+
     const downloadURL = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
 
     const newMaterialData: Omit<StudyMaterial, 'id'> = {
