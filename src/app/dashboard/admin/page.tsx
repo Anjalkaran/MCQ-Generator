@@ -1,10 +1,12 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
 import { useDashboard } from "@/app/dashboard/layout";
 import { UserManagement } from '@/components/admin/user-management';
 import { TopicManagement } from '@/components/admin/topic-management';
+import { StudyMaterialManagement } from '@/components/admin/study-material-management';
 import { QuestionBankManagement } from '@/components/admin/question-bank-management';
 import { TopicMCQManagement } from '@/components/admin/topic-mcq-management';
 import { LiveTestManagement } from '@/components/admin/live-test-management';
@@ -14,10 +16,10 @@ import { FeedbackManagement } from '@/components/admin/feedback-management';
 import { VideoClassManagement } from '@/components/admin/video-class-management';
 import { FreeClassManagement } from '@/components/admin/free-class-management';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, MessageSquare, Video, UserCheck } from "lucide-react";
+import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, MessageSquare, Video, UserCheck, Library } from "lucide-react";
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
-import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback } from "@/lib/firestore";
-import type { UserData, QnAUsage, LiveTest, ReasoningQuestion, Feedback } from "@/lib/types";
+import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback, getStudyMaterials } from "@/lib/firestore";
+import type { UserData, QnAUsage, LiveTest, ReasoningQuestion, Feedback, StudyMaterial } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { ADMIN_EMAILS } from "@/lib/constants";
 import { Label } from "@/components/ui/label";
@@ -60,12 +62,12 @@ function AnalyticsTab({ qnaUsage }: { qnaUsage: QnAUsage[] }) {
 const adminSections = [
     { value: 'users', label: 'User Management', icon: Shield },
     { value: 'topics', label: 'Topic Management', icon: BookCopy },
+    { value: 'study-material', label: 'Study Material', icon: Library },
     { value: 'video-classes', label: 'Video Classes', icon: Video },
     { value: 'topic-mcq', label: 'MCQ Bank', icon: FileQuestion },
     { value: 'question-bank', label: 'Question Bank', icon: FileText },
     { value: 'reasoning-bank', label: 'Reasoning Bank', icon: NewLogoIcon },
     { value: 'live-test', label: 'Live Test', icon: Trophy },
-    { value: 'free-class', label: 'Free Class', icon: UserCheck },
     { value: 'analytics', label: 'Analytics', icon: BarChart3 },
     { value: 'feedback', label: 'Feedback', icon: MessageSquare },
     { value: 'reports', label: 'Reports', icon: Download },
@@ -80,6 +82,7 @@ export default function AdminPage() {
   const [allLiveTests, setAllLiveTests] = useState<LiveTest[]>([]);
   const [reasoningQuestions, setReasoningQuestions] = useState<ReasoningQuestion[]>([]);
   const [feedback, setFeedback] = useState<Feedback[]>([]);
+  const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
   const [isLoadingAdminData, setIsLoadingAdminData] = useState(true);
   const [activeSection, setActiveSection] = useState<AdminSection>('users');
   const { toast } = useToast();
@@ -87,12 +90,13 @@ export default function AdminPage() {
   useEffect(() => {
     const fetchAdminData = async () => {
       try {
-        const [fetchedUsers, fetchedQnAUsage, fetchedLiveTests, fetchedReasoningQuestions, fetchedFeedback] = await Promise.all([
+        const [fetchedUsers, fetchedQnAUsage, fetchedLiveTests, fetchedReasoningQuestions, fetchedFeedback, fetchedStudyMaterials] = await Promise.all([
             getAllUsers(),
             getQnAUsage(),
             getLiveTests(true), // Fetch all live tests
             getReasoningQuestions(),
             getAllFeedback(),
+            getStudyMaterials(),
         ]);
         
         const regularUsers = fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email));
@@ -101,6 +105,7 @@ export default function AdminPage() {
         setAllLiveTests(fetchedLiveTests);
         setReasoningQuestions(fetchedReasoningQuestions);
         setFeedback(fetchedFeedback);
+        setStudyMaterials(fetchedStudyMaterials);
 
       } catch (error) {
         console.error("Failed to fetch admin data:", error);
@@ -152,6 +157,8 @@ export default function AdminPage() {
             return <UserManagement initialUsers={users} />;
         case 'topics':
             return <TopicManagement initialCategories={categories} initialTopics={topics} />;
+        case 'study-material':
+            return <StudyMaterialManagement initialTopics={topics} initialMaterials={studyMaterials} />;
         case 'video-classes':
             return <VideoClassManagement initialVideos={videoClasses} />;
         case 'topic-mcq':
@@ -162,8 +169,6 @@ export default function AdminPage() {
             return <ReasoningBankManagement initialQuestions={reasoningQuestions} />;
         case 'live-test':
             return <LiveTestManagement initialLiveTestBank={liveTestBank} initialLiveTests={allLiveTests} />;
-        case 'free-class':
-            return <FreeClassManagement />;
         case 'analytics':
             return <AnalyticsTab qnaUsage={qnaUsage} />;
         case 'feedback':

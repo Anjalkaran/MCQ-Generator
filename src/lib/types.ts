@@ -1,6 +1,16 @@
 
+
 import type { LucideIcon } from 'lucide-react';
 import type { Timestamp } from 'firebase/firestore';
+
+export interface StudyMaterial {
+  id: string;
+  topicId: string;
+  fileName: string;
+  fileType: string;
+  content: string; // The extracted text content
+  uploadedAt: Date;
+}
 
 export interface MCQ {
   question: string;

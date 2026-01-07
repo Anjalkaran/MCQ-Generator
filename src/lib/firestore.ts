@@ -1,7 +1,8 @@
 
+
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion, runTransaction } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ, MCQData, VideoClass, FreeClassRegistration } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ, MCQData, VideoClass, FreeClassRegistration, StudyMaterial } from './types';
 import { ADMIN_EMAILS } from './constants';
 import { normalizeDate } from './utils';
 
@@ -303,28 +304,51 @@ export const getAllExamHistory = async (): Promise<MCQHistory[]> => {
 
 // PERFORMANCE ANALYSIS
 export const getPerformanceByTopic = async (userId: string): Promise<TopicPerformance[]> => {
-    const allHistory = await getExamHistoryForUser(userId).then(h => h.filter(item => !item.isMockTest));
+    const allHistory = await getExamHistoryForUser(userId);
     if (allHistory.length === 0) return [];
+  
     const performanceMap = new Map<string, { totalScore: number; totalQuestions: number; attempts: number; topicTitle: string; }>();
+  
     allHistory.forEach(item => {
-        const { topicId, topicTitle, score, totalQuestions } = item;
+      const { topicId, topicTitle, score, totalQuestions, isMockTest, questions } = item;
+  
+      if (isMockTest) {
+        // In a mock test, we need to attribute scores to individual topics within the test.
+        // This is a simplified estimation. A more accurate method would require topic info per question.
+        // For now, we'll attribute the overall test performance to each distinct topic present.
+        const topicsInTest = new Set(quizMcqs.map(q => q.topic).filter(Boolean));
+        topicsInTest.forEach(mockTopicTitle => {
+            const topic = topics.find(t => t.title === mockTopicTitle);
+            if (topic) {
+                const existing = performanceMap.get(topic.id) || { totalScore: 0, totalQuestions: 0, attempts: 0, topicTitle: mockTopicTitle };
+                existing.totalScore += score; // Simplified: applying overall score
+                existing.totalQuestions += totalQuestions;
+                existing.attempts += 1;
+                performanceMap.set(topic.id, existing);
+            }
+        });
+      } else {
+        // For regular topic quizzes
         const existing = performanceMap.get(topicId) || { totalScore: 0, totalQuestions: 0, attempts: 0, topicTitle: topicTitle || 'Unknown Topic' };
         existing.totalScore += score;
         existing.totalQuestions += totalQuestions;
         existing.attempts += 1;
         performanceMap.set(topicId, existing);
+      }
     });
+  
     const performanceData: TopicPerformance[] = [];
     performanceMap.forEach((data, topicId) => {
-        performanceData.push({
-            topicId,
-            topicTitle: data.topicTitle,
-            attempts: data.attempts,
-            averageScore: (data.totalQuestions > 0 ? (data.totalScore / data.totalQuestions) * 100 : 0),
-        });
+      performanceData.push({
+        topicId,
+        topicTitle: data.topicTitle,
+        attempts: data.attempts,
+        averageScore: (data.totalQuestions > 0 ? (data.totalScore / data.totalQuestions) * 100 : 0),
+      });
     });
+  
     return performanceData.sort((a, b) => a.topicTitle.localeCompare(b.topicTitle));
-};
+  };
 
 // QUESTION BANK MANAGEMENT
 export const getQuestionBankDocuments = async (examCategory?: UserData['examCategory']): Promise<BankedQuestion[]> => {
@@ -878,6 +902,24 @@ export const getFreeClassRegistrations = async (): Promise<FreeClassRegistration
 
     // Safe sorting in code
     return registrations.sort((a, b) => b.registeredAt.getTime() - a.registeredAt.getTime());
+};
+
+
+// STUDY MATERIAL MANAGEMENT
+export const getStudyMaterials = async (topicId?: string): Promise<StudyMaterial[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const q = topicId 
+        ? query(collection(db, 'studyMaterials'), where('topicId', '==', topicId), orderBy('uploadedAt', 'desc'))
+        : query(collection(db, 'studyMaterials'), orderBy('uploadedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as StudyMaterial));
+};
+
+export const deleteStudyMaterial = async (docId: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    await deleteDoc(doc(db, 'studyMaterials', docId));
 };
 
 
