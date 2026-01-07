@@ -3,30 +3,26 @@ import * as admin from 'firebase-admin';
 import { getApps, App } from 'firebase-admin/app';
 import serviceAccount from '../../service-account.json';
 
-// Type assertion to satisfy the credential structure
-const sa = serviceAccount as {
-    projectId: string;
-    clientEmail: string;
-    privateKey: string;
-};
+let adminApp: App;
 
-let adminApp: App | null = null;
 if (getApps().length === 0) {
-    try {
-        adminApp = admin.initializeApp({
-            credential: admin.credential.cert(sa),
-            storageBucket: "quizwiz-be479.appspot.com",
-        });
-        console.log("Firebase Admin SDK initialized successfully.");
-    } catch (error: any) {
-        console.error('Firebase Admin SDK initialization error:', error.message);
-    }
+  try {
+    adminApp = admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+      storageBucket: 'quizwiz-be479.appspot.com',
+    });
+    console.log("Firebase Admin SDK initialized successfully.");
+  } catch (error: any) {
+    console.error('Firebase Admin SDK initialization error:', error.message);
+    // If initialization fails, we'll throw to prevent the app from running with a broken config.
+    throw new Error('Firebase Admin SDK could not be initialized.');
+  }
 } else {
-    adminApp = getApps()[0];
+  adminApp = getApps()[0];
 }
 
-const adminAuth = adminApp ? admin.auth(adminApp) : null;
-const adminDb = adminApp ? admin.firestore(adminApp) : null;
-const adminStorage = adminApp ? admin.storage() : null;
+const adminAuth = admin.auth(adminApp);
+const adminDb = admin.firestore(adminApp);
+const adminStorage = admin.storage(adminApp);
 
 export { adminAuth, adminDb, adminStorage };
