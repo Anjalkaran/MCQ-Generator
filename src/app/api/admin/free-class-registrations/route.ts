@@ -19,11 +19,12 @@ export async function GET(req: NextRequest) {
         
         let registrations = snapshot.docs.map(doc => {
             const data = doc.data();
+            // Safely normalize the date, providing a default if it's missing.
+            const registeredAt = data.registeredAt ? normalizeDate(data.registeredAt) : new Date(0);
             return {
                 id: doc.id,
                 ...data,
-                // Safely normalize the date, providing a default if it's missing.
-                registeredAt: normalizeDate(data.registeredAt) || new Date(0), 
+                registeredAt,
             } as FreeClassRegistration;
         });
 
