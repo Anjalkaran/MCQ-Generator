@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb, adminStorage } from '@/lib/firebase-admin';
 import type { Topic } from '@/lib/types';
-import { formidable } from 'formidable';
+import formidable from 'formidable';
 import fs from 'fs/promises';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -10,12 +10,10 @@ export const runtime = 'nodejs';
 export const maxDuration = 300; 
 
 // Helper to parse the incoming form data
-const parseForm = (req: NextRequest): Promise<{ fields: any; files: any }> => {
+const parseForm = (req: NextRequest): Promise<{ fields: formidable.Fields; files: formidable.Files }> => {
     return new Promise((resolve, reject) => {
         const form = formidable({});
-        // The `req.body` needs to be correctly converted to a stream
-        const bodyStream: any = req.body;
-        form.parse(bodyStream, (err, fields, files) => {
+        form.parse(req as any, (err, fields, files) => {
             if (err) {
                 reject(err);
                 return;
