@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -12,11 +11,9 @@ import { LiveTestManagement } from '@/components/admin/live-test-management';
 import { ReportsManagement } from '@/components/admin/reports-management';
 import { ReasoningBankManagement } from '@/components/admin/reasoning-bank-management';
 import { FeedbackManagement } from '@/components/admin/feedback-management';
-import { StudyMaterialManagement } from '@/components/admin/study-material-management';
-import { FreeClassManagement } from '@/components/admin/free-class-management';
 import { VideoClassManagement } from '@/components/admin/video-class-management';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, MessageSquare, BookOpen, GraduationCap, Video } from "lucide-react";
+import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, MessageSquare, Video } from "lucide-react";
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
 import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback } from "@/lib/firestore";
 import type { UserData, QnAUsage, LiveTest, ReasoningQuestion, Feedback } from "@/lib/types";
@@ -62,13 +59,11 @@ function AnalyticsTab({ qnaUsage }: { qnaUsage: QnAUsage[] }) {
 const adminSections = [
     { value: 'users', label: 'User Management', icon: Shield },
     { value: 'topics', label: 'Topic Management', icon: BookCopy },
-    { value: 'study-material', label: 'Study Material', icon: BookOpen },
     { value: 'video-classes', label: 'Video Classes', icon: Video },
     { value: 'topic-mcq', label: 'MCQ Bank', icon: FileQuestion },
     { value: 'question-bank', label: 'Question Bank', icon: FileText },
     { value: 'reasoning-bank', label: 'Reasoning Bank', icon: NewLogoIcon },
     { value: 'live-test', label: 'Live Test', icon: Trophy },
-    { value: 'free-class', label: 'Free Class', icon: GraduationCap },
     { value: 'analytics', label: 'Analytics', icon: BarChart3 },
     { value: 'feedback', label: 'Feedback', icon: MessageSquare },
     { value: 'reports', label: 'Reports', icon: Download },
@@ -77,7 +72,7 @@ const adminSections = [
 type AdminSection = typeof adminSections[number]['value'];
 
 export default function AdminPage() {
-  const { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, studyMaterials, videoClasses, isLoading: isDashboardLoading } = useDashboard();
+  const { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, videoClasses, isLoading: isDashboardLoading } = useDashboard();
   const [users, setUsers] = useState<UserData[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [allLiveTests, setAllLiveTests] = useState<LiveTest[]>([]);
@@ -155,8 +150,6 @@ export default function AdminPage() {
             return <UserManagement initialUsers={users} />;
         case 'topics':
             return <TopicManagement initialCategories={categories} initialTopics={topics} />;
-        case 'study-material':
-            return <StudyMaterialManagement initialMaterials={studyMaterials} />;
         case 'video-classes':
             return <VideoClassManagement initialVideos={videoClasses} />;
         case 'topic-mcq':
@@ -167,8 +160,6 @@ export default function AdminPage() {
             return <ReasoningBankManagement initialQuestions={reasoningQuestions} />;
         case 'live-test':
             return <LiveTestManagement initialLiveTestBank={liveTestBank} initialLiveTests={allLiveTests} />;
-        case 'free-class':
-            return <FreeClassManagement />;
         case 'analytics':
             return <AnalyticsTab qnaUsage={qnaUsage} />;
         case 'feedback':

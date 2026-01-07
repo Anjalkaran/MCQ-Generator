@@ -1,5 +1,4 @@
 
-
 import type { LucideIcon } from 'lucide-react';
 import type { Timestamp } from 'firebase/firestore';
 
@@ -13,15 +12,6 @@ export interface MCQ {
   translations?: Record<string, MCQ>;
 }
 
-export interface StudyMaterial {
-  id: string;
-  title: string;
-  examCategories: ('MTS' | 'POSTMAN' | 'PA' | 'IP')[];
-  fileName: string;
-  content: string; // Will store the public download URL
-  uploadedAt: Date;
-}
-
 export interface VideoClass {
   id: string;
   title: string;
@@ -29,16 +19,6 @@ export interface VideoClass {
   youtubeVideoId: string;
   examCategories: ('MTS' | 'POSTMAN' | 'PA' | 'IP')[];
   uploadedAt: Date;
-}
-
-export interface DownloadHistory {
-  id: string;
-  userId: string;
-  userName: string;
-  materialId: string;
-  fileTitle: string;
-  fileName: string;
-  downloadedAt: Date;
 }
 
 export interface Topic {
@@ -199,17 +179,3 @@ export interface Feedback {
   reply?: string;
   repliedAt?: Date;
 }
-
-export interface FreeClassRegistration {
-    id: string;
-    name: string;
-    gender: string;
-    mobileNumber: string;
-    division: string;
-    employeeId: string;
-    designation: string;
-    email: string;
-    courses: string[];
-    registeredAt: Date;
-}
-

@@ -1,11 +1,10 @@
 
-
 "use client";
 
 import React, { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageCircle, Star, BookOpen, PenSquare, RefreshCw, Video } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageCircle, Star, PenSquare, RefreshCw, Video } from 'lucide-react';
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
 import Link from 'next/link';
 import { getFirebaseAuth } from '@/lib/firebase';
@@ -14,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback } from '@/lib/firestore';
-import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, StudyMaterial, VideoClass } from "@/lib/types";
+import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, VideoClass } from "@/lib/types";
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
@@ -111,7 +110,7 @@ function ProfileUpdateDialog({ open, onUpdateSubmit, defaultValues }: ProfileUpd
 
 
 interface NewContentPopupProps {
-  newContent: { materials: StudyMaterial[], videos: VideoClass[] };
+  newContent: { videos: VideoClass[] };
   onClose: () => void;
 }
 
@@ -122,7 +121,7 @@ function NewContentPopup({ newContent, onClose }: NewContentPopupProps) {
                 <DialogHeader>
                     <DialogTitle>New Content Added!</DialogTitle>
                     <DialogDescription>
-                        Check out the latest materials and videos we've uploaded for you.
+                        Check out the latest videos we've uploaded for you.
                     </DialogDescription>
                 </DialogHeader>
                 <ScrollArea className="max-h-80 pr-4">
@@ -136,21 +135,6 @@ function NewContentPopup({ newContent, onClose }: NewContentPopupProps) {
                                             <p className="font-medium">{video.title}</p>
                                             <p className="text-xs text-muted-foreground">
                                                 Added {formatDistanceToNow(normalizeDate(video.uploadedAt)!, { addSuffix: true })}
-                                            </p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                        {newContent.materials.length > 0 && (
-                             <div>
-                                <h3 className="font-semibold mb-2 flex items-center gap-2"><BookOpen className="h-5 w-5 text-primary" /> New Study Materials</h3>
-                                <div className="space-y-2">
-                                    {newContent.materials.map(material => (
-                                         <div key={material.id} className="text-sm p-2 border rounded-md">
-                                            <p className="font-medium">{material.title}</p>
-                                             <p className="text-xs text-muted-foreground">
-                                                Added {formatDistanceToNow(normalizeDate(material.uploadedAt)!, { addSuffix: true })}
                                             </p>
                                         </div>
                                     ))}
@@ -180,7 +164,6 @@ interface DashboardContextType {
   bankedQuestions: BankedQuestion[];
   topicMCQs: TopicMCQ[];
   liveTestBank: BankedQuestion[];
-  studyMaterials: StudyMaterial[];
   videoClasses: VideoClass[];
   qnaUsage: QnAUsage[];
   notifications: Notification[];
@@ -342,14 +325,6 @@ function AppSidebar() {
                   <Link href="/dashboard/online-test" onClick={onLinkClick}>
                     <PenSquare />
                     <span>Online Tests</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/study-material')} tooltip="Study Material">
-                  <Link href="/dashboard/study-material" onClick={onLinkClick}>
-                    <BookOpen />
-                    <span>Study Material</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -567,7 +542,6 @@ export default function DashboardLayout({
   const [bankedQuestions, setBankedQuestions] = useState<BankedQuestion[]>([]);
   const [topicMCQs, setTopicMCQs] = useState<TopicMCQ[]>([]);
   const [liveTestBank, setLiveTestBank] = useState<BankedQuestion[]>([]);
-  const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
   const [videoClasses, setVideoClasses] = useState<VideoClass[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -578,7 +552,7 @@ export default function DashboardLayout({
   const [profileUpdateDefaults, setProfileUpdateDefaults] = useState({ employeeId: '', mobileNumber: '' });
   const [showUpdateAlert, setShowUpdateAlert] = useState(false);
   const [showNewContentPopup, setShowNewContentPopup] = useState(false);
-  const [newContent, setNewContent] = useState<{ materials: StudyMaterial[], videos: VideoClass[] }>({ materials: [], videos: [] });
+  const [newContent, setNewContent] = useState<{ videos: VideoClass[] }>({ videos: [] });
 
   const handleLogout = useCallback(async (authInstance = getFirebaseAuth(), showToast = true, message?: string) => {
     if (!authInstance) {
@@ -700,14 +674,13 @@ export default function DashboardLayout({
                     setUserData(adminUserData);
                 }
                 // Admin needs ALL data
-                const { categories, topics, bankedQuestions, topicMCQs, liveTestBank, studyMaterials, videoClasses, qnaUsage, notifications } = await getDashboardData(currentUser.uid, true);
+                const { categories, topics, bankedQuestions, topicMCQs, liveTestBank, videoClasses, qnaUsage, notifications } = await getDashboardData(currentUser.uid, true);
 
                 setCategories(categories);
                 setTopics(topics);
                 setBankedQuestions(bankedQuestions);
                 setTopicMCQs(topicMCQs);
                 setLiveTestBank(liveTestBank);
-                setStudyMaterials(studyMaterials);
                 setVideoClasses(videoClasses);
                 setQnaUsage(qnaUsage);
                 setNotifications(notifications);
@@ -731,7 +704,6 @@ export default function DashboardLayout({
                 setCategories(dashboardData.categories || []);
                 setTopics(dashboardData.topics || []);
                 setBankedQuestions(dashboardData.bankedQuestions || []);
-                setStudyMaterials(dashboardData.studyMaterials || []);
                 setVideoClasses(dashboardData.videoClasses || []);
                 setHasGivenFeedback(feedbackStatus);
 
@@ -739,17 +711,16 @@ export default function DashboardLayout({
                 const lastSeenTimestamp = localStorage.getItem('lastSeenUpdateTimestamp');
                 const lastSeenDate = lastSeenTimestamp ? new Date(parseInt(lastSeenTimestamp, 10)) : new Date(0);
 
-                const allContent = [...(dashboardData.studyMaterials || []), ...(dashboardData.videoClasses || [])];
+                const allContent = [...(dashboardData.videoClasses || [])];
                 const mostRecentUpload = allContent.reduce((latest, item) => {
                     const itemDate = normalizeDate(item.uploadedAt);
                     return itemDate && itemDate > latest ? itemDate : latest;
                 }, new Date(0));
 
                 if (mostRecentUpload > lastSeenDate) {
-                    const newMaterials = (dashboardData.studyMaterials || []).filter(m => normalizeDate(m.uploadedAt)! > lastSeenDate);
                     const newVideos = (dashboardData.videoClasses || []).filter(v => normalizeDate(v.uploadedAt)! > lastSeenDate);
-                    if (newMaterials.length > 0 || newVideos.length > 0) {
-                        setNewContent({ materials: newMaterials, videos: newVideos });
+                    if (newVideos.length > 0) {
+                        setNewContent({ videos: newVideos });
                         setShowNewContentPopup(true);
                     }
                 }
@@ -784,7 +755,6 @@ export default function DashboardLayout({
         setBankedQuestions([]);
         setTopicMCQs([]);
         setLiveTestBank([]);
-        setStudyMaterials([]);
         setVideoClasses([]);
         setQnaUsage([]);
         setNotifications([]);
@@ -809,13 +779,11 @@ export default function DashboardLayout({
             
             const filteredTopics = (data.topics || []).filter(t => t.examCategories.includes(currentViewCategory));
             const filteredBankedQuestions = (data.bankedQuestions || []).filter(bq => bq.examCategory === currentViewCategory);
-            const filteredStudyMaterials = (data.studyMaterials || []).filter(sm => sm.examCategories.includes(currentViewCategory));
             const filteredVideoClasses = (data.videoClasses || []).filter(vc => vc.examCategories.includes(currentViewCategory));
             
             setCategories(filteredCategories);
             setTopics(filteredTopics);
             setBankedQuestions(filteredBankedQuestions);
-            setStudyMaterials(filteredStudyMaterials);
             setVideoClasses(filteredVideoClasses);
             
             // Data that is not category-specific
@@ -844,7 +812,7 @@ export default function DashboardLayout({
     localStorage.setItem('lastSeenUpdateTimestamp', String(Date.now()));
   };
 
-  const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, studyMaterials, videoClasses, qnaUsage, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback };
+  const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, videoClasses, qnaUsage, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback };
 
   return (
     <DashboardContext.Provider value={contextValue}>
