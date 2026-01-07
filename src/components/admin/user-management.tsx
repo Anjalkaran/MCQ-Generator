@@ -684,4 +684,3 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     </Card>
   );
 }
-
