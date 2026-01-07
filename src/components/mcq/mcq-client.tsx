@@ -18,13 +18,16 @@ import {
 } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import type { MCQData, MCQHistory } from "@/lib/types";
+import type { MCQData, MCQHistory, MCQ } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Clock, PlusCircle, Loader2 } from "lucide-react";
+import { Clock, PlusCircle, Loader2, CheckCircle, XCircle, Lightbulb } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getGeneratedQuiz, saveMCQHistory } from "@/lib/firestore";
 import { getFirebaseAuth } from "@/lib/firebase";
 import type { User } from "firebase/auth";
+import { cn } from "@/lib/utils";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 
 interface MCQClientProps {
   topicId: string;
@@ -38,6 +41,12 @@ const formatTime = (seconds: number) => {
 
 const TIME_EXTENSION_SECONDS = 60;
 const MAX_TIME_EXTENSIONS = 1;
+
+// Helper function to normalize answer strings for comparison
+const normalizeAnswer = (answer: string | undefined): string => {
+    if (!answer) return "";
+    return answer.trim().toLowerCase();
+};
 
 export function MCQClient({ topicId }: MCQClientProps) {
   const router = useRouter();
@@ -80,8 +89,7 @@ export function MCQClient({ topicId }: MCQClientProps) {
 
         const score = quizData.mcqs.reduce((acc, mcq, index) => {
              const userAnswer = selectedAnswers[index];
-             // Ensure comparison is case-insensitive and trims whitespace
-             const isCorrect = userAnswer?.trim().toLowerCase() === mcq.correctAnswer.trim().toLowerCase();
+             const isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(mcq.correctAnswer);
              return isCorrect ? acc + 1 : acc;
         }, 0);
 
@@ -211,18 +219,20 @@ export function MCQClient({ topicId }: MCQClientProps) {
     }
   }
 
-  const handleSkip = () => {
-    if (!isLastQuestion) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    }
-  }
-
   const handleAnswerSelect = (value: string) => {
+    // Prevent changing the answer once selected for the current question
+    if (selectedAnswers[currentQuestionIndex]) return;
+
     setSelectedAnswers({
       ...selectedAnswers,
       [currentQuestionIndex]: value,
     });
   };
+  
+  const userAnswer = selectedAnswers[currentQuestionIndex];
+  const isQuestionAnswered = !!userAnswer;
+  const isArithmeticQuestion = quizData.isMockTest && currentQuestion.topic?.toLowerCase().includes('arithmetic');
+  const explanationLabel = isArithmeticQuestion ? "View Solution" : "View Explanation";
 
   return (
     <Card className="w-full shadow-lg">
@@ -255,22 +265,56 @@ export function MCQClient({ topicId }: MCQClientProps) {
         <Progress value={progress} className="mt-4" />
       </CardHeader>
       <CardContent>
-        <div className="font-semibold text-lg mb-6" dangerouslySetInnerHTML={{ __html: currentQuestion.question }} />
+        <div className="font-semibold text-lg mb-4" dangerouslySetInnerHTML={{ __html: currentQuestion.question }} />
+        {quizData.isMockTest && currentQuestion.topic && (
+            <Badge variant="outline" className="mb-4">Topic: {currentQuestion.topic}</Badge>
+        )}
         <RadioGroup
           key={currentQuestionIndex}
-          value={selectedAnswers[currentQuestionIndex]}
+          value={userAnswer}
           onValueChange={handleAnswerSelect}
           className="space-y-4"
+          disabled={isQuestionAnswered}
         >
-          {currentQuestion.options.map((option, index) => (
-            <div key={index} className="flex items-center space-x-2">
-              <RadioGroupItem value={option} id={`option-${index}`} />
-              <Label htmlFor={`option-${index}`} className="text-base cursor-pointer">
-                {option}
-              </Label>
-            </div>
-          ))}
+          {currentQuestion.options.map((option, index) => {
+              const isTheCorrectAnswer = normalizeAnswer(currentQuestion.correctAnswer) === normalizeAnswer(option);
+              const isUserChoice = normalizeAnswer(userAnswer) === normalizeAnswer(option);
+
+              return (
+                <div key={index}
+                    className={cn(
+                        "flex items-center gap-3 p-3 rounded-md border transition-colors",
+                        isQuestionAnswered && isTheCorrectAnswer ? "bg-green-100 border-green-300 dark:bg-green-900/30 dark:border-green-700" : "",
+                        isQuestionAnswered && isUserChoice && !isTheCorrectAnswer ? "bg-red-100 border-red-300 dark:bg-red-900/30 dark:border-red-700" : ""
+                    )}
+                >
+                    <RadioGroupItem value={option} id={`option-${index}`} />
+                    <Label htmlFor={`option-${index}`} className="text-base flex-1 cursor-pointer">
+                        {option}
+                    </Label>
+                    {isQuestionAnswered && isTheCorrectAnswer && <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />}
+                    {isQuestionAnswered && isUserChoice && !isTheCorrectAnswer && <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />}
+                </div>
+              )
+          })}
         </RadioGroup>
+
+        {isQuestionAnswered && currentQuestion.solution && (
+            <Accordion type="single" collapsible className="w-full mt-4">
+                <AccordionItem value="item-1">
+                    <AccordionTrigger>
+                        <div className="flex items-center gap-2 text-primary">
+                            <Lightbulb className="w-5 h-5" />
+                            <span className="font-semibold">{explanationLabel}</span>
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                        <div className="p-4 bg-muted/50 rounded-lg border prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: currentQuestion.solution }}/>
+                    </AccordionContent>
+                </AccordionItem>
+            </Accordion>
+        )}
+
       </CardContent>
       <CardFooter className="justify-between">
         <Button onClick={handlePrevious} variant="outline" disabled={isFirstQuestion || isSubmitting}>
@@ -278,22 +322,18 @@ export function MCQClient({ topicId }: MCQClientProps) {
         </Button>
         <div className="flex gap-2">
             {isLastQuestion ? (
-            <Button onClick={handleFinish} disabled={!selectedAnswers[currentQuestionIndex] || isSubmitting}>
+            <Button onClick={handleFinish} disabled={!isQuestionAnswered || isSubmitting}>
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
                 Finish Exam
             </Button>
             ) : (
-            <>
-                <Button onClick={handleSkip} variant="outline" disabled={isSubmitting}>
-                Skip
-                </Button>
-                <Button onClick={handleNext} disabled={!selectedAnswers[currentQuestionIndex] || isSubmitting}>
+                <Button onClick={handleNext} disabled={!isQuestionAnswered || isSubmitting}>
                 Next
                 </Button>
-            </>
             )}
         </div>
       </CardFooter>
     </Card>
   );
 }
+
