@@ -1,7 +1,7 @@
 
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion, runTransaction } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ, MCQData, VideoClass } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ, MCQData, VideoClass, FreeClassRegistration, DownloadHistory, StudyMaterial } from './types';
 import { ADMIN_EMAILS } from './constants';
 import { normalizeDate } from './utils';
 
@@ -859,6 +859,72 @@ export const deleteVideoClass = async (videoId: string): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     await deleteDoc(doc(db, 'videoClasses', videoId));
+};
+
+export const getFreeClassRegistrations = async (): Promise<FreeClassRegistration[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const registrationsCollection = collection(db, 'freeClassRegistrations');
+    const snapshot = await getDocs(registrationsCollection);
+
+    const registrations: FreeClassRegistration[] = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            ...data,
+            registeredAt: normalizeDate(data.registeredAt) || new Date(0), // Fallback date
+        } as FreeClassRegistration;
+    });
+
+    // Safe sorting in code
+    return registrations.sort((a, b) => b.registeredAt.getTime() - a.registeredAt.getTime());
+};
+
+export const getStudyMaterials = async (topicId?: string): Promise<StudyMaterial[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    let q;
+    const materialsCollection = collection(db, 'studyMaterials');
+    if (topicId) {
+        q = query(materialsCollection, where('topicId', '==', topicId), orderBy('uploadedAt', 'desc'));
+    } else {
+        q = query(materialsCollection, orderBy('uploadedAt', 'desc'));
+    }
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as StudyMaterial));
+};
+
+export const deleteStudyMaterial = async (docId: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    await deleteDoc(doc(db, 'studyMaterials', docId));
+};
+
+export const logDownload = async (userId: string, userName: string, material: StudyMaterial, topicTitle: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+
+    const downloadData: Omit<DownloadHistory, 'id'> = {
+        userId,
+        userName,
+        fileId: material.id,
+        fileName: material.fileName,
+        fileTitle: topicTitle,
+        downloadedAt: new Date(),
+    };
+    await addDoc(collection(db, 'downloadHistory'), downloadData);
+};
+
+export const getDownloadHistory = async (): Promise<DownloadHistory[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const q = query(collection(db, 'downloadHistory'), orderBy('downloadedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        downloadedAt: normalizeDate(doc.data().downloadedAt),
+    } as DownloadHistory));
 };
 
 

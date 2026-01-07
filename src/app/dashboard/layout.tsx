@@ -1,10 +1,11 @@
 
+
 "use client";
 
 import React, { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageCircle, Star, PenSquare, RefreshCw, Video } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageCircle, Star, PenSquare, RefreshCw, Video, UserCheck, BookOpen } from 'lucide-react';
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
 import Link from 'next/link';
 import { getFirebaseAuth } from '@/lib/firebase';
@@ -13,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback } from '@/lib/firestore';
-import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, VideoClass } from "@/lib/types";
+import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, VideoClass, StudyMaterial } from "@/lib/types";
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
@@ -110,18 +111,21 @@ function ProfileUpdateDialog({ open, onUpdateSubmit, defaultValues }: ProfileUpd
 
 
 interface NewContentPopupProps {
-  newContent: { videos: VideoClass[] };
+  newContent: { videos: VideoClass[], studyMaterials: StudyMaterial[] };
   onClose: () => void;
+  topics: Topic[];
 }
 
-function NewContentPopup({ newContent, onClose }: NewContentPopupProps) {
+function NewContentPopup({ newContent, onClose, topics }: NewContentPopupProps) {
+    const getTopicTitle = (topicId: string) => topics.find(t => t.id === topicId)?.title || 'Unknown Topic';
+    
     return (
         <Dialog open={true} onOpenChange={(isOpen) => !isOpen && onClose()}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>New Content Added!</DialogTitle>
                     <DialogDescription>
-                        Check out the latest videos we've uploaded for you.
+                        Check out the latest materials we've uploaded for you.
                     </DialogDescription>
                 </DialogHeader>
                 <ScrollArea className="max-h-80 pr-4">
@@ -135,6 +139,21 @@ function NewContentPopup({ newContent, onClose }: NewContentPopupProps) {
                                             <p className="font-medium">{video.title}</p>
                                             <p className="text-xs text-muted-foreground">
                                                 Added {formatDistanceToNow(normalizeDate(video.uploadedAt)!, { addSuffix: true })}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                         {newContent.studyMaterials.length > 0 && (
+                            <div>
+                                <h3 className="font-semibold mb-2 flex items-center gap-2"><BookOpen className="h-5 w-5 text-primary" /> New Study Materials</h3>
+                                <div className="space-y-2">
+                                    {newContent.studyMaterials.map(material => (
+                                        <div key={material.id} className="text-sm p-2 border rounded-md">
+                                            <p className="font-medium">New material for: {getTopicTitle(material.topicId)}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Added {formatDistanceToNow(normalizeDate(material.uploadedAt)!, { addSuffix: true })}
                                             </p>
                                         </div>
                                     ))}
@@ -338,15 +357,33 @@ function AppSidebar() {
               </SidebarMenuItem>
             </>
            )}
-           {isAdmin && (
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/q-and-a')} tooltip="Ask Your Doubt">
-                <Link href="/dashboard/q-and-a" onClick={onLinkClick}>
-                  <HelpCircle />
-                  <span>Ask Your Doubt</span>
+           <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/study-material')} tooltip="Study Material">
+                <Link href="/dashboard/study-material" onClick={onLinkClick}>
+                  <BookOpen />
+                  <span>Study Material</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+           {isAdmin && (
+            <>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/q-and-a')} tooltip="Ask Your Doubt">
+                  <Link href="/dashboard/q-and-a" onClick={onLinkClick}>
+                    <HelpCircle />
+                    <span>Ask Your Doubt</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/free-class')} tooltip="Free Class">
+                  <Link href="/dashboard/free-class" onClick={onLinkClick}>
+                    <UserCheck />
+                    <span>Free Class</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </>
             )}
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/dashboard/profile'} tooltip="Profile">
@@ -552,7 +589,7 @@ export default function DashboardLayout({
   const [profileUpdateDefaults, setProfileUpdateDefaults] = useState({ employeeId: '', mobileNumber: '' });
   const [showUpdateAlert, setShowUpdateAlert] = useState(false);
   const [showNewContentPopup, setShowNewContentPopup] = useState(false);
-  const [newContent, setNewContent] = useState<{ videos: VideoClass[] }>({ videos: [] });
+  const [newContent, setNewContent] = useState<{ videos: VideoClass[], studyMaterials: StudyMaterial[] }>({ videos: [], studyMaterials: [] });
 
   const handleLogout = useCallback(async (authInstance = getFirebaseAuth(), showToast = true, message?: string) => {
     if (!authInstance) {
@@ -707,7 +744,6 @@ export default function DashboardLayout({
                 setVideoClasses(dashboardData.videoClasses || []);
                 setHasGivenFeedback(feedbackStatus);
 
-                 // New content popup logic
                 const lastSeenTimestamp = localStorage.getItem('lastSeenUpdateTimestamp');
                 const lastSeenDate = lastSeenTimestamp ? new Date(parseInt(lastSeenTimestamp, 10)) : new Date(0);
 
@@ -720,7 +756,7 @@ export default function DashboardLayout({
                 if (mostRecentUpload > lastSeenDate) {
                     const newVideos = (dashboardData.videoClasses || []).filter(v => normalizeDate(v.uploadedAt)! > lastSeenDate);
                     if (newVideos.length > 0) {
-                        setNewContent({ videos: newVideos });
+                        setNewContent({ videos: newVideos, studyMaterials: [] });
                         setShowNewContentPopup(true);
                     }
                 }
@@ -830,7 +866,7 @@ export default function DashboardLayout({
                 <>
                   <PwaUpdateNotification />
                   {showProfileUpdateModal && <ProfileUpdateDialog open={showProfileUpdateModal} onUpdateSubmit={handleProfileUpdateSubmit} defaultValues={profileUpdateDefaults} />}
-                  {showNewContentPopup && <NewContentPopup newContent={newContent} onClose={handleCloseNewContentPopup} />}
+                  {showNewContentPopup && <NewContentPopup newContent={newContent} onClose={handleCloseNewContentPopup} topics={topics} />}
                   <AlertDialog open={showUpdateAlert}>
                         <AlertDialogContent>
                             <AlertDialogHeader>

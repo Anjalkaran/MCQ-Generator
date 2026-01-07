@@ -21,6 +21,16 @@ export interface VideoClass {
   uploadedAt: Date;
 }
 
+export interface StudyMaterial {
+  id: string;
+  topicId: string;
+  fileName: string;
+  downloadUrl: string;
+  uploadedAt: Date;
+  fileType: string;
+}
+
+
 export interface Topic {
   id: string;
   title: string;
@@ -178,4 +188,23 @@ export interface Feedback {
   createdAt: Date;
   reply?: string;
   repliedAt?: Date;
+}
+
+export interface FreeClassRegistration {
+    id: string;
+    name: string;
+    mobile: string;
+    city: string;
+    division: string;
+    registeredAt: Date;
+}
+
+export interface DownloadHistory {
+    id: string;
+    userId: string;
+    userName: string;
+    fileId: string;
+    fileName: string;
+    fileTitle: string;
+    downloadedAt: Date;
 }
