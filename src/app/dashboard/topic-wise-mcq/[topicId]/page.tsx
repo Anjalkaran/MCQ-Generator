@@ -7,9 +7,11 @@ import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
+import { use } from 'react';
 
 
 export default function GenerateTopicQuizPage({ params }: { params: { topicId: string } }) {
+    const resolvedParams = use(Promise.resolve(params));
     const { topics, isLoading } = useDashboard();
     
     if (isLoading) {
@@ -20,7 +22,7 @@ export default function GenerateTopicQuizPage({ params }: { params: { topicId: s
         );
     }
 
-    const topic = topics.find(t => t.id === params.topicId);
+    const topic = topics.find(t => t.id === resolvedParams.topicId);
 
     if (!topic) {
         // This will show a Next.js 404 page if the topic isn't found
