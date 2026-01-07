@@ -14,13 +14,13 @@ export async function GET(req: NextRequest) {
 
     try {
         const registrationsRef = adminDb.collection('freeClassRegistrations');
-        // Removed the orderBy clause to prevent crashes on documents without the field.
+        // Fetch all documents without sorting at the DB level
         const snapshot = await registrationsRef.get();
         
         let registrations = snapshot.docs.map(doc => {
             const data = doc.data();
-            // Safely normalize the date, providing a default if it's missing.
-            const registeredAt = data.registeredAt ? normalizeDate(data.registeredAt) : new Date(0);
+            // Safely normalize the date, providing a default for sorting if it's missing.
+            const registeredAt = normalizeDate(data.registeredAt) || new Date(0); 
             return {
                 id: doc.id,
                 ...data,
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
             } as FreeClassRegistration;
         });
 
-        // Sort the results in code to ensure stability.
+        // Perform the sort in code, which is safer.
         registrations.sort((a, b) => b.registeredAt.getTime() - a.registeredAt.getTime());
         
         return NextResponse.json({ registrations });
