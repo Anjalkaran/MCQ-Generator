@@ -13,7 +13,7 @@ import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
-import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback } from '@/lib/firestore';
+import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback, getFreeClassRegistrations as fetchFreeClassRegistrations } from '@/lib/firestore';
 import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, VideoClass, StudyMaterial, FreeClassRegistration } from "@/lib/types";
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
@@ -611,82 +611,6 @@ export default function DashboardLayout({
     }
   }, [router, toast]);
 
-  // Version Check Effect
-  useEffect(() => {
-    if (!user) return;
-    const currentVersion = process.env.APP_VERSION;
-    
-    const versionCheckInterval = setInterval(async () => {
-        try {
-            const response = await fetch('/api/version');
-            if (response.ok) {
-                const { version: serverVersion } = await response.json();
-                if (currentVersion && serverVersion && currentVersion !== serverVersion) {
-                    setShowUpdateAlert(true);
-                    clearInterval(versionCheckInterval);
-                }
-            }
-        } catch (error) {
-            console.error("Version check failed:", error);
-        }
-    }, 60 * 1000); // Check every 60 seconds
-
-    return () => clearInterval(versionCheckInterval);
-  }, [user]);
-
-  // Heartbeat effect
-  useEffect(() => {
-    let intervalId: NodeJS.Timeout;
-    if (user) {
-      const sendHeartbeat = async () => {
-        try {
-          await fetch('/api/user/heartbeat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: user.uid }),
-          });
-        } catch (error) {
-          console.error("Failed to send heartbeat:", error);
-        }
-      };
-      // Send initial heartbeat immediately
-      sendHeartbeat();
-      // Then send every 60 seconds
-      intervalId = setInterval(sendHeartbeat, 60000);
-    }
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  }, [user]);
-  
-  // Online user count refresh effect for admins
-  useEffect(() => {
-    let intervalId: NodeJS.Timeout | undefined;
-    if (userData?.email && ADMIN_EMAILS.includes(userData.email)) {
-        const fetchOnlineUsers = async () => {
-            try {
-                const response = await fetch('/api/admin/online-users');
-                if (response.ok) {
-                    const data = await response.json();
-                    setOnlineUsers(data.onlineUsers);
-                }
-            } catch (error) {
-                console.error("Failed to fetch online users:", error);
-            }
-        };
-        // Fetch immediately and then set interval
-        fetchOnlineUsers();
-        intervalId = setInterval(fetchOnlineUsers, 30000); // Refresh every 30 seconds
-    }
-    return () => {
-        if (intervalId) {
-            clearInterval(intervalId);
-        }
-    };
-  }, [userData]);
-
 
   useEffect(() => {
     const auth = getFirebaseAuth();
@@ -716,27 +640,31 @@ export default function DashboardLayout({
                     };
                     setUserData(adminUserData);
                 }
-                // Admin needs ALL data
-                const { categories, topics, bankedQuestions, topicMCQs, liveTestBank, videoClasses, studyMaterials, qnaUsage, notifications, freeClassRegistrations } = await getDashboardData(currentUser.uid, true);
+                const [data, registrations] = await Promise.all([
+                  getDashboardData(currentUser.uid, true),
+                  fetchFreeClassRegistrations(),
+                ]);
 
-                setCategories(categories);
-                setTopics(topics);
-                setBankedQuestions(bankedQuestions);
-                setTopicMCQs(topicMCQs);
-                setLiveTestBank(liveTestBank);
-                setVideoClasses(videoClasses);
-                setStudyMaterials(studyMaterials);
-                setFreeClassRegistrations(freeClassRegistrations);
-                setQnaUsage(qnaUsage);
-                setNotifications(notifications);
+                setCategories(data.categories);
+                setTopics(data.topics);
+                setBankedQuestions(data.bankedQuestions);
+                setTopicMCQs(data.topicMCQs);
+                setLiveTestBank(data.liveTestBank);
+                setVideoClasses(data.videoClasses);
+                setStudyMaterials(data.studyMaterials);
+                setFreeClassRegistrations(registrations);
+                setQnaUsage(data.qnaUsage);
+                setNotifications(data.notifications);
                 
             } else {
                 const [
                     dashboardData,
-                    feedbackStatus
+                    feedbackStatus,
+                    registrations,
                 ] = await Promise.all([
                     getDashboardData(currentUser.uid),
-                    hasUserSubmittedFeedback(currentUser.uid)
+                    hasUserSubmittedFeedback(currentUser.uid),
+                    fetchFreeClassRegistrations(),
                 ]);
 
                 if (!dashboardData.userData) {
@@ -751,7 +679,7 @@ export default function DashboardLayout({
                 setBankedQuestions(dashboardData.bankedQuestions || []);
                 setVideoClasses(dashboardData.videoClasses || []);
                 setStudyMaterials(dashboardData.studyMaterials || []);
-                setFreeClassRegistrations(dashboardData.freeClassRegistrations || []);
+                setFreeClassRegistrations(registrations);
                 setHasGivenFeedback(feedbackStatus);
 
                 const lastSeenTimestamp = localStorage.getItem('lastSeenUpdateTimestamp');
@@ -847,7 +775,6 @@ export default function DashboardLayout({
             setLiveTestBank(data.liveTestBank || []);
             setQnaUsage(data.qnaUsage || []);
             setNotifications(data.notifications || []);
-            setFreeClassRegistrations(data.freeClassRegistrations || []);
         });
     }
   }, [userData]);
@@ -915,4 +842,3 @@ export default function DashboardLayout({
     </DashboardContext.Provider>
   );
 }
-

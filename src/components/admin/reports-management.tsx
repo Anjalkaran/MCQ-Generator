@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Gem, Download, Loader2, RefreshCw, Trophy, Languages, Users, UserCog, Trash2 } from 'lucide-react';
+import { Gem, Download, Loader2, Languages, UserCog, Users } from 'lucide-react';
 import type { UserData, MCQHistory } from '@/lib/types';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -36,174 +36,6 @@ interface ReportsManagementProps {
     allUsers: UserData[];
 }
 
-function DataReconciliationCard() {
-    const [isLoading, setIsLoading] = useState(false);
-    const [reconciliationType, setReconciliationType] = useState<'counts' | 'leaderboard' | 'clear' | null>(null);
-    const { toast } = useToast();
-
-    const handleDataOperation = async (type: 'counts' | 'leaderboard' | 'clear') => {
-        setIsLoading(true);
-        setReconciliationType(type);
-        
-        const endpoints = {
-            counts: '/api/admin/reconcile-counts',
-            leaderboard: '/api/admin/reconcile-leaderboard',
-            clear: '/api/admin/clear-history'
-        };
-        const endpoint = endpoints[type];
-        
-        try {
-            const response = await fetch(endpoint, {
-                method: 'POST',
-            });
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.error || `Failed to perform ${type} operation.`);
-            }
-            
-            let toastTitle = '';
-            let toastDescription = '';
-
-            switch(type) {
-                case 'counts':
-                    toastTitle = 'Reconciliation Complete';
-                    toastDescription = `${result.updatedCount} user exam counts have been successfully updated.`;
-                    break;
-                case 'leaderboard':
-                    toastTitle = 'Leaderboard Cleaned';
-                    toastDescription = `${result.deletedCount} duplicate leaderboard entries have been removed.`;
-                    break;
-                case 'clear':
-                    toastTitle = 'History Cleared';
-                    toastDescription = `Successfully deleted ${result.deletedHistoryItems} history items and reset ${result.updatedUserCount} users.`;
-                    break;
-            }
-
-            toast({
-                title: toastTitle,
-                description: toastDescription,
-            });
-
-        } catch (error: any) {
-            console.error(`${type} operation error:`, error);
-            toast({
-                title: 'Operation Failed',
-                description: error.message,
-                variant: 'destructive',
-            });
-        } finally {
-            setIsLoading(false);
-            setReconciliationType(null);
-        }
-    };
-
-    return (
-         <Card>
-            <CardHeader>
-                <CardTitle>Data Tools</CardTitle>
-                <CardDescription>
-                    Run maintenance operations to fix data inconsistencies or clear old records.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                        <h3 className="font-semibold">Reconcile Exam Counts</h3>
-                        <p className="text-sm text-muted-foreground">
-                            Corrects the total exam count for all users based on their saved exam history.
-                        </p>
-                    </div>
-                     <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="outline" disabled={isLoading}>
-                                {isLoading && reconciliationType === 'counts' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                                Reconcile
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This will scan all users and their exam history to update any incorrect totals. This action cannot be undone.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDataOperation('counts')} disabled={isLoading}>
-                                    {isLoading && reconciliationType === 'counts' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Yes, Reconcile Counts
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </div>
-                 <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                        <h3 className="font-semibold">Reconcile Live Test Leaderboard</h3>
-                        <p className="text-sm text-muted-foreground">
-                            Removes duplicate live test entries, keeping only the best attempt for each user.
-                        </p>
-                    </div>
-                     <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="outline" disabled={isLoading}>
-                                {isLoading && reconciliationType === 'leaderboard' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trophy className="mr-2 h-4 w-4" />}
-                                Reconcile
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                   This will scan all live test history and permanently delete any duplicate entries. This action cannot be undone.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDataOperation('leaderboard')} disabled={isLoading}>
-                                    {isLoading && reconciliationType === 'leaderboard' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Yes, Reconcile Leaderboard
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </div>
-                 <div className="flex items-center justify-between p-4 border rounded-lg border-destructive">
-                    <div>
-                        <h3 className="font-semibold text-destructive">Clear All Exam History</h3>
-                        <p className="text-sm text-muted-foreground">
-                            Permanently delete all exam records and reset leaderboards. This is irreversible.
-                        </p>
-                    </div>
-                     <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive" disabled={isLoading}>
-                                {isLoading && reconciliationType === 'clear' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                                Clear History
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>WARNING: Are you absolutely sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                   This will permanently delete all exam histories for all users and reset all exam counts to zero. Leaderboards will be cleared. This action cannot be undone.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction variant="destructive" onClick={() => handleDataOperation('clear')} disabled={isLoading}>
-                                    {isLoading && reconciliationType === 'clear' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Yes, Delete Everything
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </div>
-            </CardContent>
-        </Card>
-    )
-}
 
 function LanguageUsageCard() {
     const [languageData, setLanguageData] = useState<Record<string, number>>({});
@@ -487,11 +319,11 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>Reports & Data</CardTitle>
-                    <CardDescription>Generate user reports, view analytics, and manage data integrity.</CardDescription>
+                    <CardTitle>Reports</CardTitle>
+                    <CardDescription>Generate user reports and view analytics.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                          <Button variant={activeTab === 'user-reports' ? 'default' : 'outline'} onClick={() => setActiveTab('user-reports')}>
                             <Users className="mr-2 h-4 w-4" />
                             User Reports
@@ -503,10 +335,6 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
                          <Button variant={activeTab === 'user-preferences' ? 'default' : 'outline'} onClick={() => setActiveTab('user-preferences')}>
                             <UserCog className="mr-2 h-4 w-4" />
                             User Preferences
-                        </Button>
-                        <Button variant={activeTab === 'data-tools' ? 'default' : 'outline'} onClick={() => setActiveTab('data-tools')}>
-                             <RefreshCw className="mr-2 h-4 w-4" />
-                            Data Tools
                         </Button>
                     </div>
 
@@ -611,14 +439,8 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
                      {activeTab === 'user-preferences' && (
                         <UserLanguagePreferenceCard />
                     )}
-                     {activeTab === 'data-tools' && (
-                        <DataReconciliationCard />
-                    )}
                 </CardContent>
             </Card>
         </div>
     );
 }
-
-    
-    

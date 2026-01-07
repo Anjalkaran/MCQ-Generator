@@ -11,29 +11,18 @@ import type { FreeClassRegistration } from '@/lib/types';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeDate } from '@/lib/utils';
-import { getFreeClassRegistrations } from '@/lib/firestore';
+import { useDashboard } from '@/app/dashboard/layout';
 
 export function FreeClassManagement() {
-    const [registrations, setRegistrations] = useState<FreeClassRegistration[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { freeClassRegistrations } = useDashboard();
+    const [registrations, setRegistrations] = useState<FreeClassRegistration[]>(freeClassRegistrations || []);
+    const [isLoading, setIsLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const { toast } = useToast();
 
     useEffect(() => {
-        const fetchRegistrations = async () => {
-            setIsLoading(true);
-            try {
-                const data = await getFreeClassRegistrations();
-                setRegistrations(data);
-            } catch (error) {
-                console.error("Error fetching registrations:", error);
-                toast({ title: "Error", description: "Could not load registration data.", variant: "destructive" });
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchRegistrations();
-    }, [toast]);
+        setRegistrations(freeClassRegistrations || []);
+    }, [freeClassRegistrations]);
 
     const filteredRegistrations = useMemo(() => {
         return registrations.filter(reg => 

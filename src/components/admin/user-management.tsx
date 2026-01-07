@@ -8,7 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, Trash2, Edit, Eye, PlusCircle, Gem, Search, Calendar as CalendarIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { deleteUserDocument, updateUserDocument } from '@/lib/firestore';
+import { deleteUserDocument, updateUserDocument, createUserDocument } from '@/lib/firestore';
+import { getFirebaseAuth } from '@/lib/firebase';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import type { UserData } from '@/lib/types';
 import {
   AlertDialog,
@@ -214,28 +216,39 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
   
   const onCreateSubmit = async (values: z.infer<typeof userCreateSchema>) => {
     setIsLoading(true);
+    const auth = getFirebaseAuth();
+    if (!auth) {
+        toast({ title: "Error", description: "Firebase Auth is not initialized.", variant: "destructive" });
+        setIsLoading(false);
+        return;
+    }
+    
     try {
-      const response = await fetch('/api/admin/create-user', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(values),
-      });
+        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+        await updateProfile(userCredential.user, { displayName: values.name });
+        
+        const newUser: UserData = {
+            uid: userCredential.user.uid,
+            name: values.name,
+            email: values.email,
+            city: values.city,
+            division: values.division,
+            examCategory: values.examCategory,
+            isPro: values.isPro,
+            totalExamsTaken: 0,
+            createdAt: new Date(),
+        };
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create user.');
-      }
-
-      const { newUser } = await response.json();
-      
-      setUsers(prev => [newUser, ...prev]);
-      toast({ title: 'Success', description: 'User created successfully.' });
-      setIsCreateDialogOpen(false);
-      createUserForm.reset();
+        await createUserDocument(newUser);
+        
+        setUsers(prev => [newUser, ...prev]);
+        toast({ title: 'Success', description: 'User created successfully.' });
+        setIsCreateDialogOpen(false);
+        createUserForm.reset();
 
     } catch (error: any) {
         console.error("Error creating user:", error);
-        toast({ title: 'Error', description: error.message, variant: 'destructive' });
+        toast({ title: 'Error', description: error.message || 'Failed to create user.', variant: 'destructive' });
     } finally {
         setIsLoading(false);
     }
