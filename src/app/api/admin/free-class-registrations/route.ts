@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import type { FreeClassRegistration } from '@/lib/types';
+import { normalizeDate } from '@/lib/utils';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
             return {
                 id: doc.id,
                 ...data,
-                registeredAt: data.registeredAt.toDate(),
+                registeredAt: normalizeDate(data.registeredAt) || new Date(),
             } as FreeClassRegistration;
         });
         
