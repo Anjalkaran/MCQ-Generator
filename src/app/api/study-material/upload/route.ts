@@ -1,11 +1,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebase-admin';
+import { adminDb, adminStorage } from '@/lib/firebase-admin';
 import type { Topic } from '@/lib/types';
-import mammoth from 'mammoth';
-import pdf from 'pdf-parse';
 import { formidable } from 'formidable';
 import fs from 'fs/promises';
+import { v4 as uuidv4 } from 'uuid';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; 
@@ -96,43 +95,37 @@ export async function POST(req: NextRequest) {
             topicId = topicIdFromForm;
         }
 
-        let content = '';
+        const bucket = adminStorage.bucket();
         const fileBuffer = await fs.readFile(file.filepath);
+        const uniqueFileName = `${uuidv4()}-${file.originalFilename}`;
+        const storageFile = bucket.file(`study-materials/${uniqueFileName}`);
 
-        if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-            const result = await mammoth.extractRawText({ buffer: fileBuffer });
-            content = result.value;
-        } else if (file.mimetype === 'application/pdf') {
-            const data = await pdf(fileBuffer);
-            content = data.text;
-        } else if (file.mimetype === 'text/plain') {
-            content = fileBuffer.toString('utf-8');
-        } else {
-            return NextResponse.json({ error: `Unsupported file type: ${file.mimetype}` }, { status: 415 });
-        }
+        await storageFile.save(fileBuffer, {
+            metadata: {
+                contentType: file.mimetype,
+            },
+        });
+        
+        // Make the file publicly readable
+        await storageFile.makePublic();
 
-        if (!content.trim()) {
-            return NextResponse.json({ error: `Could not extract text from the file: ${file.originalFilename}` }, { status: 400 });
-        }
+        // The public URL is what we will store in Firestore
+        const publicUrl = storageFile.publicUrl();
 
-        // Save the extracted content to a new document in the `studyMaterials` collection
+        // Save the public URL to a new document in the `studyMaterials` collection
         const newMaterialRef = await adminDb.collection('studyMaterials').add({
             topicId: topicId,
             fileName: file.originalFilename,
             fileType: file.mimetype,
-            content: content,
+            content: publicUrl, // Store the public URL instead of text content
             uploadedAt: new Date(),
         });
         
-        // Also update the `material` field in the corresponding topic
-        await adminDb.collection('topics').doc(topicId).update({
-            material: content,
-        });
-
         const newMaterial = {
             id: newMaterialRef.id,
             topicId: topicId,
             fileName: file.originalFilename,
+            content: publicUrl,
         }
 
         return NextResponse.json({

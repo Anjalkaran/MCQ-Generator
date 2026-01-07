@@ -69,6 +69,10 @@ const nextConfig = {
   env: {
     APP_VERSION: packageJson.version,
   },
+  webpack: (config) => {
+    config.resolve.alias.canvas = false;
+    return config;
+  },
 };
 
 module.exports = withPWA(nextConfig);

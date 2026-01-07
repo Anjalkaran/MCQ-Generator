@@ -6,11 +6,14 @@ import { useDashboard } from '@/app/dashboard/layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Eye, Search, Loader2, Library } from 'lucide-react';
+import { Eye, Search, Loader2, Library, File as FileIcon, Download } from 'lucide-react';
 import type { StudyMaterial, Topic, Category } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Document, Page, pdfjs } from 'react-pdf';
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
 interface GroupedMaterials {
   [categoryId: string]: {
@@ -22,6 +25,39 @@ interface GroupedMaterials {
   };
 }
 
+function PdfViewer({ fileUrl, fileName }: { fileUrl: string, fileName: string }) {
+    const [numPages, setNumPages] = useState<number | null>(null);
+
+    function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
+        setNumPages(numPages);
+    }
+
+    return (
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+            <DialogHeader>
+                <DialogTitle>{fileName}</DialogTitle>
+                <DialogDescription>
+                    <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1">
+                       <Download className="h-4 w-4"/> Open in new tab or Download
+                    </a>
+                </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="flex-grow rounded-md border p-2">
+                <Document
+                    file={fileUrl}
+                    onLoadSuccess={onDocumentLoadSuccess}
+                    className="flex flex-col items-center gap-4"
+                    loading={<div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin"/></div>}
+                    error={<div className="text-red-500 p-4">Failed to load PDF file. Please try downloading it.</div>}
+                >
+                    {Array.from(new Array(numPages), (el, index) => (
+                        <Page key={`page_${index + 1}`} pageNumber={index + 1} renderTextLayer={false} renderAnnotationLayer={false} />
+                    ))}
+                </Document>
+            </ScrollArea>
+        </DialogContent>
+    );
+}
 
 export default function StudyMaterialPage() {
     const { studyMaterials, topics, categories, isLoading } = useDashboard();
@@ -107,28 +143,38 @@ export default function StudyMaterialPage() {
                                             <AccordionTrigger className="text-lg font-semibold">{topic.title}</AccordionTrigger>
                                             <AccordionContent>
                                                 <div className="flex flex-col space-y-2">
-                                                {materials.map(material => (
-                                                     <Dialog key={material.id}>
-                                                        <DialogTrigger asChild>
-                                                            <Button variant="ghost" className="justify-between h-auto py-2">
-                                                                <div className="text-left">
-                                                                    <p>{material.fileName}</p>
-                                                                    <p className="text-xs text-muted-foreground">{material.fileType}</p>
-                                                                </div>
-                                                                <Eye className="h-5 w-5" />
-                                                            </Button>
-                                                        </DialogTrigger>
-                                                        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
-                                                            <DialogHeader>
-                                                                <DialogTitle>{material.fileName}</DialogTitle>
-                                                                <DialogDescription>Topic: {topic.title}</DialogDescription>
-                                                            </DialogHeader>
-                                                            <ScrollArea className="flex-grow rounded-md border p-4">
-                                                                <pre className="text-sm whitespace-pre-wrap">{material.content}</pre>
-                                                            </ScrollArea>
-                                                        </DialogContent>
-                                                    </Dialog>
-                                                ))}
+                                                {materials.map(material => {
+                                                    const isPdf = material.fileType === 'application/pdf';
+                                                    return (
+                                                        <Dialog key={material.id}>
+                                                            <DialogTrigger asChild>
+                                                                <Button variant="ghost" className="justify-between h-auto py-2">
+                                                                    <div className="text-left flex items-center gap-2">
+                                                                        <FileIcon className="h-5 w-5 text-muted-foreground"/>
+                                                                        <div>
+                                                                            <p>{material.fileName}</p>
+                                                                            <p className="text-xs text-muted-foreground">{material.fileType}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <Eye className="h-5 w-5" />
+                                                                </Button>
+                                                            </DialogTrigger>
+                                                            {isPdf ? (
+                                                                <PdfViewer fileUrl={material.content} fileName={material.fileName} />
+                                                            ) : (
+                                                                <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+                                                                    <DialogHeader>
+                                                                        <DialogTitle>{material.fileName}</DialogTitle>
+                                                                        <DialogDescription>Topic: {topic.title}</DialogDescription>
+                                                                    </DialogHeader>
+                                                                    <ScrollArea className="flex-grow rounded-md border p-4">
+                                                                        <pre className="text-sm whitespace-pre-wrap">{material.content}</pre>
+                                                                    </ScrollArea>
+                                                                </DialogContent>
+                                                            )}
+                                                        </Dialog>
+                                                    )
+                                                })}
                                                 </div>
                                             </AccordionContent>
                                         </AccordionItem>
