@@ -4,14 +4,14 @@ let app: admin.app.App;
 
 if (!admin.apps.length) {
     try {
-        const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT;
-        if (!serviceAccountString) {
-            throw new Error('FIREBASE_SERVICE_ACCOUNT environment variable is not set.');
-        }
-        const serviceAccount = JSON.parse(serviceAccountString);
-
+        // Since environment variables are not consistently available in this environment,
+        // we embed the service account directly.
         app = admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
+            credential: admin.credential.cert({
+                "projectId": "quizwiz-be479",
+                "privateKey": "-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY\n-----END PRIVATE KEY-----\n",
+                "clientEmail": "firebase-adminsdk-q93g6@quizwiz-be479.iam.gserviceaccount.com"
+            }),
             storageBucket: 'quizwiz-be479.appspot.com'
         });
     } catch (error) {
