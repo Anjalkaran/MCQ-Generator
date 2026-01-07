@@ -73,6 +73,14 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
 
   const scheduleForm = useForm<z.infer<typeof scheduleSchema>>({
     resolver: zodResolver(scheduleSchema),
+    defaultValues: {
+        title: '',
+        questionPaperId: '',
+        examCategory: undefined,
+        price: 0,
+        startTime: undefined,
+        endTime: undefined,
+    }
   });
 
   const uploadForm = useForm<z.infer<typeof uploadSchema>>({
@@ -92,7 +100,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
     } else {
         scheduleForm.reset({
           title: '',
-          questionPaperId: undefined,
+          questionPaperId: '',
           examCategory: undefined,
           price: 0,
           startTime: undefined,
