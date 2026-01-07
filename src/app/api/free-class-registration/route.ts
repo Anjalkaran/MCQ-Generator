@@ -1,4 +1,5 @@
 
+
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import * as admin from 'firebase-admin';
@@ -17,6 +18,9 @@ export async function POST(req: NextRequest) {
     // --- Server-Side Validation ---
     if (!name || !gender || !mobileNumber || !division || !employeeId || !designation || !email || !courses || !Array.isArray(courses) || courses.length === 0) {
         return NextResponse.json({ error: 'All fields, including at least one course selection, are required.' }, { status: 400 });
+    }
+    if (!email.toLowerCase().endsWith('@gmail.com')) {
+        return NextResponse.json({ error: 'Only @gmail.com addresses are allowed for registration.' }, { status: 400 });
     }
 
     // --- Uniqueness Check ---
@@ -116,3 +120,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
   }
 }
+
+    

@@ -163,7 +163,7 @@ export function RegisterForm() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="name@example.com" {...field} />
+                    <Input placeholder="name@gmail.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -333,3 +333,4 @@ export function RegisterForm() {
   );
 }
 
+    

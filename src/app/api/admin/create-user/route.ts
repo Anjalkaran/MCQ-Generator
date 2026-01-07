@@ -1,4 +1,5 @@
 
+
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import type { UserData } from '@/lib/types';
@@ -93,3 +94,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'An unexpected error occurred while creating the user.' }, { status: 500 });
   }
 }
+
+    
