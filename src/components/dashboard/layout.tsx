@@ -1,10 +1,11 @@
 
+
 "use client";
 
 import React, { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageCircle, Star, PenSquare, RefreshCw, Video, Library } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageCircle, Star, PenSquare, RefreshCw, Video, Library, UserCheck } from 'lucide-react';
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
 import Link from 'next/link';
 import { getFirebaseAuth } from '@/lib/firebase';
@@ -13,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback } from '@/lib/firestore';
-import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, VideoClass, StudyMaterial } from "@/lib/types";
+import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, VideoClass, StudyMaterial, FreeClassRegistration } from "@/lib/types";
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
@@ -190,6 +191,7 @@ interface DashboardContextType {
   isLoading: boolean;
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>;
   hasGivenFeedback: boolean;
+  freeClassRegistrations: FreeClassRegistration[];
 }
 
 const DashboardContext = createContext<DashboardContextType | null>(null);
@@ -328,14 +330,24 @@ function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           {isAdmin && (
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin">
-                <Link href="/dashboard/admin" onClick={onLinkClick}>
-                  <Shield />
-                  <span>Admin</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            <>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin">
+                  <Link href="/dashboard/admin" onClick={onLinkClick}>
+                    <Shield />
+                    <span>Admin</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/free-class')} tooltip="Free Class">
+                  <Link href="/dashboard/free-class" onClick={onLinkClick}>
+                    <UserCheck />
+                    <span>Free Class</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </>
           )}
            {!isIPUser && (
             <>
@@ -573,6 +585,7 @@ export default function DashboardLayout({
   const [liveTestBank, setLiveTestBank] = useState<BankedQuestion[]>([]);
   const [videoClasses, setVideoClasses] = useState<VideoClass[]>([]);
   const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
+  const [freeClassRegistrations, setFreeClassRegistrations] = useState<FreeClassRegistration[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
@@ -704,7 +717,7 @@ export default function DashboardLayout({
                     setUserData(adminUserData);
                 }
                 // Admin needs ALL data
-                const { categories, topics, bankedQuestions, topicMCQs, liveTestBank, videoClasses, studyMaterials, qnaUsage, notifications } = await getDashboardData(currentUser.uid, true);
+                const { categories, topics, bankedQuestions, topicMCQs, liveTestBank, videoClasses, studyMaterials, qnaUsage, notifications, freeClassRegistrations } = await getDashboardData(currentUser.uid, true);
 
                 setCategories(categories);
                 setTopics(topics);
@@ -713,6 +726,7 @@ export default function DashboardLayout({
                 setLiveTestBank(liveTestBank);
                 setVideoClasses(videoClasses);
                 setStudyMaterials(studyMaterials);
+                setFreeClassRegistrations(freeClassRegistrations);
                 setQnaUsage(qnaUsage);
                 setNotifications(notifications);
                 
@@ -737,6 +751,7 @@ export default function DashboardLayout({
                 setBankedQuestions(dashboardData.bankedQuestions || []);
                 setVideoClasses(dashboardData.videoClasses || []);
                 setStudyMaterials(dashboardData.studyMaterials || []);
+                setFreeClassRegistrations(dashboardData.freeClassRegistrations || []);
                 setHasGivenFeedback(feedbackStatus);
 
                 const lastSeenTimestamp = localStorage.getItem('lastSeenUpdateTimestamp');
@@ -791,6 +806,7 @@ export default function DashboardLayout({
         setLiveTestBank([]);
         setVideoClasses([]);
         setStudyMaterials([]);
+        setFreeClassRegistrations([]);
         setQnaUsage([]);
         setNotifications([]);
         setOnlineUsers([]);
@@ -831,6 +847,7 @@ export default function DashboardLayout({
             setLiveTestBank(data.liveTestBank || []);
             setQnaUsage(data.qnaUsage || []);
             setNotifications(data.notifications || []);
+            setFreeClassRegistrations(data.freeClassRegistrations || []);
         });
     }
   }, [userData]);
@@ -852,7 +869,7 @@ export default function DashboardLayout({
     localStorage.setItem('lastSeenUpdateTimestamp', String(Date.now()));
   };
 
-  const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, videoClasses, studyMaterials, qnaUsage, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback };
+  const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, videoClasses, studyMaterials, freeClassRegistrations, qnaUsage, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback };
 
   return (
     <DashboardContext.Provider value={contextValue}>
@@ -861,7 +878,7 @@ export default function DashboardLayout({
           <div className="relative z-20">
               <AppSidebar />
           </div>
-           <MainContent>
+           <MainContent key={user ? 'authenticated' : 'unauthenticated'}>
               {isLoading ? (
                    <div className="flex h-full w-full items-center justify-center">
                       <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -899,4 +916,3 @@ export default function DashboardLayout({
   );
 }
 
-    
