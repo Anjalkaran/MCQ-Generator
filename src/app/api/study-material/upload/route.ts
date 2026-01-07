@@ -3,8 +3,6 @@ import { NextResponse } from 'next/server';
 import { getFirebaseDb, getFirebaseStorage } from '@/lib/firebase';
 import { collection, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { formidable } from 'formidable';
-import fs from 'fs/promises';
 import { v4 as uuidv4 } from 'uuid';
 import type { StudyMaterial, Topic } from '@/lib/types';
 import pdf from 'pdf-parse';
@@ -17,26 +15,25 @@ export const POST = async (req: Request) => {
     }
 
     try {
-        const form = formidable({});
-        const [fields, files] = await form.parse(req as any);
-
-        const uploadedFile = files.file?.[0];
+        const formData = await req.formData();
+        const uploadedFile = formData.get('file') as File | null;
+        
         if (!uploadedFile) {
             return new NextResponse(JSON.stringify({ error: 'No file uploaded.' }), { status: 400 });
         }
 
-        const topicId = fields.topicId?.[0];
-        const examCategories = fields.examCategories?.[0]?.split(',') || [];
-        const filePath = uploadedFile.filepath;
-        const fileData = await fs.readFile(filePath);
+        const topicId = formData.get('topicId') as string | null;
+        const examCategories = (formData.get('examCategories') as string | null)?.split(',') || [];
+        
+        const fileBuffer = Buffer.from(await uploadedFile.arrayBuffer());
 
         // Extract text from PDF
-        const pdfData = await pdf(fileData);
+        const pdfData = await pdf(fileBuffer);
         const textContent = pdfData.text;
 
         // Upload original file to Firebase Storage
-        const storageRef = ref(storage, `study-materials/${uuidv4()}-${uploadedFile.originalFilename}`);
-        await uploadBytes(storageRef, fileData, { contentType: uploadedFile.mimetype });
+        const storageRef = ref(storage, `study-materials/${uuidv4()}-${uploadedFile.name}`);
+        await uploadBytes(storageRef, fileBuffer, { contentType: uploadedFile.type });
         const downloadURL = await getDownloadURL(storageRef);
 
         let finalTopicId = topicId;
@@ -44,12 +41,12 @@ export const POST = async (req: Request) => {
         // If 'new', create a new topic
         if (topicId === 'new') {
             const newTopic: Omit<Topic, 'id'> = {
-                title: uploadedFile.originalFilename?.replace(/\.[^/.]+$/, "") || "Untitled Topic", // Use filename as title
+                title: uploadedFile.name?.replace(/\.[^/.]+$/, "") || "Untitled Topic", // Use filename as title
                 description: "Auto-generated topic from study material upload.",
                 icon: 'file-text',
                 categoryId: 'uncategorized', // Assign to a default/uncategorized category
                 part: 'Part A', // Default part, admin can change later
-                examCategories: examCategories,
+                examCategories: examCategories as ('MTS' | 'POSTMAN' | 'PA' | 'IP')[],
                 material: textContent
             };
             const topicRef = await addDoc(collection(db, 'topics'), newTopic);
@@ -67,8 +64,8 @@ export const POST = async (req: Request) => {
 
         const studyMaterialDoc: Omit<StudyMaterial, 'id'> = {
             topicId: finalTopicId,
-            fileName: uploadedFile.originalFilename || 'unnamed-file',
-            fileType: uploadedFile.mimetype || 'application/octet-stream',
+            fileName: uploadedFile.name || 'unnamed-file',
+            fileType: uploadedFile.type || 'application/octet-stream',
             content: downloadURL, // Store the URL instead of the content
             uploadedAt: new Date(),
         };
