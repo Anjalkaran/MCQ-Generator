@@ -11,6 +11,7 @@ import { ChevronLeft } from "lucide-react";
 
 
 export default function GenerateTopicQuizPage({ params }: { params: { topicId: string } }) {
+    const { topicId } = params;
     const { topics, isLoading } = useDashboard();
     
     if (isLoading) {
@@ -21,7 +22,7 @@ export default function GenerateTopicQuizPage({ params }: { params: { topicId: s
         );
     }
 
-    const topic = topics.find(t => t.id === params.topicId);
+    const topic = topics.find(t => t.id === topicId);
 
     if (!topic) {
         // This will show a Next.js 404 page if the topic isn't found
@@ -47,3 +48,4 @@ export default function GenerateTopicQuizPage({ params }: { params: { topicId: s
         </div>
     );
 }
+
