@@ -7,7 +7,7 @@ import { adminStorage } from '@/lib/firebase-admin';
 export const runtime = 'nodejs';
 export const maxDuration = 300; 
 
-const BUCKET_NAME = "quizwiz-be479.appspot.com";
+const BUCKET_NAME = "quizwiz-be479-storage";
 
 export async function POST(req: NextRequest) {
   if (!adminStorage) {

@@ -6,7 +6,7 @@ import { getApps } from 'firebase-admin/app';
 // The `as admin.ServiceAccount` assertion is crucial for type safety.
 import serviceAccount from '../../service-account.json';
 
-const BUCKET_NAME = 'quizwiz-be479.appspot.com';
+const BUCKET_NAME = 'quizwiz-be479-storage';
 
 // This ensures that initialization only happens once.
 const adminApp = !getApps().length
