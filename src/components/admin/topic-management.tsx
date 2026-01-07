@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { addCategory, addTopic, deleteTopic, addMaterialToTopic, deleteCategory, updateCategory, updateTopic } from '@/lib/firestore';
+import { addCategory, addTopic, deleteTopic, deleteCategory, updateCategory, updateTopic } from '@/lib/firestore';
 import type { Topic, Category } from '@/lib/types';
 import { Loader2, PlusCircle, Trash2, Upload, Edit, Paperclip, Search } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -61,14 +61,6 @@ const topicSchema = z.object({
   }),
 });
 
-const materialSchema = z.object({
-    topicId: z.string().min(1, 'Please select a topic.'),
-    file: z
-    .instanceof(File)
-    .refine((file) => file.size > 0, 'Please upload a file.')
-    .refine((file) => file.size <= 4 * 1024 * 1024, `File size must be less than 4MB.`),
-});
-
 interface TopicManagementProps {
     initialCategories: Category[];
     initialTopics: Topic[];
@@ -79,12 +71,10 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
   const [topics, setTopics] = useState<Topic[]>(initialTopics);
   const [isLoadingCategory, setIsLoadingCategory] = useState(false);
   const [isLoadingTopic, setIsLoadingTopic] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [isTopicDialogOpen, setIsTopicDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingTopic, setEditingTopic] = useState<Topic | null>(null);
-  const [uploadCategoryId, setUploadCategoryId] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
   
   const { toast } = useToast();
@@ -97,10 +87,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
   const topicForm = useForm<z.infer<typeof topicSchema>>({
     resolver: zodResolver(topicSchema),
     defaultValues: { title: '', description: '', categoryId: '', part: undefined, examCategories: [] },
-  });
-
-  const materialForm = useForm<z.infer<typeof materialSchema>>({
-    resolver: zodResolver(materialSchema),
   });
 
   useEffect(() => {
@@ -175,46 +161,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     }
   };
 
-  const onMaterialSubmit = async (values: z.infer<typeof materialSchema>) => {
-    setIsUploading(true);
-    const formData = new FormData();
-    formData.append('file', values.file);
-    formData.append('topicId', values.topicId);
-
-    try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to upload file.');
-      }
-
-      const result = await response.json();
-      
-      setTopics(prevTopics => prevTopics.map(t => {
-        if (t.id === values.topicId) {
-            return {...t, material: result.material};
-        }
-        return t;
-      }));
-
-      toast({ title: 'Success', description: 'Material uploaded successfully.' });
-      materialForm.reset();
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      if (fileInput) fileInput.value = '';
-      setUploadCategoryId('');
-
-    } catch (error: any) {
-        console.error("Material upload error:", error);
-        toast({ title: 'Upload Failed', description: error.message || 'Could not process the file.', variant: 'destructive' });
-    } finally {
-        setIsUploading(false);
-    }
-  };
-
   const handleDeleteTopic = async (topicId: string) => {
     try {
         await deleteTopic(topicId);
@@ -246,8 +192,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     setEditingTopic(topic);
     setIsTopicDialogOpen(true);
   }
-  
-  const filteredUploadTopics = uploadCategoryId ? topics.filter(topic => topic.categoryId === uploadCategoryId) : [];
   
   const getCategoryName = (categoryId: string) => {
     return categories.find(c => c.id === categoryId)?.name || 'N/A';
@@ -482,80 +426,6 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                     </Form>
                 </DialogContent>
             </Dialog>
-
-             <Card>
-                <CardHeader>
-                    <CardTitle>Upload Material</CardTitle>
-                    <CardDescription>Upload a single DOCX file for a topic. Re-uploading will replace the existing material.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Form {...materialForm}>
-                        <form onSubmit={materialForm.handleSubmit(onMaterialSubmit)} className="space-y-4">
-                            <FormItem>
-                                <FormLabel>Category</FormLabel>
-                                <Select 
-                                    onValueChange={(value) => {
-                                        setUploadCategoryId(value);
-                                        materialForm.setValue('topicId', '');
-                                    }} 
-                                    value={uploadCategoryId} 
-                                    disabled={categories.length === 0}
-                                >
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={categories.length > 0 ? "Select a category" : "Please add a category first"} />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {categories.map(cat => (<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>))}
-                                </SelectContent>
-                                </Select>
-                            </FormItem>
-                            <FormField
-                                control={materialForm.control}
-                                name="topicId"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Topic</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value} disabled={!uploadCategoryId || filteredUploadTopics.length === 0}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder={!uploadCategoryId ? "Select a category first" : (filteredUploadTopics.length === 0 ? "No topics in this category" : "Select a topic")} />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {filteredUploadTopics.map(topic => (<SelectItem key={topic.id} value={topic.id}>{topic.title}</SelectItem>))}
-                                    </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                             <FormField
-                                control={materialForm.control}
-                                name="file"
-                                render={({ field: { onChange, ...field } }) => (
-                                    <FormItem>
-                                        <FormLabel>Material File</FormLabel>
-                                        <FormControl>
-                                            <Input 
-                                                type="file" 
-                                                accept=".docx"
-                                                onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <Button type="submit" disabled={isUploading || topics.length === 0}>
-                                {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                                Upload Material
-                            </Button>
-                        </form>
-                    </Form>
-                </CardContent>
-            </Card>
         </div>
 
         <Card>

@@ -5,7 +5,7 @@
 import React, { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageCircle, Star, PenSquare, RefreshCw, Video, UserCheck, BookOpen } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageCircle, Star, PenSquare, RefreshCw, Video } from 'lucide-react';
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
 import Link from 'next/link';
 import { getFirebaseAuth } from '@/lib/firebase';
@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback } from '@/lib/firestore';
-import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, VideoClass, StudyMaterial } from "@/lib/types";
+import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, VideoClass } from "@/lib/types";
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
@@ -111,7 +111,7 @@ function ProfileUpdateDialog({ open, onUpdateSubmit, defaultValues }: ProfileUpd
 
 
 interface NewContentPopupProps {
-  newContent: { videos: VideoClass[], studyMaterials: StudyMaterial[] };
+  newContent: { videos: VideoClass[] };
   onClose: () => void;
   topics: Topic[];
 }
@@ -139,21 +139,6 @@ function NewContentPopup({ newContent, onClose, topics }: NewContentPopupProps) 
                                             <p className="font-medium">{video.title}</p>
                                             <p className="text-xs text-muted-foreground">
                                                 Added {formatDistanceToNow(normalizeDate(video.uploadedAt)!, { addSuffix: true })}
-                                            </p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                         {newContent.studyMaterials.length > 0 && (
-                            <div>
-                                <h3 className="font-semibold mb-2 flex items-center gap-2"><BookOpen className="h-5 w-5 text-primary" /> New Study Materials</h3>
-                                <div className="space-y-2">
-                                    {newContent.studyMaterials.map(material => (
-                                        <div key={material.id} className="text-sm p-2 border rounded-md">
-                                            <p className="font-medium">New material for: {getTopicTitle(material.topicId)}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                Added {formatDistanceToNow(normalizeDate(material.uploadedAt)!, { addSuffix: true })}
                                             </p>
                                         </div>
                                     ))}
@@ -357,14 +342,6 @@ function AppSidebar() {
               </SidebarMenuItem>
             </>
            )}
-           <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/study-material')} tooltip="Study Material">
-                <Link href="/dashboard/study-material" onClick={onLinkClick}>
-                  <BookOpen />
-                  <span>Study Material</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
            {isAdmin && (
             <>
               <SidebarMenuItem>
@@ -581,7 +558,7 @@ export default function DashboardLayout({
   const [profileUpdateDefaults, setProfileUpdateDefaults] = useState({ employeeId: '', mobileNumber: '' });
   const [showUpdateAlert, setShowUpdateAlert] = useState(false);
   const [showNewContentPopup, setShowNewContentPopup] = useState(false);
-  const [newContent, setNewContent] = useState<{ videos: VideoClass[], studyMaterials: StudyMaterial[] }>({ videos: [], studyMaterials: [] });
+  const [newContent, setNewContent] = useState<{ videos: VideoClass[] }>({ videos: [] });
 
   const handleLogout = useCallback(async (authInstance = getFirebaseAuth(), showToast = true, message?: string) => {
     if (!authInstance) {
@@ -748,7 +725,7 @@ export default function DashboardLayout({
                 if (mostRecentUpload > lastSeenDate) {
                     const newVideos = (dashboardData.videoClasses || []).filter(v => normalizeDate(v.uploadedAt)! > lastSeenDate);
                     if (newVideos.length > 0) {
-                        setNewContent({ videos: newVideos, studyMaterials: [] });
+                        setNewContent({ videos: newVideos });
                         setShowNewContentPopup(true);
                     }
                 }

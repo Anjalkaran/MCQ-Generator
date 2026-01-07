@@ -12,10 +12,9 @@ import { ReportsManagement } from '@/components/admin/reports-management';
 import { ReasoningBankManagement } from '@/components/admin/reasoning-bank-management';
 import { FeedbackManagement } from '@/components/admin/feedback-management';
 import { VideoClassManagement } from '@/components/admin/video-class-management';
-import { StudyMaterialManagement } from '@/components/admin/study-material-management';
 import { FreeClassManagement } from '@/components/admin/free-class-management';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, MessageSquare, Video, UserCheck, BookOpen } from "lucide-react";
+import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, MessageSquare, Video, UserCheck } from "lucide-react";
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
 import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback } from "@/lib/firestore";
 import type { UserData, QnAUsage, LiveTest, ReasoningQuestion, Feedback } from "@/lib/types";
@@ -62,7 +61,6 @@ const adminSections = [
     { value: 'users', label: 'User Management', icon: Shield },
     { value: 'topics', label: 'Topic Management', icon: BookCopy },
     { value: 'video-classes', label: 'Video Classes', icon: Video },
-    { value: 'study-material', label: 'Study Material', icon: BookOpen },
     { value: 'topic-mcq', label: 'MCQ Bank', icon: FileQuestion },
     { value: 'question-bank', label: 'Question Bank', icon: FileText },
     { value: 'reasoning-bank', label: 'Reasoning Bank', icon: NewLogoIcon },
@@ -156,8 +154,6 @@ export default function AdminPage() {
             return <TopicManagement initialCategories={categories} initialTopics={topics} />;
         case 'video-classes':
             return <VideoClassManagement initialVideos={videoClasses} />;
-        case 'study-material':
-            return <StudyMaterialManagement initialTopics={topics} />;
         case 'topic-mcq':
             return <TopicMCQManagement initialTopics={topics} initialTopicMCQs={topicMCQs} />;
         case 'question-bank':
