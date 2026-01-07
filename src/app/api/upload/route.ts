@@ -12,3 +12,5 @@ export async function POST(req: NextRequest) {
         error: "This API endpoint is deprecated. Please use the new version of the application." 
     }, { status: 410 }); // 410 Gone
 }
+
+    
