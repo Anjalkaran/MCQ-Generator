@@ -80,7 +80,9 @@ export function FreeClassManagement() {
         <Card>
             <CardHeader>
                 <CardTitle>Free Class Registrations</CardTitle>
-                <CardDescription>A list of all users who have registered for the free class.</CardDescription>
+                <CardDescription>
+                    A list of all users who have registered. Total Registrations: {registrations.length}
+                </CardDescription>
                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
                     <div className="relative flex-grow">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
