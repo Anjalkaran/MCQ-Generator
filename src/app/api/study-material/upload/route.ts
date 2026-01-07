@@ -3,13 +3,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { addStudyMaterial } from '@/lib/firestore';
 import type { StudyMaterial } from '@/lib/types';
 import { adminStorage } from '@/lib/firebase-admin';
-import { getDownloadURL } from 'firebase-admin/storage';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; 
 
 
 export async function POST(req: NextRequest) {
+  const bucketName = "quizwiz-be479.appspot.com";
   if (!adminStorage) {
     return NextResponse.json({ error: 'Firebase Admin SDK not initialized for storage.' }, { status: 500 });
   }
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const bucket = adminStorage.bucket("quizwiz-be479.appspot.com");
+    const bucket = adminStorage.bucket(bucketName);
     const filePath = `study-materials/${Date.now()}-${file.name}`;
     const fileUpload = bucket.file(filePath);
 
@@ -39,7 +39,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const downloadURL = await getDownloadURL(fileUpload);
+    // Correct method to get public URL for Admin SDK
+    const downloadURL = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
 
     const newMaterialData: Omit<StudyMaterial, 'id'> = {
         title,
