@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -17,7 +17,7 @@ import type { Topic, StudyMaterial } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from 'date-fns';
@@ -100,16 +100,20 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
         }
     };
     
-    const handleDelete = async (materialId: string, topicId: string) => {
+    const handleDelete = async (materialId: string) => {
+        const materialToDelete = materials.find(m => m.id === materialId);
+        if (!materialToDelete) return;
+    
         try {
-            await deleteStudyMaterial(materialId, topicId);
+            // Firestore deletion logic needs to handle unsetting the `material` field on the topic
+            await deleteStudyMaterial(materialId, materialToDelete.topicId);
             setMaterials(prev => prev.filter(m => m.id !== materialId));
             toast({ title: 'Success', description: 'Study material deleted.' });
         } catch (error) {
             console.error("Failed to delete study material", error);
             toast({ title: 'Error', description: 'Could not delete the material.', variant: 'destructive' });
         }
-    }
+    };
     
     const getTopicTitle = (topicId: string) => topics.find(t => t.id === topicId)?.title || 'N/A';
 
@@ -272,11 +276,11 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                                                     <AlertDialogContent>
                                                         <AlertDialogHeader>
                                                             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                            <AlertDialogDescription>This will permanently delete the material "{material.fileName}". This cannot be undone.</AlertDialogDescription>
+                                                            <AlertDialogDescription>This will permanently delete the material "{material.fileName}". This action cannot be undone.</AlertDialogDescription>
                                                         </AlertDialogHeader>
                                                         <AlertDialogFooter>
                                                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                            <AlertDialogAction onClick={() => handleDelete(material.id, material.topicId)}>Delete</AlertDialogAction>
+                                                            <AlertDialogAction onClick={() => handleDelete(material.id)}>Delete</AlertDialogAction>
                                                         </AlertDialogFooter>
                                                     </AlertDialogContent>
                                                 </AlertDialog>
@@ -296,3 +300,5 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
         </div>
     );
 }
+
+    
