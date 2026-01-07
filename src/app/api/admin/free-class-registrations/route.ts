@@ -14,16 +14,21 @@ export async function GET(req: NextRequest) {
 
     try {
         const registrationsRef = adminDb.collection('freeClassRegistrations');
-        const snapshot = await registrationsRef.orderBy('registeredAt', 'desc').get();
+        // Removed the orderBy clause to prevent crashes on documents without the field.
+        const snapshot = await registrationsRef.get();
         
-        const registrations = snapshot.docs.map(doc => {
+        let registrations = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
                 id: doc.id,
                 ...data,
-                registeredAt: normalizeDate(data.registeredAt) || new Date(),
+                // Safely normalize the date, providing a default if it's missing.
+                registeredAt: normalizeDate(data.registeredAt) || new Date(0), 
             } as FreeClassRegistration;
         });
+
+        // Sort the results in code to ensure stability.
+        registrations.sort((a, b) => b.registeredAt.getTime() - a.registeredAt.getTime());
         
         return NextResponse.json({ registrations });
 
