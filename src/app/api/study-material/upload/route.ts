@@ -7,11 +7,12 @@ import { adminStorage } from '@/lib/firebase-admin';
 export const runtime = 'nodejs';
 export const maxDuration = 300; 
 
+const BUCKET_NAME = "quizwiz-be479.appspot.com";
 
 export async function POST(req: NextRequest) {
-  const bucketName = "quizwiz-be479.appspot.com";
   if (!adminStorage) {
-    return NextResponse.json({ error: 'Firebase Admin SDK not initialized for storage.' }, { status: 500 });
+    console.error('Firebase Admin SDK not initialized for storage.');
+    return NextResponse.json({ error: 'Server storage configuration error.' }, { status: 500 });
   }
 
   try {
@@ -29,7 +30,10 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const bucket = adminStorage.bucket(bucketName);
+    
+    console.log(`Attempting to access storage bucket: ${BUCKET_NAME}`);
+    const bucket = adminStorage.bucket(BUCKET_NAME);
+    
     const filePath = `study-materials/${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
     const fileUpload = bucket.file(filePath);
 
@@ -42,6 +46,7 @@ export async function POST(req: NextRequest) {
     // Make the file public to get a shareable URL
     await fileUpload.makePublic();
 
+    // Construct the public URL
     const downloadURL = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
 
     const newMaterialData: Omit<StudyMaterial, 'id'> = {
