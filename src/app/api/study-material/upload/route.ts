@@ -1,28 +1,57 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { adminStorage } from '@/lib/firebase-admin';
-import { addDoc, collection } from 'firebase/firestore';
+import { adminStorage, adminDb } from '@/lib/firebase-admin';
+import { addDoc, collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { getFirebaseDb } from '@/lib/firebase';
-import type { StudyMaterial } from '@/lib/types';
+import type { StudyMaterial, Topic } from '@/lib/types';
 import { getDownloadURL } from 'firebase-admin/storage';
 import mammoth from 'mammoth';
-import { Readable } from 'stream';
 
 export const runtime = 'nodejs';
-
-// Increase the max duration for this function to handle larger uploads and conversions.
 export const maxDuration = 120; 
 
 const BUCKET_NAME = "quizwiz-be479-storage";
 
-async function streamToBuffer(stream: Readable): Promise<Buffer> {
-    const chunks: Buffer[] = [];
-    return new Promise((resolve, reject) => {
-        stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
-        stream.on('error', (err) => reject(err));
-        stream.on('end', () => resolve(Buffer.concat(chunks)));
-    });
+// Function to find or create a topic and return its ID
+async function findOrCreateTopic(topicName: string): Promise<string> {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized.");
+
+    const topicsRef = collection(db, "topics");
+    const q = query(topicsRef, where("title", "==", topicName));
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+        // Topic exists, return its ID
+        return querySnapshot.docs[0].id;
+    } else {
+        // Topic does not exist, create it
+        // Find 'General' category or create it
+        const categoriesRef = collection(db, "categories");
+        const catQuery = query(categoriesRef, where("name", "==", "General"));
+        const catSnapshot = await getDocs(catQuery);
+        let categoryId = '';
+
+        if (catSnapshot.empty) {
+            const newCatRef = await addDoc(categoriesRef, { name: 'General', examCategories: ['MTS'] });
+            categoryId = newCatRef.id;
+        } else {
+            categoryId = catSnapshot.docs[0].id;
+        }
+
+        const newTopic: Omit<Topic, 'id'> = {
+            title: topicName,
+            description: `Auto-created topic for ${topicName}`,
+            icon: 'file-text',
+            categoryId: categoryId,
+            part: 'Part A',
+            examCategories: ['MTS'],
+        };
+        const newTopicRef = await addDoc(topicsRef, newTopic);
+        return newTopicRef.id;
+    }
 }
+
 
 export async function POST(req: NextRequest) {
   const db = getFirebaseDb();
@@ -33,17 +62,19 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
-    const topicId = formData.get('topicId') as string | null;
+    const topicName = formData.get('topicName') as string | null;
 
-    if (!file || !topicId) {
-      return NextResponse.json({ error: 'File and Topic ID are required.' }, { status: 400 });
+    if (!file || !topicName) {
+      return NextResponse.json({ error: 'File and Topic Name are required.' }, { status: 400 });
     }
+    
+    const topicId = await findOrCreateTopic(topicName);
     
     let buffer: Buffer;
     let finalFileName = file.name;
     let finalMimeType = file.type;
 
-    if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.type === 'application/msword') {
         const arrayBuffer = await file.arrayBuffer();
         const docxBuffer = Buffer.from(arrayBuffer);
         const { value } = await mammoth.convertToHtml({ buffer: docxBuffer });

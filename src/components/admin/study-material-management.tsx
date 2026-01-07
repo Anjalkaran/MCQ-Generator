@@ -11,11 +11,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import type { Topic, StudyMaterial } from '@/lib/types';
-import { Loader2, Upload, Trash2, Search, Download, FileText } from 'lucide-react';
+import { Loader2, Upload, Trash2, Search, Download } from 'lucide-react';
 import { getStudyMaterials, deleteStudyMaterial } from '@/lib/firestore';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
@@ -23,25 +20,23 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useDashboard } from '@/app/dashboard/layout';
 
 const materialSchema = z.object({
-  topicId: z.string().min(1, 'Please select a topic.'),
+  topicName: z.string().min(3, 'Please enter a topic name.'),
   file: z.instanceof(File).refine(file => file.size > 0, 'Please upload a file.'),
 });
 
-interface StudyMaterialManagementProps {
-    initialTopics: Topic[];
-}
-
-export function StudyMaterialManagement({ initialTopics }: StudyMaterialManagementProps) {
+export function StudyMaterialManagement() {
     const [materials, setMaterials] = useState<StudyMaterial[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const [popoverOpen, setPopoverOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const { toast } = useToast();
     const { topics } = useDashboard();
     
     const form = useForm<z.infer<typeof materialSchema>>({
         resolver: zodResolver(materialSchema),
+        defaultValues: {
+            topicName: '',
+        }
     });
 
     useEffect(() => {
@@ -76,7 +71,7 @@ export function StudyMaterialManagement({ initialTopics }: StudyMaterialManageme
         setIsUploading(true);
         const formData = new FormData();
         formData.append('file', values.file);
-        formData.append('topicId', values.topicId);
+        formData.append('topicName', values.topicName);
 
         try {
             const response = await fetch('/api/study-material/upload', {
@@ -90,7 +85,15 @@ export function StudyMaterialManagement({ initialTopics }: StudyMaterialManageme
             }
 
             const { newDocument } = await response.json();
-            setMaterials(prev => [newDocument, ...prev]);
+            
+            // Check if material for this topicId already exists to update it, otherwise add new.
+            const existingMaterialIndex = materials.findIndex(m => m.topicId === newDocument.topicId);
+            if (existingMaterialIndex > -1) {
+                setMaterials(prev => prev.map((m, i) => i === existingMaterialIndex ? newDocument : m));
+            } else {
+                setMaterials(prev => [newDocument, ...prev]);
+            }
+
             toast({ title: 'Success', description: 'Study material uploaded successfully.' });
             form.reset();
 
@@ -112,69 +115,26 @@ export function StudyMaterialManagement({ initialTopics }: StudyMaterialManageme
         }
     };
     
-    const handleDownload = async (material: StudyMaterial, topicTitle: string) => {
-        const { user } = useDashboard();
-        if (user?.uid && user.displayName) {
-             logDownload(user.uid, user.displayName, material, topicTitle).catch(console.error);
-        }
-        window.open(material.downloadUrl, '_blank');
-    };
-
-
     return (
         <div className="space-y-6">
             <Card>
                 <CardHeader>
                     <CardTitle>Upload Study Material</CardTitle>
-                    <CardDescription>Upload PDF or DOCX files for any topic. Uploading for a topic will replace any existing material.</CardDescription>
+                    <CardDescription>Upload PDF or DOCX files for any topic. If the topic doesn't exist, it will be automatically created.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                            <FormField
                                 control={form.control}
-                                name="topicId"
+                                name="topicName"
                                 render={({ field }) => (
-                                    <FormItem className="flex flex-col">
-                                    <FormLabel>Topic</FormLabel>
-                                    <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                                        <PopoverTrigger asChild>
+                                    <FormItem>
+                                        <FormLabel>Topic Name</FormLabel>
                                         <FormControl>
-                                            <Button
-                                            variant="outline"
-                                            role="combobox"
-                                            className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
-                                            >
-                                            {field.value ? topics.find(topic => topic.id === field.value)?.title : "Select a topic"}
-                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
+                                            <Input placeholder="Enter the topic name manually" {...field} />
                                         </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-full p-0" style={{minWidth: "var(--radix-popover-trigger-width)"}}>
-                                        <Command>
-                                            <CommandInput placeholder="Search topic..." />
-                                            <CommandList>
-                                                <CommandEmpty>No topic found.</CommandEmpty>
-                                                <CommandGroup>
-                                                {topics.map((topic) => (
-                                                    <CommandItem
-                                                    value={topic.title}
-                                                    key={topic.id}
-                                                    onSelect={() => {
-                                                        form.setValue("topicId", topic.id);
-                                                        setPopoverOpen(false);
-                                                    }}
-                                                    >
-                                                    <Check className={cn("mr-2 h-4 w-4", topic.id === field.value ? "opacity-100" : "opacity-0")} />
-                                                    {topic.title}
-                                                    </CommandItem>
-                                                ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                        </PopoverContent>
-                                    </Popover>
-                                    <FormMessage />
+                                        <FormMessage />
                                     </FormItem>
                                 )}
                             />
@@ -185,7 +145,7 @@ export function StudyMaterialManagement({ initialTopics }: StudyMaterialManageme
                                     <FormItem>
                                         <FormLabel>Material File (.pdf, .docx)</FormLabel>
                                         <FormControl>
-                                            <Input type="file" accept=".pdf,.docx" onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)} {...fieldProps} />
+                                            <Input type="file" accept=".pdf,.docx,.doc" onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)} {...fieldProps} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -235,7 +195,7 @@ export function StudyMaterialManagement({ initialTopics }: StudyMaterialManageme
                                             <TableCell>{material.fileName}</TableCell>
                                             <TableCell>{format(new Date(material.uploadedAt), "dd/MM/yyyy")}</TableCell>
                                             <TableCell className="text-right space-x-1">
-                                                <Button variant="ghost" size="icon" onClick={() => handleDownload(material, getTopicTitle(material.topicId))}><Download className="h-4 w-4" /></Button>
+                                                <Button asChild variant="ghost" size="icon"><a href={material.downloadUrl} target="_blank" rel="noopener noreferrer"><Download className="h-4 w-4" /></a></Button>
                                                 <AlertDialog>
                                                     <AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger>
                                                     <AlertDialogContent>
