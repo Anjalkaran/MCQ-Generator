@@ -11,8 +11,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Trash2, Eye, FileText, Check, ChevronsUpDown } from 'lucide-react';
-import { getStudyMaterials, deleteStudyMaterial } from '@/lib/firestore';
+import { Loader2, Upload, Trash2, Eye, FileText, Check, ChevronsUpDown, Search } from 'lucide-react';
+import { deleteStudyMaterial } from '@/lib/firestore';
 import type { Topic, StudyMaterial } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -55,6 +55,8 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
     const [topics] = useState<Topic[]>(initialTopics);
     const [materials, setMaterials] = useState<StudyMaterial[]>(initialMaterials);
     const [popoverOpen, setPopoverOpen] = useState(false);
+    const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -65,6 +67,17 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
     });
 
     const { register, handleSubmit, control, formState: { errors }, setValue, watch } = form;
+
+    const filteredMaterials = useMemo(() => {
+        if (!searchTerm) {
+          return materials;
+        }
+        const lowercasedFilter = searchTerm.toLowerCase();
+        return materials.filter(material =>
+          getTopicTitle(material.topicId).toLowerCase().includes(lowercasedFilter) ||
+          material.fileName.toLowerCase().includes(lowercasedFilter)
+        );
+      }, [searchTerm, materials, topics]);
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setIsUploading(true);
@@ -87,10 +100,11 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
             }
 
             const { document: newDocument } = await response.json();
-            setMaterials(prev => [newDocument, ...prev]);
+            setMaterials(prev => [newDocument, ...prev].sort((a,b) => b.uploadedAt.getTime() - a.uploadedAt.getTime()));
 
             toast({ title: 'Success', description: 'Study material uploaded successfully.' });
             form.reset({ topicId: 'new', file: undefined, examCategories: [] });
+            setIsUploadDialogOpen(false);
             
         } catch (error: any) {
             console.error("Study material upload error:", error);
@@ -101,12 +115,8 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
     };
     
     const handleDelete = async (materialId: string) => {
-        const materialToDelete = materials.find(m => m.id === materialId);
-        if (!materialToDelete) return;
-    
         try {
-            // Firestore deletion logic needs to handle unsetting the `material` field on the topic
-            await deleteStudyMaterial(materialId, materialToDelete.topicId);
+            await deleteStudyMaterial(materialId);
             setMaterials(prev => prev.filter(m => m.id !== materialId));
             toast({ title: 'Success', description: 'Study material deleted.' });
         } catch (error) {
@@ -119,15 +129,21 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
 
     return (
         <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Upload Study Material</CardTitle>
-                    <CardDescription>
-                        Upload study material for a topic. You can link it to an existing topic or create a new topic based on the filename. Supported formats: .pdf, .docx, .txt
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Form {...form}>
+            <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+                <DialogTrigger asChild>
+                    <Button>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload New Study Material
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Upload Study Material</DialogTitle>
+                        <DialogDescription>
+                            Upload study material for a topic. You can link it to an existing topic or create a new topic based on the filename. Supported formats: .pdf, .docx, .txt
+                        </DialogDescription>
+                    </DialogHeader>
+                     <Form {...form}>
                         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                             <FormField
                                 control={control}
@@ -223,38 +239,47 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                                 {errors.file && <p className="text-sm font-medium text-destructive">{`${errors.file.message}`}</p>}
                             </FormItem>
 
-                            <Button type="submit" disabled={isUploading}>
+                            <Button type="submit" disabled={isUploading} className="w-full">
                                 {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                                 Upload Material
                             </Button>
                         </form>
                     </Form>
-                </CardContent>
-            </Card>
+                </DialogContent>
+            </Dialog>
             
             <Card>
                 <CardHeader>
-                    <CardTitle>Uploaded Materials</CardTitle>
-                    <CardDescription>Manage previously uploaded study materials.</CardDescription>
+                    <CardTitle>Manage Study Materials</CardTitle>
+                    <CardDescription>View or delete existing study materials.</CardDescription>
+                     <div className="relative pt-2">
+                        <Search className="absolute left-2.5 top-4 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search by title or file name..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-8 w-full"
+                        />
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <div className="border rounded-md">
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Topic</TableHead>
+                                    <TableHead>Title</TableHead>
                                     <TableHead>File Name</TableHead>
                                     <TableHead>Uploaded At</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {materials.length > 0 ? (
-                                    materials.map(material => (
+                                {filteredMaterials.length > 0 ? (
+                                    filteredMaterials.map(material => (
                                         <TableRow key={material.id}>
                                             <TableCell className="font-medium">{getTopicTitle(material.topicId)}</TableCell>
                                             <TableCell>{material.fileName}</TableCell>
-                                            <TableCell>{format(material.uploadedAt, 'dd/MM/yyyy p')}</TableCell>
+                                            <TableCell>{format(new Date(material.uploadedAt), 'dd/MM/yyyy p')}</TableCell>
                                             <TableCell className="text-right">
                                                 <Dialog>
                                                     <DialogTrigger asChild>
@@ -265,7 +290,7 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                                                             <DialogTitle>{material.fileName}</DialogTitle>
                                                         </DialogHeader>
                                                         <ScrollArea className="h-96 w-full rounded-md border p-4">
-                                                            <p className="text-sm whitespace-pre-wrap">{material.content}</p>
+                                                            <pre className="text-sm whitespace-pre-wrap">{material.content}</pre>
                                                         </ScrollArea>
                                                     </DialogContent>
                                                 </Dialog>
@@ -289,7 +314,7 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="h-24 text-center">No study materials uploaded yet.</TableCell>
+                                        <TableCell colSpan={4} className="h-24 text-center">No study materials found.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>
@@ -301,6 +326,3 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
     );
 }
 
-    
-
-    
