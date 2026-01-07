@@ -375,14 +375,6 @@ function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/free-class')} tooltip="Free Class">
-                  <Link href="/dashboard/free-class" onClick={onLinkClick}>
-                    <UserCheck />
-                    <span>Free Class</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </>
             )}
           <SidebarMenuItem>
