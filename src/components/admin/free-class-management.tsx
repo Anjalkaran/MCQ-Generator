@@ -11,6 +11,7 @@ import type { FreeClassRegistration } from '@/lib/types';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeDate } from '@/lib/utils';
+import { getFreeClassRegistrations } from '@/lib/firestore';
 
 export function FreeClassManagement() {
     const [registrations, setRegistrations] = useState<FreeClassRegistration[]>([]);
@@ -22,12 +23,8 @@ export function FreeClassManagement() {
         const fetchRegistrations = async () => {
             setIsLoading(true);
             try {
-                const response = await fetch('/api/admin/free-class-registrations');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch data');
-                }
-                const data = await response.json();
-                setRegistrations(data.registrations);
+                const data = await getFreeClassRegistrations();
+                setRegistrations(data);
             } catch (error) {
                 console.error("Error fetching registrations:", error);
                 toast({ title: "Error", description: "Could not load registration data.", variant: "destructive" });
