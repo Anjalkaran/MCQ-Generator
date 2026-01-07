@@ -212,3 +212,4 @@ export interface FreeClassRegistration {
     courses: string[];
     registeredAt: Date;
 }
+

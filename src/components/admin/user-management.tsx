@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -41,6 +42,8 @@ import { format } from 'date-fns';
 
 const userUpdateSchema = z.object({
   name: z.string().min(1, { message: 'Username is required.' }),
+  phone: z.string().min(10, { message: 'Mobile number must be at least 10 digits.' }).optional().or(z.literal('')),
+  employeeId: z.string().length(8, { message: 'Employee ID must be exactly 8 digits.' }).regex(/^\d{8}$/, 'Employee ID must be a number.').optional().or(z.literal('')),
   city: z.string().min(2, { message: "City is required." }),
   division: z.string().min(2, { message: 'Division name is required.' }).refine(val => !val.includes('@'), {
     message: 'Division cannot be an email address.',
@@ -168,6 +171,8 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
       name: user.name,
       city: user.city || '',
       division: user.division || '',
+      phone: user.phone || '',
+      employeeId: user.employeeId || '',
       examCategory: user.examCategory,
       isPro: user.isPro || false,
       proValidUntil: normalizeDate(user.proValidUntil),
@@ -183,6 +188,8 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
         name: values.name,
         city: values.city,
         division: values.division,
+        phone: values.phone,
+        employeeId: values.employeeId,
         examCategory: values.examCategory,
         isPro: values.isPro,
         proValidUntil: values.proValidUntil,
@@ -541,6 +548,28 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                             <div className="grid grid-cols-2 gap-4">
                                 <FormField
                                     control={updateUserForm.control}
+                                    name="phone"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Mobile Number</FormLabel>
+                                        <FormControl><Input {...field} /></FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={updateUserForm.control}
+                                    name="employeeId"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Employee ID</FormLabel>
+                                        <FormControl><Input {...field} /></FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={updateUserForm.control}
                                     name="city"
                                     render={({ field }) => (
                                         <FormItem>
@@ -655,3 +684,4 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     </Card>
   );
 }
+

@@ -36,26 +36,21 @@ import * as z from 'zod';
 import { formatDistanceToNow } from 'date-fns';
 
 const profileUpdateSchema = z.object({
-  employeeId: z.string().min(3, { message: 'Employee ID must be at least 3 characters.' }),
-  division: z.string().min(2, { message: 'Division name is required.' }).refine(val => !val.includes('@'), {
-    message: 'Division cannot be an email address.',
-  }),
+  employeeId: z.string().length(8, { message: 'Employee ID must be exactly 8 digits.' }).regex(/^\d{8}$/, 'Employee ID must be a number.'),
+  mobileNumber: z.string().min(10, { message: 'Mobile number must be at least 10 digits.' }),
 });
 
 interface ProfileUpdateDialogProps {
   open: boolean;
-  onUpdateSubmit: (values: { employeeId: string; division: string }) => Promise<void>;
-  defaultValues: { employeeId: string; division: string };
+  onUpdateSubmit: (values: { employeeId: string; mobileNumber: string }) => Promise<void>;
+  defaultValues: { employeeId: string; mobileNumber: string };
 }
 
 function ProfileUpdateDialog({ open, onUpdateSubmit, defaultValues }: ProfileUpdateDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<z.infer<typeof profileUpdateSchema>>({
     resolver: zodResolver(profileUpdateSchema),
-    defaultValues: {
-        employeeId: defaultValues.employeeId,
-        division: defaultValues.division,
-    },
+    defaultValues,
   });
 
   const handleSubmit = async (values: z.infer<typeof profileUpdateSchema>) => {
@@ -70,7 +65,7 @@ function ProfileUpdateDialog({ open, onUpdateSubmit, defaultValues }: ProfileUpd
         <DialogHeader>
           <DialogTitle>Update Required</DialogTitle>
           <DialogDescription>
-            Please provide or correct the following details to continue. This is a one-time requirement.
+            Please provide your 8-digit Employee ID and 10-digit mobile number to continue.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -82,22 +77,21 @@ function ProfileUpdateDialog({ open, onUpdateSubmit, defaultValues }: ProfileUpd
                 <FormItem>
                   <FormLabel>Employee ID</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your Employee ID" {...field} />
+                    <Input placeholder="Enter your 8-digit Employee ID" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-             <FormField
+            <FormField
               control={form.control}
-              name="division"
+              name="mobileNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Division Name</FormLabel>
+                  <FormLabel>Mobile Number</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your Division Name" {...field} />
+                    <Input placeholder="Enter your 10-digit mobile number" {...field} />
                   </FormControl>
-                   <FormDescription>Please enter your postal division name (e.g., Chennai, Madurai).</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -114,6 +108,7 @@ function ProfileUpdateDialog({ open, onUpdateSubmit, defaultValues }: ProfileUpd
     </Dialog>
   );
 }
+
 
 interface NewContentPopupProps {
   newContent: { materials: StudyMaterial[], videos: VideoClass[] };
@@ -580,7 +575,7 @@ export default function DashboardLayout({
   const [isLoading, setIsLoading] = useState(true);
   const [hasGivenFeedback, setHasGivenFeedback] = useState(false);
   const [showProfileUpdateModal, setShowProfileUpdateModal] = useState(false);
-  const [profileUpdateDefaults, setProfileUpdateDefaults] = useState({ employeeId: '', division: '' });
+  const [profileUpdateDefaults, setProfileUpdateDefaults] = useState({ employeeId: '', mobileNumber: '' });
   const [showUpdateAlert, setShowUpdateAlert] = useState(false);
   const [showNewContentPopup, setShowNewContentPopup] = useState(false);
   const [newContent, setNewContent] = useState<{ materials: StudyMaterial[], videos: VideoClass[] }>({ materials: [], videos: [] });
@@ -760,13 +755,15 @@ export default function DashboardLayout({
                 }
 
                 const fetchedUserData = dashboardData.userData;
-                const divisionIsEmail = fetchedUserData.division?.includes('@');
-                if (!fetchedUserData.employeeId || !fetchedUserData.division || divisionIsEmail) {
-                  setProfileUpdateDefaults({
-                      employeeId: fetchedUserData.employeeId || '',
-                      division: divisionIsEmail ? '' : (fetchedUserData.division || ''),
-                  });
-                  setShowProfileUpdateModal(true);
+                const isEmployeeIdInvalid = !fetchedUserData.employeeId || fetchedUserData.employeeId.length !== 8;
+                const isMobileInvalid = !fetchedUserData.phone;
+                
+                if (isEmployeeIdInvalid || isMobileInvalid) {
+                    setProfileUpdateDefaults({
+                        employeeId: fetchedUserData.employeeId || '',
+                        mobileNumber: fetchedUserData.phone || '',
+                    });
+                    setShowProfileUpdateModal(true);
                 }
             }
 
@@ -830,11 +827,11 @@ export default function DashboardLayout({
     }
   }, [userData]);
   
-  const handleProfileUpdateSubmit = async (values: { employeeId: string; division: string }) => {
+  const handleProfileUpdateSubmit = async (values: { employeeId: string; mobileNumber: string }) => {
     if (!user) return;
     try {
-        await updateUserDocument(user.uid, values);
-        setUserData(prev => prev ? { ...prev, ...values } : null);
+        await updateUserDocument(user.uid, { employeeId: values.employeeId, phone: values.mobileNumber });
+        setUserData(prev => prev ? { ...prev, employeeId: values.employeeId, phone: values.mobileNumber } : null);
         setShowProfileUpdateModal(false);
         toast({ title: 'Success', description: 'Your profile has been updated.' });
     } catch (error: any) {
@@ -893,8 +890,3 @@ export default function DashboardLayout({
     </DashboardContext.Provider>
   );
 }
-
-    
-
-    
-

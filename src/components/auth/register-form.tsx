@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState } from 'react';
@@ -29,6 +30,8 @@ const formSchema = z.object({
       message: "Only @gmail.com addresses are allowed for registration.",
     }
   ),
+  phone: z.string().min(10, { message: 'A valid 10-digit mobile number is required.' }),
+  employeeId: z.string().length(8, { message: 'Employee ID must be exactly 8 digits.' }).regex(/^\d{8}$/, 'Employee ID must be a number.'),
   city: z.string().min(2, { message: "City is required." }),
   division: z.string().min(2, { message: 'Division name is required.' }).refine(val => !val.includes('@'), {
     message: 'Division cannot be an email address.',
@@ -54,6 +57,8 @@ export function RegisterForm() {
     defaultValues: {
       name: '',
       email: '',
+      phone: '',
+      employeeId: '',
       city: '',
       division: '',
       password: '',
@@ -87,6 +92,8 @@ export function RegisterForm() {
         uid: user.uid,
         name: values.name,
         email: values.email,
+        phone: values.phone,
+        employeeId: values.employeeId,
         city: values.city,
         division: values.division,
         examCategory: values.examCategory,
@@ -157,6 +164,32 @@ export function RegisterForm() {
                   <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input placeholder="name@example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Mobile Number</FormLabel>
+                  <FormControl>
+                    <Input placeholder="10-digit mobile number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="employeeId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Employee ID</FormLabel>
+                  <FormControl>
+                    <Input placeholder="8-digit Employee ID" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -299,3 +332,4 @@ export function RegisterForm() {
     </Card>
   );
 }
+

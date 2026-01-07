@@ -25,6 +25,8 @@ interface ProfileFormProps {
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
+  employeeId: z.string().length(8, { message: 'Employee ID must be 8 digits.' }),
+  phone: z.string().min(10, { message: 'Mobile number must be at least 10 digits.' }),
 });
 
 export function ProfileForm({ user, userData }: ProfileFormProps) {
@@ -35,17 +37,21 @@ export function ProfileForm({ user, userData }: ProfileFormProps) {
         resolver: zodResolver(formSchema),
         defaultValues: {
             name: userData.name || '',
+            employeeId: userData.employeeId || '',
+            phone: userData.phone || '',
         },
     });
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setIsLoading(true);
         try {
-            const dataToUpdate: { name: string } = {
-                name: values.name
+            const dataToUpdate: { name: string, employeeId: string, phone: string } = {
+                name: values.name,
+                employeeId: values.employeeId,
+                phone: values.phone,
             };
 
-            await updateUserDocument(user.uid, { name: dataToUpdate.name });
+            await updateUserDocument(user.uid, dataToUpdate);
 
             if (user.displayName !== values.name) {
                 await updateProfile(user, { displayName: values.name });
@@ -83,6 +89,32 @@ export function ProfileForm({ user, userData }: ProfileFormProps) {
                         </FormItem>
                     )}
                 />
+                 <FormField
+                    control={form.control}
+                    name="employeeId"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Employee ID</FormLabel>
+                            <FormControl>
+                                <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Mobile Number</FormLabel>
+                            <FormControl>
+                                <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
                 <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input id="email" name="email" type="email" defaultValue={userData.email} disabled />
@@ -103,3 +135,4 @@ export function ProfileForm({ user, userData }: ProfileFormProps) {
     </Card>
   );
 }
+
