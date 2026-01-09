@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -12,6 +13,7 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeDate } from '@/lib/utils';
 import { useDashboard } from '@/app/dashboard/layout';
+import { Badge } from '@/components/ui/badge';
 
 export function FreeClassManagement() {
     const { freeClassRegistrations } = useDashboard();
@@ -27,15 +29,15 @@ export function FreeClassManagement() {
     const filteredRegistrations = useMemo(() => {
         return registrations.filter(reg => 
             reg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            reg.mobile.includes(searchTerm) ||
+            reg.mobileNumber.includes(searchTerm) ||
             reg.employeeId.includes(searchTerm) ||
-            reg.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            reg.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
             reg.division.toLowerCase().includes(searchTerm.toLowerCase())
         );
     }, [registrations, searchTerm]);
 
     const handleDownloadCSV = () => {
-        const headers = ["Name", "Mobile", "Employee ID", "City", "Division", "Registered At"];
+        const headers = ["Name", "Gender", "Mobile Number", "Email", "Employee ID", "Designation", "Division", "Courses", "Registered At"];
         const csvContent = [
             headers.join(','),
             ...filteredRegistrations.map(reg => {
@@ -43,16 +45,19 @@ export function FreeClassManagement() {
                 const formattedDate = registeredAtDate ? format(registeredAtDate, 'dd/MM/yyyy p') : "N/A";
                 return [
                     `"${reg.name}"`,
-                    `"${reg.mobile}"`,
+                    `"${reg.gender}"`,
+                    `"${reg.mobileNumber}"`,
+                    `"${reg.email}"`,
                     `"${reg.employeeId}"`,
-                    `"${reg.city}"`,
+                    `"${reg.designation}"`,
                     `"${reg.division}"`,
+                    `"${reg.courses.join(', ')}"`,
                     `"${formattedDate}"`
                 ].join(',');
             })
         ].join('\n');
         
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
@@ -96,10 +101,9 @@ export function FreeClassManagement() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Name</TableHead>
-                                    <TableHead>Mobile</TableHead>
-                                    <TableHead>Employee ID</TableHead>
-                                    <TableHead>City</TableHead>
-                                    <TableHead>Division</TableHead>
+                                    <TableHead>Contact</TableHead>
+                                    <TableHead>Employee Details</TableHead>
+                                    <TableHead>Courses</TableHead>
                                     <TableHead className="text-right">Registered At</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -110,11 +114,14 @@ export function FreeClassManagement() {
                                         const formattedDate = registeredAtDate ? format(registeredAtDate, 'dd/MM/yyyy p') : 'N/A';
                                         return (
                                             <TableRow key={reg.id}>
-                                                <TableCell className="font-medium">{reg.name}</TableCell>
-                                                <TableCell>{reg.mobile}</TableCell>
-                                                <TableCell>{reg.employeeId}</TableCell>
-                                                <TableCell>{reg.city}</TableCell>
-                                                <TableCell>{reg.division}</TableCell>
+                                                <TableCell className="font-medium">{reg.name} <span className="text-xs text-muted-foreground">({reg.gender})</span></TableCell>
+                                                <TableCell>{reg.mobileNumber}<br/><span className="text-xs text-muted-foreground">{reg.email}</span></TableCell>
+                                                <TableCell>{reg.employeeId} <br/><span className="text-xs text-muted-foreground">{reg.designation} - {reg.division}</span></TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {reg.courses.map(course => <Badge key={course} variant="secondary">{course}</Badge>)}
+                                                    </div>
+                                                </TableCell>
                                                 <TableCell className="text-right">{formattedDate}</TableCell>
                                             </TableRow>
                                         );

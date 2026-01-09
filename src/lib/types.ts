@@ -193,10 +193,13 @@ export interface Feedback {
 export interface FreeClassRegistration {
     id: string;
     name: string;
-    mobile: string;
-    employeeId: string;
-    city: string;
+    gender: string;
+    mobileNumber: string;
     division: string;
+    employeeId: string;
+    designation: string;
+    email: string;
+    courses: string[];
     registeredAt: Date;
 }
 
@@ -208,5 +211,3 @@ export interface StudyMaterial {
     content: string;
     uploadedAt: Date;
 }
-
-    
