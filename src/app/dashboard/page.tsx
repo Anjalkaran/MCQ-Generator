@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { UpcomingLiveTest } from "@/components/dashboard/upcoming-live-test";
 import { ADMIN_EMAILS } from "@/lib/constants";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { AptiSolveIcon } from "@/components/icons/aptisolve-icon";
 
 
 export default function DashboardPage() {
@@ -189,7 +190,7 @@ export default function DashboardPage() {
             <CardHeader>
                 <div className="flex items-center gap-4">
                     <div className="bg-primary/10 p-3 rounded-full">
-                        <BrainCircuit className="h-8 w-8 text-primary" />
+                        <AptiSolveIcon className="h-8 w-8 text-primary" />
                     </div>
                     <CardTitle className="text-2xl">AptiSolve</CardTitle>
                 </div>
@@ -209,5 +210,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
