@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload, Trash2, Eye, FileText, Check, ChevronsUpDown, Search, Library } from 'lucide-react';
-import { deleteStudyMaterial } from '@/lib/firestore';
+import { deleteStudyMaterial, addTopic } from '@/lib/firestore';
 import type { Topic, StudyMaterial } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -26,6 +26,12 @@ import { getFirebaseAuth, getFirebaseStorage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useDashboard } from '@/app/dashboard/layout';
 import { v4 as uuidv4 } from 'uuid';
+import * as pdfjsLib from 'pdfjs-dist';
+import { addDoc, collection, doc, updateDoc } from 'firebase/firestore';
+import { getFirebaseDb } from '@/lib/firebase';
+
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -85,52 +91,73 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setIsUploading(true);
-        if (!user) {
-            toast({ title: "Authentication Error", description: "You must be logged in.", variant: "destructive" });
-            setIsUploading(false);
-            return;
-        }
+        const db = getFirebaseDb();
         const storage = getFirebaseStorage();
-        if (!storage) {
-            toast({ title: "Storage Error", description: "Firebase Storage is not available.", variant: "destructive" });
+        if (!user || !db || !storage) {
+            toast({ title: "Initialization Error", description: "Firebase services are not ready.", variant: "destructive" });
             setIsUploading(false);
             return;
         }
 
         const uploadedFile: File = values.file[0];
-        
-        try {
-            // 1. Client-side upload to a temporary location
-            const tempFilePath = `temp-materials/${user.uid}/${uuidv4()}-${uploadedFile.name}`;
-            const fileRef = ref(storage, tempFilePath);
-            await uploadBytes(fileRef, uploadedFile);
-            const tempFileUrl = await getDownloadURL(fileRef);
 
-            // 2. Call the server to process the file from the temp location
-            const response = await fetch('/api/process-study-material', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    tempFilePath: tempFilePath,
-                    originalFileName: uploadedFile.name,
-                    fileType: uploadedFile.type,
-                    topicId: values.topicId || 'new',
-                    examCategories: values.examCategories,
-                }),
-            });
-            
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to process material on the server.');
+        try {
+            // 1. Parse PDF on the client
+            const fileBuffer = await uploadedFile.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument(fileBuffer).promise;
+            let textContent = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const text = await page.getTextContent();
+                textContent += text.items.map(s => (s as any).str).join(' ');
             }
             
-            const { newMaterial, newTopic } = await response.json();
-            
+            // 2. Upload file to final destination in Firebase Storage
+            const filePath = `study-materials/${uuidv4()}-${uploadedFile.name}`;
+            const fileRef = ref(storage, filePath);
+            await uploadBytes(fileRef, fileBuffer, { contentType: uploadedFile.type });
+            const downloadURL = await getDownloadURL(fileRef);
+
+            // 3. Create or update Firestore documents
+            let topicId = values.topicId;
+            let newTopic: Topic | null = null;
+            if (topicId === 'new') {
+                const newTopicData: Omit<Topic, 'id'> = {
+                    title: uploadedFile.name?.replace(/\.[^/.]+$/, "") || "Untitled Topic",
+                    description: "Auto-generated topic from study material upload.",
+                    icon: 'file-text',
+                    categoryId: 'uncategorized', 
+                    part: 'Part A', // Default part
+                    examCategories: values.examCategories,
+                    material: textContent
+                };
+                const topicRef = await addTopic(newTopicData);
+                topicId = topicRef.id;
+                newTopic = { id: topicId, ...newTopicData };
+            } else if (topicId) {
+                const topicRef = doc(db, 'topics', topicId);
+                await updateDoc(topicRef, { material: textContent });
+            }
+
+            if (!topicId) throw new Error("Topic ID is invalid.");
+
+            const studyMaterialDoc = {
+                topicId: topicId,
+                fileName: uploadedFile.name,
+                fileType: uploadedFile.type,
+                content: downloadURL, // Use final download URL
+                uploadedAt: new Date(),
+            };
+
+            const docRef = await addDoc(collection(db, 'studyMaterials'), studyMaterialDoc);
+            const newMaterial = { id: docRef.id, ...studyMaterialDoc };
+
+            // 4. Update local state
             setMaterials(prev => [newMaterial, ...prev].sort((a,b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()));
             if (newTopic) {
                 setTopics(prev => [...prev, newTopic]);
             }
-            
+
             toast({ title: 'Success', description: 'Study material uploaded successfully.' });
             form.reset({ topicId: 'new', file: undefined, examCategories: [] });
             setIsUploadDialogOpen(false);
