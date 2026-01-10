@@ -1,96 +1,316 @@
+"use client";
 
-import { NextResponse } from 'next/server';
-import { getFirebaseDb, getFirebaseStorage } from '@/lib/firebase-admin';
-import { collection, addDoc, doc, updateDoc, getDocs, query, where } from 'firebase/firestore';
+import { useState, useMemo } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, Upload, Trash2, Search } from 'lucide-react';
+import { deleteStudyMaterial, addTopic } from '@/lib/firestore';
+import type { Topic, StudyMaterial } from '@/lib/types';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription as AlertDialogDesc, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { format } from 'date-fns';
+import { Checkbox } from '../ui/checkbox';
+import { useDashboard } from '@/app/dashboard/layout';
+import { getFirebaseStorage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
-import pdf from 'pdf-parse';
-import type { Topic } from '@/lib/types';
 
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
-export async function POST(request: Request) {
-    const db = getFirebaseDb();
-    const storage = getFirebaseStorage();
-    if (!db || !storage) {
-        return NextResponse.json({ error: 'Firebase is not initialized.' }, { status: 500 });
-    }
+const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
 
-    try {
-        const formData = await request.formData();
-        const file = formData.get('file') as File | null;
-        let topicName = formData.get('topicName') as string | null;
-        const examCategories = JSON.parse(formData.get('examCategories') as string || '[]');
+const formSchema = z.object({
+  topicName: z.string().optional(),
+  file: z
+    .any()
+    .refine((files) => files?.length === 1, 'File is required.')
+    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE_BYTES, `Max file size is ${MAX_FILE_SIZE_MB}MB.`)
+    .refine(
+      (files) => ['application/pdf'].includes(files?.[0]?.type),
+      '.pdf files are accepted.'
+    ),
+  examCategories: z.array(z.string()).refine((value) => value.some((item) => item), {
+    message: "You have to select at least one exam category.",
+  }),
+});
 
-        if (!file) {
-            return NextResponse.json({ error: 'No file uploaded.' }, { status: 400 });
+interface StudyMaterialManagementProps {
+    initialTopics: Topic[];
+    initialMaterials: StudyMaterial[];
+}
+
+export function StudyMaterialManagement({ initialTopics, initialMaterials }: StudyMaterialManagementProps) {
+    const { toast } = useToast();
+    const { user } = useDashboard();
+    const [isUploading, setIsUploading] = useState(false);
+    const [topics, setTopics] = useState<Topic[]>(initialTopics);
+    const [materials, setMaterials] = useState<StudyMaterial[]>(initialMaterials);
+    const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const form = useForm<z.infer<typeof formSchema>>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            topicName: '',
+            examCategories: [],
+        }
+    });
+
+    const { register, handleSubmit, control, formState: { errors } } = form;
+
+    const filteredMaterials = useMemo(() => {
+        if (!searchTerm) {
+          return materials;
+        }
+        const lowercasedFilter = searchTerm.toLowerCase();
+        return materials.filter(material =>
+          getTopicTitle(material.topicId).toLowerCase().includes(lowercasedFilter) ||
+          material.fileName.toLowerCase().includes(lowercasedFilter)
+        );
+      }, [searchTerm, materials, topics]);
+
+    const onSubmit = async (values: z.infer<typeof formSchema>) => {
+        setIsUploading(true);
+        if (!user) {
+            toast({ title: "Authentication Error", description: "You must be logged in to upload.", variant: "destructive" });
+            setIsUploading(false);
+            return;
         }
         
-        if (!topicName) {
-            topicName = file.name?.replace(/\.[^/.]+$/, "") || "Untitled Topic";
+        const storage = getFirebaseStorage();
+        if (!storage) {
+            toast({ title: "Storage Error", description: "Firebase Storage is not available.", variant: "destructive" });
+            setIsUploading(false);
+            return;
         }
 
-        const fileBuffer = Buffer.from(await file.arrayBuffer());
-        const pdfData = await pdf(fileBuffer);
-        const textContent = pdfData.text;
-
-        const filePath = `study-materials/${uuidv4()}-${file.name}`;
-        const fileRef = ref(storage, filePath);
-        await uploadBytes(fileRef, fileBuffer, { contentType: file.type });
-        const downloadURL = await getDownloadURL(fileRef);
+        const file = values.file[0] as File;
         
-        let topicId: string | null = null;
-        let newTopic: Topic | null = null;
+        try {
+            // 1. Upload file to a temporary location
+            const tempFileName = `${uuidv4()}-${file.name}`;
+            const tempStorageRef = ref(storage, `temp-materials/${user.uid}/${tempFileName}`);
+            await uploadBytes(tempStorageRef, file);
 
-        // Check if topic with this name already exists
-        const topicsRef = collection(db, 'topics');
-        const q = query(topicsRef, where("title", "==", topicName));
-        const querySnapshot = await getDocs(q);
+            // 2. Call the new server-side processing API
+            const response = await fetch('/api/study-material/process', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: user.uid,
+                    tempFileName: tempFileName,
+                    originalFileName: file.name,
+                    topicName: values.topicName || '',
+                    examCategories: values.examCategories,
+                }),
+            });
 
-        if (!querySnapshot.empty) {
-            // Topic exists, use its ID
-            const existingTopicDoc = querySnapshot.docs[0];
-            topicId = existingTopicDoc.id;
-            const topicRef = doc(db, 'topics', topicId);
-            await updateDoc(topicRef, { material: textContent });
-        } else {
-            // Topic does not exist, create a new one
-            const newTopicData: Omit<Topic, 'id'> = {
-                title: topicName,
-                description: "Auto-generated topic from study material upload.",
-                icon: 'file-text',
-                categoryId: 'uncategorized', 
-                part: 'Part A', // Default part
-                examCategories: examCategories,
-                material: textContent
-            };
-            const topicRef = await addDoc(collection(db, 'topics'), newTopicData);
-            topicId = topicRef.id;
-            newTopic = { id: topicId, ...newTopicData };
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to process the file on the server.');
+            }
+
+            const { newMaterial, newTopic } = await response.json();
+
+            setMaterials(prev => [newMaterial, ...prev].sort((a,b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()));
+            if (newTopic) {
+                setTopics(prev => [...prev, newTopic]);
+            }
+
+            toast({ title: 'Success', description: 'Study material uploaded successfully.' });
+            form.reset({ topicName: '', file: undefined, examCategories: [] });
+            setIsUploadDialogOpen(false);
+            
+        } catch (error: any) {
+            console.error("Study material upload error:", error);
+            toast({ title: 'Upload Failed', description: error.message, variant: 'destructive' });
+        } finally {
+            setIsUploading(false);
         }
-        
-        if (!topicId) {
-            return NextResponse.json({ error: 'Failed to find or create a topic.' }, { status: 500 });
+    };
+    
+    const handleDelete = async (materialId: string) => {
+        try {
+            await deleteStudyMaterial(materialId);
+            setMaterials(prev => prev.filter(m => m.id !== materialId));
+            toast({ title: 'Success', description: 'Study material deleted.' });
+        } catch (error) {
+            console.error("Failed to delete study material", error);
+            toast({ title: 'Error', description: 'Could not delete the material.', variant: 'destructive' });
         }
-        
-        const studyMaterialDoc = {
-            topicId: topicId,
-            fileName: file.name || 'unnamed-file',
-            fileType: file.type || 'application/octet-stream',
-            content: downloadURL,
-            uploadedAt: new Date(),
-        };
+    };
+    
+    const getTopicTitle = (topicId: string) => topics.find(t => t.id === topicId)?.title || 'N/A';
 
-        const docRef = await addDoc(collection(db, 'studyMaterials'), studyMaterialDoc);
-        const newMaterial = { id: docRef.id, ...studyMaterialDoc };
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Study Material</CardTitle>
+                    <CardDescription>Manage and upload study materials for various topics.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button>
+                                <Upload className="mr-2 h-4 w-4" />
+                                Upload New Study Material
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Upload Study Material</DialogTitle>
+                                <DialogDescription>
+                                    Upload study material for a topic. You can link it to an existing topic by name, or create a new topic. Supported formats: .pdf
+                                </DialogDescription>
+                            </DialogHeader>
+                            <Form {...form}>
+                                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                                    <FormField
+                                        control={control}
+                                        name="topicName"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                            <FormLabel>Topic (Optional)</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Enter topic name..." {...field} />
+                                            </FormControl>
+                                            <FormDescription>If topic exists, it will link. If not, a new topic will be created.</FormDescription>
+                                            <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                    control={control}
+                                    name="examCategories"
+                                    render={() => (
+                                        <FormItem>
+                                        <div className="mb-4">
+                                            <FormLabel className="text-base">Exam Categories</FormLabel>
+                                            <FormDescription>Select which courses this material should be available for.</FormDescription>
+                                        </div>
+                                        <div className="space-y-2">
+                                        {examCategories.map((item) => (
+                                            <FormField
+                                            key={item}
+                                            control={control}
+                                            name="examCategories"
+                                            render={({ field }) => {
+                                                return (
+                                                <FormItem key={item} className="flex flex-row items-start space-x-3 space-y-0">
+                                                    <FormControl>
+                                                    <Checkbox
+                                                        checked={field.value?.includes(item)}
+                                                        onCheckedChange={(checked) => {
+                                                        return checked
+                                                            ? field.onChange([...(field.value || []), item])
+                                                            : field.onChange(
+                                                                field.value?.filter(
+                                                                (value) => value !== item
+                                                                )
+                                                            )
+                                                        }}
+                                                    />
+                                                    </FormControl>
+                                                    <FormLabel className="font-normal">{item}</FormLabel>
+                                                </FormItem>
+                                                )
+                                            }}
+                                            />
+                                        ))}
+                                        </div>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                    />
+                                    <FormItem>
+                                        <FormLabel>Material File (.pdf)</FormLabel>
+                                        <FormControl>
+                                            <Input type="file" accept=".pdf" {...register("file")} />
+                                        </FormControl>
+                                        {errors.file && <p className="text-sm font-medium text-destructive">{`${errors.file.message}`}</p>}
+                                    </FormItem>
 
-        return NextResponse.json({
-            message: 'File uploaded and processed successfully.',
-            newMaterial,
-            newTopic
-        });
+                                    <Button type="submit" disabled={isUploading} className="w-full">
+                                        {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                                        Upload Material
+                                    </Button>
+                                </form>
+                            </Form>
+                        </DialogContent>
+                    </Dialog>
+                    
+                    <div className="relative pt-4">
+                        <Search className="absolute left-2.5 top-6 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search by title or file name..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-8 w-full"
+                        />
+                    </div>
+                </CardContent>
+            </Card>
 
-    } catch (error: any) {
-        console.error('API Error:', error);
-        return NextResponse.json({ error: error.message || 'An unknown error occurred.' }, { status: 500 });
-    }
+            <Card>
+                <CardHeader>
+                    <CardTitle>Uploaded Materials</CardTitle>
+                </CardHeader>
+                <CardContent>
+                     <div className="border rounded-md">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Title</TableHead>
+                                    <TableHead>File Name</TableHead>
+                                    <TableHead>Uploaded At</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredMaterials.length > 0 ? (
+                                    filteredMaterials.map(material => (
+                                        <TableRow key={material.id}>
+                                            <TableCell className="font-medium">{getTopicTitle(material.topicId)}</TableCell>
+                                            <TableCell>{material.fileName}</TableCell>
+                                            <TableCell>{format(new Date(material.uploadedAt), 'dd/MM/yyyy p')}</TableCell>
+                                            <TableCell className="text-right">
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                            <AlertDialogDesc>This will permanently delete the material "{material.fileName}". This action cannot be undone.</AlertDialogDesc>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handleDelete(material.id)}>Delete</AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="h-24 text-center">No study materials found.</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
 }

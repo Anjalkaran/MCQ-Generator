@@ -10,19 +10,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Trash2, Eye, FileText, Check, ChevronsUpDown, Search, Library } from 'lucide-react';
+import { Loader2, Upload, Trash2, Search } from 'lucide-react';
 import { deleteStudyMaterial, addTopic } from '@/lib/firestore';
 import type { Topic, StudyMaterial } from '@/lib/types';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription as AlertDialogDesc, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 import { Checkbox } from '../ui/checkbox';
 import { useDashboard } from '@/app/dashboard/layout';
+import { getFirebaseStorage } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { v4 as uuidv4 } from 'uuid';
 
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -66,7 +65,7 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
         }
     });
 
-    const { register, handleSubmit, control, formState: { errors }, setValue, watch } = form;
+    const { register, handleSubmit, control, formState: { errors } } = form;
 
     const filteredMaterials = useMemo(() => {
         if (!searchTerm) {
@@ -82,25 +81,42 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setIsUploading(true);
         if (!user) {
-            toast({ title: "Authentication Error", description: "Firebase services are not ready.", variant: "destructive" });
+            toast({ title: "Authentication Error", description: "You must be logged in to upload.", variant: "destructive" });
+            setIsUploading(false);
+            return;
+        }
+        
+        const storage = getFirebaseStorage();
+        if (!storage) {
+            toast({ title: "Storage Error", description: "Firebase Storage is not available.", variant: "destructive" });
             setIsUploading(false);
             return;
         }
 
-        const formData = new FormData();
-        formData.append('file', values.file[0]);
-        formData.append('topicName', values.topicName || '');
-        formData.append('examCategories', JSON.stringify(values.examCategories));
-
+        const file = values.file[0] as File;
+        
         try {
-            const response = await fetch('/api/study-material/upload', {
+            // 1. Upload file to a temporary location
+            const tempFileName = `${uuidv4()}-${file.name}`;
+            const tempStorageRef = ref(storage, `temp-materials/${user.uid}/${tempFileName}`);
+            await uploadBytes(tempStorageRef, file);
+
+            // 2. Call the new server-side processing API
+            const response = await fetch('/api/study-material/process', {
                 method: 'POST',
-                body: formData,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: user.uid,
+                    tempFileName: tempFileName,
+                    originalFileName: file.name,
+                    topicName: values.topicName || '',
+                    examCategories: values.examCategories,
+                }),
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to upload.');
+                throw new Error(errorData.error || 'Failed to process the file on the server.');
             }
 
             const { newMaterial, newTopic } = await response.json();
@@ -299,3 +315,5 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
         </div>
     );
 }
+
+    
