@@ -1,7 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { getFirebaseDb, getFirebaseStorage } from '@/lib/firebase-admin';
-import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, getDocs, query, where } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import pdf from 'pdf-parse';
@@ -18,15 +18,15 @@ export async function POST(request: Request) {
     try {
         const formData = await request.formData();
         const file = formData.get('file') as File | null;
-        let topicId = formData.get('topicId') as string | null;
+        let topicName = formData.get('topicName') as string | null;
         const examCategories = JSON.parse(formData.get('examCategories') as string || '[]');
 
         if (!file) {
             return NextResponse.json({ error: 'No file uploaded.' }, { status: 400 });
         }
         
-        if (topicId === 'undefined' || topicId === 'null') {
-          topicId = 'new';
+        if (!topicName) {
+            topicName = file.name?.replace(/\.[^/.]+$/, "") || "Untitled Topic";
         }
 
         const fileBuffer = Buffer.from(await file.arrayBuffer());
@@ -37,11 +37,25 @@ export async function POST(request: Request) {
         const fileRef = ref(storage, filePath);
         await uploadBytes(fileRef, fileBuffer, { contentType: file.type });
         const downloadURL = await getDownloadURL(fileRef);
-
+        
+        let topicId: string | null = null;
         let newTopic: Topic | null = null;
-        if (topicId === 'new') {
+
+        // Check if topic with this name already exists
+        const topicsRef = collection(db, 'topics');
+        const q = query(topicsRef, where("title", "==", topicName));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+            // Topic exists, use its ID
+            const existingTopicDoc = querySnapshot.docs[0];
+            topicId = existingTopicDoc.id;
+            const topicRef = doc(db, 'topics', topicId);
+            await updateDoc(topicRef, { material: textContent });
+        } else {
+            // Topic does not exist, create a new one
             const newTopicData: Omit<Topic, 'id'> = {
-                title: file.name?.replace(/\.[^/.]+$/, "") || "Untitled Topic",
+                title: topicName,
                 description: "Auto-generated topic from study material upload.",
                 icon: 'file-text',
                 categoryId: 'uncategorized', 
@@ -52,14 +66,10 @@ export async function POST(request: Request) {
             const topicRef = await addDoc(collection(db, 'topics'), newTopicData);
             topicId = topicRef.id;
             newTopic = { id: topicId, ...newTopicData };
-
-        } else if (topicId) {
-            const topicRef = doc(db, 'topics', topicId);
-            await updateDoc(topicRef, { material: textContent });
         }
         
         if (!topicId) {
-            return NextResponse.json({ error: 'Topic ID is missing.' }, { status: 400 });
+            return NextResponse.json({ error: 'Failed to find or create a topic.' }, { status: 500 });
         }
         
         const studyMaterialDoc = {
@@ -84,4 +94,3 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: error.message || 'An unknown error occurred.' }, { status: 500 });
     }
 }
-

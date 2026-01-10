@@ -30,7 +30,7 @@ const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
 
 const formSchema = z.object({
-  topicId: z.string().optional(),
+  topicName: z.string().optional(),
   file: z
     .any()
     .refine((files) => files?.length === 1, 'File is required.')
@@ -55,14 +55,13 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
     const [isUploading, setIsUploading] = useState(false);
     const [topics, setTopics] = useState<Topic[]>(initialTopics);
     const [materials, setMaterials] = useState<StudyMaterial[]>(initialMaterials);
-    const [popoverOpen, setPopoverOpen] = useState(false);
     const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            topicId: 'new',
+            topicName: '',
             examCategories: [],
         }
     });
@@ -90,7 +89,7 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
 
         const formData = new FormData();
         formData.append('file', values.file[0]);
-        formData.append('topicId', values.topicId || 'new');
+        formData.append('topicName', values.topicName || '');
         formData.append('examCategories', JSON.stringify(values.examCategories));
 
         try {
@@ -106,14 +105,13 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
 
             const { newMaterial, newTopic } = await response.json();
 
-            // 4. Update local state
             setMaterials(prev => [newMaterial, ...prev].sort((a,b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()));
             if (newTopic) {
                 setTopics(prev => [...prev, newTopic]);
             }
 
             toast({ title: 'Success', description: 'Study material uploaded successfully.' });
-            form.reset({ topicId: 'new', file: undefined, examCategories: [] });
+            form.reset({ topicName: '', file: undefined, examCategories: [] });
             setIsUploadDialogOpen(false);
             
         } catch (error: any) {
@@ -156,50 +154,21 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                             <DialogHeader>
                                 <DialogTitle>Upload Study Material</DialogTitle>
                                 <DialogDescription>
-                                    Upload study material for a topic. You can link it to an existing topic or create a new topic based on the filename. Supported formats: .pdf
+                                    Upload study material for a topic. You can link it to an existing topic by name, or create a new topic. Supported formats: .pdf
                                 </DialogDescription>
                             </DialogHeader>
                             <Form {...form}>
                                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                                     <FormField
                                         control={control}
-                                        name="topicId"
+                                        name="topicName"
                                         render={({ field }) => (
-                                            <FormItem className="flex flex-col">
+                                            <FormItem>
                                             <FormLabel>Topic (Optional)</FormLabel>
-                                            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                                                <PopoverTrigger asChild>
-                                                <FormControl>
-                                                    <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                                        {field.value && field.value !== 'new'
-                                                            ? topics.find(topic => topic.id === field.value)?.title
-                                                            : "Create New Topic from Filename"}
-                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                    </Button>
-                                                </FormControl>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-full p-0" style={{minWidth: "var(--radix-popover-trigger-width)"}}>
-                                                    <Command>
-                                                        <CommandInput placeholder="Search topic..." />
-                                                        <CommandList>
-                                                            <CommandEmpty>No topic found.</CommandEmpty>
-                                                            <CommandGroup>
-                                                                <CommandItem key="new-topic" value="Create New Topic from Filename" onSelect={() => { setValue("topicId", "new"); setPopoverOpen(false); }}>
-                                                                    <Check className={cn("mr-2 h-4 w-4", field.value === "new" ? "opacity-100" : "opacity-0")} />
-                                                                    Create New Topic from Filename
-                                                                </CommandItem>
-                                                                {topics.map((topic) => (
-                                                                    <CommandItem value={topic.title} key={topic.id} onSelect={() => { setValue("topicId", topic.id); setPopoverOpen(false); }}>
-                                                                        <Check className={cn("mr-2 h-4 w-4", topic.id === field.value ? "opacity-100" : "opacity-0")} />
-                                                                        {topic.title}
-                                                                    </CommandItem>
-                                                                ))}
-                                                            </CommandGroup>
-                                                        </CommandList>
-                                                    </Command>
-                                                </PopoverContent>
-                                            </Popover>
-                                            <FormDescription>Select an existing topic or leave as is to auto-create a new one.</FormDescription>
+                                            <FormControl>
+                                                <Input placeholder="Enter topic name..." {...field} />
+                                            </FormControl>
+                                            <FormDescription>If topic exists, it will link. If not, a new topic will be created.</FormDescription>
                                             <FormMessage />
                                             </FormItem>
                                         )}
