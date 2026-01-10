@@ -30,7 +30,7 @@ export async function POST(request: Request) {
         }
 
         const fileBuffer = await file.arrayBuffer();
-        const pdfData = await pdf(fileBuffer);
+        const pdfData = await pdf(Buffer.from(fileBuffer));
         const textContent = pdfData.text;
 
         const filePath = `study-materials/${uuidv4()}-${file.name}`;
