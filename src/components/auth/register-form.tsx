@@ -23,7 +23,15 @@ import { Alert, AlertTitle } from '@/components/ui/alert';
 
 const formSchema = z.object({
   name: z.string().min(1, { message: 'Username is required.' }),
-  email: z.string().email({ message: 'Invalid email address.' }),
+  email: z.string().email({ message: 'Invalid email address.' }).refine(
+    (email) => {
+        const lowercasedEmail = email.toLowerCase();
+        return lowercasedEmail.endsWith('@gmail.com') || lowercasedEmail.endsWith('@anjalkaran.com');
+    },
+    {
+        message: "Only @gmail.com and @anjalkaran.com addresses are allowed.",
+    }
+  ),
   phone: z.string().min(10, { message: 'A valid 10-digit mobile number is required.' }),
   employeeId: z.string().length(8, { message: 'Employee ID must be exactly 8 digits.' }).regex(/^\d{8}$/, 'Employee ID must be a number.'),
   city: z.string().min(2, { message: "City is required." }),
