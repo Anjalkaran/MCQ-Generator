@@ -11,17 +11,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload, Trash2, Search } from 'lucide-react';
-import { deleteStudyMaterial, addTopic } from '@/lib/firestore';
+import { deleteStudyMaterial } from '@/lib/firestore';
 import type { Topic, StudyMaterial } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription as AlertDialogDesc, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from 'date-fns';
 import { Checkbox } from '../ui/checkbox';
-import { useDashboard } from '@/app/dashboard/layout';
-import { getFirebaseStorage } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { v4 as uuidv4 } from 'uuid';
 
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -50,7 +46,6 @@ interface StudyMaterialManagementProps {
 
 export function StudyMaterialManagement({ initialTopics, initialMaterials }: StudyMaterialManagementProps) {
     const { toast } = useToast();
-    const { user } = useDashboard();
     const [isUploading, setIsUploading] = useState(false);
     const [topics, setTopics] = useState<Topic[]>(initialTopics);
     const [materials, setMaterials] = useState<StudyMaterial[]>(initialMaterials);
@@ -80,43 +75,24 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setIsUploading(true);
-        if (!user) {
-            toast({ title: "Authentication Error", description: "You must be logged in to upload.", variant: "destructive" });
-            setIsUploading(false);
-            return;
-        }
+        const file = values.file[0];
         
-        const storage = getFirebaseStorage();
-        if (!storage) {
-            toast({ title: "Storage Error", description: "Firebase Storage is not available.", variant: "destructive" });
-            setIsUploading(false);
-            return;
+        const formData = new FormData();
+        formData.append('file', file);
+        if (values.topicName) {
+            formData.append('topicName', values.topicName);
         }
+        values.examCategories.forEach(cat => formData.append('examCategories', cat));
 
-        const file = values.file[0] as File;
-        
         try {
-            // 1. Upload file to a temporary location
-            const tempFileName = `${uuidv4()}-${file.name}`;
-            const tempStorageRef = ref(storage, `temp-materials/${user.uid}/${tempFileName}`);
-            await uploadBytes(tempStorageRef, file);
-
-            // 2. Call the new server-side processing API
-            const response = await fetch('/api/study-material/process', {
+            const response = await fetch('/api/study-material/upload', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: user.uid,
-                    tempFileName: tempFileName,
-                    originalFileName: file.name,
-                    topicName: values.topicName || '',
-                    examCategories: values.examCategories,
-                }),
+                body: formData,
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to process the file on the server.');
+                throw new Error(errorData.error || 'Failed to upload and process the file.');
             }
 
             const { newMaterial, newTopic } = await response.json();
@@ -180,7 +156,7 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                                         name="topicName"
                                         render={({ field }) => (
                                             <FormItem>
-                                            <FormLabel>Topic (Optional)</FormLabel>
+                                            <FormLabel>Topic Name (Optional)</FormLabel>
                                             <FormControl>
                                                 <Input placeholder="Enter topic name..." {...field} />
                                             </FormControl>
@@ -316,3 +292,4 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
     );
 }
 
+    
