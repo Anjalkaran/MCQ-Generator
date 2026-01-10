@@ -22,16 +22,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '../ui/checkbox';
-import { getFirebaseAuth, getFirebaseStorage } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useDashboard } from '@/app/dashboard/layout';
-import { v4 as uuidv4 } from 'uuid';
-import * as pdfjsLib from 'pdfjs-dist';
-import { addDoc, collection, doc, updateDoc } from 'firebase/firestore';
-import { getFirebaseDb } from '@/lib/firebase';
-
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -91,66 +82,29 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setIsUploading(true);
-        const db = getFirebaseDb();
-        const storage = getFirebaseStorage();
-        if (!user || !db || !storage) {
-            toast({ title: "Initialization Error", description: "Firebase services are not ready.", variant: "destructive" });
+        if (!user) {
+            toast({ title: "Authentication Error", description: "Firebase services are not ready.", variant: "destructive" });
             setIsUploading(false);
             return;
         }
 
-        const uploadedFile: File = values.file[0];
+        const formData = new FormData();
+        formData.append('file', values.file[0]);
+        formData.append('topicId', values.topicId || 'new');
+        formData.append('examCategories', JSON.stringify(values.examCategories));
 
         try {
-            // 1. Parse PDF on the client
-            const fileBuffer = await uploadedFile.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument(fileBuffer).promise;
-            let textContent = '';
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const text = await page.getTextContent();
-                textContent += text.items.map(s => (s as any).str).join(' ');
-            }
-            
-            // 2. Upload file to final destination in Firebase Storage
-            const filePath = `study-materials/${uuidv4()}-${uploadedFile.name}`;
-            const fileRef = ref(storage, filePath);
-            await uploadBytes(fileRef, fileBuffer, { contentType: uploadedFile.type });
-            const downloadURL = await getDownloadURL(fileRef);
+            const response = await fetch('/api/study-material/upload', {
+                method: 'POST',
+                body: formData,
+            });
 
-            // 3. Create or update Firestore documents
-            let topicId = values.topicId;
-            let newTopic: Topic | null = null;
-            if (topicId === 'new') {
-                const newTopicData: Omit<Topic, 'id'> = {
-                    title: uploadedFile.name?.replace(/\.[^/.]+$/, "") || "Untitled Topic",
-                    description: "Auto-generated topic from study material upload.",
-                    icon: 'file-text',
-                    categoryId: 'uncategorized', 
-                    part: 'Part A', // Default part
-                    examCategories: values.examCategories,
-                    material: textContent
-                };
-                const topicRef = await addTopic(newTopicData);
-                topicId = topicRef.id;
-                newTopic = { id: topicId, ...newTopicData };
-            } else if (topicId) {
-                const topicRef = doc(db, 'topics', topicId);
-                await updateDoc(topicRef, { material: textContent });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to upload.');
             }
 
-            if (!topicId) throw new Error("Topic ID is invalid.");
-
-            const studyMaterialDoc = {
-                topicId: topicId,
-                fileName: uploadedFile.name,
-                fileType: uploadedFile.type,
-                content: downloadURL, // Use final download URL
-                uploadedAt: new Date(),
-            };
-
-            const docRef = await addDoc(collection(db, 'studyMaterials'), studyMaterialDoc);
-            const newMaterial = { id: docRef.id, ...studyMaterialDoc };
+            const { newMaterial, newTopic } = await response.json();
 
             // 4. Update local state
             setMaterials(prev => [newMaterial, ...prev].sort((a,b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()));
