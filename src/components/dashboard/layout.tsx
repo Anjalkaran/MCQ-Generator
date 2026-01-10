@@ -13,7 +13,7 @@ import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
-import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback, getFreeClassRegistrations as fetchFreeClassRegistrations } from '@/lib/firestore';
+import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback, getFreeClassRegistrations as fetchFreeClassRegistrations, getOnlineUsers as fetchOnlineUsers, updateDoc, doc } from '@/lib/firestore';
 import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, VideoClass, StudyMaterial, FreeClassRegistration } from "@/lib/types";
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
@@ -25,7 +25,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { increment } from 'firebase/firestore';
+import { increment, serverTimestamp } from 'firebase/firestore';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -611,6 +611,77 @@ export default function DashboardLayout({
     }
   }, [router, toast]);
 
+  // Version Check Effect
+  useEffect(() => {
+    if (!user) return;
+    const currentVersion = process.env.APP_VERSION;
+    
+    const versionCheckInterval = setInterval(async () => {
+        try {
+            const response = await fetch('/api/version');
+            if (response.ok) {
+                const { version: serverVersion } = await response.json();
+                if (currentVersion && serverVersion && currentVersion !== serverVersion) {
+                    setShowUpdateAlert(true);
+                    clearInterval(versionCheckInterval);
+                }
+            }
+        } catch (error) {
+            console.error("Version check failed:", error);
+        }
+    }, 60 * 1000); // Check every 60 seconds
+
+    return () => clearInterval(versionCheckInterval);
+  }, [user]);
+
+  // Heartbeat effect to update user's lastSeen timestamp
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+    if (user?.uid) {
+      const sendHeartbeat = async () => {
+        try {
+          const auth = getFirebaseAuth();
+          if (auth && auth.currentUser) {
+            const userRef = doc(getFirebaseDb()!, 'users', auth.currentUser.uid);
+            await updateDoc(userRef, { lastSeen: serverTimestamp() });
+          }
+        } catch (error) {
+          console.error("Failed to send heartbeat:", error);
+        }
+      };
+      sendHeartbeat();
+      intervalId = setInterval(sendHeartbeat, 60000); // every 60 seconds
+    }
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [user]);
+  
+  // Online user count refresh effect for admins
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | undefined;
+    if (userData?.email && ADMIN_EMAILS.includes(userData.email)) {
+        const fetchAndSetOnlineUsers = async () => {
+            try {
+                const users = await fetchOnlineUsers();
+                setOnlineUsers(users);
+            } catch (error) {
+                console.error("Failed to fetch online users:", error);
+            }
+        };
+        // Fetch immediately and then set interval
+        fetchAndSetOnlineUsers();
+        intervalId = setInterval(fetchAndSetOnlineUsers, 30000); // Refresh every 30 seconds
+    }
+    return () => {
+        if (intervalId) {
+            clearInterval(intervalId);
+        }
+    };
+  }, [userData]);
+
 
   useEffect(() => {
     const auth = getFirebaseAuth();
@@ -775,6 +846,7 @@ export default function DashboardLayout({
             setLiveTestBank(data.liveTestBank || []);
             setQnaUsage(data.qnaUsage || []);
             setNotifications(data.notifications || []);
+            setFreeClassRegistrations(data.freeClassRegistrations || []);
         });
     }
   }, [userData]);
@@ -842,3 +914,4 @@ export default function DashboardLayout({
     </DashboardContext.Provider>
   );
 }
+

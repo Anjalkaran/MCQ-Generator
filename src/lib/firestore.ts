@@ -34,6 +34,19 @@ export const getAllUsers = async (): Promise<UserData[]> => {
   return userSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserData));
 };
 
+export const getOnlineUsers = async (): Promise<UserData[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+    const usersCollection = collection(db, 'users');
+    const q = query(usersCollection, where('lastSeen', '>', twoMinutesAgo));
+    const snapshot = await getDocs(q);
+
+    return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserData));
+};
+
+
 export const createUserDocument = async (userData: Omit<UserData, 'id'>): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
