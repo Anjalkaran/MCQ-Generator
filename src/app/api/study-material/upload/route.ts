@@ -2,7 +2,6 @@
 import { NextResponse } from 'next/server';
 import { getFirebaseDb, getFirebaseStorage } from '@/lib/firebase-admin';
 import { collection, addDoc, doc, updateDoc, getDocs, query, where } from 'firebase/firestore';
-import pdf from 'pdf-parse';
 import type { Topic, StudyMaterial } from '@/lib/types';
 
 export async function POST(request: Request) {
@@ -27,11 +26,7 @@ export async function POST(request: Request) {
         // 1. Read file into a buffer
         const fileBuffer = Buffer.from(await file.arrayBuffer());
 
-        // 2. Parse the PDF content from the buffer
-        const pdfData = await pdf(fileBuffer);
-        const textContent = pdfData.text;
-
-        // 3. Upload file buffer to permanent storage
+        // 2. Upload file buffer to permanent storage
         const permanentFilePath = `study-materials/${Date.now()}-${file.name}`;
         const permanentFile = bucket.file(permanentFilePath);
         await permanentFile.save(fileBuffer, {
@@ -40,7 +35,7 @@ export async function POST(request: Request) {
         });
         const downloadURL = permanentFile.publicUrl();
 
-        // 4. Find or create the topic in Firestore
+        // 3. Find or create the topic in Firestore
         let topicId: string | null = null;
         let newTopic: Topic | null = null;
         const finalTopicName = topicName || file.name.replace(/\.[^/.]+$/, "") || "Untitled Topic";
@@ -49,23 +44,28 @@ export async function POST(request: Request) {
         const q = query(topicsRef, where("title", "==", finalTopicName));
         const querySnapshot = await getDocs(q);
 
+        // Intentionally leaving the 'material' (text content) field empty.
+        // The PDF parsing was causing the server to crash.
+        const textContent = ""; 
+
         if (!querySnapshot.empty) {
             const existingTopicDoc = querySnapshot.docs[0];
             topicId = existingTopicDoc.id;
             const topicRef = doc(db, 'topics', topicId);
-            // Don't overwrite existing material, just ensure categories are there
             const existingData = existingTopicDoc.data() as Topic;
             const updatedCategories = Array.from(new Set([...existingData.examCategories, ...examCategories]));
-            await updateDoc(topicRef, { material: textContent, examCategories: updatedCategories });
+            
+            // Only update categories. Do not overwrite material.
+            await updateDoc(topicRef, { examCategories: updatedCategories });
         } else {
             const newTopicData: Omit<Topic, 'id'> = {
                 title: finalTopicName,
                 description: "Auto-generated topic from study material upload.",
                 icon: 'file-text',
-                categoryId: 'uncategorized',
-                part: 'Part A',
+                categoryId: 'uncategorized', 
+                part: 'Part A', // Default part
                 examCategories: examCategories,
-                material: textContent
+                material: textContent // Storing empty string
             };
             const topicRef = await addDoc(collection(db, 'topics'), newTopicData);
             topicId = topicRef.id;
@@ -76,12 +76,12 @@ export async function POST(request: Request) {
             throw new Error('Failed to find or create a topic.');
         }
         
-        // 5. Create the study material document in Firestore
+        // 4. Create the study material document in Firestore
         const studyMaterialData: Omit<StudyMaterial, 'id'> = {
             topicId: topicId,
             fileName: file.name,
             fileType: file.type,
-            content: downloadURL,
+            content: downloadURL, // This is the URL to the PDF file
             uploadedAt: new Date(),
         };
 
@@ -89,15 +89,14 @@ export async function POST(request: Request) {
         const newMaterial = { id: docRef.id, ...studyMaterialData };
 
         return NextResponse.json({
-            message: 'File uploaded and processed successfully.',
+            message: 'File uploaded successfully. PDF parsing is deferred.',
             newMaterial,
             newTopic
         });
 
     } catch (error: any) {
         console.error('API Error in upload route:', error);
+        // Ensure a valid JSON response is sent on error
         return NextResponse.json({ error: error.message || 'An unknown server error occurred.' }, { status: 500 });
     }
 }
-
-    
