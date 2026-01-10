@@ -26,14 +26,22 @@ export async function POST(request: Request) {
         // 1. Read file into a buffer
         const fileBuffer = Buffer.from(await file.arrayBuffer());
 
-        // 2. Upload file buffer to permanent storage
+        // 2. Upload file buffer to permanent storage using bucket.upload()
         const permanentFilePath = `study-materials/${Date.now()}-${file.name}`;
         const permanentFile = bucket.file(permanentFilePath);
-        await permanentFile.save(fileBuffer, {
-            contentType: file.type,
-            public: true, // Make the file publicly readable
+
+        await permanentFile.upload(fileBuffer, {
+            metadata: {
+                contentType: file.type,
+            },
         });
-        const downloadURL = permanentFile.publicUrl();
+        
+        // Make the file publicly accessible
+        await permanentFile.makePublic();
+
+        // Construct the public URL manually
+        const downloadURL = `https://storage.googleapis.com/${bucket.name}/${permanentFile.name}`;
+
 
         // 3. Find or create the topic in Firestore
         let topicId: string | null = null;
@@ -89,7 +97,7 @@ export async function POST(request: Request) {
         const newMaterial = { id: docRef.id, ...studyMaterialData };
 
         return NextResponse.json({
-            message: 'File uploaded successfully. PDF parsing is deferred.',
+            message: 'File uploaded successfully.',
             newMaterial,
             newTopic
         });
