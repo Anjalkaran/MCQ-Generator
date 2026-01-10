@@ -6,28 +6,6 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import pdf from 'pdf-parse';
 import type { Topic } from '@/lib/types';
-import formidable from 'formidable';
-import fs from 'fs/promises';
-
-// This function is defined to match the expected API route structure in Next.js 13+ App Router.
-// The formidable config is set to disable the default body parser.
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
-// Helper to parse form data
-const parseForm = (req: Request): Promise<{ fields: formidable.Fields; files: formidable.Files }> => {
-    return new Promise((resolve, reject) => {
-        const form = formidable({});
-        // @ts-ignore
-        form.parse(req, (err, fields, files) => {
-            if (err) return reject(err);
-            resolve({ fields, files });
-        });
-    });
-};
 
 
 export async function POST(request: Request) {
@@ -106,3 +84,4 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: error.message || 'An unknown error occurred.' }, { status: 500 });
     }
 }
+
