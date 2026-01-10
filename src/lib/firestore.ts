@@ -2,7 +2,7 @@
 
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion, runTransaction } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ, MCQData, VideoClass, FreeClassRegistration, StudyMaterial } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ, MCQData, VideoClass, FreeClassRegistration, StudyMaterial, AptiSolveLaunch } from './types';
 import { ADMIN_EMAILS } from './constants';
 import { normalizeDate } from './utils';
 
@@ -1067,5 +1067,31 @@ export const getGeneratedQuiz = async (quizId: string): Promise<MCQData | null> 
     }
     return null;
 }
+
+// APTISOLVE LAUNCH TRACKING
+export const logAptiSolveLaunch = async (userId: string, userName: string, userEmail: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    await addDoc(collection(db, 'aptiSolveLaunches'), { 
+        userId,
+        userName,
+        userEmail,
+        launchedAt: serverTimestamp() 
+    });
+};
+
+export const getAptiSolveLaunches = async (): Promise<AptiSolveLaunch[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const snapshot = await getDocs(query(collection(db, 'aptiSolveLaunches'), orderBy('launchedAt', 'desc')));
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            ...data,
+            launchedAt: normalizeDate(data.launchedAt) || new Date()
+        } as AptiSolveLaunch;
+    });
+};
 
     

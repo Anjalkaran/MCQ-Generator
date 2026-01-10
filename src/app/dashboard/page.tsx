@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useDashboard } from "@/app/dashboard/layout";
@@ -10,6 +11,7 @@ import { UpcomingLiveTest } from "@/components/dashboard/upcoming-live-test";
 import { ADMIN_EMAILS } from "@/lib/constants";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AptiSolveIcon } from "@/components/icons/aptisolve-icon";
+import { logAptiSolveLaunch } from "@/lib/firestore";
 
 
 export default function DashboardPage() {
@@ -37,6 +39,13 @@ export default function DashboardPage() {
   }
   
   const isAdmin = userData.email ? ADMIN_EMAILS.includes(userData.email) : false;
+
+  const handleAptiSolveClick = () => {
+    if (user && userData) {
+        logAptiSolveLaunch(user.uid, userData.name, userData.email);
+        window.open("https://aptisolve-582671064856.us-west1.run.app/", "_blank", "noopener,noreferrer");
+    }
+  };
 
   if (userData.examCategory === 'IP') {
     return (
@@ -199,10 +208,8 @@ export default function DashboardPage() {
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex-grow flex items-end">
-                <Button asChild className="w-full">
-                    <a href="https://aptisolve-582671064856.us-west1.run.app/" target="_blank" rel="noopener noreferrer">
-                        Launch AptiSolve
-                    </a>
+                <Button onClick={handleAptiSolveClick} className="w-full">
+                    Launch AptiSolve
                 </Button>
             </CardContent>
         </Card>

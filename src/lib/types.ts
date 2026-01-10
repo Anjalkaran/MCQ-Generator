@@ -211,3 +211,11 @@ export interface StudyMaterial {
     content: string;
     uploadedAt: Date;
 }
+
+export interface AptiSolveLaunch {
+    id: string;
+    userId: string;
+    userName: string;
+    userEmail: string;
+    launchedAt: Date;
+}
