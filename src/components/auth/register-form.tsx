@@ -23,12 +23,7 @@ import { Alert, AlertTitle } from '@/components/ui/alert';
 
 const formSchema = z.object({
   name: z.string().min(1, { message: 'Username is required.' }),
-  email: z.string().email({ message: 'Invalid email address.' }).refine(
-    (email) => email.toLowerCase().endsWith('@gmail.com'),
-    {
-      message: "Only @gmail.com addresses are allowed for registration.",
-    }
-  ),
+  email: z.string().email({ message: 'Invalid email address.' }),
   phone: z.string().min(10, { message: 'A valid 10-digit mobile number is required.' }),
   employeeId: z.string().length(8, { message: 'Employee ID must be exactly 8 digits.' }).regex(/^\d{8}$/, 'Employee ID must be a number.'),
   city: z.string().min(2, { message: "City is required." }),
@@ -162,7 +157,7 @@ export function RegisterForm() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="name@gmail.com" {...field} />
+                    <Input placeholder="name@example.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
