@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -18,13 +17,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription as AlertDialogDesc, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from 'date-fns';
 import { Checkbox } from '../ui/checkbox';
-import * as pdfjs from 'pdfjs-dist/build/pdf.mjs';
-import { getFirebaseStorage } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { v4 as uuidv4 } from 'uuid';
-
-
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -83,47 +75,18 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setIsUploading(true);
         const file = values.file[0] as File;
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        if (values.topicName) {
+            formData.append('topicName', values.topicName);
+        }
+        values.examCategories.forEach(cat => formData.append('examCategories', cat));
 
         try {
-            // 1. Extract text content from PDF on the client-side
-            const fileReader = new FileReader();
-            fileReader.readAsArrayBuffer(file);
-            const textContent = await new Promise<string>((resolve, reject) => {
-                fileReader.onload = async (event) => {
-                    if (!event.target?.result) return reject('Could not read file');
-                    const typedarray = new Uint8Array(event.target.result as ArrayBuffer);
-                    const pdf = await pdfjs.getDocument(typedarray).promise;
-                    let fullText = "";
-                    for (let i = 1; i <= pdf.numPages; i++) {
-                        const page = await pdf.getPage(i);
-                        const textContent = await page.getTextContent();
-                        fullText += textContent.items.map(item => ('str' in item ? item.str : '')).join(' ');
-                    }
-                    resolve(fullText);
-                };
-                fileReader.onerror = () => reject('Error reading file');
-            });
-
-            // 2. Upload file to Firebase Storage
-            const storage = getFirebaseStorage();
-            if (!storage) throw new Error("Firebase Storage is not initialized");
-            
-            const storageRef = ref(storage, `study-materials/${uuidv4()}-${file.name}`);
-            const uploadResult = await uploadBytes(storageRef, file);
-            const downloadURL = await getDownloadURL(uploadResult.ref);
-
-            // 3. Send metadata to server to create database entries
             const response = await fetch('/api/study-material/upload', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    topicName: values.topicName,
-                    examCategories: values.examCategories,
-                    downloadURL: downloadURL,
-                    textContent: textContent,
-                    fileName: file.name,
-                    fileType: file.type,
-                }),
+                body: formData,
             });
 
             if (!response.ok) {
@@ -327,3 +290,4 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
         </div>
     );
 }
+    
