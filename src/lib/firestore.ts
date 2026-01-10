@@ -1047,7 +1047,7 @@ export const getUserLanguagePreferences = async (): Promise<{ userId: string; na
         });
     }
 
-    return preferences.sort((a,b) => a.name.localeCompare(b.name));
+    return preferences.sort((a,b) => (a.name || '').localeCompare(b.name || ''));
 };
 
 
@@ -1093,5 +1093,3 @@ export const getAptiSolveLaunches = async (): Promise<AptiSolveLaunch[]> => {
         } as AptiSolveLaunch;
     });
 };
-
-    
