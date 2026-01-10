@@ -29,8 +29,8 @@ export async function POST(request: Request) {
           topicId = 'new';
         }
 
-        const fileBuffer = await file.arrayBuffer();
-        const pdfData = await pdf(Buffer.from(fileBuffer));
+        const fileBuffer = Buffer.from(await file.arrayBuffer());
+        const pdfData = await pdf(fileBuffer);
         const textContent = pdfData.text;
 
         const filePath = `study-materials/${uuidv4()}-${file.name}`;
