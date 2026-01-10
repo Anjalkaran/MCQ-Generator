@@ -5,7 +5,7 @@
 import React, { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageSquare, Star, PenSquare, RefreshCw, Video, Library, UserCheck } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageSquare, Star, PenSquare, RefreshCw, Video, Library, UserCheck, MessageCircle } from 'lucide-react';
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
 import Link from 'next/link';
 import { getFirebaseAuth } from '@/lib/firebase';
