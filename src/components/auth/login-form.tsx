@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { signInWithEmailAndPassword, fetchSignInMethodsForEmail, sendPasswordResetEmail } from 'firebase/auth';
-import { getFirebaseAuth } from '@/lib/firebase';
+import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 
 
 const formSchema = z.object({
@@ -46,7 +47,7 @@ export function LoginForm() {
         await sendPasswordResetEmail(auth, emailForReset);
         toast({
             title: "Password Reset Email Sent",
-            description: "Please check your inbox to reset your password.",
+            description: "Please check your inbox to create your password.",
         });
     } catch (error) {
         toast({
@@ -59,6 +60,19 @@ export function LoginForm() {
     }
   };
 
+  const checkIfFreeClassUser = async (email: string) => {
+    const db = getFirebaseDb();
+    if (!db) return false;
+    try {
+        const registrationsRef = collection(db, 'freeClassRegistrations');
+        const q = query(registrationsRef, where('email', '==', email), limit(1));
+        const querySnapshot = await getDocs(q);
+        return !querySnapshot.empty;
+    } catch (error) {
+        console.error("Error checking free class registrations:", error);
+        return false;
+    }
+  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
@@ -73,23 +87,6 @@ export function LoginForm() {
         return;
     }
 
-    // This is for existing users who registered for free class without a password
-    if (values.password === "Anjal@2026") {
-      try {
-        const methods = await fetchSignInMethodsForEmail(auth, values.email);
-        if (methods.length === 0) {
-          // User exists in Firestore but not Auth
-          setEmailForReset(values.email);
-          setShowResetPrompt(true);
-          setIsLoading(false);
-          return;
-        }
-      } catch (error) {
-        // Fall through to normal login
-      }
-    }
-
-
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       router.push('/dashboard');
@@ -100,6 +97,13 @@ export function LoginForm() {
         case 'auth/wrong-password':
         case 'auth/invalid-credential':
           errorMessage = 'Invalid email or password. Please try again.';
+          const isFreeUser = await checkIfFreeClassUser(values.email);
+          if (isFreeUser) {
+              setEmailForReset(values.email);
+              setShowResetPrompt(true);
+              setIsLoading(false);
+              return;
+          }
           break;
         case 'auth/invalid-email':
             errorMessage = 'The email address you entered is not valid.';
@@ -125,13 +129,13 @@ export function LoginForm() {
             <AlertDialogHeader>
             <AlertDialogTitle>Set Your Password</AlertDialogTitle>
             <AlertDialogDescription>
-                It looks like this is your first time logging in. To secure your account, please set a new password. A password reset link will be sent to <strong>{emailForReset}</strong>.
+                It looks like you've registered for our free class. To log in and secure your account, please create a password. A password creation link will be sent to <strong>{emailForReset}</strong>.
             </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={handlePasswordReset}>
-                    Send Reset Link
+                    Send Link
                 </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
