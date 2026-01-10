@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, fetchSignInMethodsForEmail, sendPasswordResetEmail } from 'firebase/auth';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -25,6 +27,9 @@ export function LoginForm() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [showResetPrompt, setShowResetPrompt] = useState(false);
+  const [emailForReset, setEmailForReset] = useState('');
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -33,6 +38,27 @@ export function LoginForm() {
       password: '',
     },
   });
+
+  const handlePasswordReset = async () => {
+    const auth = getFirebaseAuth();
+    if (!auth || !emailForReset) return;
+    try {
+        await sendPasswordResetEmail(auth, emailForReset);
+        toast({
+            title: "Password Reset Email Sent",
+            description: "Please check your inbox to reset your password.",
+        });
+    } catch (error) {
+        toast({
+            title: "Error",
+            description: "Failed to send password reset email. Please try again.",
+            variant: "destructive",
+        });
+    } finally {
+        setShowResetPrompt(false);
+    }
+  };
+
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
@@ -46,6 +72,23 @@ export function LoginForm() {
         setIsLoading(false);
         return;
     }
+
+    // This is for existing users who registered for free class without a password
+    if (values.password === "Anjal@2026") {
+      try {
+        const methods = await fetchSignInMethodsForEmail(auth, values.email);
+        if (methods.length === 0) {
+          // User exists in Firestore but not Auth
+          setEmailForReset(values.email);
+          setShowResetPrompt(true);
+          setIsLoading(false);
+          return;
+        }
+      } catch (error) {
+        // Fall through to normal login
+      }
+    }
+
 
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
@@ -76,58 +119,77 @@ export function LoginForm() {
   };
   
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader className="text-center">
-        <CardTitle>Welcome</CardTitle>
-        <CardDescription>Enter your credentials to access your account.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                  <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                      <Input placeholder="name@example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                  </FormItem>
-              )}
-              />
-              <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                  <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                      <Input type="password" placeholder="********" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                  </FormItem>
-              )}
-              />
-              <div className="flex items-center justify-end">
-                  <Link href="/auth/forgot-password" passHref>
-                      <Button variant="link" className="px-0">Forgot password?</Button>
-                  </Link>
-              </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Log In
-              </Button>
-          </form>
-        </Form>
-        <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{' '}
-            <Link href="/auth/register" className="underline">
-              Register
-            </Link>
-        </div>
-      </CardContent>
-    </Card>
+    <>
+      <AlertDialog open={showResetPrompt} onOpenChange={setShowResetPrompt}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Set Your Password</AlertDialogTitle>
+            <AlertDialogDescription>
+                It looks like this is your first time logging in. To secure your account, please set a new password. A password reset link will be sent to <strong>{emailForReset}</strong>.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handlePasswordReset}>
+                    Send Reset Link
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Card className="w-full max-w-sm">
+        <CardHeader className="text-center">
+          <CardTitle>Welcome</CardTitle>
+          <CardDescription>Enter your credentials to access your account.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                        <Input placeholder="name@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                        <Input type="password" placeholder="********" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <div className="flex items-center justify-end">
+                    <Link href="/auth/forgot-password" passHref>
+                        <Button variant="link" className="px-0">Forgot password?</Button>
+                    </Link>
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Log In
+                </Button>
+            </form>
+          </Form>
+          <div className="mt-4 text-center text-sm">
+              Don&apos;t have an account?{' '}
+              <Link href="/auth/register" className="underline">
+                Register
+              </Link>
+          </div>
+        </CardContent>
+      </Card>
+    </>
   );
 }

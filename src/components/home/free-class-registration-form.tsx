@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState } from 'react';
@@ -12,10 +11,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, PartyPopper } from 'lucide-react';
-import { addDoc, collection } from 'firebase/firestore';
-import { getFirebaseDb } from '@/lib/firebase';
+import { addDoc, collection, setDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { getFirebaseDb, getFirebaseAuth } from '@/lib/firebase';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import Link from 'next/link';
 
 const courses = [
   { id: "MTS", label: "MTS" },
@@ -32,9 +33,14 @@ const formSchema = z.object({
   employeeId: z.string().min(1, { message: 'Employee ID is required.'}),
   designation: z.string({ required_error: 'Please select a designation.'}),
   email: z.string().email({ message: 'A valid email is required.'}),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  confirmPassword: z.string(),
   courses: z.array(z.string()).refine((value) => value.some((item) => item), {
     message: "You have to select at least one course.",
   }),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 export function FreeClassRegistrationForm() {
@@ -50,6 +56,8 @@ export function FreeClassRegistrationForm() {
       employeeId: '',
       division: '',
       email: '',
+      password: '',
+      confirmPassword: '',
       courses: [],
     },
   });
@@ -57,21 +65,57 @@ export function FreeClassRegistrationForm() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     const db = getFirebaseDb();
-    if (!db) {
-        toast({ title: "Error", description: "Could not connect to the database.", variant: "destructive" });
+    const auth = getFirebaseAuth();
+    if (!db || !auth) {
+        toast({ title: "Error", description: "Could not connect to the services.", variant: "destructive" });
         setIsLoading(false);
         return;
     }
 
     try {
-        await addDoc(collection(db, "freeClassRegistrations"), {
-            ...values,
-            registeredAt: new Date(),
+        // 1. Create Firebase Auth user
+        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+        const user = userCredential.user;
+        await updateProfile(user, { displayName: values.name });
+
+        // 2. Create user document in Firestore 'users' collection
+        await setDoc(doc(db, "users", user.uid), {
+            uid: user.uid,
+            name: values.name,
+            email: values.email,
+            phone: values.mobileNumber,
+            employeeId: values.employeeId,
+            city: 'N/A', // City is not in this form, so we use a default
+            division: values.division,
+            examCategory: 'MTS', // Default category, can be updated in profile
+            totalExamsTaken: 0,
+            isPro: false,
+            proValidUntil: null,
+            createdAt: serverTimestamp(),
+            lastSeen: serverTimestamp(),
         });
+
+        // 3. Create registration document in 'freeClassRegistrations'
+        await addDoc(collection(db, "freeClassRegistrations"), {
+            name: values.name,
+            gender: values.gender,
+            mobileNumber: values.mobileNumber,
+            division: values.division,
+            employeeId: values.employeeId,
+            designation: values.designation,
+            email: values.email,
+            courses: values.courses,
+            registeredAt: serverTimestamp(),
+        });
+        
         setIsSubmitted(true);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error submitting registration:", error);
-        toast({ title: "Error", description: "Could not submit your registration. Please try again.", variant: "destructive" });
+         let errorMessage = 'Could not submit your registration. Please try again.';
+        if (error.code === 'auth/email-already-in-use') {
+            errorMessage = 'This email is already registered. Please log in or use the forgot password link if needed.';
+        }
+        toast({ title: "Error", description: errorMessage, variant: "destructive" });
     } finally {
         setIsLoading(false);
     }
@@ -86,9 +130,16 @@ export function FreeClassRegistrationForm() {
                 </div>
                 <CardTitle className="text-2xl pt-4">Registration Successful!</CardTitle>
                 <CardDescription>
-                    Thank you for registering. You will receive a WhatsApp message with the class link before it begins.
+                    Thank you for registering! You can now log in to access the dashboard. You will also receive a WhatsApp message with the class link before it begins.
                 </CardDescription>
             </CardHeader>
+             <CardContent className="flex justify-center">
+                <Button asChild>
+                    <Link href="/auth/login">
+                        Proceed to Login
+                    </Link>
+                </Button>
+            </CardContent>
         </Card>
     );
   }
@@ -97,7 +148,7 @@ export function FreeClassRegistrationForm() {
     <Card className="w-full max-w-lg">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl">Free Class Registration</CardTitle>
-        <CardDescription>Fill out the form below to register for the free class.</CardDescription>
+        <CardDescription>Fill out the form below to register and create your account.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -209,6 +260,34 @@ export function FreeClassRegistrationForm() {
                     </FormItem>
                 )}
             />
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                            <Input type="password" placeholder="Min. 6 characters" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Confirm Password</FormLabel>
+                        <FormControl>
+                            <Input type="password" placeholder="Retype password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
             <FormField
               control={form.control}
               name="courses"
@@ -234,7 +313,7 @@ export function FreeClassRegistrationForm() {
                                   checked={field.value?.includes(item.id)}
                                   onCheckedChange={(checked) => {
                                     return checked
-                                      ? field.onChange([...field.value, item.id])
+                                      ? field.onChange([...(field.value || []), item.id])
                                       : field.onChange(
                                           field.value?.filter(
                                             (value) => value !== item.id

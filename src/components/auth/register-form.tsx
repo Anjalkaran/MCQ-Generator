@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState } from 'react';
@@ -98,7 +97,7 @@ export function RegisterForm() {
         division: values.division,
         examCategory: values.examCategory,
         totalExamsTaken: 0,
-        isPro: false,
+        isPro: true,
         proValidUntil: null,
         createdAt: new Date(),
         lastSeen: serverTimestamp(),
@@ -332,5 +331,3 @@ export function RegisterForm() {
     </Card>
   );
 }
-
-    
