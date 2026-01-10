@@ -35,7 +35,7 @@ export async function POST(request: Request) {
         const permanentFile = storage.file(permanentFilePath);
         await permanentFile.save(fileBuffer, {
             contentType: 'application/pdf',
-            public: true, // Make the file publicly readable
+            public: true, 
         });
         const downloadURL = permanentFile.publicUrl();
 
@@ -55,7 +55,10 @@ export async function POST(request: Request) {
             const existingTopicDoc = querySnapshot.docs[0];
             topicId = existingTopicDoc.id;
             const topicRef = doc(db, 'topics', topicId);
-            await updateDoc(topicRef, { material: textContent });
+            // Update material and ensure all specified exam categories are present
+            const existingData = existingTopicDoc.data() as Topic;
+            const updatedCategories = Array.from(new Set([...existingData.examCategories, ...examCategories]));
+            await updateDoc(topicRef, { material: textContent, examCategories: updatedCategories });
         } else {
             const newTopicData: Omit<Topic, 'id'> = {
                 title: finalTopicName,
