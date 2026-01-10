@@ -5,7 +5,7 @@
 import React, { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageCircle, Star, PenSquare, RefreshCw, Video, Library } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageSquare, Star, PenSquare, RefreshCw, Video, Library, UserCheck } from 'lucide-react';
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
 import Link from 'next/link';
 import { getFirebaseAuth } from '@/lib/firebase';
@@ -13,8 +13,8 @@ import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
-import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback } from '@/lib/firestore';
-import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, VideoClass, StudyMaterial } from "@/lib/types";
+import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback, getFreeClassRegistrations as fetchFreeClassRegistrations, getOnlineUsers as fetchOnlineUsers, updateDoc, doc } from '@/lib/firestore';
+import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, VideoClass, StudyMaterial, FreeClassRegistration } from "@/lib/types";
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
@@ -25,7 +25,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { increment } from 'firebase/firestore';
+import { increment, serverTimestamp } from 'firebase/firestore';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -191,6 +191,7 @@ interface DashboardContextType {
   isLoading: boolean;
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>;
   hasGivenFeedback: boolean;
+  freeClassRegistrations: FreeClassRegistration[];
 }
 
 const DashboardContext = createContext<DashboardContextType | null>(null);
@@ -329,43 +330,26 @@ function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           {isAdmin && (
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin">
-                <Link href="/dashboard/admin" onClick={onLinkClick}>
-                  <Shield />
-                  <span>Admin</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          )}
-           {!isIPUser && (
             <>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/online-test')} tooltip="Online Tests">
-                  <Link href="/dashboard/online-test" onClick={onLinkClick}>
-                    <PenSquare />
-                    <span>Online Tests</span>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin">
+                  <Link href="/dashboard/admin" onClick={onLinkClick}>
+                    <Shield />
+                    <span>Admin</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/video-classes')} tooltip="Video Classes">
-                  <Link href="/dashboard/video-classes" onClick={onLinkClick}>
-                    <Video />
-                    <span>Video Classes</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/study-material')} tooltip="Study Material">
-                  <Link href="/dashboard/study-material" onClick={onLinkClick}>
-                    <Library />
-                    <span>Study Material</span>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/free-class')} tooltip="Free Class">
+                  <Link href="/dashboard/free-class" onClick={onLinkClick}>
+                    <UserCheck />
+                    <span>Free Class</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </>
-           )}
+          )}
+           
            {isAdmin && (
             <>
               <SidebarMenuItem>
@@ -574,6 +558,7 @@ export default function DashboardLayout({
   const [liveTestBank, setLiveTestBank] = useState<BankedQuestion[]>([]);
   const [videoClasses, setVideoClasses] = useState<VideoClass[]>([]);
   const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
+  const [freeClassRegistrations, setFreeClassRegistrations] = useState<FreeClassRegistration[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
@@ -622,25 +607,23 @@ export default function DashboardLayout({
     return () => clearInterval(versionCheckInterval);
   }, [user]);
 
-  // Heartbeat effect
+  // Heartbeat effect to update user's lastSeen timestamp
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
-    if (user) {
+    if (user?.uid) {
       const sendHeartbeat = async () => {
         try {
-          await fetch('/api/user/heartbeat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: user.uid }),
-          });
+          const auth = getFirebaseAuth();
+          if (auth && auth.currentUser) {
+            const userRef = doc(getFirebaseDb()!, 'users', auth.currentUser.uid);
+            await updateDoc(userRef, { lastSeen: serverTimestamp() });
+          }
         } catch (error) {
           console.error("Failed to send heartbeat:", error);
         }
       };
-      // Send initial heartbeat immediately
       sendHeartbeat();
-      // Then send every 60 seconds
-      intervalId = setInterval(sendHeartbeat, 60000);
+      intervalId = setInterval(sendHeartbeat, 60000); // every 60 seconds
     }
     return () => {
       if (intervalId) {
@@ -653,20 +636,17 @@ export default function DashboardLayout({
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined;
     if (userData?.email && ADMIN_EMAILS.includes(userData.email)) {
-        const fetchOnlineUsers = async () => {
+        const fetchAndSetOnlineUsers = async () => {
             try {
-                const response = await fetch('/api/admin/online-users');
-                if (response.ok) {
-                    const data = await response.json();
-                    setOnlineUsers(data.onlineUsers);
-                }
+                const users = await fetchOnlineUsers();
+                setOnlineUsers(users);
             } catch (error) {
                 console.error("Failed to fetch online users:", error);
             }
         };
         // Fetch immediately and then set interval
-        fetchOnlineUsers();
-        intervalId = setInterval(fetchOnlineUsers, 30000); // Refresh every 30 seconds
+        fetchAndSetOnlineUsers();
+        intervalId = setInterval(fetchAndSetOnlineUsers, 30000); // Refresh every 30 seconds
     }
     return () => {
         if (intervalId) {
@@ -704,26 +684,31 @@ export default function DashboardLayout({
                     };
                     setUserData(adminUserData);
                 }
-                // Admin needs ALL data
-                const { categories, topics, bankedQuestions, topicMCQs, liveTestBank, videoClasses, studyMaterials, qnaUsage, notifications } = await getDashboardData(currentUser.uid, true);
+                const [data, registrations] = await Promise.all([
+                  getDashboardData(currentUser.uid, true),
+                  fetchFreeClassRegistrations(),
+                ]);
 
-                setCategories(categories);
-                setTopics(topics);
-                setBankedQuestions(bankedQuestions);
-                setTopicMCQs(topicMCQs);
-                setLiveTestBank(liveTestBank);
-                setVideoClasses(videoClasses);
-                setStudyMaterials(studyMaterials);
-                setQnaUsage(qnaUsage);
-                setNotifications(notifications);
+                setCategories(data.categories);
+                setTopics(data.topics);
+                setBankedQuestions(data.bankedQuestions);
+                setTopicMCQs(data.topicMCQs);
+                setLiveTestBank(data.liveTestBank);
+                setVideoClasses(data.videoClasses);
+                setStudyMaterials(data.studyMaterials);
+                setFreeClassRegistrations(registrations);
+                setQnaUsage(data.qnaUsage);
+                setNotifications(data.notifications);
                 
             } else {
                 const [
                     dashboardData,
-                    feedbackStatus
+                    feedbackStatus,
+                    registrations,
                 ] = await Promise.all([
                     getDashboardData(currentUser.uid),
-                    hasUserSubmittedFeedback(currentUser.uid)
+                    hasUserSubmittedFeedback(currentUser.uid),
+                    fetchFreeClassRegistrations(),
                 ]);
 
                 if (!dashboardData.userData) {
@@ -738,6 +723,7 @@ export default function DashboardLayout({
                 setBankedQuestions(dashboardData.bankedQuestions || []);
                 setVideoClasses(dashboardData.videoClasses || []);
                 setStudyMaterials(dashboardData.studyMaterials || []);
+                setFreeClassRegistrations(registrations);
                 setHasGivenFeedback(feedbackStatus);
 
                 const lastSeenTimestamp = localStorage.getItem('lastSeenUpdateTimestamp');
@@ -792,6 +778,7 @@ export default function DashboardLayout({
         setLiveTestBank([]);
         setVideoClasses([]);
         setStudyMaterials([]);
+        setFreeClassRegistrations([]);
         setQnaUsage([]);
         setNotifications([]);
         setOnlineUsers([]);
@@ -832,6 +819,7 @@ export default function DashboardLayout({
             setLiveTestBank(data.liveTestBank || []);
             setQnaUsage(data.qnaUsage || []);
             setNotifications(data.notifications || []);
+            setFreeClassRegistrations(data.freeClassRegistrations || []);
         });
     }
   }, [userData]);
@@ -853,7 +841,7 @@ export default function DashboardLayout({
     localStorage.setItem('lastSeenUpdateTimestamp', String(Date.now()));
   };
 
-  const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, videoClasses, studyMaterials, qnaUsage, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback };
+  const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, videoClasses, studyMaterials, freeClassRegistrations, qnaUsage, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback };
 
   return (
     <DashboardContext.Provider value={contextValue}>
@@ -862,7 +850,7 @@ export default function DashboardLayout({
           <div className="relative z-20">
               <AppSidebar />
           </div>
-           <MainContent>
+           <MainContent key={user ? 'authenticated' : 'unauthenticated'}>
               {isLoading ? (
                    <div className="flex h-full w-full items-center justify-center">
                       <Loader2 className="h-12 w-12 animate-spin text-primary" />
