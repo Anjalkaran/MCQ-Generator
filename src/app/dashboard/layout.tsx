@@ -13,8 +13,8 @@ import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
-import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback, getFreeClassRegistrations as fetchFreeClassRegistrations, getOnlineUsers as fetchOnlineUsers } from '@/lib/firestore';
-import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, VideoClass, StudyMaterial, FreeClassRegistration } from "@/lib/types";
+import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback, getOnlineUsers as fetchOnlineUsers } from '@/lib/firestore';
+import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, VideoClass, StudyMaterial } from "@/lib/types";
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
@@ -191,7 +191,7 @@ interface DashboardContextType {
   isLoading: boolean;
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>;
   hasGivenFeedback: boolean;
-  freeClassRegistrations: FreeClassRegistration[];
+  freeClassRegistrations: never[];
 }
 
 const DashboardContext = createContext<DashboardContextType | null>(null);
@@ -336,14 +336,6 @@ function AppSidebar() {
                   <Link href="/dashboard/admin" onClick={onLinkClick}>
                     <Shield />
                     <span>Admin</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/free-class')} tooltip="Free Class">
-                  <Link href="/dashboard/free-class" onClick={onLinkClick}>
-                    <UserCheck />
-                    <span>Free Class</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -558,7 +550,6 @@ export default function DashboardLayout({
   const [liveTestBank, setLiveTestBank] = useState<BankedQuestion[]>([]);
   const [videoClasses, setVideoClasses] = useState<VideoClass[]>([]);
   const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
-  const [freeClassRegistrations, setFreeClassRegistrations] = useState<FreeClassRegistration[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
@@ -684,10 +675,7 @@ export default function DashboardLayout({
                     };
                     setUserData(adminUserData);
                 }
-                const [data, registrations] = await Promise.all([
-                  getDashboardData(currentUser.uid, true),
-                  fetchFreeClassRegistrations(),
-                ]);
+                const data = await getDashboardData(currentUser.uid, true);
 
                 setCategories(data.categories);
                 setTopics(data.topics);
@@ -696,7 +684,6 @@ export default function DashboardLayout({
                 setLiveTestBank(data.liveTestBank);
                 setVideoClasses(data.videoClasses);
                 setStudyMaterials(data.studyMaterials);
-                setFreeClassRegistrations(registrations);
                 setQnaUsage(data.qnaUsage);
                 setNotifications(data.notifications);
                 
@@ -704,11 +691,9 @@ export default function DashboardLayout({
                 const [
                     dashboardData,
                     feedbackStatus,
-                    registrations,
                 ] = await Promise.all([
                     getDashboardData(currentUser.uid),
                     hasUserSubmittedFeedback(currentUser.uid),
-                    fetchFreeClassRegistrations(),
                 ]);
 
                 if (!dashboardData.userData) {
@@ -723,7 +708,6 @@ export default function DashboardLayout({
                 setBankedQuestions(dashboardData.bankedQuestions || []);
                 setVideoClasses(dashboardData.videoClasses || []);
                 setStudyMaterials(dashboardData.studyMaterials || []);
-                setFreeClassRegistrations(registrations);
                 setHasGivenFeedback(feedbackStatus);
 
                 const lastSeenTimestamp = localStorage.getItem('lastSeenUpdateTimestamp');
@@ -778,7 +762,6 @@ export default function DashboardLayout({
         setLiveTestBank([]);
         setVideoClasses([]);
         setStudyMaterials([]);
-        setFreeClassRegistrations([]);
         setQnaUsage([]);
         setNotifications([]);
         setOnlineUsers([]);
@@ -819,7 +802,6 @@ export default function DashboardLayout({
             setLiveTestBank(data.liveTestBank || []);
             setQnaUsage(data.qnaUsage || []);
             setNotifications(data.notifications || []);
-            setFreeClassRegistrations(data.freeClassRegistrations || []);
         });
     }
   }, [userData]);
@@ -841,7 +823,7 @@ export default function DashboardLayout({
     localStorage.setItem('lastSeenUpdateTimestamp', String(Date.now()));
   };
 
-  const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, videoClasses, studyMaterials, freeClassRegistrations, qnaUsage, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback };
+  const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, videoClasses, studyMaterials, freeClassRegistrations: [], qnaUsage, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback };
 
   return (
     <DashboardContext.Provider value={contextValue}>
@@ -887,4 +869,3 @@ export default function DashboardLayout({
     </DashboardContext.Provider>
   );
 }
-

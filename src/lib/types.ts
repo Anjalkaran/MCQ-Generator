@@ -190,19 +190,6 @@ export interface Feedback {
   repliedAt?: Date;
 }
 
-export interface FreeClassRegistration {
-    id: string;
-    name: string;
-    gender: string;
-    mobileNumber: string;
-    division: string;
-    employeeId: string;
-    designation: string;
-    email: string;
-    courses: string[];
-    registeredAt: Date;
-}
-
 export interface StudyMaterial {
     id: string;
     topicId: string;

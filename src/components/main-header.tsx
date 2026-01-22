@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -12,9 +11,6 @@ export function MainHeader() {
         <Logo className="h-12 w-auto text-primary" />
       </Link>
       <nav className="ml-auto flex gap-2 sm:gap-4 items-center">
-        <Button variant="ghost" asChild>
-            <Link href="/free-class-registration">Free Class Registration</Link>
-        </Button>
         <Button variant="ghost" asChild>
           <Link href="/support">Contact Us</Link>
         </Button>

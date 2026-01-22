@@ -2,7 +2,7 @@
 
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion, runTransaction } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ, MCQData, VideoClass, FreeClassRegistration, StudyMaterial, AptiSolveLaunch } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ, MCQData, VideoClass, StudyMaterial, AptiSolveLaunch } from './types';
 import { ADMIN_EMAILS } from './constants';
 import { normalizeDate } from './utils';
 
@@ -890,25 +890,6 @@ export const deleteVideoClass = async (videoId: string): Promise<void> => {
     await deleteDoc(doc(db, 'videoClasses', videoId));
 };
 
-export const getFreeClassRegistrations = async (): Promise<FreeClassRegistration[]> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    const registrationsCollection = collection(db, 'freeClassRegistrations');
-    const snapshot = await getDocs(registrationsCollection);
-
-    const registrations: FreeClassRegistration[] = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-            id: doc.id,
-            ...data,
-            registeredAt: normalizeDate(data.registeredAt) || new Date(0), // Fallback date
-        } as FreeClassRegistration;
-    });
-
-    // Safe sorting in code
-    return registrations.sort((a, b) => b.registeredAt.getTime() - a.registeredAt.getTime());
-};
-
 
 // STUDY MATERIAL MANAGEMENT
 export const getStudyMaterials = async (topicId?: string): Promise<StudyMaterial[]> => {
@@ -934,7 +915,7 @@ export const getDashboardData = async (userId: string, isAdmin: boolean = false)
     if (!db) throw new Error("Firestore is not initialized");
 
     if (isAdmin) {
-        const [categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, topicMCQs, videoClasses, studyMaterials, freeClassRegistrations] = await Promise.all([
+        const [categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, topicMCQs, videoClasses, studyMaterials] = await Promise.all([
             getCategories(), 
             getTopics(), 
             getQuestionBankDocuments(), 
@@ -944,18 +925,17 @@ export const getDashboardData = async (userId: string, isAdmin: boolean = false)
             getTopicMCQs(),
             getVideoClasses(),
             getStudyMaterials(),
-            getFreeClassRegistrations(),
         ]);
-        return { userData: null, categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, topicMCQs, videoClasses, studyMaterials, freeClassRegistrations };
+        return { userData: null, categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, topicMCQs, videoClasses, studyMaterials };
     }
 
-    const [userData, allCategories, allTopics, allBankedQuestions, allVideoClasses, allStudyMaterials, freeClassRegistrations] = await Promise.all([
-        getUserData(userId), getCategories(), getTopics(), getQuestionBankDocuments(), getVideoClasses(), getStudyMaterials(), getFreeClassRegistrations()
+    const [userData, allCategories, allTopics, allBankedQuestions, allVideoClasses, allStudyMaterials] = await Promise.all([
+        getUserData(userId), getCategories(), getTopics(), getQuestionBankDocuments(), getVideoClasses(), getStudyMaterials()
     ]);
     
     if (!userData) {
         // Return a default structure to avoid crashing the app if user data is somehow missing.
-        return { userData: null, categories: [], topics: [], bankedQuestions: [], liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [], videoClasses: [], studyMaterials: [], freeClassRegistrations: [] };
+        return { userData: null, categories: [], topics: [], bankedQuestions: [], liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [], videoClasses: [], studyMaterials: [] };
     }
 
     // Filter categories, topics, and banked questions based on the user's exam category
@@ -974,7 +954,7 @@ export const getDashboardData = async (userId: string, isAdmin: boolean = false)
     const userTopicIds = new Set(userTopics.map(t => t.id));
     const userStudyMaterials = (allStudyMaterials || []).filter(sm => userTopicIds.has(sm.topicId));
 
-    return { userData, categories: userCategories, topics: userTopics, bankedQuestions: userBankedQuestions, liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [], videoClasses: userVideoClasses, studyMaterials: userStudyMaterials, freeClassRegistrations };
+    return { userData, categories: userCategories, topics: userTopics, bankedQuestions: userBankedQuestions, liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [], videoClasses: userVideoClasses, studyMaterials: userStudyMaterials };
 };
 
 
