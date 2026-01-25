@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getFirebaseDb, getFirebaseStorage } from '@/lib/firebase-admin';
-import { collection, addDoc, doc, updateDoc, getDocs, query, where } from 'firebase/firestore';
 import type { Topic, StudyMaterial } from '@/lib/types';
-import { formidable, type File } from 'formidable';
-import fs from 'fs/promises';
 import pdf from 'pdf-parse';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -13,19 +10,20 @@ export const config = {
     },
 };
 
-async function parseFormData(request: Request): Promise<{ fields: formidable.Fields; files: formidable.Files }> {
+// This function now returns a standard File object and FormData fields
+async function parseFormData(request: Request): Promise<{ fields: { [key: string]: string[] }; files: { [key: string]: File[] } }> {
     const formData = await request.formData();
-    const fields: formidable.Fields = {};
-    const files: formidable.Files = {};
+    const fields: { [key: string]: string[] } = {};
+    const files: { [key: string]: File[] } = {};
 
     for (const [key, value] of formData.entries()) {
-        if (value instanceof Blob) {
+        if (value instanceof File) {
              const fileArray = files[key] || [];
-             fileArray.push(value as any); // Formidable expects a specific structure
+             fileArray.push(value);
              files[key] = fileArray;
         } else {
             const fieldArray = fields[key] || [];
-            fieldArray.push(value);
+            fieldArray.push(String(value));
             fields[key] = fieldArray;
         }
     }
@@ -43,7 +41,7 @@ export async function POST(request: Request) {
     try {
         const { fields, files } = await parseFormData(request);
         
-        const file = (files.file?.[0] as File | undefined);
+        const file = files.file?.[0];
         const topicName = fields.topicName?.[0];
         const examCategories = fields.examCategories || [];
 
@@ -51,32 +49,32 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing required fields: file and at least one exam category are required.' }, { status: 400 });
         }
         
-        // 1. Read file buffer and parse PDF content
-        const fileBuffer = await fs.readFile(file.filepath);
+        // 1. Read file buffer from File object and parse PDF content
+        const fileBuffer = Buffer.from(await file.arrayBuffer());
         const pdfData = await pdf(fileBuffer);
         const textContent = pdfData.text;
 
         // 2. Upload to Firebase Storage
         const bucket = storage.bucket();
-        const fileName = `${uuidv4()}-${file.originalFilename}`;
+        const fileName = `${uuidv4()}-${file.name}`;
         const fileUpload = bucket.file(`study-materials/${fileName}`);
         
         await fileUpload.save(fileBuffer, {
-            metadata: { contentType: file.mimetype },
+            metadata: { contentType: file.type },
         });
 
         // Make the file public and get its URL
         await fileUpload.makePublic();
         const downloadURL = fileUpload.publicUrl();
 
-        // 3. Find or create the topic in Firestore
+        // 3. Find or create the topic in Firestore using Admin SDK
         let topicId: string | null = null;
         let newTopic: Topic | null = null;
-        const finalTopicName = topicName || file.originalFilename?.replace(/\.[^/.]+$/, "") || "Untitled Topic";
+        const finalTopicName = topicName || file.name?.replace(/\.[^/.]+$/, "") || "Untitled Topic";
 
-        const topicsRef = collection(db, 'topics');
-        const q = query(topicsRef, where("title", "==", finalTopicName));
-        const querySnapshot = await getDocs(q);
+        const topicsRef = db.collection('topics');
+        const q = topicsRef.where("title", "==", finalTopicName).limit(1);
+        const querySnapshot = await q.get();
 
         if (!querySnapshot.empty) {
             topicId = querySnapshot.docs[0].id;
@@ -89,7 +87,7 @@ export async function POST(request: Request) {
                 part: 'Part A', // Default part
                 examCategories: examCategories as ('MTS' | 'POSTMAN' | 'PA' | 'IP')[],
             };
-            const topicRef = await addDoc(topicsRef, newTopicData);
+            const topicRef = await topicsRef.add(newTopicData);
             topicId = topicRef.id;
             newTopic = { id: topicId, ...newTopicData };
         }
@@ -101,21 +99,21 @@ export async function POST(request: Request) {
         // 4. Create the study material document in Firestore
         const studyMaterialData: Omit<StudyMaterial, 'id'> = {
             topicId: topicId,
-            fileName: file.originalFilename || 'Untitled',
-            fileType: file.mimetype || 'application/pdf',
+            fileName: file.name || 'Untitled',
+            fileType: file.type || 'application/pdf',
             content: downloadURL,
             uploadedAt: new Date(),
         };
 
-        const docRef = await addDoc(collection(db, 'studyMaterials'), studyMaterialData);
+        const docRef = await db.collection('studyMaterials').add(studyMaterialData);
         const newMaterial = { id: docRef.id, ...studyMaterialData };
 
         // 5. Append text content to the topic's material field
-        const topicRef = doc(db, 'topics', topicId);
-        const topicSnap = await getDoc(topicRef);
-        const currentMaterial = topicSnap.exists() ? topicSnap.data()?.material || "" : "";
-        const updatedMaterial = currentMaterial + "\n\n--- " + (file.originalFilename || 'New Material') + " ---\n\n" + textContent;
-        await updateDoc(topicRef, { material: updatedMaterial });
+        const topicRef = db.collection('topics').doc(topicId);
+        const topicSnap = await topicRef.get();
+        const currentMaterial = topicSnap.exists ? topicSnap.data()?.material || "" : "";
+        const updatedMaterial = currentMaterial + "\n\n--- " + (file.name || 'New Material') + " ---\n\n" + textContent;
+        await topicRef.update({ material: updatedMaterial });
 
 
         return NextResponse.json({
@@ -129,4 +127,3 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: error.message || 'An unknown server error occurred.' }, { status: 500 });
     }
 }
-    
