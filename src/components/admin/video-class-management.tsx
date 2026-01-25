@@ -37,7 +37,22 @@ const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
 const videoSchema = z.object({
   title: z.string().min(3, 'Title is required.'),
   description: z.string().min(10, 'Description is required.'),
-  youtubeVideoId: z.string().min(11, 'Please enter a valid YouTube Video ID.').max(11),
+  youtubeVideoId: z.string()
+    .min(11, 'Please enter a valid YouTube Video ID or URL.')
+    .transform((val) => {
+        const idRegex = /(?:v=|v\/|embed\/|youtu\.be\/|\/v\/|\/e\/|watch\?v=|&v=)([^#&?]*).*/;
+        const match = val.match(idRegex);
+        if (match && match[1] && match[1].length === 11) {
+            return match[1];
+        }
+        if (val.length === 11) {
+            return val;
+        }
+        return val; // Return original if no valid ID is found
+    })
+    .refine((val) => val.length === 11, {
+        message: "Must be a valid 11-character YouTube Video ID.",
+    }),
   examCategories: z.array(z.string()).refine((value) => value.some((item) => item), {
     message: "You have to select at least one exam category.",
   }),
@@ -148,7 +163,7 @@ export function VideoClassManagement({ initialVideos = [] }: VideoClassManagemen
                                 render={({ field }) => (
                                     <FormItem>
                                     <FormLabel>YouTube Video ID</FormLabel>
-                                    <FormControl><Input placeholder="e.g., dQw4w9WgXcQ" {...field} /></FormControl>
+                                    <FormControl><Input placeholder="e.g., dQw4w9WgXcQ or full URL" {...field} /></FormControl>
                                     <FormMessage />
                                     </FormItem>
                                 )}
