@@ -1,8 +1,7 @@
 
-
 import { getFirebaseDb } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion, runTransaction } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ, MCQData, VideoClass, StudyMaterial, AptiSolveLaunch } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ, VideoClass, StudyMaterial, AptiSolveLaunch } from './types';
 import { ADMIN_EMAILS } from './constants';
 import { normalizeDate } from './utils';
 
@@ -46,7 +45,6 @@ export const getOnlineUsers = async (): Promise<UserData[]> => {
     return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserData));
 };
 
-
 export const createUserDocument = async (userData: Omit<UserData, 'id'>): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
@@ -56,7 +54,7 @@ export const createUserDocument = async (userData: Omit<UserData, 'id'>): Promis
       ...userData,
       totalExamsTaken: 0,
       liveTestsTaken: [],
-      isPro: true, // All users are pro now
+      isPro: true,
       proValidUntil: null,
       lastSeen: serverTimestamp(),
     });
@@ -69,18 +67,12 @@ export const updateUserDocument = async (userId: string, data: Partial<UserData>
     
     const updateData: { [key: string]: any } = { ...data };
     
-    // Convert Date objects to Timestamps if they exist
     if (data.proValidUntil && data.proValidUntil instanceof Date) {
         updateData.proValidUntil = Timestamp.fromDate(data.proValidUntil);
     }
     
-    // Remove deprecated fields if they are passed in
-    delete updateData.topicExamsTaken;
-    delete updateData.mockTestsTaken;
-    
     await updateDoc(userRef, updateData);
 };
-
 
 export const deleteUserDocument = async (userId: string): Promise<void> => {
   const db = getFirebaseDb();
@@ -115,12 +107,9 @@ export const deleteCategory = async (categoryId: string, topicsToDelete: Topic[]
     if (!db) throw new Error("Firestore is not initialized");
     
     const batch = writeBatch(db);
-
-    // Delete the category document
     const categoryRef = doc(db, 'categories', categoryId);
     batch.delete(categoryRef);
 
-    // Delete all topics associated with this category
     topicsToDelete.forEach(topic => {
         const topicRef = doc(db, 'topics', topic.id);
         batch.delete(topicRef);
@@ -128,7 +117,6 @@ export const deleteCategory = async (categoryId: string, topicsToDelete: Topic[]
 
     await batch.commit();
 };
-
 
 // TOPIC MANAGEMENT
 export const getTopics = async (): Promise<Topic[]> => {
@@ -138,7 +126,6 @@ export const getTopics = async (): Promise<Topic[]> => {
     const topicSnapshot = await getDocs(query(topicsCollection));
     const topics = topicSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Topic));
     
-    // Fetch category names for topics
     const categories = await getCategories();
     const categoryMap = new Map(categories.map(c => [c.id, c.name]));
 
@@ -160,7 +147,6 @@ export const getTopicsByPartAndExam = async (part: string, examCategory: string)
     const topicSnapshot = await getDocs(q);
     const topics = topicSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Topic));
 
-    // Fetch category names for topics
     const categories = await getCategories();
     const categoryMap = new Map(categories.map(c => [c.id, c.name]));
      return topics.map(topic => ({
@@ -187,30 +173,6 @@ export const deleteTopic = async (topicId: string): Promise<void> => {
     if (!db) throw new Error("Firestore is not initialized");
     await deleteDoc(doc(db, 'topics', topicId));
 };
-
-// USER TOPIC PROGRESS
-export const getUserTopicProgress = async (userId: string, topicId: string): Promise<UserTopicProgress | null> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    const progressRef = doc(db, 'users', userId, 'topicProgress', topicId);
-    const progressSnap = await getDoc(progressRef);
-
-    if (progressSnap.exists()) {
-        return progressSnap.data() as UserTopicProgress;
-    }
-    return null;
-}
-
-export const updateUserTopicProgress = async (userId: string, topicId: string, lastCharacterIndexUsed: number): Promise<void> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    const progressRef = doc(db, 'users', userId, 'topicProgress', topicId);
-    await setDoc(progressRef, { 
-        topicId, 
-        lastCharacterIndexUsed, 
-        updatedAt: new Date() 
-    }, { merge: true });
-}
 
 // MCQ HISTORY MANAGEMENT
 export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promise<string> => {
@@ -243,10 +205,8 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
     batch.set(historyRef, dataToSave);
     
     const userRef = doc(db, 'users', userId);
-
     batch.update(userRef, { totalExamsTaken: increment(1) });
     
-    // If a question paper was used (i.e., it was a previous year paper), mark it as completed for the user
     if (questionPaperId) {
         batch.update(userRef, { completedMockBankTests: arrayUnion(questionPaperId) });
     }
@@ -254,22 +214,6 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
     await batch.commit();
     return historyRef.id;
 };
-
-
-export const getAllUserQuestions = async (userId: string): Promise<string[]> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-
-    const history = await getExamHistoryForUser(userId);
-    const allQuestions = new Set<string>();
-    history.forEach(item => {
-        if (Array.isArray(item.questions)) {
-            item.questions.forEach(q => allQuestions.add(q));
-        }
-    });
-    return Array.from(allQuestions);
-};
-
 
 export const getExamHistoryForUser = async (userId?: string, historyId?: string): Promise<MCQHistory[]> => {
     const db = getFirebaseDb();
@@ -287,9 +231,7 @@ export const getExamHistoryForUser = async (userId?: string, historyId?: string)
         }
     }
 
-    if (!userId) {
-        throw new Error("User ID is required to fetch history.");
-    }
+    if (!userId) throw new Error("User ID is required to fetch history.");
 
     const historyCollection = collection(db, 'mcqHistory');
     const q = query(historyCollection, where('userId', '==', userId));
@@ -323,31 +265,12 @@ export const getPerformanceByTopic = async (userId: string): Promise<TopicPerfor
     const performanceMap = new Map<string, { totalScore: number; totalQuestions: number; attempts: number; topicTitle: string; }>();
   
     allHistory.forEach(item => {
-      const { topicId, topicTitle, score, totalQuestions, isMockTest, questions } = item;
-  
-      if (isMockTest) {
-        // In a mock test, we need to attribute scores to individual topics within the test.
-        // This is a simplified estimation. A more accurate method would require topic info per question.
-        // For now, we'll attribute the overall test performance to each distinct topic present.
-        const topicsInTest = new Set(quizMcqs.map(q => q.topic).filter(Boolean));
-        topicsInTest.forEach(mockTopicTitle => {
-            const topic = topics.find(t => t.title === mockTopicTitle);
-            if (topic) {
-                const existing = performanceMap.get(topic.id) || { totalScore: 0, totalQuestions: 0, attempts: 0, topicTitle: mockTopicTitle };
-                existing.totalScore += score; // Simplified: applying overall score
-                existing.totalQuestions += totalQuestions;
-                existing.attempts += 1;
-                performanceMap.set(topic.id, existing);
-            }
-        });
-      } else {
-        // For regular topic quizzes
-        const existing = performanceMap.get(topicId) || { totalScore: 0, totalQuestions: 0, attempts: 0, topicTitle: topicTitle || 'Unknown Topic' };
-        existing.totalScore += score;
-        existing.totalQuestions += totalQuestions;
-        existing.attempts += 1;
-        performanceMap.set(topicId, existing);
-      }
+      const { topicId, topicTitle, score, totalQuestions } = item;
+      const existing = performanceMap.get(topicId) || { totalScore: 0, totalQuestions: 0, attempts: 0, topicTitle: topicTitle || 'Unknown Topic' };
+      existing.totalScore += score;
+      existing.totalQuestions += totalQuestions;
+      existing.attempts += 1;
+      performanceMap.set(topicId, existing);
     });
   
     const performanceData: TopicPerformance[] = [];
@@ -380,27 +303,10 @@ export const getQuestionBankDocuments = async (examCategory?: UserData['examCate
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as BankedQuestion));
 };
 
-export const getQuestionBankDocumentsByCategory = async (examCategory: UserData['examCategory']): Promise<BankedQuestion[] | null> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    const bankCollection = collection(db, 'questionBank');
-    const q = query(bankCollection, where('examCategory', '==', examCategory));
-    const querySnapshot = await getDocs(q);
-    if (querySnapshot.empty) return null;
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as BankedQuestion));
-};
-
 export const addQuestionBankDocument = async (data: Omit<BankedQuestion, 'id'>): Promise<DocumentReference> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     return await addDoc(collection(db, 'questionBank'), data);
-};
-
-export const updateQuestionBankDocument = async (docId: string, content: string): Promise<void> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    const docRef = doc(db, 'questionBank', docId);
-    await updateDoc(docRef, { content });
 };
 
 export const deleteQuestionBankDocument = async (docId: string): Promise<void> => {
@@ -474,14 +380,6 @@ export const getLiveTests = async (fetchAll: boolean = false): Promise<LiveTest[
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LiveTest));
 };
 
-export const markLiveTestAsTaken = async (userId: string, liveTestId: string): Promise<void> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, { liveTestsTaken: arrayUnion(liveTestId) });
-};
-
-
 // LEADERBOARD MANAGEMENT
 export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategory: UserData['examCategory']): Promise<LeaderboardEntry[]> => {
     const db = getFirebaseDb();
@@ -510,7 +408,6 @@ export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategor
     const leaderboard: Omit<LeaderboardEntry, 'rank'>[] = [];
     userPerformance.forEach((perf, userId) => {
         const user = userMap.get(userId);
-        // For IP users, totalExamsTaken might not be relevant, so we allow them if they have performance entries.
         const hasTakenEnoughExams = user?.examCategory === 'IP' ? perf.totalExams > 0 : (user?.totalExamsTaken || 0) > 6;
 
         if (user && hasTakenEnoughExams) {
@@ -525,24 +422,6 @@ export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategor
     });
 
     return leaderboard.sort((a, b) => b.averageScore - a.averageScore).map((entry, index) => ({ ...entry, rank: index + 1 }));
-};
-
-export const getLiveTestsForLeaderboard = async (): Promise<LiveTest[]> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    const now = new Date();
-    // Fetch all tests that have started
-    const q = query(collection(db, 'liveTests'), where('startTime', '<=', now), orderBy('startTime', 'desc'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => {
-        const data = doc.data();
-        return { 
-            id: doc.id, 
-            ...data,
-            startTime: normalizeDate(data.startTime),
-            endTime: normalizeDate(data.endTime),
-        } as LiveTest;
-    });
 };
 
 export const getLiveTestLeaderboardData = async (liveTestId: string): Promise<LeaderboardEntry[]> => {
@@ -584,14 +463,7 @@ export const getLiveTestLeaderboardData = async (liveTestId: string): Promise<Le
     return sortedLeaderboard;
 };
 
-
 // NOTIFICATION MANAGEMENT
-export const addAdminNotification = async (notification: Omit<Notification, 'id' | 'isRead' | 'createdAt'>): Promise<void> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    await addDoc(collection(db, 'notifications'), { ...notification, createdAt: new Date(), isRead: false });
-};
-
 export const getAdminNotifications = async (): Promise<Notification[]> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
@@ -619,132 +491,17 @@ export const getTopicMCQs = async (topicId?: string): Promise<TopicMCQ[]> => {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as TopicMCQ));
 };
 
-/**
- * Shuffles an array in place.
- * @param array The array to shuffle.
- */
-function shuffleArray<T>(array: T[]): T[] {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
-
-export const getShuffledMCQsForTopics = async (
-    fixedRequests: Map<string, number>,
-    randomRequest: { topics: string[], questions: number } | null,
-    examCategory: UserData['examCategory'],
-    allMcqsForCategory: (MCQ & { sourceDocId: string; topicId: string })[]
-): Promise<(MCQ & { sourceDocId: string })[]> => {
-
-    const mcqsByTopicId = new Map<string, (MCQ & { sourceDocId: string })[]>();
-
-    allMcqsForCategory.forEach(mcq => {
-        const existing = mcqsByTopicId.get(mcq.topicId) || [];
-        mcqsByTopicId.set(mcq.topicId, [...existing, mcq]);
-    });
-
-    const finalMCQs: (MCQ & { sourceDocId: string })[] = [];
-    const usedQuestions = new Set<string>();
-
-    for (const [topicId, count] of fixedRequests.entries()) {
-        const availableMCQs = (mcqsByTopicId.get(topicId) || []).filter(mcq => !usedQuestions.has(mcq.question));
-        if (availableMCQs.length < count) {
-            console.warn(`Not enough questions for topic ID ${topicId}. Needed ${count}, found ${availableMCQs.length}.`);
-        }
-        const questionsToTake = shuffleArray(availableMCQs).slice(0, count);
-        questionsToTake.forEach(q => usedQuestions.add(q.question));
-        finalMCQs.push(...questionsToTake);
-    }
-
-    if (randomRequest) {
-        let pooledMCQs: (MCQ & { sourceDocId: string })[] = [];
-        randomRequest.topics.forEach(topicId => {
-            pooledMCQs.push(...(mcqsByTopicId.get(topicId) || []));
-        });
-        const availablePooled = pooledMCQs.filter(mcq => !usedQuestions.has(mcq.question));
-         if (availablePooled.length < randomRequest.questions) {
-            console.warn(`Not enough questions for random pool. Needed ${randomRequest.questions}, found ${availablePooled.length}.`);
-        }
-        const questionsToTake = shuffleArray(availablePooled).slice(0, randomRequest.questions);
-        questionsToTake.forEach(q => usedQuestions.add(q.question));
-        finalMCQs.push(...questionsToTake);
-    }
-
-    return finalMCQs;
-};
-
-
-export const addTopicMCQDocument = async (data: Omit<TopicMCQ, 'id'>): Promise<DocumentReference> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    return await addDoc(collection(db, 'topicMCQs'), data);
-};
-
-export const updateTopicMCQDocument = async (docId: string, content: string, fileName?: string): Promise<void> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    const docRef = doc(db, 'topicMCQs', docId);
-    const updateData: { content: string, fileName?: string, uploadedAt: Date } = { content, uploadedAt: new Date() };
-    if (fileName) {
-        updateData.fileName = fileName;
-    }
-    await updateDoc(docRef, updateData);
-};
-
-
-export const updateTopicMCQWithTranslation = async (docId: string, originalQuestion: string, lang: string, translatedMcq: MCQ): Promise<void> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    const docRef = doc(db, 'topicMCQs', docId);
-
-    try {
-        await runTransaction(db, async (transaction) => {
-            const docSnap = await transaction.get(docRef);
-            if (!docSnap.exists()) {
-                throw "Document does not exist!";
-            }
-
-            const data = docSnap.data();
-            let content;
-            try {
-                content = JSON.parse(data.content);
-            } catch (e) {
-                console.error("Failed to parse existing content as JSON");
-                return; // Or handle non-JSON content
-            }
-            
-            if (!content.mcqs || !Array.isArray(content.mcqs)) {
-                return; // No mcqs array to update
-            }
-
-            const questionIndex = content.mcqs.findIndex((q: MCQ) => q.question === originalQuestion);
-            if (questionIndex === -1) {
-                console.warn("Original question not found in document, cannot save translation.");
-                return;
-            }
-            
-            if (!content.mcqs[questionIndex].translations) {
-                content.mcqs[questionIndex].translations = {};
-            }
-            
-            content.mcqs[questionIndex].translations[lang] = translatedMcq;
-
-            transaction.update(docRef, { content: JSON.stringify(content, null, 2) });
-        });
-        console.log(`Translation for '${originalQuestion.substring(0,30)}...' cached in ${lang}.`);
-    } catch (error) {
-        console.error("Transaction failed: ", error);
-        throw error;
-    }
-};
-
-
 export const deleteTopicMCQDocument = async (docId: string): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     await deleteDoc(doc(db, 'topicMCQs', docId));
+};
+
+export const updateTopicMCQDocument = async (docId: string, content: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const docRef = doc(db, 'topicMCQs', docId);
+    await updateDoc(docRef, { content, uploadedAt: new Date() });
 };
 
 // REASONING BANK MANAGEMENT
@@ -755,72 +512,6 @@ export const getReasoningQuestions = async (): Promise<ReasoningQuestion[]> => {
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as ReasoningQuestion));
 };
-
-export const getReasoningQuestionsForLiveTest = async (examCategory: 'MTS' | 'POSTMAN' | 'PA'): Promise<ReasoningQuestion[]> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    const allTopics = await getTopics();
-
-    // Find topic titles that are for non-verbal reasoning for the specified exam category
-    const relevantTopicTitles = allTopics
-        .filter(t => 
-            (t.categoryName?.toLowerCase().includes("reasoning") || 
-             t.categoryName?.toLowerCase().includes("non-verbal")) &&
-            t.examCategories.includes(examCategory)
-        )
-        .map(t => t.title);
-        
-    if (relevantTopicTitles.length === 0) return [];
-
-    const q = query(
-        collection(db, 'reasoningBank'), 
-        where('isForLiveTest', '==', true),
-        where('topic', 'in', relevantTopicTitles)
-    );
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as ReasoningQuestion));
-};
-
-export const getReasoningQuestionsForPartwiseTest = async (
-  nonVerbalTopicRequests: { name: string, questions: number }[]
-): Promise<ReasoningQuestion[]> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-
-    const allFetchedQuestions: ReasoningQuestion[] = [];
-    const reasoningBankRef = collection(db, 'reasoningBank');
-
-    for (const request of nonVerbalTopicRequests) {
-        const q = query(reasoningBankRef, where('topic', '==', request.name));
-        const snapshot = await getDocs(q);
-        
-        const availableQuestions = snapshot.docs.map(doc => doc.data() as ReasoningQuestion);
-        
-        if (availableQuestions.length < request.questions) {
-            console.warn(`Not enough questions for reasoning topic "${request.name}". Needed ${request.questions}, found ${availableQuestions.length}.`);
-        }
-
-        const selected = shuffleArray(availableQuestions).slice(0, request.questions);
-        allFetchedQuestions.push(...selected);
-    }
-
-    return allFetchedQuestions;
-};
-
-
-export const addReasoningQuestion = async (data: Omit<ReasoningQuestion, 'id'>): Promise<DocumentReference> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    return await addDoc(collection(db, 'reasoningBank'), data);
-};
-
-export const updateReasoningQuestion = async (docId: string, data: Partial<Omit<ReasoningQuestion, 'id' | 'uploadedAt'>>): Promise<void> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    const docRef = doc(db, 'reasoningBank', docId);
-    await updateDoc(docRef, data);
-};
-
 
 export const deleteReasoningQuestion = async (docId: string): Promise<void> => {
     const db = getFirebaseDb();
@@ -890,7 +581,6 @@ export const deleteVideoClass = async (videoId: string): Promise<void> => {
     await deleteDoc(doc(db, 'videoClasses', videoId));
 };
 
-
 // STUDY MATERIAL MANAGEMENT
 export const getStudyMaterials = async (topicId?: string): Promise<StudyMaterial[]> => {
     const db = getFirebaseDb();
@@ -908,55 +598,33 @@ export const deleteStudyMaterial = async (docId: string): Promise<void> => {
     await deleteDoc(doc(db, 'studyMaterials', docId));
 };
 
-
 // CONSOLIDATED DASHBOARD DATA FETCHING
-export const getDashboardData = async (userId: string, isAdmin: boolean = false) => {
+export const getDashboardData = async (userId: string) => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
 
-    if (isAdmin) {
-        const [categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, topicMCQs, videoClasses, studyMaterials] = await Promise.all([
-            getCategories(), 
-            getTopics(), 
-            getQuestionBankDocuments(), 
-            getLiveTestBankDocuments(), 
-            getQnAUsage(), 
-            getAdminNotifications(), 
-            getTopicMCQs(),
-            getVideoClasses(),
-            getStudyMaterials(),
-        ]);
-        return { userData: null, categories, topics, bankedQuestions, liveTestBank, qnaUsage, notifications, topicMCQs, videoClasses, studyMaterials };
-    }
-
-    const [userData, allCategories, allTopics, allBankedQuestions, allVideoClasses, allStudyMaterials] = await Promise.all([
-        getUserData(userId), getCategories(), getTopics(), getQuestionBankDocuments(), getVideoClasses(), getStudyMaterials()
+    const [userData, allCategories, allTopics, allVideoClasses, allStudyMaterials, notifications] = await Promise.all([
+        getUserData(userId), 
+        getCategories(), 
+        getTopics(), 
+        getVideoClasses(), 
+        getStudyMaterials(),
+        getAdminNotifications()
     ]);
     
     if (!userData) {
-        // Return a default structure to avoid crashing the app if user data is somehow missing.
-        return { userData: null, categories: [], topics: [], bankedQuestions: [], liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [], videoClasses: [], studyMaterials: [] };
+        return { userData: null, categories: [], topics: [], videoClasses: [], studyMaterials: [], notifications: [] };
     }
 
-    // Filter categories, topics, and banked questions based on the user's exam category
     const userExamCategory = userData.examCategory;
-    
     const userCategories = allCategories.filter(c => c.examCategories && c.examCategories.includes(userExamCategory));
-    
-    const userTopics = allTopics.filter(t => 
-        t.examCategories && t.examCategories.includes(userExamCategory)
-    );
-    
-    const userBankedQuestions = (allBankedQuestions || []).filter(bq => bq.examCategory === userExamCategory);
-    
-    const userVideoClasses = (allVideoClasses || []).filter(vc => vc.examCategories && vc.examCategories.includes(userExamCategory));
-
+    const userTopics = allTopics.filter(t => t.examCategories && t.examCategories.includes(userExamCategory));
+    const userVideoClasses = allVideoClasses.filter(vc => vc.examCategories && vc.examCategories.includes(userExamCategory));
     const userTopicIds = new Set(userTopics.map(t => t.id));
-    const userStudyMaterials = (allStudyMaterials || []).filter(sm => userTopicIds.has(sm.topicId));
+    const userStudyMaterials = allStudyMaterials.filter(sm => userTopicIds.has(sm.topicId));
 
-    return { userData, categories: userCategories, topics: userTopics, bankedQuestions: userBankedQuestions, liveTestBank: [], qnaUsage: [], notifications: [], topicMCQs: [], videoClasses: userVideoClasses, studyMaterials: userStudyMaterials };
+    return { userData, categories: userCategories, topics: userTopics, videoClasses: userVideoClasses, studyMaterials: userStudyMaterials, notifications };
 };
-
 
 // ANALYTICS
 export const logQnAUSage = async (userId: string, topic: string): Promise<void> => {
@@ -995,12 +663,7 @@ export const getUserLanguagePreferences = async (): Promise<{ userId: string; na
 
         const userHistory = historyByUser.get(user.uid) || [];
         if (userHistory.length === 0) {
-            preferences.push({
-                userId: user.uid,
-                name: user.name,
-                email: user.email,
-                preferredLanguage: 'N/A',
-            });
+            preferences.push({ userId: user.uid, name: user.name, email: user.email, preferredLanguage: 'N/A' });
             continue;
         }
 
@@ -1019,17 +682,11 @@ export const getUserLanguagePreferences = async (): Promise<{ userId: string; na
             }
         }
         
-        preferences.push({
-            userId: user.uid,
-            name: user.name,
-            email: user.email,
-            preferredLanguage,
-        });
+        preferences.push({ userId: user.uid, name: user.name, email: user.email, preferredLanguage });
     }
 
     return preferences.sort((a,b) => (a.name || '').localeCompare(b.name || ''));
 };
-
 
 // GENERATED QUIZ MANAGEMENT
 export const getGeneratedQuiz = async (quizId: string): Promise<MCQData | null> => {
@@ -1040,7 +697,6 @@ export const getGeneratedQuiz = async (quizId: string): Promise<MCQData | null> 
     if (docSnap.exists()) {
         return docSnap.data() as MCQData;
     }
-    // Fallback for old local storage quizzes
     const localQuiz = localStorage.getItem(`quiz-${quizId}`);
     if (localQuiz) {
         return JSON.parse(localQuiz);

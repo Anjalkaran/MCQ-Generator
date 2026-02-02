@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -68,12 +69,20 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                 body: JSON.stringify(values),
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to process request.');
+            const text = await response.text();
+            let data;
+            try {
+                data = text ? JSON.parse(text) : {};
+            } catch (e) {
+                console.error("Server returned non-JSON response:", text);
+                throw new Error("The server encountered an unexpected error and did not return a valid response. Please check the Admin Panel logs.");
             }
 
-            const { newMaterial, newTopic } = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to process request.');
+            }
+
+            const { newMaterial, newTopic } = data;
 
             setMaterials(prev => [newMaterial, ...prev].sort((a,b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()));
             if (newTopic) {

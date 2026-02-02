@@ -1,35 +1,30 @@
 
-
 "use client";
 
-import React, { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
+import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Gem, Menu, BookCopy, FileText, Trophy, HelpCircle, LifeBuoy, Users, BarChart3, MessageSquare, Star, PenSquare, RefreshCw, Video, Library, UserCheck, MessageCircle as MessageCircleIcon } from 'lucide-react';
-import { NewLogoIcon } from '@/components/icons/new-logo-icon';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, BookCopy, FileText, Trophy, HelpCircle, Users, Star, PenSquare, RefreshCw, Video, Library, MessageCircle as MessageCircleIcon } from 'lucide-react';
 import Link from 'next/link';
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebase';
 import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
-import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback, getOnlineUsers as fetchOnlineUsers } from '@/lib/firestore';
+import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback } from '@/lib/firestore';
 import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, VideoClass, StudyMaterial } from "@/lib/types";
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
 import packageJson from '../../../package.json';
 import { AdminNotifications } from '@/components/dashboard/admin-notifications';
-import { Dialog, DialogTrigger, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { serverTimestamp, doc, updateDoc } from 'firebase/firestore';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -109,7 +104,6 @@ function ProfileUpdateDialog({ open, onUpdateSubmit, defaultValues }: ProfileUpd
   );
 }
 
-
 interface NewContentPopupProps {
   newContent: { videos: VideoClass[], materials: StudyMaterial[] };
   onClose: () => void;
@@ -175,6 +169,7 @@ interface OnlineUser {
     name: string;
     email: string;
 }
+
 interface DashboardContextType {
   user: User | null;
   userData: UserData | null;
@@ -191,7 +186,6 @@ interface DashboardContextType {
   isLoading: boolean;
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>;
   hasGivenFeedback: boolean;
-  freeClassRegistrations: never[];
 }
 
 const DashboardContext = createContext<DashboardContextType | null>(null);
@@ -234,7 +228,7 @@ function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
-  const { user, userData, isLoading, onlineUsers, hasGivenFeedback, setUserData } = useDashboard();
+  const { user, userData, isLoading, hasGivenFeedback } = useDashboard();
   const { setOpenMobile } = useSidebar();
   const [isLogoutAlertOpen, setIsLogoutAlertOpen] = useState(false);
 
@@ -272,16 +266,6 @@ function AppSidebar() {
   const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
   const isIPUser = userData?.examCategory === 'IP';
   
-  const handleAdminViewChange = (category: UserData['examCategory']) => {
-    if (isAdmin && userData) {
-      setUserData({ ...userData, examCategory: category });
-      toast({
-        title: 'View Changed',
-        description: `Now viewing dashboard as a ${category} user.`,
-      });
-    }
-  };
-  
   const getWelcomeMessage = () => {
     if (isLoading || !userData) return null;
     return `Welcome, ${userData.name}!`;
@@ -295,8 +279,6 @@ function AppSidebar() {
             <Logo className="h-12 w-auto text-primary" />
           </Link>
         </div>
-          <div className="hidden items-center gap-2 p-2 group-data-[collapsible=icon]:flex">
-          </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
@@ -305,22 +287,6 @@ function AppSidebar() {
               {getWelcomeMessage()}
             </CardDescription>
           </div>
-          {isAdmin && (
-            <div className="px-2 pb-2 group-data-[collapsible=icon]:hidden">
-                <Label htmlFor="admin-view-select" className="text-xs text-muted-foreground px-2">View As</Label>
-                <Select value={userData?.examCategory} onValueChange={handleAdminViewChange}>
-                    <SelectTrigger id="admin-view-select" className="h-9">
-                        <SelectValue placeholder="Select Course" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="MTS">MTS User</SelectItem>
-                        <SelectItem value="POSTMAN">Postman User</SelectItem>
-                        <SelectItem value="PA">PA User</SelectItem>
-                        <SelectItem value="IP">IP User</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-          )}
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/dashboard'} tooltip="Dashboard">
               <Link href="/dashboard" onClick={onLinkClick}>
@@ -330,29 +296,52 @@ function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           {isAdmin && (
-            <>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin">
-                  <Link href="/dashboard/admin" onClick={onLinkClick}>
-                    <Shield />
-                    <span>Admin</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin">
+                <Link href="/dashboard/admin" onClick={onLinkClick}>
+                  <Shield />
+                  <span>Admin</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           )}
-           
-           {isAdmin && (
+           {!isIPUser && (
             <>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/q-and-a')} tooltip="Ask Your Doubt">
-                  <Link href="/dashboard/q-and-a" onClick={onLinkClick}>
-                    <HelpCircle />
-                    <span>Ask Your Doubt</span>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/online-test')} tooltip="Online Tests">
+                  <Link href="/dashboard/online-test" onClick={onLinkClick}>
+                    <PenSquare />
+                    <span>Online Tests</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/video-classes')} tooltip="Video Classes">
+                  <Link href="/dashboard/video-classes" onClick={onLinkClick}>
+                    <Video />
+                    <span>Video Classes</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+               <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/study-material')} tooltip="Study Material">
+                  <Link href="/dashboard/study-material" onClick={onLinkClick}>
+                    <Library />
+                    <span>Study Material</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </>
+           )}
+           {isAdmin && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/q-and-a')} tooltip="Ask Your Doubt">
+                <Link href="/dashboard/q-and-a" onClick={onLinkClick}>
+                  <HelpCircle />
+                  <span>Ask Your Doubt</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             )}
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/dashboard/profile'} tooltip="Profile">
@@ -405,53 +394,6 @@ function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
-        {isAdmin && (
-            <div className="p-2 border-t group-data-[collapsible=icon]:hidden">
-                <Dialog>
-                    <DialogTrigger asChild>
-                        <Button variant="ghost" className="w-full justify-between text-sm">
-                             <div className="flex items-center gap-2 text-muted-foreground">
-                                <Users className="h-4 w-4" />
-                                <span>Online Users</span>
-                            </div>
-                            <span className="font-semibold text-primary">{onlineUsers.length}</span>
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Online Users ({onlineUsers.length})</DialogTitle>
-                            <DialogDescription>
-                                This list shows users who have been active in the last two minutes.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <ScrollArea className="h-72">
-                             <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Email</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {onlineUsers.length > 0 ? (
-                                        onlineUsers.map(u => (
-                                            <TableRow key={u.uid}>
-                                                <TableCell>{u.name}</TableCell>
-                                                <TableCell>{u.email}</TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={2} className="text-center">No users are currently online.</TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </ScrollArea>
-                    </DialogContent>
-                </Dialog>
-            </div>
-        )}
         <div className="p-2">
             <AlertDialog open={isLogoutAlertOpen} onOpenChange={setIsLogoutAlertOpen}>
                 <Button variant="ghost" className="w-full justify-start" onClick={handleLogoutClick}>
@@ -532,7 +474,6 @@ function PwaUpdateNotification() {
   );
 }
 
-
 export default function DashboardLayout({
   children,
 }: {
@@ -593,7 +534,7 @@ export default function DashboardLayout({
         } catch (error) {
             console.error("Version check failed:", error);
         }
-    }, 60 * 1000); // Check every 60 seconds
+    }, 60 * 1000);
 
     return () => clearInterval(versionCheckInterval);
   }, [user]);
@@ -614,7 +555,7 @@ export default function DashboardLayout({
         }
       };
       sendHeartbeat();
-      intervalId = setInterval(sendHeartbeat, 60000); // every 60 seconds
+      intervalId = setInterval(sendHeartbeat, 60000);
     }
     return () => {
       if (intervalId) {
@@ -622,30 +563,6 @@ export default function DashboardLayout({
       }
     };
   }, [user]);
-  
-  // Online user count refresh effect for admins
-  useEffect(() => {
-    let intervalId: NodeJS.Timeout | undefined;
-    if (userData?.email && ADMIN_EMAILS.includes(userData.email)) {
-        const fetchAndSetOnlineUsers = async () => {
-            try {
-                const users = await fetchOnlineUsers();
-                setOnlineUsers(users);
-            } catch (error) {
-                console.error("Failed to fetch online users:", error);
-            }
-        };
-        // Fetch immediately and then set interval
-        fetchAndSetOnlineUsers();
-        intervalId = setInterval(fetchAndSetOnlineUsers, 30000); // Refresh every 30 seconds
-    }
-    return () => {
-        if (intervalId) {
-            clearInterval(intervalId);
-        }
-    };
-  }, [userData]);
-
 
   useEffect(() => {
     const auth = getFirebaseAuth();
@@ -664,34 +581,23 @@ export default function DashboardLayout({
 
         try {
             if (userIsAdmin) {
-                 if (!userData || userData.uid !== currentUser.uid) {
-                    const adminUserData: UserData = {
-                        uid: currentUser.uid,
-                        name: currentUser.displayName || 'Admin',
-                        email: currentUser.email!,
-                        examCategory: 'PA', // Default view for admin
-                        totalExamsTaken: 0,
-                        isPro: true,
-                    };
-                    setUserData(adminUserData);
-                }
-                const data = await getDashboardData(currentUser.uid, true);
-
-                setCategories(data.categories);
-                setTopics(data.topics);
-                setBankedQuestions(data.bankedQuestions);
-                setTopicMCQs(data.topicMCQs);
-                setLiveTestBank(data.liveTestBank);
-                setVideoClasses(data.videoClasses);
-                setStudyMaterials(data.studyMaterials);
-                setQnaUsage(data.qnaUsage);
-                setNotifications(data.notifications);
+                // Admin login is simplified to prevent timeouts
+                const adminUserData: UserData = {
+                    uid: currentUser.uid,
+                    name: currentUser.displayName || 'Admin',
+                    email: currentUser.email!,
+                    examCategory: 'PA',
+                    totalExamsTaken: 0,
+                    isPro: true,
+                };
+                setUserData(adminUserData);
+                
+                // Only load basic data needed for the shell
+                const data = await getDashboardData(currentUser.uid);
+                setNotifications(data.notifications || []);
                 
             } else {
-                const [
-                    dashboardData,
-                    feedbackStatus,
-                ] = await Promise.all([
+                const [dashboardData, feedbackStatus] = await Promise.all([
                     getDashboardData(currentUser.uid),
                     hasUserSubmittedFeedback(currentUser.uid),
                 ]);
@@ -713,17 +619,14 @@ export default function DashboardLayout({
                 const lastSeenTimestamp = localStorage.getItem('lastSeenUpdateTimestamp');
                 const lastSeenDate = lastSeenTimestamp ? new Date(parseInt(lastSeenTimestamp, 10)) : new Date(0);
 
-                const allContentVideos = (dashboardData.videoClasses || []);
-                const allContentMaterials = (dashboardData.studyMaterials || []);
-
-                const mostRecentUpload = [...allContentVideos, ...allContentMaterials].reduce((latest, item) => {
+                const mostRecentUpload = [...dashboardData.videoClasses, ...dashboardData.studyMaterials].reduce((latest, item) => {
                     const itemDate = normalizeDate(item.uploadedAt);
                     return itemDate && itemDate > latest ? itemDate : latest;
                 }, new Date(0));
 
                 if (mostRecentUpload > lastSeenDate) {
-                    const newVideos = allContentVideos.filter(v => normalizeDate(v.uploadedAt)! > lastSeenDate);
-                    const newMaterials = allContentMaterials.filter(m => normalizeDate(m.uploadedAt)! > lastSeenDate);
+                    const newVideos = dashboardData.videoClasses.filter(v => normalizeDate(v.uploadedAt)! > lastSeenDate);
+                    const newMaterials = dashboardData.studyMaterials.filter(m => normalizeDate(m.uploadedAt)! > lastSeenDate);
                     if (newVideos.length > 0 || newMaterials.length > 0) {
                         setNewContent({ videos: newVideos, materials: newMaterials });
                         setShowNewContentPopup(true);
@@ -731,10 +634,7 @@ export default function DashboardLayout({
                 }
 
                 const fetchedUserData = dashboardData.userData;
-                const isEmployeeIdInvalid = !fetchedUserData.employeeId || fetchedUserData.employeeId.length !== 8;
-                const isMobileInvalid = !fetchedUserData.phone;
-                
-                if (isEmployeeIdInvalid || isMobileInvalid) {
+                if (!fetchedUserData.employeeId || fetchedUserData.employeeId.length !== 8 || !fetchedUserData.phone) {
                     setProfileUpdateDefaults({
                         employeeId: fetchedUserData.employeeId || '',
                         mobileNumber: fetchedUserData.phone || '',
@@ -757,14 +657,7 @@ export default function DashboardLayout({
         setUserData(null);
         setCategories([]);
         setTopics([]);
-        setBankedQuestions([]);
-        setTopicMCQs([]);
-        setLiveTestBank([]);
-        setVideoClasses([]);
-        setStudyMaterials([]);
-        setQnaUsage([]);
         setNotifications([]);
-        setOnlineUsers([]);
         if (!pathname.startsWith('/auth')) {
             router.push('/auth/login');
         }
@@ -775,37 +668,6 @@ export default function DashboardLayout({
     
   }, [router, toast, handleLogout, pathname]);
 
-  // This effect filters data based on the selected exam category for admins
-  useEffect(() => {
-    if (userData?.email && ADMIN_EMAILS.includes(userData.email)) {
-        getDashboardData(userData.uid, true).then(data => {
-            const currentViewCategory = userData.examCategory;
-
-            const filteredCategories = (data.categories || []).filter(c => c.examCategories.includes(currentViewCategory));
-            
-            const filteredTopics = (data.topics || []).filter(t => t.examCategories.includes(currentViewCategory));
-            const filteredBankedQuestions = (data.bankedQuestions || []).filter(bq => bq.examCategory === currentViewCategory);
-            const filteredVideoClasses = (data.videoClasses || []).filter(vc => vc.examCategories.includes(currentViewCategory));
-            const filteredStudyMaterials = (data.studyMaterials || []).filter(sm => {
-                const topic = data.topics.find(t => t.id === sm.topicId);
-                return topic && topic.examCategories.includes(currentViewCategory);
-            });
-            
-            setCategories(filteredCategories);
-            setTopics(filteredTopics);
-            setBankedQuestions(filteredBankedQuestions);
-            setVideoClasses(filteredVideoClasses);
-            setStudyMaterials(filteredStudyMaterials);
-            
-            // Data that is not category-specific
-            setTopicMCQs(data.topicMCQs || []);
-            setLiveTestBank(data.liveTestBank || []);
-            setQnaUsage(data.qnaUsage || []);
-            setNotifications(data.notifications || []);
-        });
-    }
-  }, [userData]);
-  
   const handleProfileUpdateSubmit = async (values: { employeeId: string; mobileNumber: string }) => {
     if (!user) return;
     try {
@@ -823,7 +685,7 @@ export default function DashboardLayout({
     localStorage.setItem('lastSeenUpdateTimestamp', String(Date.now()));
   };
 
-  const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, videoClasses, studyMaterials, freeClassRegistrations: [], qnaUsage, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback };
+  const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, videoClasses, studyMaterials, qnaUsage, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback };
 
   return (
     <DashboardContext.Provider value={contextValue}>
