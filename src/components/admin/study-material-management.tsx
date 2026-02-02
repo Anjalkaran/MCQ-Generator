@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Trash2, Search } from 'lucide-react';
+import { Loader2, Link as LinkIcon, Trash2, Search, PlusCircle } from 'lucide-react';
 import { deleteStudyMaterial } from '@/lib/firestore';
 import type { Topic, StudyMaterial } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -18,24 +18,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { format } from 'date-fns';
 import { Checkbox } from '../ui/checkbox';
 
-const MAX_FILE_SIZE_MB = 10;
-const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-
 const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
 
 const formSchema = z.object({
-  topicName: z.string().optional(),
-  file: z
-    .any()
-    .refine((files) => files?.length === 1, 'File is required.')
-    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE_BYTES, `Max file size is ${MAX_FILE_SIZE_MB}MB.`)
-    .refine(
-      (files) => ['application/pdf'].includes(files?.[0]?.type),
-      '.pdf files are accepted.'
-    ),
-  examCategories: z.array(z.string()).refine((value) => value.some((item) => item), {
-    message: "You have to select at least one exam category.",
-  }),
+  topicName: z.string().min(1, 'Display Title is required.'),
+  contentUrl: z.string().url('Please enter a valid PDF URL.'),
+  examCategories: z.array(z.string()).min(1, "Select at least one exam category."),
 });
 
 interface StudyMaterialManagementProps {
@@ -55,43 +43,34 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
         resolver: zodResolver(formSchema),
         defaultValues: {
             topicName: '',
+            contentUrl: '',
             examCategories: [],
         }
     });
 
-    const { register, handleSubmit, control, formState: { errors } } = form;
+    const { handleSubmit, control } = form;
 
     const filteredMaterials = useMemo(() => {
-        if (!searchTerm) {
-          return materials;
-        }
         const lowercasedFilter = searchTerm.toLowerCase();
-        return materials.filter(material =>
-          getTopicTitle(material.topicId).toLowerCase().includes(lowercasedFilter) ||
-          material.fileName.toLowerCase().includes(lowercasedFilter)
-        );
+        return materials.filter(material => {
+          const topic = topics.find(t => t.id === material.topicId);
+          return topic?.title.toLowerCase().includes(lowercasedFilter) || material.fileName.toLowerCase().includes(lowercasedFilter);
+        });
       }, [searchTerm, materials, topics]);
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setIsUploading(true);
-        const file = values.file[0] as File;
         
-        const formData = new FormData();
-        formData.append('file', file);
-        if (values.topicName) {
-            formData.append('topicName', values.topicName);
-        }
-        values.examCategories.forEach(cat => formData.append('examCategories', cat));
-
         try {
             const response = await fetch('/api/study-material/upload', {
                 method: 'POST',
-                body: formData,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(values),
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to process file on server.');
+                throw new Error(errorData.error || 'Failed to process request.');
             }
 
             const { newMaterial, newTopic } = await response.json();
@@ -101,13 +80,13 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                 setTopics(prev => [...prev, newTopic]);
             }
 
-            toast({ title: 'Success', description: 'Study material uploaded successfully.' });
-            form.reset({ topicName: '', file: undefined, examCategories: [] });
+            toast({ title: 'Success', description: 'Study material registered and AI content processed.' });
+            form.reset();
             setIsUploadDialogOpen(false);
             
         } catch (error: any) {
-            console.error("Study material upload error:", error);
-            toast({ title: 'Upload Failed', description: error.message, variant: 'destructive' });
+            console.error("Study material registration error:", error);
+            toast({ title: 'Registration Failed', description: error.message, variant: 'destructive' });
         } finally {
             setIsUploading(false);
         }
@@ -131,21 +110,21 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
             <Card>
                 <CardHeader>
                     <CardTitle>Study Material</CardTitle>
-                    <CardDescription>Manage and upload study materials for various topics.</CardDescription>
+                    <CardDescription>Register PDF links and manage study content for various topics.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
                         <DialogTrigger asChild>
                             <Button>
-                                <Upload className="mr-2 h-4 w-4" />
-                                Upload New Study Material
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Register New PDF Link
                             </Button>
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
-                                <DialogTitle>Upload Study Material</DialogTitle>
+                                <DialogTitle>Register Study Material Link</DialogTitle>
                                 <DialogDescription>
-                                    Upload study material for a topic. You can link it to an existing topic by name, or create a new topic. Supported formats: .pdf
+                                    Enter the link to a PDF file hosted in Firebase Storage or elsewhere. The AI will attempt to extract text for the "Ask Your Doubt" feature.
                                 </DialogDescription>
                             </DialogHeader>
                             <Form {...form}>
@@ -155,11 +134,24 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                                         name="topicName"
                                         render={({ field }) => (
                                             <FormItem>
-                                            <FormLabel>Topic Name (Optional)</FormLabel>
+                                            <FormLabel>Material Title</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="If blank, uses filename" {...field} />
+                                                <Input placeholder="e.g., Organization of the Department" {...field} />
                                             </FormControl>
-                                            <FormDescription>If topic exists, it will link. If not, a new topic will be created.</FormDescription>
+                                            <FormDescription>If a topic with this name exists, it will link. Otherwise, a new one is created.</FormDescription>
+                                            <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={control}
+                                        name="contentUrl"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                            <FormLabel>PDF URL (from Firebase Storage)</FormLabel>
+                                            <FormControl>
+                                                <Input type="url" placeholder="https://firebasestorage.googleapis.com/..." {...field} />
+                                            </FormControl>
                                             <FormMessage />
                                             </FormItem>
                                         )}
@@ -207,17 +199,10 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                                         </FormItem>
                                     )}
                                     />
-                                    <FormItem>
-                                        <FormLabel>Material File (.pdf)</FormLabel>
-                                        <FormControl>
-                                            <Input type="file" accept=".pdf" {...register("file")} />
-                                        </FormControl>
-                                        {errors.file && <p className="text-sm font-medium text-destructive">{`${errors.file.message}`}</p>}
-                                    </FormItem>
 
                                     <Button type="submit" disabled={isUploading} className="w-full">
-                                        {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                                        Upload Material
+                                        {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LinkIcon className="mr-2 h-4 w-4" />}
+                                        Register Material
                                     </Button>
                                 </form>
                             </Form>
@@ -227,7 +212,7 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                     <div className="relative pt-4">
                         <Search className="absolute left-2.5 top-6 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Search by title or file name..."
+                            placeholder="Search by title..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-8 w-full"
@@ -238,7 +223,7 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Uploaded Materials</CardTitle>
+                    <CardTitle>Registered Materials</CardTitle>
                 </CardHeader>
                 <CardContent>
                      <div className="border rounded-md">
@@ -246,7 +231,7 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Title</TableHead>
-                                    <TableHead>File Name</TableHead>
+                                    <TableHead>Source URL</TableHead>
                                     <TableHead>Uploaded At</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
@@ -256,8 +241,8 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                                     filteredMaterials.map(material => (
                                         <TableRow key={material.id}>
                                             <TableCell className="font-medium">{getTopicTitle(material.topicId)}</TableCell>
-                                            <TableCell>{material.fileName}</TableCell>
-                                            <TableCell>{format(new Date(material.uploadedAt), 'dd/MM/yyyy p')}</TableCell>
+                                            <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground">{material.content}</TableCell>
+                                            <TableCell className="text-xs">{format(new Date(material.uploadedAt), 'dd/MM/yyyy')}</TableCell>
                                             <TableCell className="text-right">
                                                 <AlertDialog>
                                                     <AlertDialogTrigger asChild>
@@ -266,7 +251,7 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                                                     <AlertDialogContent>
                                                         <AlertDialogHeader>
                                                             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                            <AlertDialogDesc>This will permanently delete the material "{material.fileName}". This action cannot be undone.</AlertDialogDesc>
+                                                            <AlertDialogDesc>This will remove the material reference. It will not delete the file from your Storage.</AlertDialogDesc>
                                                         </AlertDialogHeader>
                                                         <AlertDialogFooter>
                                                             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -290,4 +275,3 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
         </div>
     );
 }
-    
