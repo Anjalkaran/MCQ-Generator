@@ -69,17 +69,10 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                 body: JSON.stringify(values),
             });
 
-            const text = await response.text();
-            let data;
-            try {
-                data = text ? JSON.parse(text) : {};
-            } catch (e) {
-                console.error("Server returned non-JSON response:", text);
-                throw new Error("The server encountered an unexpected error and did not return a valid response. Please check the Admin Panel logs.");
-            }
+            const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.error || 'Failed to process request.');
+                throw new Error(data.error || 'The server failed to process the PDF registration.');
             }
 
             const { newMaterial, newTopic } = data;
@@ -95,7 +88,11 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
             
         } catch (error: any) {
             console.error("Study material registration error:", error);
-            toast({ title: 'Registration Failed', description: error.message, variant: 'destructive' });
+            toast({ 
+                title: 'Registration Failed', 
+                description: error.message || 'An unexpected error occurred. Please ensure the URL is a direct link to a PDF.', 
+                variant: 'destructive' 
+            });
         } finally {
             setIsUploading(false);
         }
@@ -133,7 +130,7 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                             <DialogHeader>
                                 <DialogTitle>Register Study Material Link</DialogTitle>
                                 <DialogDescription>
-                                    Enter the link to a PDF file hosted in Firebase Storage or elsewhere. The AI will attempt to extract text for the "Ask Your Doubt" feature.
+                                    Enter the link to a PDF file. The AI will attempt to extract text for the "Ask Your Doubt" feature.
                                 </DialogDescription>
                             </DialogHeader>
                             <Form {...form}>
@@ -157,7 +154,7 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                                         name="contentUrl"
                                         render={({ field }) => (
                                             <FormItem>
-                                            <FormLabel>PDF URL (from Firebase Storage)</FormLabel>
+                                            <FormLabel>Direct PDF URL</FormLabel>
                                             <FormControl>
                                                 <Input type="url" placeholder="https://firebasestorage.googleapis.com/..." {...field} />
                                             </FormControl>

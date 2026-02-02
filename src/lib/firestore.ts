@@ -1,7 +1,7 @@
 
 import { getFirebaseDb } from './firebase';
-import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion, runTransaction } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, UserTopicProgress, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, MCQ, VideoClass, StudyMaterial, AptiSolveLaunch } from './types';
+import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion } from 'firebase/firestore';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, VideoClass, StudyMaterial, AptiSolveLaunch } from './types';
 import { ADMIN_EMAILS } from './constants';
 import { normalizeDate } from './utils';
 

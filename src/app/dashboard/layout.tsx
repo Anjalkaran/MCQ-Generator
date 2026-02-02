@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback } from '@/lib/firestore';
-import type { UserData, Category, Topic, BankedQuestion, TopicMCQ, QnAUsage, Notification, VideoClass, StudyMaterial } from "@/lib/types";
+import type { UserData, Category, Topic, Notification, VideoClass, StudyMaterial } from "@/lib/types";
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
@@ -164,25 +164,14 @@ function NewContentPopup({ newContent, onClose, topics }: NewContentPopupProps) 
     );
 }
 
-interface OnlineUser {
-    uid: string;
-    name: string;
-    email: string;
-}
-
 interface DashboardContextType {
   user: User | null;
   userData: UserData | null;
   categories: Category[];
   topics: Topic[];
-  bankedQuestions: BankedQuestion[];
-  topicMCQs: TopicMCQ[];
-  liveTestBank: BankedQuestion[];
   videoClasses: VideoClass[];
   studyMaterials: StudyMaterial[];
-  qnaUsage: QnAUsage[];
   notifications: Notification[];
-  onlineUsers: OnlineUser[];
   isLoading: boolean;
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>;
   hasGivenFeedback: boolean;
@@ -486,14 +475,9 @@ export default function DashboardLayout({
   const [userData, setUserData] = useState<UserData | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
-  const [bankedQuestions, setBankedQuestions] = useState<BankedQuestion[]>([]);
-  const [topicMCQs, setTopicMCQs] = useState<TopicMCQ[]>([]);
-  const [liveTestBank, setLiveTestBank] = useState<BankedQuestion[]>([]);
   const [videoClasses, setVideoClasses] = useState<VideoClass[]>([]);
   const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
-  const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasGivenFeedback, setHasGivenFeedback] = useState(false);
   const [showProfileUpdateModal, setShowProfileUpdateModal] = useState(false);
@@ -539,7 +523,7 @@ export default function DashboardLayout({
     return () => clearInterval(versionCheckInterval);
   }, [user]);
 
-  // Heartbeat effect to update user's lastSeen timestamp
+  // Heartbeat effect
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
     if (user?.uid) {
@@ -581,7 +565,7 @@ export default function DashboardLayout({
 
         try {
             if (userIsAdmin) {
-                // Admin login is simplified to prevent timeouts
+                // Admin login is simplified to prevent crashes from heavy fetching
                 const adminUserData: UserData = {
                     uid: currentUser.uid,
                     name: currentUser.displayName || 'Admin',
@@ -592,7 +576,7 @@ export default function DashboardLayout({
                 };
                 setUserData(adminUserData);
                 
-                // Only load basic data needed for the shell
+                // Only load basic data needed for the layout (e.g., notifications)
                 const data = await getDashboardData(currentUser.uid);
                 setNotifications(data.notifications || []);
                 
@@ -611,7 +595,6 @@ export default function DashboardLayout({
                 setUserData(dashboardData.userData);
                 setCategories(dashboardData.categories || []);
                 setTopics(dashboardData.topics || []);
-                setBankedQuestions(dashboardData.bankedQuestions || []);
                 setVideoClasses(dashboardData.videoClasses || []);
                 setStudyMaterials(dashboardData.studyMaterials || []);
                 setHasGivenFeedback(feedbackStatus);
@@ -685,7 +668,7 @@ export default function DashboardLayout({
     localStorage.setItem('lastSeenUpdateTimestamp', String(Date.now()));
   };
 
-  const contextValue = { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, videoClasses, studyMaterials, qnaUsage, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback };
+  const contextValue = { user, userData, categories, topics, videoClasses, studyMaterials, notifications, isLoading, setUserData, hasGivenFeedback };
 
   return (
     <DashboardContext.Provider value={contextValue}>

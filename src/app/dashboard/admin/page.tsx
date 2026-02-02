@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -18,16 +17,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, MessageSquare, Video, Library } from "lucide-react";
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
 import { AptiSolveIcon } from "@/components/icons/aptisolve-icon";
-import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback, getStudyMaterials, getAptiSolveLaunches } from "@/lib/firestore";
-import type { UserData, QnAUsage, LiveTest, ReasoningQuestion, Feedback, StudyMaterial, AptiSolveLaunch } from "@/lib/types";
+import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback, getStudyMaterials, getAptiSolveLaunches, getCategories, getTopics, getTopicMCQs, getQuestionBankDocuments, getVideoClasses } from "@/lib/firestore";
+import type { UserData, QnAUsage, LiveTest, ReasoningQuestion, Feedback, StudyMaterial, AptiSolveLaunch, Category, Topic, TopicMCQ, BankedQuestion, VideoClass } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { ADMIN_EMAILS } from "@/lib/constants";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import React from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 
 function AnalyticsTab({ qnaUsage }: { qnaUsage: QnAUsage[] }) {
@@ -174,109 +170,87 @@ const adminSections = [
 type AdminSection = typeof adminSections[number]['value'];
 
 export default function AdminPage() {
-  const { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, videoClasses, isLoading: isDashboardLoading } = useDashboard();
-  const [users, setUsers] = useState<UserData[]>([]);
-  const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
-  const [allLiveTests, setAllLiveTests] = useState<LiveTest[]>([]);
-  const [reasoningQuestions, setReasoningQuestions] = useState<ReasoningQuestion[]>([]);
-  const [feedback, setFeedback] = useState<Feedback[]>([]);
-  const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
-  const [isLoadingAdminData, setIsLoadingAdminData] = useState(true);
+  const { userData, isLoading: isDashboardLoading } = useDashboard();
   const [activeSection, setActiveSection] = useState<AdminSection>('users');
+  const [isLoadingAdminData, setIsLoadingAdminData] = useState(true);
   const { toast } = useToast();
+
+  // State for Admin Data
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
+  const [videoClasses, setVideoClasses] = useState<VideoClass[]>([]);
+  const [topicMCQs, setTopicMCQs] = useState<TopicMCQ[]>([]);
+  const [bankedQuestions, setBankedQuestions] = useState<BankedQuestion[]>([]);
+  const [reasoningQuestions, setReasoningQuestions] = useState<ReasoningQuestion[]>([]);
+  const [liveTests, setLiveTests] = useState<LiveTest[]>([]);
+  const [feedback, setFeedback] = useState<Feedback[]>([]);
+  const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
 
   useEffect(() => {
     const fetchAdminData = async () => {
+      if (!userData || !ADMIN_EMAILS.includes(userData.email)) return;
+      
+      setIsLoadingAdminData(true);
       try {
-        const [fetchedUsers, fetchedQnAUsage, fetchedLiveTests, fetchedReasoningQuestions, fetchedFeedback, fetchedStudyMaterials] = await Promise.all([
-            getAllUsers(),
-            getQnAUsage(),
-            getLiveTests(true), // Fetch all live tests
-            getReasoningQuestions(),
-            getAllFeedback(),
-            getStudyMaterials(),
+        const [
+            fetchedUsers, fetchedCategories, fetchedTopics, fetchedMaterials, 
+            fetchedVideos, fetchedMCQs, fetchedBank, fetchedReasoning, 
+            fetchedTests, fetchedFeedback, fetchedQnA
+        ] = await Promise.all([
+            getAllUsers(), getCategories(), getTopics(), getStudyMaterials(),
+            getVideoClasses(), getTopicMCQs(), getQuestionBankDocuments(), getReasoningQuestions(),
+            getLiveTests(true), getAllFeedback(), getQnAUsage()
         ]);
         
-        const regularUsers = fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email));
-        setUsers(regularUsers);
-        setQnaUsage(fetchedQnAUsage);
-        setAllLiveTests(fetchedLiveTests);
-        setReasoningQuestions(fetchedReasoningQuestions);
+        setUsers(fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email)));
+        setCategories(fetchedCategories);
+        setTopics(fetchedTopics);
+        setStudyMaterials(fetchedMaterials);
+        setVideoClasses(fetchedVideos);
+        setTopicMCQs(fetchedMCQs);
+        setBankedQuestions(fetchedBank);
+        setReasoningQuestions(fetchedReasoning);
+        setLiveTests(fetchedTests);
         setFeedback(fetchedFeedback);
-        setStudyMaterials(fetchedStudyMaterials);
+        setQnaUsage(fetchedQnA);
 
       } catch (error) {
         console.error("Failed to fetch admin data:", error);
-        toast({
-          title: "Error",
-          description: "Could not fetch admin data.",
-          variant: "destructive"
-        });
+        toast({ title: "Error", description: "Could not fetch admin data.", variant: "destructive" });
       } finally {
         setIsLoadingAdminData(false);
       }
     };
 
-    if (userData?.email && ADMIN_EMAILS.includes(userData.email)) {
-        fetchAdminData();
-    } else {
-        setIsLoadingAdminData(false);
-    }
+    fetchAdminData();
   }, [userData, toast]);
 
   if (isDashboardLoading || isLoadingAdminData) {
     return (
-       <div className="flex h-[50vh] w-full items-center justify-center">
+       <div className="flex h-[50vh] w-full items-center justify-center flex-col gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-muted-foreground animate-pulse">Loading Admin Console...</p>
       </div>
     );
   }
 
-  if (!user || !userData) {
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Authentication Required</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p>You must be logged in as an administrator to access this page.</p>
-            </CardContent>
-        </Card>
-    );
-  }
-
   const renderContent = () => {
-    if (!activeSection) {
-        return null;
-    }
-    
     switch(activeSection) {
-        case 'users':
-            return <UserManagement initialUsers={users} />;
-        case 'topics':
-            return <TopicManagement initialCategories={categories} initialTopics={topics} />;
-        case 'study-material':
-            return <StudyMaterialManagement initialTopics={topics} initialMaterials={studyMaterials} />;
-        case 'video-classes':
-            return <VideoClassManagement initialVideos={videoClasses} />;
-        case 'topic-mcq':
-            return <TopicMCQManagement initialTopics={topics} initialTopicMCQs={topicMCQs} />;
-        case 'question-bank':
-            return <QuestionBankManagement initialBankedQuestions={bankedQuestions} />;
-        case 'reasoning-bank':
-            return <ReasoningBankManagement initialQuestions={reasoningQuestions} />;
-        case 'live-test':
-            return <LiveTestManagement initialLiveTestBank={liveTestBank} initialLiveTests={allLiveTests} />;
-        case 'aptisolve':
-            return <AptiSolveReport />;
-        case 'analytics':
-            return <AnalyticsTab qnaUsage={qnaUsage} />;
-        case 'feedback':
-            return <FeedbackManagement initialFeedback={feedback} />;
-        case 'reports':
-            return <ReportsManagement allUsers={users} />;
-        default:
-            return null;
+        case 'users': return <UserManagement initialUsers={users} />;
+        case 'topics': return <TopicManagement initialCategories={categories} initialTopics={topics} />;
+        case 'study-material': return <StudyMaterialManagement initialTopics={topics} initialMaterials={studyMaterials} />;
+        case 'video-classes': return <VideoClassManagement initialVideos={videoClasses} />;
+        case 'topic-mcq': return <TopicMCQManagement initialTopics={topics} initialTopicMCQs={topicMCQs} />;
+        case 'question-bank': return <QuestionBankManagement initialBankedQuestions={bankedQuestions} />;
+        case 'reasoning-bank': return <ReasoningBankManagement initialQuestions={reasoningQuestions} />;
+        case 'live-test': return <LiveTestManagement initialLiveTestBank={bankedQuestions} initialLiveTests={liveTests} />;
+        case 'aptisolve': return <AptiSolveReport />;
+        case 'analytics': return <AnalyticsTab qnaUsage={qnaUsage} />;
+        case 'feedback': return <FeedbackManagement initialFeedback={feedback} />;
+        case 'reports': return <ReportsManagement allUsers={users} />;
+        default: return null;
     }
   }
 
@@ -284,9 +258,7 @@ export default function AdminPage() {
     <div className="space-y-6">
        <div className="space-y-0.5">
           <h1 className="text-2xl font-bold tracking-tight">Admin Panel</h1>
-          <p className="text-muted-foreground">
-            Manage users, topics, question banks, and view analytics.
-          </p>
+          <p className="text-muted-foreground">Manage users, topics, question banks, and view analytics.</p>
         </div>
         
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-12">
@@ -301,17 +273,13 @@ export default function AdminPage() {
             >
               <CardHeader className="items-center text-center p-4">
                 {React.createElement(section.icon, { className: "h-6 w-6 text-muted-foreground mb-2" })}
-                <CardTitle className="text-sm font-medium">
-                  {section.label}
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">{section.label}</CardTitle>
               </CardHeader>
             </Card>
           ))}
         </div>
 
-        <div className="mt-6">
-            {renderContent()}
-        </div>
+        <div className="mt-6">{renderContent()}</div>
     </div>
   );
 }

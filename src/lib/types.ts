@@ -1,5 +1,4 @@
 
-
 import type { LucideIcon } from 'lucide-react';
 import type { Timestamp } from 'firebase/firestore';
 
@@ -8,7 +7,7 @@ export interface StudyMaterial {
   topicId: string;
   fileName: string;
   fileType: string;
-  content: string; // The extracted text content
+  content: string; // The extracted text content or PDF URL
   uploadedAt: Date;
 }
 
@@ -40,7 +39,7 @@ export interface Topic {
   categoryName?: string; 
   part: 'Part A' | 'Part B' | 'Paper-I' | 'Paper-III';
   examCategories: ('MTS' | 'POSTMAN' | 'PA' | 'IP')[];
-  source?: 'reasoningBank'; // Flag to identify virtual topics
+  source?: 'reasoningBank'; 
   material?: string;
 }
 
@@ -60,13 +59,13 @@ export interface UserData {
     division?: string;
     examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP';
     totalExamsTaken: number;
-    liveTestsTaken?: string[]; // Array of liveTest IDs
-    completedMockBankTests?: string[]; // Array of questionBank doc IDs
+    liveTestsTaken?: string[]; 
+    completedMockBankTests?: string[]; 
     isPro?: boolean;
     proValidUntil?: any; 
     createdAt?: any;
     lastSeen?: any;
-    hasSeenReasoningUpdate?: boolean; // New field for the popup
+    hasSeenReasoningUpdate?: boolean; 
     mockTestUpdateSeenCount?: number;
 }
 
@@ -75,8 +74,8 @@ export interface MCQData {
   mcqs: MCQ[];
   timeLimit?: number;
   isMockTest?: boolean;
-  liveTestId?: string; // Add liveTestId to quiz data
-  questionPaperId?: string; // ID of the source paper from questionBank
+  liveTestId?: string; 
+  questionPaperId?: string; 
   examCategory?: UserData['examCategory'];
   language?: string;
 }
@@ -89,12 +88,12 @@ export interface MCQHistory {
     score: number;
     totalQuestions: number;
     questions: string[];
-    userAnswers: { [key: number]: string }; // Add userAnswers field
+    userAnswers: { [key: number]: string }; 
     takenAt: Date;
     durationInSeconds?: number;
     isMockTest?: boolean;
     liveTestId?: string;
-    questionPaperId?: string; // ID of the source paper from questionBank
+    questionPaperId?: string; 
     language?: string;
 }
 
@@ -134,12 +133,6 @@ export interface LeaderboardEntry {
     liveTestId?: string;
 }
 
-export interface UserTopicProgress {
-    topicId: string;
-    lastCharacterIndexUsed: number;
-    updatedAt: Date;
-}
-
 export interface QnAUsage {
     id: string;
     userId: string;
@@ -162,20 +155,20 @@ export interface LiveTest {
     examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP';
     startTime: Timestamp | Date;
     endTime: Timestamp | Date;
-    questionPaperId: string; // Document ID from the 'liveTestBank' collection
-    price: number; // Price for the test for non-pro users
+    questionPaperId: string; 
+    price: number; 
 }
 
 export interface ReasoningQuestion {
   id: string;
   questionText: string;
-  questionImage: string; // Download URL
-  options: string[]; // Can be text or Download URLs
+  questionImage: string; 
+  options: string[]; 
   correctAnswer: string;
-  solutionImage?: string; // Download URL
+  solutionImage?: string; 
   solutionText?: string;
   isForLiveTest: boolean;
-  topic: string; // The specific topic (e.g., 'Non-verbal Reasoning')
+  topic: string; 
   uploadedAt: Date;
 }
 
@@ -188,15 +181,6 @@ export interface Feedback {
   createdAt: Date;
   reply?: string;
   repliedAt?: Date;
-}
-
-export interface StudyMaterial {
-    id: string;
-    topicId: string;
-    fileName: string;
-    fileType: string;
-    content: string;
-    uploadedAt: Date;
 }
 
 export interface AptiSolveLaunch {
