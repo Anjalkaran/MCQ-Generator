@@ -561,61 +561,46 @@ export default function DashboardLayout({
       if (currentUser) {
         setUser(currentUser);
         
-        const userIsAdmin = currentUser.email ? ADMIN_EMAILS.includes(currentUser.email) : false;
-
         try {
-            if (userIsAdmin) {
-                // Admin login is simplified to prevent crashes from heavy fetching
-                const adminUserData: UserData = {
-                    uid: currentUser.uid,
-                    name: currentUser.displayName || 'Admin',
-                    email: currentUser.email!,
-                    examCategory: 'PA',
-                    totalExamsTaken: 0,
-                    isPro: true,
-                };
-                setUserData(adminUserData);
-                
-                // Only load basic data needed for the layout (e.g., notifications)
-                const data = await getDashboardData(currentUser.uid);
-                setNotifications(data.notifications || []);
-                
-            } else {
-                const [dashboardData, feedbackStatus] = await Promise.all([
-                    getDashboardData(currentUser.uid),
-                    hasUserSubmittedFeedback(currentUser.uid),
-                ]);
+            const [dashboardData, feedbackStatus] = await Promise.all([
+                getDashboardData(currentUser.uid),
+                hasUserSubmittedFeedback(currentUser.uid),
+            ]);
 
-                if (!dashboardData.userData) {
-                     toast({ title: "Authentication Error", description: "Could not load user profile. Please log in again.", variant: "destructive" });
-                     handleLogout(auth, false);
-                     return;
+            if (!dashboardData.userData) {
+                 toast({ title: "Authentication Error", description: "Could not load user profile. Please log in again.", variant: "destructive" });
+                 handleLogout(auth, false);
+                 return;
+            }
+
+            setUserData(dashboardData.userData);
+            setCategories(dashboardData.categories || []);
+            setTopics(dashboardData.topics || []);
+            setVideoClasses(dashboardData.videoClasses || []);
+            setStudyMaterials(dashboardData.studyMaterials || []);
+            setNotifications(dashboardData.notifications || []);
+            setHasGivenFeedback(feedbackStatus);
+
+            const userIsAdmin = currentUser.email ? ADMIN_EMAILS.includes(currentUser.email) : false;
+
+            const lastSeenTimestamp = localStorage.getItem('lastSeenUpdateTimestamp');
+            const lastSeenDate = lastSeenTimestamp ? new Date(parseInt(lastSeenTimestamp, 10)) : new Date(0);
+
+            const mostRecentUpload = [...dashboardData.videoClasses, ...dashboardData.studyMaterials].reduce((latest, item) => {
+                const itemDate = normalizeDate(item.uploadedAt);
+                return itemDate && itemDate > latest ? itemDate : latest;
+            }, new Date(0));
+
+            if (mostRecentUpload > lastSeenDate) {
+                const newVideos = dashboardData.videoClasses.filter(v => normalizeDate(v.uploadedAt)! > lastSeenDate);
+                const newMaterials = dashboardData.studyMaterials.filter(m => normalizeDate(m.uploadedAt)! > lastSeenDate);
+                if (newVideos.length > 0 || newMaterials.length > 0) {
+                    setNewContent({ videos: newVideos, materials: newMaterials });
+                    setShowNewContentPopup(true);
                 }
+            }
 
-                setUserData(dashboardData.userData);
-                setCategories(dashboardData.categories || []);
-                setTopics(dashboardData.topics || []);
-                setVideoClasses(dashboardData.videoClasses || []);
-                setStudyMaterials(dashboardData.studyMaterials || []);
-                setHasGivenFeedback(feedbackStatus);
-
-                const lastSeenTimestamp = localStorage.getItem('lastSeenUpdateTimestamp');
-                const lastSeenDate = lastSeenTimestamp ? new Date(parseInt(lastSeenTimestamp, 10)) : new Date(0);
-
-                const mostRecentUpload = [...dashboardData.videoClasses, ...dashboardData.studyMaterials].reduce((latest, item) => {
-                    const itemDate = normalizeDate(item.uploadedAt);
-                    return itemDate && itemDate > latest ? itemDate : latest;
-                }, new Date(0));
-
-                if (mostRecentUpload > lastSeenDate) {
-                    const newVideos = dashboardData.videoClasses.filter(v => normalizeDate(v.uploadedAt)! > lastSeenDate);
-                    const newMaterials = dashboardData.studyMaterials.filter(m => normalizeDate(m.uploadedAt)! > lastSeenDate);
-                    if (newVideos.length > 0 || newMaterials.length > 0) {
-                        setNewContent({ videos: newVideos, materials: newMaterials });
-                        setShowNewContentPopup(true);
-                    }
-                }
-
+            if (!userIsAdmin) {
                 const fetchedUserData = dashboardData.userData;
                 if (!fetchedUserData.employeeId || fetchedUserData.employeeId.length !== 8 || !fetchedUserData.phone) {
                     setProfileUpdateDefaults({
