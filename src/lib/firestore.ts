@@ -380,6 +380,25 @@ export const getLiveTests = async (fetchAll: boolean = false): Promise<LiveTest[
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LiveTest));
 };
 
+/**
+ * Fetches past live tests specifically for the leaderboard.
+ */
+export const getLiveTestsForLeaderboard = async (): Promise<LiveTest[]> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    const testsCollection = collection(db, 'liveTests');
+    const now = new Date();
+    // We want tests that have already finished
+    const q = query(testsCollection, where('endTime', '<=', now), orderBy('endTime', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ 
+        id: doc.id, 
+        ...doc.data(),
+        startTime: normalizeDate(doc.data().startTime),
+        endTime: normalizeDate(doc.data().endTime)
+    } as any));
+};
+
 // LEADERBOARD MANAGEMENT
 export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategory: UserData['examCategory']): Promise<LeaderboardEntry[]> => {
     const db = getFirebaseDb();
@@ -603,20 +622,21 @@ export const getDashboardData = async (userId: string) => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
 
-    const [userData, allCategories, allTopics, allVideoClasses, allStudyMaterials, notifications] = await Promise.all([
-        getUserData(userId), 
-        getCategories(), 
-        getTopics(), 
-        getVideoClasses(), 
-        getStudyMaterials(),
-        getAdminNotifications()
-    ]);
-    
+    const userData = await getUserData(userId);
     if (!userData) {
         return { userData: null, categories: [], topics: [], videoClasses: [], studyMaterials: [], notifications: [] };
     }
 
     const isAdmin = ADMIN_EMAILS.includes(userData.email);
+    const notificationsPromise = isAdmin ? getAdminNotifications() : Promise.resolve([]);
+
+    const [allCategories, allTopics, allVideoClasses, allStudyMaterials, notifications] = await Promise.all([
+        getCategories(), 
+        getTopics(), 
+        getVideoClasses(), 
+        getStudyMaterials(),
+        notificationsPromise
+    ]);
 
     if (isAdmin) {
         return { 
