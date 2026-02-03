@@ -619,7 +619,6 @@ export const getDashboardData = async (userId: string) => {
     const isAdmin = ADMIN_EMAILS.includes(userData.email);
 
     if (isAdmin) {
-        // Admins see all categories, topics, videos, and materials
         return { 
             userData, 
             categories: allCategories, 
@@ -630,7 +629,6 @@ export const getDashboardData = async (userId: string) => {
         };
     }
 
-    // For regular users, filter by their exam category
     const userExamCategory = userData.examCategory;
     const userCategories = allCategories.filter(c => c.examCategories && c.examCategories.includes(userExamCategory));
     const userTopics = allTopics.filter(t => t.examCategories && t.examCategories.includes(userExamCategory));

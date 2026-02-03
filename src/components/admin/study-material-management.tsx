@@ -119,110 +119,112 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                     <CardDescription>Register PDF links and manage study content for various topics.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button>
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Register New PDF Link
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Register Study Material Link</DialogTitle>
-                                <DialogDescription>
-                                    Enter the link to a PDF file. The AI will attempt to extract text for the "Ask Your Doubt" feature.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <Form {...form}>
-                                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                                    <FormField
-                                        control={control}
-                                        name="topicName"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                            <FormLabel>Material Title</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="e.g., Organization of the Department" {...field} />
-                                            </FormControl>
-                                            <FormDescription>If a topic with this name exists, it will link. Otherwise, a new one is created.</FormDescription>
-                                            <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={control}
-                                        name="contentUrl"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                            <FormLabel>Direct PDF URL</FormLabel>
-                                            <FormControl>
-                                                <Input type="url" placeholder="https://firebasestorage.googleapis.com/..." {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                    control={control}
-                                    name="examCategories"
-                                    render={() => (
-                                        <FormItem>
-                                        <div className="mb-4">
-                                            <FormLabel className="text-base">Exam Categories</FormLabel>
-                                            <FormDescription>Select which courses this material should be available for.</FormDescription>
-                                        </div>
-                                        <div className="space-y-2">
-                                        {examCategories.map((item) => (
-                                            <FormField
-                                            key={item}
+                    <div className="flex flex-col sm:flex-row gap-4 justify-between items-start">
+                        <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button>
+                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                    Register New PDF Link
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Register Study Material Link</DialogTitle>
+                                    <DialogDescription>
+                                        Enter the link to a PDF file. The AI will attempt to extract text for the "Ask Your Doubt" feature.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <Form {...form}>
+                                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                                        <FormField
                                             control={control}
-                                            name="examCategories"
-                                            render={({ field }) => {
-                                                return (
-                                                <FormItem key={item} className="flex flex-row items-start space-x-3 space-y-0">
-                                                    <FormControl>
-                                                    <Checkbox
-                                                        checked={field.value?.includes(item)}
-                                                        onCheckedChange={(checked) => {
-                                                        return checked
-                                                            ? field.onChange([...(field.value || []), item])
-                                                            : field.onChange(
-                                                                field.value?.filter(
-                                                                (value) => value !== item
-                                                                )
-                                                            )
-                                                        }}
-                                                    />
-                                                    </FormControl>
-                                                    <FormLabel className="font-normal">{item}</FormLabel>
+                                            name="topicName"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                <FormLabel>Material Title</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="e.g., Organization of the Department" {...field} />
+                                                </FormControl>
+                                                <FormDescription>If a topic with this name exists, it will link. Otherwise, a new one is created.</FormDescription>
+                                                <FormMessage />
                                                 </FormItem>
-                                                )
-                                            }}
-                                            />
-                                        ))}
-                                        </div>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                    />
+                                            )}
+                                        />
+                                        <FormField
+                                            control={control}
+                                            name="contentUrl"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                <FormLabel>Direct PDF URL</FormLabel>
+                                                <FormControl>
+                                                    <Input type="url" placeholder="https://firebasestorage.googleapis.com/..." {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                        control={control}
+                                        name="examCategories"
+                                        render={() => (
+                                            <FormItem>
+                                            <div className="mb-4">
+                                                <FormLabel className="text-base">Exam Categories</FormLabel>
+                                                <FormDescription>Select which courses this material should be available for.</FormDescription>
+                                            </div>
+                                            <div className="space-y-2">
+                                            {examCategories.map((item) => (
+                                                <FormField
+                                                key={item}
+                                                control={control}
+                                                name="examCategories"
+                                                render={({ field }) => {
+                                                    return (
+                                                    <FormItem key={item} className="flex flex-row items-start space-x-3 space-y-0">
+                                                        <FormControl>
+                                                        <Checkbox
+                                                            checked={field.value?.includes(item)}
+                                                            onCheckedChange={(checked) => {
+                                                            return checked
+                                                                ? field.onChange([...(field.value || []), item])
+                                                                : field.onChange(
+                                                                    field.value?.filter(
+                                                                    (value) => value !== item
+                                                                    )
+                                                                )
+                                                            }}
+                                                        />
+                                                        </FormControl>
+                                                        <FormLabel className="font-normal">{item}</FormLabel>
+                                                    </FormItem>
+                                                    )
+                                                }}
+                                                />
+                                            ))}
+                                            </div>
+                                            <FormMessage />
+                                            </FormItem>
+                                        )}
+                                        />
 
-                                    <Button type="submit" disabled={isUploading} className="w-full">
-                                        {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LinkIcon className="mr-2 h-4 w-4" />}
-                                        Register Material
-                                    </Button>
-                                </form>
-                            </Form>
-                        </DialogContent>
-                    </Dialog>
-                    
-                    <div className="relative pt-4">
-                        <Search className="absolute left-2.5 top-6 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Search by title..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-8 w-full"
-                        />
+                                        <Button type="submit" disabled={isUploading} className="w-full">
+                                            {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LinkIcon className="mr-2 h-4 w-4" />}
+                                            Register Material
+                                        </Button>
+                                    </form>
+                                </Form>
+                            </DialogContent>
+                        </Dialog>
+                        
+                        <div className="relative w-full sm:w-auto">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Search by title..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-8 w-full sm:w-[300px]"
+                            />
+                        </div>
                     </div>
                 </CardContent>
             </Card>

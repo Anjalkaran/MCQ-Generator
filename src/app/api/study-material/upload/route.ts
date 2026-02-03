@@ -19,7 +19,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing required fields: topicName, contentUrl, and examCategories are required.' }, { status: 400 });
         }
 
-        // 1. Attempt to fetch and parse the PDF text content for the AI
         let textContent = "";
         try {
             console.log(`Attempting to fetch PDF from: ${contentUrl}`);
@@ -34,10 +33,8 @@ export async function POST(request: Request) {
             }
         } catch (parseError: any) {
             console.error("Failed to extract text from provided PDF URL:", parseError);
-            // We continue as the user might just want to store the link
         }
 
-        // 2. Find or create the topic in Firestore
         let topicId: string | null = null;
         let newTopic: Topic | null = null;
 
@@ -65,25 +62,22 @@ export async function POST(request: Request) {
             throw new Error('Failed to find or create a topic entry in the database.');
         }
 
-        // 3. Create the study material document in Firestore
         const studyMaterialData: Omit<StudyMaterial, 'id'> = {
             topicId: topicId,
             fileName: topicName,
             fileType: 'application/pdf',
-            content: contentUrl, // Store the provided URL
+            content: contentUrl, 
             uploadedAt: new Date(),
         };
 
         const materialRef = await addDoc(collection(db, 'studyMaterials'), studyMaterialData);
         const newMaterial = { id: materialRef.id, ...studyMaterialData };
 
-        // 4. Update the topic's material field with the extracted text for AI context
         if (textContent) {
             const topicDocRef = doc(db, 'topics', topicId);
             const topicSnap = await getDoc(topicDocRef);
             const currentMaterial = topicSnap.exists() ? topicSnap.data()?.material || "" : "";
             
-            // Append new content if it doesn't already exist or if topic is new
             const updatedMaterial = currentMaterial.includes(textContent.substring(0, 100)) 
                 ? currentMaterial 
                 : currentMaterial + "\n\n--- Content from " + topicName + " ---\n\n" + textContent;

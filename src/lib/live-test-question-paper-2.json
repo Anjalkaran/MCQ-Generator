@@ -1,0 +1,291 @@
+
+[
+  {
+    "question": "The Department of Posts operates under which Ministry?",
+    "options": ["Ministry of Finance", "Ministry of Communications", "Ministry of Home Affairs", "Ministry of Defence"],
+    "correctAnswer": "Ministry of Communications",
+    "topic": "Organization Overview",
+    "solution": "The Department of Posts operates under the Ministry of Communications.",
+    "sourceLanguage": "English",
+    "translations": {
+      "ta": {
+        "question": "அஞ்சல் துறை எந்த அமைச்சகத்தின் கீழ் செயல்படுகிறது?",
+        "options": ["நிதி அமைச்சகம்", "தகவல் தொடர்பு அமைச்சகம்", "உள்துறை அமைச்சகம்", "பாதுகாப்பு அமைச்சகம்"],
+        "correctAnswer": "தகவல் தொடர்பு அமைச்சகம்",
+        "solution": "அஞ்சல் துறை தகவல் தொடர்பு அமைச்சகத்தின் கீழ் செயல்படுகிறது."
+      }
+    }
+  },
+  {
+    "question": "Who serves as the Chairman of the Postal Service Board (PSB)?",
+    "options": ["Director General of Postal Services", "Minister of Communications", "Secretary, Department of Posts", "Additional Director General"],
+    "correctAnswer": "Secretary, Department of Posts",
+    "topic": "Postal Service Board",
+    "solution": "The Secretary of the Department of Posts serves as the Chairman of the Postal Service Board.",
+    "sourceLanguage": "English",
+    "translations": {
+      "ta": {
+        "question": "அஞ்சல் சேவை வாரியத்தின் (PSB) தலைவராகச் செயல்படுபவர் யார்?",
+        "options": ["அஞ்சல் சேவை தலைமை இயக்குனர்", "தகவல் தொடர்பு அமைச்சர்", "அஞ்சல் துறை செயலாளர்", "கூடுதல் தலைமை இயக்குனர்"],
+        "correctAnswer": "அஞ்சல் துறை செயலாளர்",
+        "solution": "அஞ்சல் துறை செயலாளரே அஞ்சல் சேவை வாரியத்தின் தலைவராவார்."
+      }
+    }
+  },
+  {
+    "question": "Who acts as the Secretary to the Postal Service Board?",
+    "options": ["Additional Director General", "Member (Personnel)", "Deputy Director General (DG)", "Director (Staff)"],
+    "correctAnswer": "Deputy Director General (DG)",
+    "topic": "Postal Service Board",
+    "solution": "The Deputy Director General (DG) acts as the Secretary to the Board.",
+    "sourceLanguage": "English",
+    "translations": {
+      "ta": {
+        "question": "அஞ்சல் சேவை வாரியத்தின் செயலாளராகச் செயல்படுபவர் யார்?",
+        "options": ["கூடுதல் தலைமை இயக்குனர்", "உறுப்பினர் (பணியாளர்)", "துணை தலைமை இயக்குனர் (DDG)", "இயக்குனர் (ஊழியர்)"],
+        "correctAnswer": "துணை தலைமை இயக்குனர் (DDG)",
+        "solution": "துணை தலைமை இயக்குனர் (DDG) வாரியத்தின் செயலாளராகச் செயல்படுகிறார்."
+      }
+    }
+  },
+  {
+    "question": "Who among the following is a Permanent Invitee to the Postal Service Board representing the finance wing?",
+    "options": ["Member (Financial Services)", "Chief Accounts Officer", "Additional Secretary & Financial Advisor", "Director of Budget"],
+    "correctAnswer": "Additional Secretary & Financial Advisor",
+    "topic": "Postal Service Board",
+    "solution": "The Additional Secretary (AS) & Financial Advisor (FA) is a permanent invitee providing financial guidance.",
+    "sourceLanguage": "English",
+    "translations": {
+      "ta": {
+        "question": "அஞ்சல் சேவை வாரியத்தில் நிதியைப் பிரதிநிதித்துவப்படுத்தும் நிரந்தர அழைப்பாளர் யார்?",
+        "options": ["உறுப்பினர் (நிதி சேவைகள்)", "தலைமை கணக்கு அதிகாரி", "கூடுதல் செயலாளர் மற்றும் நிதி ஆலோசகர்", "பட்ஜெட் இயக்குனர்"],
+        "correctAnswer": "கூடுதல் செயலாளர் மற்றும் நிதி ஆலோசகர்",
+        "solution": "கூடுதல் செயலாளர் மற்றும் நிதி ஆலோசகர் (AS & FA) நிரந்தர அழைப்பாளராக உள்ளார்."
+      }
+    }
+  },
+  {
+    "question": "Where is the headquarters of the Haryana Postal Circle located?",
+    "options": ["Gurugram", "Chandigarh", "Ambala", "Rohtak"],
+    "correctAnswer": "Ambala",
+    "topic": "Postal Circles",
+    "solution": "The headquarters of the Haryana Postal Circle is Ambala - 133001.",
+    "sourceLanguage": "English",
+    "translations": {
+      "ta": {
+        "question": "ஹரியானா அஞ்சல் வட்டத்தின் தலைமையகம் எங்கு அமைந்துள்ளது?",
+        "options": ["குருகிராம்", "சண்டிகர்", "அம்பாலா", "ரோஹ்தக்"],
+        "correctAnswer": "அம்பாலா",
+        "solution": "ஹரியானா அஞ்சல் வட்டத்தின் தலைமையகம் அம்பாலாவில் உள்ளது."
+      }
+    }
+  },
+  {
+    "question": "Which of the following states is NOT part of the North East Postal Circle?",
+    "options": ["Manipur", "Meghalaya", "Assam", "Tripura"],
+    "correctAnswer": "Assam",
+    "topic": "Postal Circles",
+    "solution": "Assam has its own separate Postal Circle. North East Circle covers Arunachal Pradesh, Manipur, Meghalaya, Mizoram, Nagaland, and Tripura.",
+    "sourceLanguage": "English",
+    "translations": {
+      "ta": {
+        "question": "கீழ்க்கண்ட எந்த மாநிலம் வடகிழக்கு அஞ்சல் வட்டத்தில் (North East Circle) சேராது?",
+        "options": ["மணிப்பூர்", "மேகாலயா", "அஸ்ஸாம்", "திரிபுரா"],
+        "correctAnswer": "அஸ்ஸாம்",
+        "solution": "அஸ்ஸாம் தனி அஞ்சல் வட்டமாக உள்ளது. வடகிழக்கு வட்டத்தில் அருணாச்சல பிரதேசம், மணிப்பூர், மேகாலயா, மிசோரம், நாகாலாந்து, திரிபுரா ஆகியவை அடங்கும்."
+      }
+    }
+  },
+  {
+    "question": "Where is the headquarters of the North East Postal Circle?",
+    "options": ["Guwahati", "Shillong", "Imphal", "Agartala"],
+    "correctAnswer": "Shillong",
+    "topic": "Postal Circles",
+    "solution": "The headquarters of the North East Postal Circle is Shillong - 793001.",
+    "sourceLanguage": "English",
+    "translations": {
+      "ta": {
+        "question": "வடகிழக்கு அஞ்சல் வட்டத்தின் தலைமையகம் எங்குள்ளது?",
+        "options": ["கவுகாத்தி", "ஷில்லாங்", "இம்பால்", "அகர்தலா"],
+        "correctAnswer": "ஷில்லாங்",
+        "solution": "வடகிழக்கு அஞ்சல் வட்டத்தின் தலைமையகம் ஷில்லாங்கில் உள்ளது."
+      }
+    }
+  },
+  {
+    "question": "The jurisdiction of the West Bengal Circle includes West Bengal, Sikkim, and __________.",
+    "options": ["Odisha", "Jharkhand", "Andaman & Nicobar Islands", "Tripura"],
+    "correctAnswer": "Andaman & Nicobar Islands",
+    "topic": "Postal Circles",
+    "solution": "West Bengal Circle jurisdiction covers West Bengal, Sikkim, and Andaman & Nicobar Islands.",
+    "sourceLanguage": "English",
+    "translations": {
+      "ta": {
+        "question": "மேற்கு வங்க அஞ்சல் வட்டத்தின் அதிகார வரம்பில் மேற்கு வங்கம், சிக்கிம் மற்றும் __________ அடங்கும்.",
+        "options": ["ஒடிசா", "ஜார்க்கண்ட்", "அந்தமான் நிக்கோபார் தீவுகள்", "திரிபுரா"],
+        "correctAnswer": "அந்தமான் நிக்கோபார் தீவுகள்",
+        "solution": "மேற்கு வங்க வட்டத்தில் மேற்கு வங்கம், சிக்கிம் மற்றும் அந்தமான் நிக்கோபார் தீவுகள் ஆகியவை அடங்கும்."
+      }
+    }
+  },
+  {
+    "question": "The Army Postal Service (APS) is functionally referred to as which Circle?",
+    "options": ["Defence Circle", "Base Circle", "Central Circle", "Security Circle"],
+    "correctAnswer": "Base Circle",
+    "topic": "Army Postal Service",
+    "solution": "APS is unlike civilian circles and is known as the 'Base Circle' exclusively for defense personnel.",
+    "sourceLanguage": "English",
+    "translations": {
+      "ta": {
+        "question": "ராணுவ அஞ்சல் சேவை (APS) எந்த வட்டம் என்று அழைக்கப்படுகிறது?",
+        "options": ["பாதுகாப்பு வட்டம்", "பேஸ் சர்க்கிள் (Base Circle)", "மத்திய வட்டம்", "செக்யூரிட்டி வட்டம்"],
+        "correctAnswer": "பேஸ் சர்க்கிள் (Base Circle)",
+        "solution": "APS 'பேஸ் சர்க்கிள்' என்று அழைக்கப்படுகிறது."
+      }
+    }
+  },
+  {
+    "question": "What is the rank of the Additional Director General (ADG) who heads the APS?",
+    "options": ["Brigadier", "Colonel", "Major General", "Lieutenant General"],
+    "correctAnswer": "Major General",
+    "topic": "Army Postal Service",
+    "solution": "The ADG's rank is equivalent to a Major General in the Indian Army.",
+    "sourceLanguage": "English",
+    "translations": {
+      "ta": {
+        "question": "APS-ன் தலைவரான கூடுதல் தலைமை இயக்குனரின் (ADG) ராணுவப் பதவி என்ன?",
+        "options": ["பிரிகேடியர்", "கர்னல்", "மேஜர் ஜெனரல்", "லெப்டினன்ட் ஜெனரல்"],
+        "correctAnswer": "மேஜர் ஜெனரல்",
+        "solution": "ADG-யின் பதவி இந்திய ராணுவத்தின் மேஜர் ஜெனரலுக்கு இணையானது."
+      }
+    }
+  },
+  {
+    "question": "Where is 56 APO located?",
+    "options": ["Kolkata", "Mumbai", "New Delhi", "Chennai"],
+    "correctAnswer": "New Delhi",
+    "topic": "Army Postal Service",
+    "solution": "1 CBPO – 56 APO is located in New Delhi.",
+    "sourceLanguage": "English",
+    "translations": {
+      "ta": {
+        "question": "56 APO எங்கு அமைந்துள்ளது?",
+        "options": ["கொல்கத்தா", "மும்பை", "புது தில்லி", "சென்னை"],
+        "correctAnswer": "புது தில்லி",
+        "solution": "1 CBPO – 56 APO புது தில்லியில் அமைந்துள்ளது."
+      }
+    }
+  },
+  {
+    "question": "Where is 99 APO located?",
+    "options": ["Guwahati", "Kolkata", "Chandigarh", "Jammu"],
+    "correctAnswer": "Kolkata",
+    "topic": "Army Postal Service",
+    "solution": "2 CBPO – 99 APO is located in Kolkata.",
+    "sourceLanguage": "English",
+    "translations": {
+      "ta": {
+        "question": "99 APO எங்கு அமைந்துள்ளது?",
+        "options": ["கவுகாத்தி", "கொல்கத்தா", "சண்டிகர்", "ஜம்மு"],
+        "correctAnswer": "கொல்கத்தா",
+        "solution": "2 CBPO – 99 APO கொல்கத்தாவில் அமைந்துள்ளது."
+      }
+    }
+  },
+  {
+    "question": "Where is the headquarters of the Centre for Excellence in Postal Technology (CEPT)?",
+    "options": ["Bengaluru", "Mysuru", "Chennai", "Hyderabad"],
+    "correctAnswer": "Mysuru",
+    "topic": "CEPT",
+    "solution": "CEPT Headquarters is located in Nazarbad, Mysuru (Karnataka).",
+    "sourceLanguage": "English",
+    "translations": {
+      "ta": {
+        "question": "CEPT-ன் (Centre for Excellence in Postal Technology) தலைமையகம் எங்குள்ளது?",
+        "options": ["பெங்களூரு", "மைசூரு", "சென்னை", "ஹைதராபாத்"],
+        "correctAnswer": "மைசூரு",
+        "solution": "CEPT தலைமையகம் மைசூருவில் அமைந்துள்ளது."
+      }
+    }
+  },
+  {
+    "question": "Which CEPT center manages the Core System Integration (CSI) migration?",
+    "options": ["CEPT, Delhi", "CEPT, Hyderabad", "CEPT, Chennai", "CEPT, Bengaluru"],
+    "correctAnswer": "CEPT, Chennai",
+    "topic": "CEPT",
+    "solution": "CEPT, Chennai manages Core System Integration (CSI) migration and the Delivery and Postman Management System (DPMS).",
+    "sourceLanguage": "English",
+    "translations": {
+      "ta": {
+        "question": "எந்த CEPT மையம் கோர் சிஸ்டம் ஒருங்கிணைப்பு (CSI) மாற்றத்தை நிர்வகிக்கிறது?",
+        "options": ["CEPT, டெல்லி", "CEPT, ஹைதராபாத்", "CEPT, சென்னை", "CEPT, பெங்களூரு"],
+        "correctAnswer": "CEPT, சென்னை",
+        "solution": "சென்னை CEPT மையம் CSI மற்றும் DPMS ஆகியவற்றை நிர்வகிக்கிறது."
+      }
+    }
+  },
+  {
+    "question": "Which system managed by CEPT Hyderabad monitors letterbox clearance?",
+    "options": ["CSI", "Nanyatha", "DPMS", "MNOP"],
+    "correctAnswer": "Nanyatha",
+    "topic": "CEPT",
+    "solution": "CEPT Hyderabad oversees 'Nanyatha', an electronic system for real-time monitoring of letterbox clearance.",
+    "sourceLanguage": "English",
+    "translations": {
+      "ta": {
+        "question": "CEPT ஹைதராபாத் நிர்வகிக்கும் எந்த அமைப்பு தபால் பெட்டி சேகரிப்பை கண்காணிக்கிறது?",
+        "options": ["CSI", "நன்யதா (Nanyatha)", "DPMS", "MNOP"],
+        "correctAnswer": "நன்யதா (Nanyatha)",
+        "solution": "நன்யதா என்பது தபால் பெட்டி சேகரிப்பைக் கண்காணிக்கும் மின்னணு முறையாகும்."
+      }
+    }
+  },
+  {
+    "question": "Which CEPT unit is responsible for Fraud Risk Management (FRMU)?",
+    "options": ["CEPT, Bengaluru", "CEPT, Chennai", "CEPT, Mysore", "CEPT, Delhi"],
+    "correctAnswer": "CEPT, Bengaluru",
+    "topic": "CEPT",
+    "solution": "CEPT, Bengaluru manages the FRMU (Fraud Risk Management Unit) and AML compliance.",
+    "sourceLanguage": "English",
+    "translations": {
+      "ta": {
+        "question": "எந்த CEPT பிரிவு மோசடி இடர் மேலாண்மைக்கு (FRMU) பொறுப்பானது?",
+        "options": ["CEPT, பெங்களூரு", "CEPT, சென்னை", "CEPT, மைசூர்", "CEPT, டெல்லி"],
+        "correctAnswer": "CEPT, பெங்களூரு",
+        "solution": "பெங்களூரு CEPT மையம் FRMU மற்றும் AML இணக்கத்தை நிர்வகிக்கிறது."
+      }
+    }
+  },
+  {
+    "question": "Where is the Rafi Ahmed Kidwai National Postal Academy (RAKNPA) located?",
+    "options": ["New Delhi", "Mysuru", "Ghaziabad", "Lucknow"],
+    "correctAnswer": "Ghaziabad",
+    "topic": "Training Institutes",
+    "solution": "RAKNPA is located in Ghaziabad, Uttar Pradesh Circle.",
+    "sourceLanguage": "English",
+    "translations": {
+      "ta": {
+        "question": "ரஃபி அகமது கித்வாய் தேசிய அஞ்சல் அகாடமி (RAKNPA) எங்கு அமைந்துள்ளது?",
+        "options": ["புது தில்லி", "மைசூரு", "காசியாபாத்", "லக்னோ"],
+        "correctAnswer": "காசியாபாத்",
+        "solution": "RAKNPA காசியாபாத்தில் அமைந்துள்ளது."
+      }
+    }
+  },
+  {
+    "question": "What is the rank of the Director General (DG) Posts?",
+    "options": ["Member", "Secretary", "Apex Scale", "Additional Secretary"],
+    "correctAnswer": "Apex Scale",
+    "topic": "Organization Overview",
+    "solution": "The DG Posts is in the Apex Scale of the Indian Postal Service.",
+    "sourceLanguage": "English",
+    "translations": {
+      "ta": {
+        "question": "அஞ்சல் துறை தலைமை இயக்குனரின் (DG Posts) பதவி நிலை என்ன?",
+        "options": ["உறுப்பினர்", "செயலாளர்", "அபெக்ஸ் ஸ்கேல் (Apex Scale)", "கூடுதல் செயலாளர்"],
+        "correctAnswer": "அபெக்ஸ் ஸ்கேல் (Apex Scale)",
+        "solution": "DG Posts இந்திய அஞ்சல் துறையின் அபெக்ஸ் ஸ்கேல் நிலையில் உள்ளார்."
+      }
+    }
+  }
+]

@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -92,7 +91,6 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     const sortedUsers = [...initialUsers].sort((a, b) => {
         const dateA = normalizeDate(a.createdAt);
         const dateB = normalizeDate(b.createdAt);
-        // Treat null dates as older than any valid date
         if (!dateA) return 1;
         if (!dateB) return -1;
         return dateB.getTime() - dateA.getTime();
@@ -198,11 +196,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
       };
       
       await updateUserDocument(selectedUser.uid, dataToUpdate);
-      
-      const updatedLocalUser = { ...selectedUser, ...dataToUpdate };
-      
-      setUsers(users.map(u => u.uid === selectedUser.uid ? updatedLocalUser : u));
-
+      setUsers(users.map(u => u.uid === selectedUser.uid ? { ...selectedUser, ...dataToUpdate } : u));
       toast({ title: 'Success', description: 'User updated successfully.' });
       setIsUpdateDialogOpen(false);
       setSelectedUser(null);
@@ -240,15 +234,19 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
         };
 
         await createUserDocument(newUser);
-        
         setUsers(prev => [newUser, ...prev]);
         toast({ title: 'Success', description: 'User created successfully.' });
         setIsCreateDialogOpen(false);
         createUserForm.reset();
 
     } catch (error: any) {
-        console.error("Error creating user:", error);
-        toast({ title: 'Error', description: error.message || 'Failed to create user.', variant: 'destructive' });
+        let message = 'An unexpected error occurred.';
+        if (error.code === 'auth/email-already-in-use') {
+            message = 'This email address is already registered to another account.';
+        } else if (error.message) {
+            message = error.message;
+        }
+        toast({ title: 'Error', description: message, variant: 'destructive' });
     } finally {
         setIsLoading(false);
     }
@@ -511,7 +509,6 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                             <AlertDialogDescription>
                                 This action cannot be undone. This will permanently delete the user's data from Firestore.
-                                To fully remove the user, you may need to delete them from the Firebase Authentication panel as well.
                             </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -542,7 +539,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                     <DialogHeader>
                     <DialogTitle>Edit User: {selectedUser?.name}</DialogTitle>
                     <DialogDescription>
-                        Update the user's details below. Email address cannot be changed.
+                        Update the user's details below.
                     </DialogDescription>
                     </DialogHeader>
                     <Form {...updateUserForm}>
