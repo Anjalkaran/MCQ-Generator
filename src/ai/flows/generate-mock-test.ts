@@ -2,24 +2,19 @@
 'use server';
 
 /**
- * @fileOverview Generates a mock test based on a detailed exam blueprint using questions from the MCQ bank with on-demand translation and caching.
- *
- * - generateMockTest - A function that handles the mock test generation process.
- * - GenerateMockTestInput - The input type for the generateMockTest function.
- * - GenerateMockTestOutput - The return type for the generateMockTest function.
+ * @fileOverview Generates a mock test based on a detailed exam blueprint using questions from the MCQ bank with batched translation.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-blueprints';
-import type { MCQ, ReasoningQuestion, Topic } from '@/lib/types';
-import { getShuffledMCQsForTopics, getTopics, updateTopicMCQWithTranslation, getReasoningQuestionsForPartwiseTest, getTopicMCQs, getReasoningQuestions } from '@/lib/firestore';
+import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT, IP_BLUEPRINT } from '@/lib/exam-blueprints';
+import type { MCQ, Topic } from '@/lib/types';
+import { getShuffledMCQsForTopics, getTopics, updateTopicMCQWithTranslation, getTopicMCQs, getReasoningQuestions } from '@/lib/firestore';
 import { generate } from '@genkit-ai/ai';
-import { gemini15Pro } from '@genkit-ai/googleai';
+import { gemini15Flash } from '@genkit-ai/googleai';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { getFirebaseDb } from '@/lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
-
 
 const GenerateMockTestInputSchema = z.object({
   examCategory: z.string().describe('The exam category (e.g., MTS, POSTMAN, PA).'),
@@ -33,7 +28,7 @@ const MCQSchema = z.object({
   options: z.array(z.string()).describe('Four possible answers.'),
   correctAnswer: z.string().describe('The correct answer to the question.'),
   topic: z.string().describe('The topic the question belongs to.'),
-  solution: z.string().optional().describe('A step-by-step solution, especially for arithmetic problems.'),
+  solution: z.string().optional().describe('A step-by-step solution.'),
 });
 
 const GenerateMockTestOutputSchema = z.object({
@@ -41,35 +36,31 @@ const GenerateMockTestOutputSchema = z.object({
 });
 export type GenerateMockTestOutput = z.infer<typeof GenerateMockTestOutputSchema>;
 
-// Dedicated, simple translation flow logic
-const translateMCQ = async (mcq: MCQ, targetLanguage: string): Promise<MCQ> => {
-    const prompt = `Translate the following JSON MCQ object to ${targetLanguage}.
+// Batch translation logic to stay within rate limits
+const translateMCQBatch = async (mcqs: MCQ[], targetLanguage: string): Promise<MCQ[]> => {
+    if (!mcqs.length) return [];
+    
+    const prompt = `Translate the following list of MCQ objects to ${targetLanguage}.
       
       **CRITICAL RULE:** Keep all technical terms, names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", etc. Translate only the descriptive text around them.
       
-      **SOURCE MCQ JSON:**
-      ${JSON.stringify(mcq)}
+      **SOURCE MCQs JSON:**
+      ${JSON.stringify(mcqs)}
       `;
 
     const result = await generate({
-        model: gemini15Pro,
+        model: gemini15Flash,
         prompt: prompt,
         output: {
             format: 'json',
-            schema: zodToJsonSchema(MCQSchema) as any,
+            schema: z.object({ translatedMcqs: z.array(MCQSchema) }) as any,
         },
-        config: { temperature: 0.2 }
+        config: { temperature: 0.1 }
     });
     
-    const translatedMcq = result.json();
-
-    if (!translatedMcq) {
-        throw new Error(`Failed to translate MCQ for topic: ${mcq.topic}`);
-    }
-
-    return translatedMcq as MCQ;
+    const output = result.json();
+    return output?.translatedMcqs || mcqs;
 }
-
 
 function shuffleArray<T>(array: T[]): T[] {
   for (let i = array.length - 1; i > 0; i--) {
@@ -94,9 +85,10 @@ const generateMockTestFlow = ai.defineFlow(
     if (input.examCategory === 'MTS') blueprint = MTS_BLUEPRINT;
     else if (input.examCategory === 'POSTMAN') blueprint = POSTMAN_BLUEPRINT;
     else if (input.examCategory === 'PA') blueprint = PA_BLUEPRINT;
+    else if (input.examCategory === 'IP') blueprint = IP_BLUEPRINT;
     else throw new Error(`No blueprint found for exam category: ${input.examCategory}`);
 
-    let allQuestions: MCQ[] = [];
+    let allQuestions: (MCQ & { sourceDocId?: string; topicId?: string })[] = [];
     const allFirestoreTopics = await getTopics();
     const topicMapByName: Map<string, Topic> = new Map(allFirestoreTopics.map(t => [t.title.toLowerCase(), t]));
     
@@ -104,11 +96,10 @@ const generateMockTestFlow = ai.defineFlow(
     const languageMap: Record<string, string> = { 'english': 'en', 'tamil': 'ta', 'hindi': 'hi', 'telugu': 'te', 'kannada': 'kn' };
     const targetLangKey = targetLang ? languageMap[targetLang] : 'en';
 
-    // --- New Resilient Fetching Logic ---
     const allMcqDocsForCategory = await getTopicMCQs();
     const allMcqsForCategory: (MCQ & { sourceDocId: string; topicId: string })[] = [];
     
-    const categoryTopicIds = new Set(allFirestoreTopics.filter(t => t.examCategories.includes(input.examCategory as 'MTS' | 'POSTMAN' | 'PA')).map(t => t.id));
+    const categoryTopicIds = new Set(allFirestoreTopics.filter(t => t.examCategories.includes(input.examCategory as any)).map(t => t.id));
 
     allMcqDocsForCategory.forEach(doc => {
       if (categoryTopicIds.has(doc.topicId)) {
@@ -119,32 +110,26 @@ const generateMockTestFlow = ai.defineFlow(
               allMcqsForCategory.push({ ...mcq, sourceDocId: doc.id, topicId: doc.topicId });
             });
           }
-        } catch (e) { /* Ignore non-json files */ }
+        } catch (e) { }
       }
     });
 
-
     for (const part of blueprint.parts) {
       for (const section of part.sections) {
-        
         if (section.nonVerbalTopics) {
             const allReasoningQuestions = await getReasoningQuestions();
             const totalQuestionsNeeded = section.nonVerbalTopics.reduce((sum, t) => sum + t.questions, 0);
-
-            if (allReasoningQuestions.length < totalQuestionsNeeded) {
-                throw new Error(`Not enough non-verbal reasoning questions in the bank. Found ${allReasoningQuestions.length}, but need ${totalQuestionsNeeded}. Please upload more.`);
+            if (allReasoningQuestions.length >= totalQuestionsNeeded) {
+                const shuffledReasoning = shuffleArray(allReasoningQuestions).slice(0, totalQuestionsNeeded);
+                const formatted: MCQ[] = shuffledReasoning.map(q => ({
+                    question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
+                    options: q.options,
+                    correctAnswer: q.correctAnswer,
+                    solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
+                    topic: q.topic,
+                }));
+                allQuestions.push(...formatted);
             }
-
-            const shuffledReasoning = shuffleArray(allReasoningQuestions).slice(0, totalQuestionsNeeded);
-
-            const formatted: MCQ[] = shuffledReasoning.map(q => ({
-                question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
-                options: q.options,
-                correctAnswer: q.correctAnswer,
-                solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
-                topic: q.topic,
-            }));
-            allQuestions.push(...formatted);
             continue;
         }
 
@@ -152,100 +137,64 @@ const generateMockTestFlow = ai.defineFlow(
         let randomFromRequest: { topics: string[], questions: number } | null = null;
         
         if (section.topics) {
-             // Handle sections with a single topic and a fixed number of questions
-             if (section.topics.length === 1 && section.topics[0].name && section.topics[0].questions > 0) {
-                const topicInfo = topicMapByName.get(section.topics[0].name.toLowerCase());
-                if (topicInfo) {
-                    topicRequests.set(topicInfo.id, section.topics[0].questions);
-                } else {
-                     console.warn(`Blueprint topic "${section.topics[0].name}" not found in Firestore. Skipping.`);
-                }
-             } else {
-                // Handle sections with multiple topics, each with a question count
-                section.topics.forEach(topicDef => {
-                    const topicInfo = topicMapByName.get(topicDef.name.toLowerCase());
-                    if (topicInfo) {
-                        topicRequests.set(topicInfo.id, topicDef.questions);
-                    } else {
-                        console.warn(`Blueprint topic "${topicDef.name}" not found in Firestore. Skipping.`);
-                    }
-                });
-             }
+            section.topics.forEach(topicDef => {
+                const topicInfo = topicMapByName.get(topicDef.name.toLowerCase());
+                if (topicInfo) topicRequests.set(topicInfo.id, topicDef.questions);
+            });
         }
         
         if (section.randomFrom) {
             const topicIds = section.randomFrom.topics
                 .map(name => topicMapByName.get(name.toLowerCase())?.id)
                 .filter(Boolean) as string[];
-            
             randomFromRequest = { topics: topicIds, questions: section.randomFrom.questions };
         }
         
-        const fetchedMCQs = await getShuffledMCQsForTopics(topicRequests, randomFromRequest, input.examCategory as 'MTS' | 'POSTMAN' | 'PA', allMcqsForCategory);
+        const fetchedMCQs = await getShuffledMCQsForTopics(topicRequests, randomFromRequest, input.examCategory as any, allMcqsForCategory);
         allQuestions.push(...fetchedMCQs);
       }
     }
     
-    const totalExpectedQuestions = blueprint.parts.reduce((partSum, part) => {
-        return partSum + part.sections.reduce((sectionSum, section) => {
-            let count = 0;
-            if (section.topics) {
-                count += section.topics.reduce((topicSum, topic) => topicSum + topic.questions, 0);
-            }
-            if (section.randomFrom) {
-                count += section.randomFrom.questions;
-            }
-             if (section.nonVerbalTopics) {
-                count += section.nonVerbalTopics.reduce((topicSum, topic) => topicSum + topic.questions, 0);
-            }
-            return sectionSum + count;
-        }, 0);
-    }, 0);
+    // Translation process
+    const finalProcessedQuestions: MCQ[] = [];
+    const needTranslation: { mcq: MCQ; index: number }[] = [];
 
-    // --- Fallback to fill any remaining shortfall ---
-    let shortfall = totalExpectedQuestions - allQuestions.length;
-    if (shortfall > 0) {
-        console.warn(`Shortfall of ${shortfall} questions detected. Filling from general pool.`);
-        const usedQuestionTexts = new Set(allQuestions.map(q => q.question));
-        const fallbackPool = allMcqsForCategory.filter(mcq => !usedQuestionTexts.has(mcq.question));
-        const fallbackQuestions = shuffleArray(fallbackPool).slice(0, shortfall);
-        allQuestions.push(...fallbackQuestions);
-    }
+    allQuestions.forEach((q, idx) => {
+        if (targetLang === 'english' || !targetLangKey) {
+            finalProcessedQuestions[idx] = q;
+        } else if ((q as any).translations && (q as any).translations[targetLangKey]) {
+            finalProcessedQuestions[idx] = { ...q, ...(q as any).translations[targetLangKey] };
+        } else {
+            needTranslation.push({ mcq: q, index: idx });
+        }
+    });
 
-    if (allQuestions.length < totalExpectedQuestions) {
-        throw new Error(`Failed to generate the full mock test. Could only gather ${allQuestions.length} out of ${totalExpectedQuestions} required questions. Please check the MCQ bank.`);
-    }
-    
-    // Process translations for the final list
-    const processedQuestions: MCQ[] = [];
-    for (const cq of allQuestions) {
-         let finalMcq: MCQ;
-            if (targetLang === 'english' || !targetLangKey) {
-                finalMcq = cq;
-            } else if ((cq as any).translations && (cq as any).translations[targetLangKey]) {
-                const translated = (cq as any).translations[targetLangKey];
-                finalMcq = { ...cq, ...translated };
-            } else if (input.language) {
-                try {
-                    const translatedMcq = await translateMCQ(cq, input.language);
-                    updateTopicMCQWithTranslation((cq as any).sourceDocId, cq.question, targetLangKey, translatedMcq).catch(err => console.error("Failed to save translation:", err));
-                    finalMcq = translatedMcq;
-                } catch (e) {
-                    console.error(`Skipping question due to translation error for topic ${cq.topic}:`, e);
-                    finalMcq = cq; // Use original if translation fails
+    if (needTranslation.length > 0 && input.language) {
+        // Process in chunks of 10 to stay within token limits and reasonable response times
+        const CHUNK_SIZE = 10;
+        for (let i = 0; i < needTranslation.length; i += CHUNK_SIZE) {
+            const chunk = needTranslation.slice(i, i + CHUNK_SIZE);
+            const translatedChunk = await translateMCQBatch(chunk.map(c => c.mcq), input.language);
+            
+            translatedChunk.forEach((translated, chunkIdx) => {
+                const original = chunk[chunkIdx];
+                finalProcessedQuestions[original.index] = translated;
+                
+                // Cache translation asynchronously
+                if (original.mcq.sourceDocId) {
+                    updateTopicMCQWithTranslation(original.mcq.sourceDocId, original.mcq.question, targetLangKey, translated).catch(() => {});
                 }
-            } else {
-                finalMcq = cq;
-            }
-            const { translations, sourceLanguage, sourceDocId, topicId, ...rest } = finalMcq as any;
-            processedQuestions.push(rest);
+            });
+        }
+    } else {
+        // Fill remaining holes if any
+        allQuestions.forEach((q, idx) => {
+            if (!finalProcessedQuestions[idx]) finalProcessedQuestions[idx] = q;
+        });
     }
-
-
-    const finalMCQs = shuffleArray(processedQuestions).map(mcq => ({ ...mcq, solution: mcq.solution || "" }));
 
     const quizData = {
-        mcqs: finalMCQs.slice(0, totalExpectedQuestions),
+        mcqs: shuffleArray(finalProcessedQuestions.filter(Boolean)).map(m => ({ ...m, solution: m.solution || "" })),
         timeLimit: blueprint.totalDurationMinutes * 60,
         isMockTest: true,
         language: input.language,
@@ -255,17 +204,12 @@ const generateMockTestFlow = ai.defineFlow(
             description: `A full-length mock test based on the official ${input.examCategory} syllabus.`,
             icon: 'scroll-text',
             categoryId: 'mock-test',
-            part: 'Part A', 
-            examCategories: [input.examCategory as 'MTS' | 'POSTMAN' | 'PA'],
         },
         createdAt: new Date(),
     };
     
     const db = getFirebaseDb();
-    if (!db) {
-        throw new Error("Firestore is not initialized.");
-    }
-
+    if (!db) throw new Error("Firestore is not initialized.");
     const docRef = await addDoc(collection(db, "generatedQuizzes"), quizData);
 
     return { quizId: docRef.id };
