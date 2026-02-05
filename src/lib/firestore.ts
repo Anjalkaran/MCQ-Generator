@@ -1,3 +1,4 @@
+
 import { getFirebaseDb, getFirebaseAuth } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion } from 'firebase/firestore';
 import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, VideoClass, StudyMaterial, AptiSolveLaunch } from './types';
@@ -7,37 +8,41 @@ import { normalizeDate } from './utils';
 // USER MANAGEMENT
 export const getUserData = async (userId: string): Promise<UserData | null> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    const userRef = doc(db, 'users', userId);
-    const userSnap = await getDoc(userRef);
+    if (!db) return null;
+    
+    try {
+        const userRef = doc(db, 'users', userId);
+        const userSnap = await getDoc(userRef);
 
-    if (userSnap.exists()) {
-        const data = userSnap.data();
-        return {
-            uid: userSnap.id,
-            ...data,
-            totalExamsTaken: data.totalExamsTaken || 0,
-            liveTestsTaken: data.liveTestsTaken || [],
-            completedMockBankTests: data.completedMockBankTests || [],
-        } as UserData;
-    }
+        if (userSnap.exists()) {
+            const data = userSnap.data();
+            return {
+                uid: userSnap.id,
+                ...data,
+                totalExamsTaken: data.totalExamsTaken || 0,
+                liveTestsTaken: data.liveTestsTaken || [],
+                completedMockBankTests: data.completedMockBankTests || [],
+            } as UserData;
+        }
 
-    // Recovery Logic: If user is authenticated via Firebase Auth but has no document in Firestore.
-    // This happens if the registration process was interrupted.
-    const auth = getFirebaseAuth();
-    if (auth && auth.currentUser && auth.currentUser.uid === userId) {
-        const newUser: UserData = {
-            uid: userId,
-            name: auth.currentUser.displayName || 'New User',
-            email: auth.currentUser.email || '',
-            examCategory: 'MTS', // Default fallback category
-            totalExamsTaken: 0,
-            isPro: true, // Default to true for recovery users
-            createdAt: serverTimestamp(),
-            lastSeen: serverTimestamp(),
-        };
-        await setDoc(userRef, newUser);
-        return newUser;
+        // Recovery Logic: If user is authenticated via Firebase Auth but has no document in Firestore.
+        const auth = getFirebaseAuth();
+        if (auth && auth.currentUser && auth.currentUser.uid === userId) {
+            const newUser: UserData = {
+                uid: userId,
+                name: auth.currentUser.displayName || 'User',
+                email: auth.currentUser.email || '',
+                examCategory: 'MTS', 
+                totalExamsTaken: 0,
+                isPro: true,
+                createdAt: serverTimestamp(),
+                lastSeen: serverTimestamp(),
+            };
+            await setDoc(userRef, newUser);
+            return newUser;
+        }
+    } catch (error) {
+        console.error("Failed to fetch/recover user data:", error);
     }
 
     return null;
@@ -45,7 +50,7 @@ export const getUserData = async (userId: string): Promise<UserData | null> => {
 
 export const getAllUsers = async (): Promise<UserData[]> => {
   const db = getFirebaseDb();
-  if (!db) throw new Error("Firestore is not initialized");
+  if (!db) return [];
   const usersCollection = collection(db, 'users');
   const userSnapshot = await getDocs(usersCollection);
   return userSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserData));
@@ -53,7 +58,7 @@ export const getAllUsers = async (): Promise<UserData[]> => {
 
 export const getOnlineUsers = async (): Promise<UserData[]> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return [];
 
     const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
     const usersCollection = collection(db, 'users');
@@ -65,7 +70,7 @@ export const getOnlineUsers = async (): Promise<UserData[]> => {
 
 export const createUserDocument = async (userData: Omit<UserData, 'id'>): Promise<void> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return;
     const userRef = doc(db, 'users', userData.uid);
     
     await setDoc(userRef, {
@@ -80,7 +85,7 @@ export const createUserDocument = async (userData: Omit<UserData, 'id'>): Promis
 
 export const updateUserDocument = async (userId: string, data: Partial<UserData>): Promise<void> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return;
     const userRef = doc(db, 'users', userId);
     
     const updateData: { [key: string]: any } = { ...data };
@@ -94,14 +99,14 @@ export const updateUserDocument = async (userId: string, data: Partial<UserData>
 
 export const deleteUserDocument = async (userId: string): Promise<void> => {
   const db = getFirebaseDb();
-  if (!db) throw new Error("Firestore is not initialized");
+  if (!db) return;
   await deleteDoc(doc(db, 'users', userId));
 };
 
 // CATEGORY MANAGEMENT
 export const getCategories = async (): Promise<Category[]> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return [];
     const categoriesCollection = collection(db, 'categories');
     const categorySnapshot = await getDocs(query(categoriesCollection));
     return categorySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category)).sort((a,b) => a.name.localeCompare(b.name));
@@ -115,14 +120,14 @@ export const addCategory = async (category: Omit<Category, 'id'>): Promise<Docum
 
 export const updateCategory = async (categoryId: string, data: Partial<Category>): Promise<void> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return;
     const categoryRef = doc(db, "categories", categoryId);
     await updateDoc(categoryRef, data);
 };
 
 export const deleteCategory = async (categoryId: string, topicsToDelete: Topic[]): Promise<void> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return;
     
     const batch = writeBatch(db);
     const categoryRef = doc(db, 'categories', categoryId);
@@ -139,7 +144,7 @@ export const deleteCategory = async (categoryId: string, topicsToDelete: Topic[]
 // TOPIC MANAGEMENT
 export const getTopics = async (): Promise<Topic[]> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return [];
     const topicsCollection = collection(db, 'topics');
     const topicSnapshot = await getDocs(query(topicsCollection));
     const topics = topicSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Topic));
@@ -155,7 +160,7 @@ export const getTopics = async (): Promise<Topic[]> => {
 
 export const getTopicsByPartAndExam = async (part: string, examCategory: string): Promise<Topic[]> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return [];
     const topicsCollection = collection(db, 'topics');
     const q = query(
         topicsCollection, 
@@ -181,14 +186,14 @@ export const addTopic = async (topic: Omit<Topic, 'id'>): Promise<DocumentRefere
 
 export const updateTopic = async (topicId: string, data: Partial<Topic>): Promise<void> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return;
     const topicRef = doc(db, "topics", topicId);
     await updateDoc(topicRef, data);
 };
 
 export const deleteTopic = async (topicId: string): Promise<void> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return;
     await deleteDoc(doc(db, 'topics', topicId));
 };
 
@@ -235,7 +240,7 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
 
 export const getExamHistoryForUser = async (userId?: string, historyId?: string): Promise<MCQHistory[]> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return [];
     
     if (historyId) {
         const docRef = doc(db, 'mcqHistory', historyId);
@@ -249,7 +254,7 @@ export const getExamHistoryForUser = async (userId?: string, historyId?: string)
         }
     }
 
-    if (!userId) throw new Error("User ID is required to fetch history.");
+    if (!userId) return [];
 
     const historyCollection = collection(db, 'mcqHistory');
     const q = query(historyCollection, where('userId', '==', userId));
@@ -266,7 +271,7 @@ export const getExamHistoryForUser = async (userId?: string, historyId?: string)
 
 export const getAllExamHistory = async (): Promise<MCQHistory[]> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return [];
     const historyCollection = collection(db, 'mcqHistory');
     const snapshot = await getDocs(historyCollection);
     return snapshot.docs.map(doc => {
@@ -307,7 +312,7 @@ export const getPerformanceByTopic = async (userId: string): Promise<TopicPerfor
 // QUESTION BANK MANAGEMENT
 export const getQuestionBankDocuments = async (examCategory?: UserData['examCategory']): Promise<BankedQuestion[]> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return [];
     const bankCollection = collection(db, 'questionBank');
     
     let q;
@@ -329,14 +334,14 @@ export const addQuestionBankDocument = async (data: Omit<BankedQuestion, 'id'>):
 
 export const deleteQuestionBankDocument = async (docId: string): Promise<void> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return;
     await deleteDoc(doc(db, 'questionBank', docId));
 };
 
 // LIVE TEST BANK MANAGEMENT
 export const getLiveTestBankDocuments = async (): Promise<BankedQuestion[]> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return [];
     const bankCollection = collection(db, 'liveTestBank');
     const q = query(bankCollection, orderBy('uploadedAt', 'desc'));
     const snapshot = await getDocs(q);
@@ -351,13 +356,13 @@ export const addLiveTestBankDocument = async (data: Omit<BankedQuestion, 'id'>):
 
 export const deleteLiveTestBankDocument = async (docId: string): Promise<void> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return;
     await deleteDoc(doc(db, 'liveTestBank', docId));
 };
 
 export const getLiveTestQuestionPaper = async (liveTestId: string): Promise<BankedQuestion | null> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return null;
     const docRef = doc(db, 'liveTestBank', liveTestId);
     const docSnap = await getDoc(docRef);
     if (!docSnap.exists()) return null;
@@ -373,19 +378,19 @@ export const addLiveTest = async (testData: Omit<LiveTest, 'id'>): Promise<Docum
 
 export const updateLiveTest = async (testId: string, testData: Omit<LiveTest, 'id'>): Promise<void> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return;
     await updateDoc(doc(db, 'liveTests', testId), testData);
 };
 
 export const deleteLiveTest = async (testId: string): Promise<void> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return;
     await deleteDoc(doc(db, 'liveTests', testId));
 };
 
 export const getLiveTests = async (fetchAll: boolean = false): Promise<LiveTest[]> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return [];
     const testsCollection = collection(db, 'liveTests');
     let q;
     if (fetchAll) {
@@ -400,7 +405,7 @@ export const getLiveTests = async (fetchAll: boolean = false): Promise<LiveTest[
 
 export const getLiveTestsForLeaderboard = async (): Promise<LiveTest[]> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return [];
     const testsCollection = collection(db, 'liveTests');
     const now = new Date();
     const q = query(testsCollection, where('endTime', '<=', now), orderBy('endTime', 'desc'));
@@ -416,7 +421,7 @@ export const getLiveTestsForLeaderboard = async (): Promise<LiveTest[]> => {
 // LEADERBOARD MANAGEMENT
 export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategory: UserData['examCategory']): Promise<LeaderboardEntry[]> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return [];
     const isMockTest = examType === 'mock';
     const historyQuery = query(collection(db, 'mcqHistory'), where('isMockTest', '==', isMockTest));
     const historySnapshot = await getDocs(historyQuery);
@@ -459,7 +464,7 @@ export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategor
 
 export const getLiveTestLeaderboardData = async (liveTestId: string): Promise<LeaderboardEntry[]> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return [];
     const q = query(collection(db, 'mcqHistory'), where('liveTestId', '==', liveTestId));
     const historySnapshot = await getDocs(q);
     const histories = historySnapshot.docs.map(doc => doc.data() as MCQHistory);
@@ -499,7 +504,7 @@ export const getLiveTestLeaderboardData = async (liveTestId: string): Promise<Le
 // NOTIFICATION MANAGEMENT
 export const getAdminNotifications = async (): Promise<Notification[]> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return [];
     const q = query(collection(db, 'notifications'), orderBy('createdAt', 'desc'), limit(20));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: doc.data().createdAt.toDate() } as Notification));
@@ -507,7 +512,7 @@ export const getAdminNotifications = async (): Promise<Notification[]> => {
 
 export const markNotificationsAsRead = async (notificationIds: string[]): Promise<void> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return;
     const batch = writeBatch(db);
     notificationIds.forEach(id => {
         batch.update(doc(db, 'notifications', id), { isRead: true });
@@ -518,7 +523,7 @@ export const markNotificationsAsRead = async (notificationIds: string[]): Promis
 // TOPIC MCQ MANAGEMENT
 export const getTopicMCQs = async (topicId?: string): Promise<TopicMCQ[]> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return [];
     const q = topicId ? query(collection(db, 'topicMCQs'), where('topicId', '==', topicId)) : query(collection(db, 'topicMCQs'), orderBy('uploadedAt', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as TopicMCQ));
@@ -526,13 +531,13 @@ export const getTopicMCQs = async (topicId?: string): Promise<TopicMCQ[]> => {
 
 export const deleteTopicMCQDocument = async (docId: string): Promise<void> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return;
     await deleteDoc(doc(db, 'topicMCQs', docId));
 };
 
 export const updateTopicMCQDocument = async (docId: string, content: string): Promise<void> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return;
     const docRef = doc(db, 'topicMCQs', docId);
     await updateDoc(docRef, { content, uploadedAt: new Date() });
 };
@@ -540,7 +545,7 @@ export const updateTopicMCQDocument = async (docId: string, content: string): Pr
 // REASONING BANK MANAGEMENT
 export const getReasoningQuestions = async (): Promise<ReasoningQuestion[]> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return [];
     const q = query(collection(db, 'reasoningBank'), orderBy('uploadedAt', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as ReasoningQuestion));
@@ -548,14 +553,14 @@ export const getReasoningQuestions = async (): Promise<ReasoningQuestion[]> => {
 
 export const deleteReasoningQuestion = async (docId: string): Promise<void> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return;
     await deleteDoc(doc(db, 'reasoningBank', docId));
 };
 
 // FEEDBACK MANAGEMENT
 export const getAllFeedback = async (): Promise<Feedback[]> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return [];
     const feedbackCollection = collection(db, 'feedback');
     const q = query(feedbackCollection, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
@@ -571,7 +576,7 @@ export const getAllFeedback = async (): Promise<Feedback[]> => {
 
 export const hasUserSubmittedFeedback = async (userId: string): Promise<boolean> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return false;
     const feedbackCollection = collection(db, 'feedback');
     const q = query(feedbackCollection, where('userId', '==', userId), limit(1));
     const snapshot = await getDocs(q);
@@ -580,7 +585,7 @@ export const hasUserSubmittedFeedback = async (userId: string): Promise<boolean>
 
 export const replyToFeedback = async (feedbackId: string, reply: string): Promise<void> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return;
     const feedbackRef = doc(db, 'feedback', feedbackId);
     await updateDoc(feedbackRef, { reply, repliedAt: new Date() });
 };
@@ -588,7 +593,7 @@ export const replyToFeedback = async (feedbackId: string, reply: string): Promis
 // VIDEO CLASS MANAGEMENT
 export const getVideoClasses = async (): Promise<VideoClass[]> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return [];
     const videosCollection = collection(db, 'videoClasses');
     const q = query(videosCollection, orderBy('uploadedAt', 'desc'));
     const snapshot = await getDocs(q);
@@ -603,21 +608,21 @@ export const addVideoClass = async (data: Omit<VideoClass, 'id'>): Promise<Docum
 
 export const updateVideoClass = async (videoId: string, data: Partial<Omit<VideoClass, 'id'>>): Promise<void> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return;
     const videoRef = doc(db, 'videoClasses', videoId);
     await updateDoc(videoRef, data);
 };
 
 export const deleteVideoClass = async (videoId: string): Promise<void> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return;
     await deleteDoc(doc(db, 'videoClasses', videoId));
 };
 
 // STUDY MATERIAL MANAGEMENT
 export const getStudyMaterials = async (topicId?: string): Promise<StudyMaterial[]> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return [];
     const q = topicId 
         ? query(collection(db, 'studyMaterials'), where('topicId', '==', topicId), orderBy('uploadedAt', 'desc'))
         : query(collection(db, 'studyMaterials'), orderBy('uploadedAt', 'desc'));
@@ -627,14 +632,14 @@ export const getStudyMaterials = async (topicId?: string): Promise<StudyMaterial
 
 export const deleteStudyMaterial = async (docId: string): Promise<void> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return;
     await deleteDoc(doc(db, 'studyMaterials', docId));
 };
 
 // CONSOLIDATED DASHBOARD DATA FETCHING
 export const getDashboardData = async (userId: string) => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return { userData: null, categories: [], topics: [], videoClasses: [], studyMaterials: [], notifications: [] };
 
     const userData = await getUserData(userId);
     if (!userData) {
@@ -676,20 +681,20 @@ export const getDashboardData = async (userId: string) => {
 // ANALYTICS
 export const logQnAUSage = async (userId: string, topic: string): Promise<void> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return;
     await addDoc(collection(db, 'qnaUsage'), { userId, topic, timestamp: new Date() });
 };
 
 export const getQnAUsage = async (): Promise<QnAUsage[]> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return [];
     const snapshot = await getDocs(collection(db, 'qnaUsage'));
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), timestamp: doc.data().timestamp.toDate() } as QnAUsage));
 };
 
 export const getUserLanguagePreferences = async (): Promise<{ userId: string; name: string; email: string; preferredLanguage: string; }[]> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return [];
 
     const [allUsers, allHistory] = await Promise.all([
         getAllUsers(),
@@ -739,10 +744,14 @@ export const getUserLanguagePreferences = async (): Promise<{ userId: string; na
 export const getGeneratedQuiz = async (quizId: string): Promise<MCQData | null> => {
     const db = getFirebaseDb();
     if (!db) return null;
-    const docRef = doc(db, 'generatedQuizzes', quizId);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-        return docSnap.data() as MCQData;
+    try {
+        const docRef = doc(db, 'generatedQuizzes', quizId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return docSnap.data() as MCQData;
+        }
+    } catch (e) {
+        console.error("Error fetching quiz from Firestore:", e);
     }
     const localQuiz = localStorage.getItem(`quiz-${quizId}`);
     if (localQuiz) {
@@ -754,7 +763,7 @@ export const getGeneratedQuiz = async (quizId: string): Promise<MCQData | null> 
 // APTISOLVE LAUNCH TRACKING
 export const logAptiSolveLaunch = async (userId: string, userName: string, userEmail: string): Promise<void> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return;
     await addDoc(collection(db, 'aptiSolveLaunches'), { 
         userId,
         userName,
@@ -765,7 +774,7 @@ export const logAptiSolveLaunch = async (userId: string, userName: string, userE
 
 export const getAptiSolveLaunches = async (): Promise<AptiSolveLaunch[]> => {
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
+    if (!db) return [];
     const snapshot = await getDocs(query(collection(db, 'aptiSolveLaunches'), orderBy('launchedAt', 'desc')));
     return snapshot.docs.map(doc => {
         const data = doc.data();

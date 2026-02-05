@@ -39,9 +39,10 @@ function initializeFirebase() {
     try {
         app = initializeApp(firebaseConfig);
         auth = getAuth(app);
-        // Force long polling to fix connectivity issues in restrictive environments
+        // Force long polling to fix connectivity issues/timeouts in restrictive environments
         db = initializeFirestore(app, {
-          experimentalAutoDetectLongPolling: true,
+          experimentalForceLongPolling: true,
+          experimentalAutoDetectLongPolling: false, // Force it immediately
         });
         storage = getStorage(app);
     } catch (e) {
