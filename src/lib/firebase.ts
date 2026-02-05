@@ -1,7 +1,7 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getFirestore, type Firestore, initializeFirestore } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -39,7 +39,10 @@ function initializeFirebase() {
     try {
         app = initializeApp(firebaseConfig);
         auth = getAuth(app);
-        db = getFirestore(app);
+        // Force long polling to fix connectivity issues in restrictive environments
+        db = initializeFirestore(app, {
+          experimentalAutoDetectLongPolling: true,
+        });
         storage = getStorage(app);
     } catch (e) {
         console.error("Error initializing Firebase", e);

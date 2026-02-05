@@ -380,15 +380,11 @@ export const getLiveTests = async (fetchAll: boolean = false): Promise<LiveTest[
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LiveTest));
 };
 
-/**
- * Fetches past live tests specifically for the leaderboard.
- */
 export const getLiveTestsForLeaderboard = async (): Promise<LiveTest[]> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
     const testsCollection = collection(db, 'liveTests');
     const now = new Date();
-    // We want tests that have already finished
     const q = query(testsCollection, where('endTime', '<=', now), orderBy('endTime', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ 

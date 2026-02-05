@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -13,9 +12,8 @@ import { ReportsManagement } from '@/components/admin/reports-management';
 import { ReasoningBankManagement } from '@/components/admin/reasoning-bank-management';
 import { FeedbackManagement } from '@/components/admin/feedback-management';
 import { VideoClassManagement } from '@/components/admin/video-class-management';
-import { FreeClassManagement } from '@/components/admin/free-class-management';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, MessageSquare, Video, UserCheck } from "lucide-react";
+import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, MessageSquare, Video } from "lucide-react";
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
 import { AptiSolveIcon } from "@/components/icons/aptisolve-icon";
 import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback, getStudyMaterials, getAptiSolveLaunches } from "@/lib/firestore";
@@ -173,13 +171,12 @@ const adminSections = [
 type AdminSection = typeof adminSections[number]['value'];
 
 export default function AdminPage() {
-  const { user, userData, categories, topics, bankedQuestions, topicMCQs, liveTestBank, videoClasses, isLoading: isDashboardLoading } = useDashboard();
+  const { user, userData, categories, topics, videoClasses, isLoading: isDashboardLoading } = useDashboard();
   const [users, setUsers] = useState<UserData[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [allLiveTests, setAllLiveTests] = useState<LiveTest[]>([]);
   const [reasoningQuestions, setReasoningQuestions] = useState<ReasoningQuestion[]>([]);
   const [feedback, setFeedback] = useState<Feedback[]>([]);
-  const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
   const [isLoadingAdminData, setIsLoadingAdminData] = useState(true);
   const [activeSection, setActiveSection] = useState<AdminSection>('users');
   const { toast } = useToast();
@@ -187,13 +184,12 @@ export default function AdminPage() {
   useEffect(() => {
     const fetchAdminData = async () => {
       try {
-        const [fetchedUsers, fetchedQnAUsage, fetchedLiveTests, fetchedReasoningQuestions, fetchedFeedback, fetchedStudyMaterials] = await Promise.all([
+        const [fetchedUsers, fetchedQnAUsage, fetchedLiveTests, fetchedReasoningQuestions, fetchedFeedback] = await Promise.all([
             getAllUsers(),
             getQnAUsage(),
-            getLiveTests(true), // Fetch all live tests
+            getLiveTests(true),
             getReasoningQuestions(),
             getAllFeedback(),
-            getStudyMaterials(),
         ]);
         
         const regularUsers = fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email));
@@ -202,7 +198,6 @@ export default function AdminPage() {
         setAllLiveTests(fetchedLiveTests);
         setReasoningQuestions(fetchedReasoningQuestions);
         setFeedback(fetchedFeedback);
-        setStudyMaterials(fetchedStudyMaterials);
 
       } catch (error) {
         console.error("Failed to fetch admin data:", error);
@@ -245,10 +240,6 @@ export default function AdminPage() {
   }
 
   const renderContent = () => {
-    if (!activeSection) {
-        return null;
-    }
-    
     switch(activeSection) {
         case 'users':
             return <UserManagement initialUsers={users} />;
@@ -257,13 +248,13 @@ export default function AdminPage() {
         case 'video-classes':
             return <VideoClassManagement initialVideos={videoClasses} />;
         case 'topic-mcq':
-            return <TopicMCQManagement initialTopics={topics} initialTopicMCQs={topicMCQs} />;
+            return <TopicMCQManagement initialTopics={topics} initialTopicMCQs={[]} />; // Initial state passed from parent
         case 'question-bank':
-            return <QuestionBankManagement initialBankedQuestions={bankedQuestions} />;
+            return <QuestionBankManagement initialBankedQuestions={[]} />; // Initial state passed from parent
         case 'reasoning-bank':
             return <ReasoningBankManagement initialQuestions={reasoningQuestions} />;
         case 'live-test':
-            return <LiveTestManagement initialLiveTestBank={liveTestBank} initialLiveTests={allLiveTests} />;
+            return <LiveTestManagement initialLiveTestBank={[]} initialLiveTests={allLiveTests} />;
         case 'aptisolve':
             return <AptiSolveReport />;
         case 'analytics':
@@ -312,5 +303,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    
