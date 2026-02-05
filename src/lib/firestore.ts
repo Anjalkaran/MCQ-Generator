@@ -1,5 +1,4 @@
-
-import { getFirebaseDb } from './firebase';
+import { getFirebaseDb, getFirebaseAuth } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion } from 'firebase/firestore';
 import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, VideoClass, StudyMaterial, AptiSolveLaunch } from './types';
 import { ADMIN_EMAILS } from './constants';
@@ -22,6 +21,25 @@ export const getUserData = async (userId: string): Promise<UserData | null> => {
             completedMockBankTests: data.completedMockBankTests || [],
         } as UserData;
     }
+
+    // Recovery Logic: If user is authenticated via Firebase Auth but has no document in Firestore.
+    // This happens if the registration process was interrupted.
+    const auth = getFirebaseAuth();
+    if (auth && auth.currentUser && auth.currentUser.uid === userId) {
+        const newUser: UserData = {
+            uid: userId,
+            name: auth.currentUser.displayName || 'New User',
+            email: auth.currentUser.email || '',
+            examCategory: 'MTS', // Default fallback category
+            totalExamsTaken: 0,
+            isPro: true, // Default to true for recovery users
+            createdAt: serverTimestamp(),
+            lastSeen: serverTimestamp(),
+        };
+        await setDoc(userRef, newUser);
+        return newUser;
+    }
+
     return null;
 }
 

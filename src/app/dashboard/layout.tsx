@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, createContext, useContext, useCallback, useMemo } from 'react';
@@ -176,7 +175,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         setUser(currentUser);
         try {
             const [data, feedbackStatus] = await Promise.all([getDashboardData(currentUser.uid), hasUserSubmittedFeedback(currentUser.uid)]);
-            if (!data.userData) { await signOut(auth); router.push('/auth/login'); return; }
+            if (!data.userData) { 
+                // This will trigger the recovery logic in getUserData if called again, 
+                // but if it returned null, we should force a fresh check.
+                await signOut(auth); 
+                router.push('/auth/login'); 
+                setIsLoading(false);
+                return; 
+            }
+            
             setUserData(data.userData);
             setCategories(data.categories || []);
             setTopics(data.topics || []);
@@ -197,9 +204,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 setProfileUpdateDefaults({ employeeId: data.userData.employeeId || '', mobileNumber: data.userData.phone || '' });
                 setShowProfileUpdateModal(true);
             }
-        } catch (error) { toast({ title: "Error", description: "Failed to load dashboard.", variant: "destructive" }); }
-      } else if (!pathname.startsWith('/auth')) { router.push('/auth/login'); }
-      setIsLoading(false);
+        } catch (error) { 
+            console.error("Dashboard init error:", error);
+            toast({ title: "Error", description: "Failed to load dashboard.", variant: "destructive" }); 
+        } finally {
+            setIsLoading(false);
+        }
+      } else {
+        setUser(null);
+        setUserData(null);
+        if (!pathname.startsWith('/auth')) {
+            router.push('/auth/login');
+        }
+        setIsLoading(false);
+      }
     });
   }, [router, toast, pathname]);
 
