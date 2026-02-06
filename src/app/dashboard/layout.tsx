@@ -102,7 +102,7 @@ function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
-  const { user, userData, isLoading, hasGivenFeedback, onlineUsers } = useDashboard();
+  const { userData, hasGivenFeedback, onlineUsers } = useDashboard();
   const { setOpenMobile } = useSidebar();
   const [isLogoutAlertOpen, setIsLogoutAlertOpen] = useState(false);
 
@@ -114,6 +114,11 @@ function AppSidebar() {
 
   const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
   const isIPUser = userData?.examCategory === 'IP';
+  
+  // Deduplicate online users for unique keys
+  const uniqueOnlineUsers = useMemo(() => {
+    return Array.from(new Map(onlineUsers.map(u => [u.uid, u])).values());
+  }, [onlineUsers]);
   
   return (
     <Sidebar collapsible="icon">
@@ -138,7 +143,7 @@ function AppSidebar() {
         </SidebarMenu></SidebarContent>
       <SidebarFooter>
         {isAdmin && (
-            <div className="p-2 border-t group-data-[collapsible=icon]:hidden"><Dialog><DialogTrigger asChild><Button variant="ghost" className="w-full justify-between text-sm"><div className="flex items-center gap-2 text-muted-foreground"><Users className="h-4 w-4" /><span>Online Users</span></div><span className="font-semibold text-primary">{onlineUsers.length}</span></Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>Online Users ({onlineUsers.length})</DialogTitle></DialogHeader><ScrollArea className="h-72"><Table><TableBody>{onlineUsers.length > 0 ? onlineUsers.map(u => (<TableRow key={u.uid}><TableCell>{u.name}</TableCell><TableCell>{u.email}</TableCell></TableRow>)) : <TableRow><TableCell className="text-center">No users online.</TableCell></TableRow>}</TableBody></Table></ScrollArea></DialogContent></Dialog></div>
+            <div className="p-2 border-t group-data-[collapsible=icon]:hidden"><Dialog><DialogTrigger asChild><Button variant="ghost" className="w-full justify-between text-sm"><div className="flex items-center gap-2 text-muted-foreground"><Users className="h-4 w-4" /><span>Online Users</span></div><span className="font-semibold text-primary">{uniqueOnlineUsers.length}</span></Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>Online Users ({uniqueOnlineUsers.length})</DialogTitle></DialogHeader><ScrollArea className="h-72"><Table><TableBody>{uniqueOnlineUsers.length > 0 ? uniqueOnlineUsers.map(u => (<TableRow key={u.uid}><TableCell>{u.name}</TableCell><TableCell>{u.email}</TableCell></TableRow>)) : <TableRow><TableCell className="text-center">No users online.</TableCell></TableRow>}</TableBody></Table></ScrollArea></DialogContent></Dialog></div>
         )}
         <div className="p-2"><AlertDialog open={isLogoutAlertOpen} onOpenChange={setIsLogoutAlertOpen}><Button variant="ghost" className="w-full justify-start" onClick={() => hasGivenFeedback ? handleLogout() : setIsLogoutAlertOpen(true)}><LogOut className="mr-2 h-4 w-4" /><span className="group-data-[collapsible=icon]:hidden">Logout</span></Button><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Log out?</AlertDialogTitle><AlertDialogDescription>Please consider giving feedback before you leave.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter className="sm:justify-between"><Button variant="outline" onClick={() => { setIsLogoutAlertOpen(false); router.push('/dashboard/feedback'); }}>Give Feedback</Button><div className="flex gap-2"><AlertDialogCancel>Stay</AlertDialogCancel><AlertDialogAction onClick={handleLogout}>Log Out</AlertDialogAction></div></AlertDialogFooter></AlertDialogContent></AlertDialog></div>
         <div className='p-4 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden'><p>&copy; {new Date().getFullYear()} Anjalkaran | v{packageJson.version}</p></div>
@@ -176,8 +181,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         try {
             const [data, feedbackStatus] = await Promise.all([getDashboardData(currentUser.uid), hasUserSubmittedFeedback(currentUser.uid)]);
             if (!data.userData) { 
-                // This will trigger the recovery logic in getUserData if called again, 
-                // but if it returned null, we should force a fresh check.
                 await signOut(auth); 
                 router.push('/auth/login'); 
                 setIsLoading(false);
@@ -228,7 +231,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const id = setInterval(heartbeat, 60000);
       return () => clearInterval(id);
     }
-  }, [user]);
+  }, [user?.uid]);
 
   useEffect(() => {
     if (userData?.email && ADMIN_EMAILS.includes(userData.email)) {
@@ -237,7 +240,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         const id = setInterval(fetch, 30000);
         return () => clearInterval(id);
     }
-  }, [userData]);
+  }, [userData?.email]);
 
   const contextValue = useMemo(() => ({ user, userData, categories, topics, videoClasses, studyMaterials, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback }), [user, userData, categories, topics, videoClasses, studyMaterials, notifications, onlineUsers, isLoading, hasGivenFeedback]);
 

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -128,11 +127,13 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
   }, [users, searchTerm, cityFilter, categoryFilter]);
 
   const filteredUsers = useMemo(() => {
-    return baseFilteredUsers.filter(user => {
+    const list = baseFilteredUsers.filter(user => {
         if (filter === 'pro') return user.isPro;
         if (filter === 'free') return !user.isPro;
         return true;
     });
+    // Deduplicate by uid to ensure unique React keys
+    return Array.from(new Map(list.map(u => [u.uid, u])).values());
   }, [baseFilteredUsers, filter]);
 
   const filteredCounts = useMemo(() => {

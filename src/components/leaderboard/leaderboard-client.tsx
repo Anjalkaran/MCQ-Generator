@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -29,7 +28,12 @@ type ExamCategory = UserData['examCategory'];
 
 
 function LeaderboardTable({ data, type = 'general' }: { data: LeaderboardEntry[], type?: 'general' | 'live' }) {
-  if (data.length === 0) {
+  // Deduplicate entries by userId to prevent React key conflicts
+  const uniqueData = useMemo(() => {
+    return Array.from(new Map(data.map(entry => [entry.userId, entry])).values());
+  }, [data]);
+
+  if (uniqueData.length === 0) {
     return (
       <div className="text-center text-muted-foreground py-10">
         No data available yet. Be the first one on the leaderboard!
@@ -72,7 +76,7 @@ function LeaderboardTable({ data, type = 'general' }: { data: LeaderboardEntry[]
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((entry) => (
+          {uniqueData.map((entry) => (
             <TableRow key={entry.userId}>
               <TableCell className="font-bold text-center text-lg">
                 <div className="flex items-center justify-center gap-2">
