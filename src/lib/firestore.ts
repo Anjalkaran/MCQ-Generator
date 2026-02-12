@@ -276,7 +276,7 @@ export const getAllExamHistory = async (): Promise<MCQHistory[]> => {
     const snapshot = await getDocs(q);
     
     const allUsers = await getAllUsers();
-    const userMap = new Map(allUsers.map(u => [u.uid, u.name]));
+    const userMap = new Map(allUsers.map(u => [u.uid, u]));
 
     return snapshot.docs.map(doc => {
         const data = doc.data();
@@ -695,14 +695,28 @@ export const getDashboardData = async (userId: string) => {
 export const logQnAUSage = async (userId: string, topic: string): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) return;
-    await addDoc(collection(db, 'qnaUsage'), { userId, topic, timestamp: new Date() });
+    await addDoc(collection(db, 'qnaUsage'), { userId, topic, timestamp: serverTimestamp() });
 };
 
 export const getQnAUsage = async (): Promise<QnAUsage[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
-    const snapshot = await getDocs(collection(db, 'qnaUsage'));
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), timestamp: doc.data().timestamp.toDate() } as QnAUsage));
+    const snapshot = await getDocs(query(collection(db, 'qnaUsage'), orderBy('timestamp', 'desc')));
+    
+    const allUsers = await getAllUsers();
+    const userMap = new Map(allUsers.map(u => [u.uid, u]));
+
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        const user = userMap.get(data.userId);
+        return { 
+            id: doc.id, 
+            ...data, 
+            userName: user?.name || 'Unknown',
+            userEmail: user?.email || 'Unknown',
+            timestamp: normalizeDate(data.timestamp) || new Date()
+        } as any;
+    });
 };
 
 export const getUserLanguagePreferences = async (): Promise<{ userId: string; name: string; email: string; preferredLanguage: string; }[]> => {

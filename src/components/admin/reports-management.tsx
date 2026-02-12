@@ -9,19 +9,122 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Gem, Download, Loader2, Languages, UserCog, Users, History, Database } from 'lucide-react';
-import type { UserData, MCQHistory, FreeClassRegistration } from '@/lib/types';
+import { Gem, Download, Loader2, Languages, Users, History, Database, MousePointer2, HelpCircle } from 'lucide-react';
+import type { UserData, MCQHistory, FreeClassRegistration, QnAUsage, AptiSolveLaunch } from '@/lib/types';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeDate } from '@/lib/utils';
-import { getAllExamHistory, getUserLanguagePreferences as fetchUserLanguagePreferences, getFreeClassRegistrations } from '@/lib/firestore';
+import { getAllExamHistory, getFreeClassRegistrations, getQnAUsage, getAptiSolveLaunches } from '@/lib/firestore';
 
 type ExamCategory = 'all' | 'MTS' | 'POSTMAN' | 'PA' | 'IP';
 type ProStatus = 'all' | 'pro' | 'free';
-type UserLanguagePreference = { userId: string; name: string; email: string; preferredLanguage: string; };
 
 interface ReportsManagementProps {
     allUsers: UserData[];
+}
+
+function EngagementLogCard() {
+    const [doubts, setDoubts] = useState<QnAUsage[]>([]);
+    const [aptisolve, setAptiSolve] = useState<AptiSolveLaunch[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
+    const { toast } = useToast();
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsLoading(true);
+            try {
+                const [doubtData, aptiData] = await Promise.all([
+                    getQnAUsage(),
+                    getAptiSolveLaunches()
+                ]);
+                setDoubts(doubtData);
+                setAptiSolve(aptiData);
+            } catch (error) {
+                toast({ title: "Error", description: "Could not load engagement logs.", variant: "destructive" });
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchData();
+    }, [toast]);
+
+    const filteredDoubts = useMemo(() => {
+        return doubts.filter(d => 
+            (d as any).userName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            (d as any).userEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            d.topic.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [doubts, searchTerm]);
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Engagement History</CardTitle>
+                <CardDescription>Track Doubts asked and AptiSolve app launches.</CardDescription>
+                <div className="pt-4">
+                    <Input placeholder="Search by user, email or topic..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                </div>
+            </CardHeader>
+            <CardContent>
+                {isLoading ? (
+                    <div className="flex justify-center py-10"><Loader2 className="h-8 w-8 animate-spin" /></div>
+                ) : (
+                    <div className="space-y-8">
+                        <div>
+                            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2"><HelpCircle className="h-5 w-5 text-primary" /> Recent Doubts (Ask Your Doubt)</h3>
+                            <div className="border rounded-md">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>User</TableHead>
+                                            <TableHead>Topic</TableHead>
+                                            <TableHead className="text-right">Date</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredDoubts.length > 0 ? filteredDoubts.map(d => (
+                                            <TableRow key={d.id}>
+                                                <TableCell className="font-medium">{(d as any).userName}<br/><span className="text-xs text-muted-foreground">{(d as any).userEmail}</span></TableCell>
+                                                <TableCell>{d.topic}</TableCell>
+                                                <TableCell className="text-right text-xs text-muted-foreground">{format(d.timestamp, 'dd/MM/yy p')}</TableCell>
+                                            </TableRow>
+                                        )) : (
+                                            <TableRow><TableCell colSpan={3} className="text-center py-4">No doubts logged.</TableCell></TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2"><MousePointer2 className="h-5 w-5 text-primary" /> AptiSolve Launches</h3>
+                            <div className="border rounded-md">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>User</TableHead>
+                                            <TableHead className="text-right">Launched At</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {aptisolve.length > 0 ? aptisolve.map(a => (
+                                            <TableRow key={a.id}>
+                                                <TableCell className="font-medium">{a.userName}<br/><span className="text-xs text-muted-foreground">{a.userEmail}</span></TableCell>
+                                                <TableCell className="text-right text-xs text-muted-foreground">{format(a.launchedAt, 'dd/MM/yy p')}</TableCell>
+                                            </TableRow>
+                                        )) : (
+                                            <TableRow><TableCell colSpan={2} className="text-center py-4">No launches logged.</TableCell></TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
 }
 
 function GlobalExamLogCard() {
@@ -181,7 +284,6 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
     const [examCategoryFilter, setExamCategoryFilter] = useState<ExamCategory>('all');
     const [proStatusFilter, setProStatusFilter] = useState<ProStatus>('all');
     const [searchTerm, setSearchTerm] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
 
     const filteredUsers = useMemo(() => {
         return allUsers
@@ -195,7 +297,7 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
             <Card>
                 <CardHeader>
                     <CardTitle>Reports & History</CardTitle>
-                    <CardDescription>Retrieve past activity, user analytics, and legacy data.</CardDescription>
+                    <CardDescription>Retrieve past activity, user engagement, and legacy data.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -205,8 +307,8 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
                          <Button variant={activeTab === 'exam-log' ? 'default' : 'outline'} onClick={() => setActiveTab('exam-log')} size="sm">
                             <History className="mr-2 h-4 w-4" /> Exam Log
                         </Button>
-                         <Button variant={activeTab === 'language-usage' ? 'default' : 'outline'} onClick={() => setActiveTab('language-usage')} size="sm">
-                            <Languages className="mr-2 h-4 w-4" /> Langs
+                         <Button variant={activeTab === 'engagement' ? 'default' : 'outline'} onClick={() => setActiveTab('engagement')} size="sm">
+                            <MousePointer2 className="mr-2 h-4 w-4" /> Engagement
                         </Button>
                          <Button variant={activeTab === 'legacy-data' ? 'default' : 'outline'} onClick={() => setActiveTab('legacy-data')} size="sm">
                             <Database className="mr-2 h-4 w-4" /> Legacy
@@ -234,6 +336,7 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
                     )}
 
                     {activeTab === 'exam-log' && <GlobalExamLogCard />}
+                    {activeTab === 'engagement' && <EngagementLogCard />}
                     {activeTab === 'legacy-data' && <LegacyDataCard />}
                 </CardContent>
             </Card>
