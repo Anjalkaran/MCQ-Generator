@@ -53,11 +53,41 @@ function EngagementLogCard() {
         );
     }, [doubts, searchTerm]);
 
+    const handleDownload = () => {
+        if (filteredDoubts.length === 0) return;
+        const headers = ["User Name", "Email", "Topic", "Date"];
+        const csvContent = [
+            headers.join(','),
+            ...filteredDoubts.map(d => [
+                `"${(d as any).userName}"`,
+                `"${(d as any).userEmail}"`,
+                `"${d.topic}"`,
+                `"${format(d.timestamp, 'dd/MM/yyyy p')}"`
+            ].join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `doubt_engagement_history_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Engagement History</CardTitle>
-                <CardDescription>Track Doubts asked by users.</CardDescription>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <CardTitle>Engagement History</CardTitle>
+                        <CardDescription>Track Doubts asked by users.</CardDescription>
+                    </div>
+                    <Button onClick={handleDownload} size="sm" variant="outline" disabled={filteredDoubts.length === 0}>
+                        <Download className="mr-2 h-4 w-4" /> Export CSV
+                    </Button>
+                </div>
                 <div className="pt-4">
                     <Input placeholder="Search by user, email or topic..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
                 </div>
@@ -128,6 +158,7 @@ function GlobalExamLogCard() {
     }, [history, searchTerm]);
 
     const handleDownload = () => {
+        if (filteredHistory.length === 0) return;
         const headers = ["User", "Topic", "Score", "Total", "Date"];
         const csvContent = [
             headers.join(','),
@@ -158,7 +189,7 @@ function GlobalExamLogCard() {
                         <CardTitle>Global Exam Log</CardTitle>
                         <CardDescription>A chronological log of all exams attempted by all users.</CardDescription>
                     </div>
-                    <Button onClick={handleDownload} size="sm" variant="outline">
+                    <Button onClick={handleDownload} size="sm" variant="outline" disabled={filteredHistory.length === 0}>
                         <Download className="mr-2 h-4 w-4" /> Export CSV
                     </Button>
                 </div>
@@ -213,11 +244,40 @@ function LegacyDataCard() {
         fetchData();
     }, [toast]);
 
+    const handleDownload = () => {
+        if (registrations.length === 0) return;
+        const headers = ["Name", "Email", "Registered On"];
+        const csvContent = [
+            headers.join(','),
+            ...registrations.map(r => [
+                `"${r.name}"`,
+                `"${r.email}"`,
+                `"${r.createdAt ? format(r.createdAt, 'dd/MM/yyyy') : 'N/A'}"`
+            ].join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `legacy_free_class_data_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Legacy Free Class Data</CardTitle>
-                <CardDescription>Previous registrations from the now-retired Free Class module.</CardDescription>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <CardTitle>Legacy Free Class Data</CardTitle>
+                        <CardDescription>Previous registrations from the now-retired Free Class module.</CardDescription>
+                    </div>
+                    <Button onClick={handleDownload} size="sm" variant="outline" disabled={registrations.length === 0}>
+                        <Download className="mr-2 h-4 w-4" /> Export CSV
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent>
                 {isLoading ? (
@@ -264,6 +324,31 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
             .filter(user => (user.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (user.email || '').toLowerCase().includes(searchTerm.toLowerCase()));
     }, [allUsers, examCategoryFilter, proStatusFilter, searchTerm]);
 
+    const handleDownloadUsers = () => {
+        if (filteredUsers.length === 0) return;
+        const headers = ["Name", "Email", "Category", "Exams Taken", "Status", "Joined On"];
+        const csvContent = [
+            headers.join(','),
+            ...filteredUsers.map(u => [
+                `"${u.name}"`,
+                `"${u.email}"`,
+                `"${u.examCategory}"`,
+                u.totalExamsTaken,
+                u.isPro ? "Pro" : "Free",
+                `"${u.createdAt ? format(u.createdAt, 'dd/MM/yyyy') : 'N/A'}"`
+            ].join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `user_report_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <div className="space-y-6">
             <Card>
@@ -289,10 +374,15 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
 
                     {activeTab === 'user-reports' && (
                         <div className="space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 border rounded-lg">
-                                <div><Label>Search</Label><Input placeholder="Name/Email..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} /></div>
-                                <div><Label>Course</Label><Select value={examCategoryFilter} onValueChange={(v) => setExamCategoryFilter(v as ExamCategory)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All</SelectItem><SelectItem value="MTS">MTS</SelectItem><SelectItem value="POSTMAN">POSTMAN</SelectItem><SelectItem value="PA">PA</SelectItem><SelectItem value="IP">IP</SelectItem></SelectContent></Select></div>
-                                <div><Label>Status</Label><Select value={proStatusFilter} onValueChange={(v) => setProStatusFilter(v as ProStatus)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All</SelectItem><SelectItem value="pro">Pro</SelectItem><SelectItem value="free">Free</SelectItem></SelectContent></Select></div>
+                            <div className="flex justify-between items-center flex-wrap gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 border rounded-lg flex-1">
+                                    <div><Label>Search</Label><Input placeholder="Name/Email..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} /></div>
+                                    <div><Label>Course</Label><Select value={examCategoryFilter} onValueChange={(v) => setExamCategoryFilter(v as ExamCategory)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All</SelectItem><SelectItem value="MTS">MTS</SelectItem><SelectItem value="POSTMAN">POSTMAN</SelectItem><SelectItem value="PA">PA</SelectItem><SelectItem value="IP">IP</SelectItem></SelectContent></Select></div>
+                                    <div><Label>Status</Label><Select value={proStatusFilter} onValueChange={(v) => setProStatusFilter(v as ProStatus)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All</SelectItem><SelectItem value="pro">Pro</SelectItem><SelectItem value="free">Free</SelectItem></SelectContent></Select></div>
+                                </div>
+                                <Button onClick={handleDownloadUsers} variant="outline" disabled={filteredUsers.length === 0}>
+                                    <Download className="mr-2 h-4 w-4" /> Export CSV
+                                </Button>
                             </div>
                             <div className="border rounded-md">
                                 <Table>
