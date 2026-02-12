@@ -1,7 +1,7 @@
 
 import { getFirebaseDb, getFirebaseAuth } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, VideoClass, StudyMaterial, AptiSolveLaunch, MaterialDownload } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, VideoClass, StudyMaterial, AptiSolveLaunch, MaterialDownload, FreeClassRegistration } from './types';
 import { ADMIN_EMAILS } from './constants';
 import { normalizeDate } from './utils';
 
@@ -272,10 +272,20 @@ export const getAllExamHistory = async (): Promise<MCQHistory[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
     const historyCollection = collection(db, 'mcqHistory');
-    const snapshot = await getDocs(historyCollection);
+    const q = query(historyCollection, orderBy('takenAt', 'desc'));
+    const snapshot = await getDocs(q);
+    
+    const allUsers = await getAllUsers();
+    const userMap = new Map(allUsers.map(u => [u.uid, u.name]));
+
     return snapshot.docs.map(doc => {
         const data = doc.data();
-        return { id: doc.id, ...data, takenAt: normalizeDate(data.takenAt) } as MCQHistory;
+        return { 
+            id: doc.id, 
+            ...data, 
+            userName: userMap.get(data.userId) || 'Unknown User',
+            takenAt: normalizeDate(data.takenAt) 
+        } as MCQHistory;
     });
 };
 
@@ -325,18 +335,6 @@ export const getQuestionBankDocuments = async (examCategory?: UserData['examCate
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as BankedQuestion));
 };
 
-export const addQuestionBankDocument = async (data: Omit<BankedQuestion, 'id'>): Promise<DocumentReference> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    return await addDoc(collection(db, 'questionBank'), data);
-};
-
-export const deleteQuestionBankDocument = async (docId: string): Promise<void> => {
-    const db = getFirebaseDb();
-    if (!db) return;
-    await deleteDoc(doc(db, 'questionBank', docId));
-};
-
 // LIVE TEST BANK MANAGEMENT
 export const getLiveTestBankDocuments = async (): Promise<BankedQuestion[]> => {
     const db = getFirebaseDb();
@@ -345,18 +343,6 @@ export const getLiveTestBankDocuments = async (): Promise<BankedQuestion[]> => {
     const q = query(bankCollection, orderBy('uploadedAt', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as BankedQuestion));
-};
-
-export const addLiveTestBankDocument = async (data: Omit<BankedQuestion, 'id'>): Promise<DocumentReference> => {
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized");
-    return await addDoc(collection(db, 'liveTestBank'), data);
-};
-
-export const deleteLiveTestBankDocument = async (docId: string): Promise<void> => {
-    const db = getFirebaseDb();
-    if (!db) return;
-    await deleteDoc(doc(db, 'liveTestBank', docId));
 };
 
 export const getLiveTestQuestionPaper = async (liveTestId: string): Promise<BankedQuestion | null> => {
@@ -786,6 +772,19 @@ export const getGeneratedQuiz = async (quizId: string): Promise<MCQData | null> 
     }
     return null;
 }
+
+// LEGACY FREE CLASS RETRIEVAL
+export const getFreeClassRegistrations = async (): Promise<FreeClassRegistration[]> => {
+    const db = getFirebaseDb();
+    if (!db) return [];
+    try {
+        const snapshot = await getDocs(query(collection(db, 'freeClassRegistrations'), orderBy('createdAt', 'desc')));
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: normalizeDate(doc.data().createdAt) } as FreeClassRegistration));
+    } catch (e) {
+        console.warn("Could not retrieve legacy free class data:", e);
+        return [];
+    }
+};
 
 // APTISOLVE LAUNCH TRACKING
 export const logAptiSolveLaunch = async (userId: string, userName: string, userEmail: string): Promise<void> => {
