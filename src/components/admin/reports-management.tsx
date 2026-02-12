@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -14,6 +13,7 @@ import type { UserData, MCQHistory, FreeClassRegistration, QnAUsage } from '@/li
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { getAllExamHistory, getFreeClassRegistrations, getQnAUsage } from '@/lib/firestore';
+import { normalizeDate } from '@/lib/utils';
 
 type ExamCategory = 'all' | 'MTS' | 'POSTMAN' | 'PA' | 'IP';
 type ProStatus = 'all' | 'pro' | 'free';
@@ -58,12 +58,15 @@ function EngagementLogCard() {
         const headers = ["User Name", "Email", "Topic", "Date"];
         const csvContent = [
             headers.join(','),
-            ...filteredDoubts.map(d => [
-                `"${(d as any).userName}"`,
-                `"${(d as any).userEmail}"`,
-                `"${d.topic}"`,
-                `"${format(d.timestamp, 'dd/MM/yyyy p')}"`
-            ].join(','))
+            ...filteredDoubts.map(d => {
+                const logDate = normalizeDate(d.timestamp);
+                return [
+                    `"${(d as any).userName}"`,
+                    `"${(d as any).userEmail}"`,
+                    `"${d.topic}"`,
+                    `"${logDate ? format(logDate, 'dd/MM/yyyy p') : 'N/A'}"`
+                ].join(',');
+            })
         ].join('\n');
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -109,13 +112,18 @@ function EngagementLogCard() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {filteredDoubts.length > 0 ? filteredDoubts.map(d => (
-                                            <TableRow key={d.id}>
-                                                <TableCell className="font-medium">{(d as any).userName}<br/><span className="text-xs text-muted-foreground">{(d as any).userEmail}</span></TableCell>
-                                                <TableCell>{d.topic}</TableCell>
-                                                <TableCell className="text-right text-xs text-muted-foreground">{format(d.timestamp, 'dd/MM/yy p')}</TableCell>
-                                            </TableRow>
-                                        )) : (
+                                        {filteredDoubts.length > 0 ? filteredDoubts.map(d => {
+                                            const logDate = normalizeDate(d.timestamp);
+                                            return (
+                                                <TableRow key={d.id}>
+                                                    <TableCell className="font-medium">{(d as any).userName}<br/><span className="text-xs text-muted-foreground">{(d as any).userEmail}</span></TableCell>
+                                                    <TableCell>{d.topic}</TableCell>
+                                                    <TableCell className="text-right text-xs text-muted-foreground">
+                                                        {logDate ? format(logDate, 'dd/MM/yy p') : 'N/A'}
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        }) : (
                                             <TableRow><TableCell colSpan={3} className="text-center py-4">No doubts logged.</TableCell></TableRow>
                                         )}
                                     </TableBody>
@@ -162,13 +170,16 @@ function GlobalExamLogCard() {
         const headers = ["User", "Topic", "Score", "Total", "Date"];
         const csvContent = [
             headers.join(','),
-            ...filteredHistory.map(h => [
-                `"${h.userName}"`,
-                `"${h.topicTitle}"`,
-                h.score,
-                h.totalQuestions,
-                `"${format(h.takenAt, 'dd/MM/yyyy p')}"`
-            ].join(','))
+            ...filteredHistory.map(h => {
+                const takenAt = normalizeDate(h.takenAt);
+                return [
+                    `"${h.userName}"`,
+                    `"${h.topicTitle}"`,
+                    h.score,
+                    h.totalQuestions,
+                    `"${takenAt ? format(takenAt, 'dd/MM/yyyy p') : 'N/A'}"`
+                ].join(',');
+            })
         ].join('\n');
         
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -212,14 +223,19 @@ function GlobalExamLogCard() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {filteredHistory.map(h => (
-                                    <TableRow key={h.id}>
-                                        <TableCell className="font-medium">{h.userName}</TableCell>
-                                        <TableCell>{h.topicTitle}</TableCell>
-                                        <TableCell className="text-center">{h.score}/{h.totalQuestions}</TableCell>
-                                        <TableCell className="text-right text-xs text-muted-foreground">{format(h.takenAt, 'dd/MM/yy p')}</TableCell>
-                                    </TableRow>
-                                ))}
+                                {filteredHistory.map(h => {
+                                    const takenAt = normalizeDate(h.takenAt);
+                                    return (
+                                        <TableRow key={h.id}>
+                                            <TableCell className="font-medium">{h.userName}</TableCell>
+                                            <TableCell>{h.topicTitle}</TableCell>
+                                            <TableCell className="text-center">{h.score}/{h.totalQuestions}</TableCell>
+                                            <TableCell className="text-right text-xs text-muted-foreground">
+                                                {takenAt ? format(takenAt, 'dd/MM/yy p') : 'N/A'}
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
                             </TableBody>
                         </Table>
                     </div>
@@ -249,11 +265,14 @@ function LegacyDataCard() {
         const headers = ["Name", "Email", "Registered On"];
         const csvContent = [
             headers.join(','),
-            ...registrations.map(r => [
-                `"${r.name}"`,
-                `"${r.email}"`,
-                `"${r.createdAt ? format(r.createdAt, 'dd/MM/yyyy') : 'N/A'}"`
-            ].join(','))
+            ...registrations.map(r => {
+                const regDate = normalizeDate(r.createdAt);
+                return [
+                    `"${r.name}"`,
+                    `"${r.email}"`,
+                    `"${regDate ? format(regDate, 'dd/MM/yyyy') : 'N/A'}"`
+                ].join(',');
+            })
         ].join('\n');
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -293,13 +312,18 @@ function LegacyDataCard() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {registrations.length > 0 ? registrations.map(r => (
-                                    <TableRow key={r.id}>
-                                        <TableCell className="font-medium">{r.name}</TableCell>
-                                        <TableCell>{r.email}</TableCell>
-                                        <TableCell className="text-right text-xs">{r.createdAt ? format(r.createdAt, 'dd/MM/yyyy') : 'N/A'}</TableCell>
-                                    </TableRow>
-                                )) : (
+                                {registrations.length > 0 ? registrations.map(r => {
+                                    const regDate = normalizeDate(r.createdAt);
+                                    return (
+                                        <TableRow key={r.id}>
+                                            <TableCell className="font-medium">{r.name}</TableCell>
+                                            <TableCell>{r.email}</TableCell>
+                                            <TableCell className="text-right text-xs">
+                                                {regDate ? format(regDate, 'dd/MM/yyyy') : 'N/A'}
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                }) : (
                                     <TableRow><TableCell colSpan={3} className="text-center py-4 text-muted-foreground">No legacy data found.</TableCell></TableRow>
                                 )}
                             </TableBody>
@@ -329,14 +353,17 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
         const headers = ["Name", "Email", "Category", "Exams Taken", "Status", "Joined On"];
         const csvContent = [
             headers.join(','),
-            ...filteredUsers.map(u => [
-                `"${u.name}"`,
-                `"${u.email}"`,
-                `"${u.examCategory}"`,
-                u.totalExamsTaken,
-                u.isPro ? "Pro" : "Free",
-                `"${u.createdAt ? format(u.createdAt, 'dd/MM/yyyy') : 'N/A'}"`
-            ].join(','))
+            ...filteredUsers.map(u => {
+                const joinedDate = normalizeDate(u.createdAt);
+                return [
+                    `"${u.name}"`,
+                    `"${u.email}"`,
+                    `"${u.examCategory}"`,
+                    u.totalExamsTaken,
+                    u.isPro ? "Pro" : "Free",
+                    `"${joinedDate ? format(joinedDate, 'dd/MM/yyyy') : 'N/A'}"`
+                ].join(',');
+            })
         ].join('\n');
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
