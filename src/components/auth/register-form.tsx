@@ -100,12 +100,12 @@ export function RegisterForm() {
         division: values.division,
         examCategory: values.examCategory,
         totalExamsTaken: 0,
-        isPro: true,
+        isPro: false, // Default set to false
         proValidUntil: null,
         createdAt: new Date(),
         lastSeen: serverTimestamp(),
         hasSeenReasoningUpdate: false,
-        mockTestUpdateSeenCount: 2, // Set to 2 so new users never see it
+        mockTestUpdateSeenCount: 2, 
       });
 
       toast({

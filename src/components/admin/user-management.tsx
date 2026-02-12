@@ -1,12 +1,13 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Trash2, Edit, Eye, PlusCircle, Gem, Search, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, Trash2, Edit, Eye, PlusCircle, Gem, Search, Calendar as CalendarIcon, RefreshCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { deleteUserDocument, updateUserDocument, createUserDocument } from '@/lib/firestore';
+import { deleteUserDocument, updateUserDocument, createUserDocument, resetAllUsersToFree } from '@/lib/firestore';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import type { UserData } from '@/lib/types';
@@ -77,6 +78,7 @@ interface UserManagementProps {
 export function UserManagement({ initialUsers }: UserManagementProps) {
   const [users, setUsers] = useState<UserData[]>(initialUsers);
   const [isLoading, setIsLoading] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
@@ -132,7 +134,6 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
         if (filter === 'free') return !user.isPro;
         return true;
     });
-    // Deduplicate by uid to ensure unique React keys
     return Array.from(new Map(list.map(u => [u.uid, u])).values());
   }, [baseFilteredUsers, filter]);
 
@@ -274,6 +275,24 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     }
   };
 
+  const handleResetAllToFree = async () => {
+    setIsResetting(true);
+    try {
+        const count = await resetAllUsersToFree();
+        toast({ 
+            title: 'Reset Complete', 
+            description: `Successfully changed ${count} Pro users to Free status.` 
+        });
+        // Refresh local state
+        setUsers(prev => prev.map(u => ADMIN_EMAILS.includes(u.email) ? u : { ...u, isPro: false, proValidUntil: null }));
+    } catch (error: any) {
+        console.error("Reset failed:", error);
+        toast({ title: 'Operation Failed', description: error.message, variant: 'destructive' });
+    } finally {
+        setIsResetting(false);
+    }
+  };
+
   return (
     <Card>
     <CardHeader>
@@ -282,128 +301,153 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                 <CardTitle>Users</CardTitle>
                 <CardDescription>A list of all registered users in the system.</CardDescription>
             </div>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogTrigger asChild>
-                    <Button>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Create User
-                    </Button>
-                </DialogTrigger>
-                 <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Create New User</DialogTitle>
-                        <DialogDescription>
-                            Enter the details for the new user. They will be created in both Authentication and Firestore.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <Form {...createUserForm}>
-                        <form onSubmit={createUserForm.handleSubmit(onCreateSubmit)} className="space-y-4">
-                            <FormField
-                                control={createUserForm.control}
-                                name="name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Username</FormLabel>
-                                    <FormControl><Input placeholder="John Doe" {...field} /></FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={createUserForm.control}
-                                name="email"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Email</FormLabel>
-                                    <FormControl><Input placeholder="name@example.com" {...field} /></FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <div className="grid grid-cols-2 gap-4">
+            <div className="flex items-center gap-2">
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" disabled={isResetting}>
+                            {isResetting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
+                            Reset All to Free
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will change ALL non-admin users from "Pro" to "Free" status immediately. This action cannot be undone.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleResetAllToFree} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                Confirm Reset
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+
+                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button size="sm">
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Create User
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Create New User</DialogTitle>
+                            <DialogDescription>
+                                Enter the details for the new user. They will be created in both Authentication and Firestore.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <Form {...createUserForm}>
+                            <form onSubmit={createUserForm.handleSubmit(onCreateSubmit)} className="space-y-4">
                                 <FormField
                                     control={createUserForm.control}
-                                    name="city"
+                                    name="name"
                                     render={({ field }) => (
                                         <FormItem>
-                                        <FormLabel>City</FormLabel>
-                                        <FormControl><Input placeholder="User's City" {...field} /></FormControl>
+                                        <FormLabel>Username</FormLabel>
+                                        <FormControl><Input placeholder="John Doe" {...field} /></FormControl>
                                         <FormMessage />
                                         </FormItem>
                                     )}
                                 />
                                 <FormField
                                     control={createUserForm.control}
-                                    name="division"
+                                    name="email"
                                     render={({ field }) => (
                                         <FormItem>
-                                        <FormLabel>Division</FormLabel>
-                                        <FormControl><Input placeholder="User's Division" {...field} /></FormControl>
+                                        <FormLabel>Email</FormLabel>
+                                        <FormControl><Input placeholder="name@example.com" {...field} /></FormControl>
                                         <FormMessage />
                                         </FormItem>
                                     )}
                                 />
-                            </div>
-                            <FormField
-                                control={createUserForm.control}
-                                name="password"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Password</FormLabel>
-                                    <FormControl><Input type="password" placeholder="********" {...field} /></FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={createUserForm.control}
-                                name="examCategory"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Exam Category</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                        <SelectContent>
-                                        <SelectItem value="MTS">MTS</SelectItem>
-                                        <SelectItem value="POSTMAN">POSTMAN</SelectItem>
-                                        <SelectItem value="PA">PA</SelectItem>
-                                        <SelectItem value="IP">IP</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                            control={createUserForm.control}
-                            name="isPro"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <div className="space-y-0.5">
-                                    <FormLabel>Pro User</FormLabel>
-                                    <DialogDescription>
-                                    Pro users have unlimited access to all features.
-                                    </DialogDescription>
-                                </div>
-                                <FormControl>
-                                    <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormField
+                                        control={createUserForm.control}
+                                        name="city"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                            <FormLabel>City</FormLabel>
+                                            <FormControl><Input placeholder="User's City" {...field} /></FormControl>
+                                            <FormMessage />
+                                            </FormItem>
+                                        )}
                                     />
-                                </FormControl>
-                                </FormItem>
-                            )}
-                            />
-                            <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
-                                <Button type="submit" disabled={isLoading}>
-                                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Create User"}
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
-                </DialogContent>
-            </Dialog>
+                                    <FormField
+                                        control={createUserForm.control}
+                                        name="division"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                            <FormLabel>Division</FormLabel>
+                                            <FormControl><Input placeholder="User's Division" {...field} /></FormControl>
+                                            <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <FormField
+                                    control={createUserForm.control}
+                                    name="password"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Password</FormLabel>
+                                        <FormControl><Input type="password" placeholder="********" {...field} /></FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={createUserForm.control}
+                                    name="examCategory"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Exam Category</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                            <SelectItem value="MTS">MTS</SelectItem>
+                                            <SelectItem value="POSTMAN">POSTMAN</SelectItem>
+                                            <SelectItem value="PA">PA</SelectItem>
+                                            <SelectItem value="IP">IP</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                control={createUserForm.control}
+                                name="isPro"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                    <div className="space-y-0.5">
+                                        <FormLabel>Pro User</FormLabel>
+                                        <DialogDescription>
+                                        Pro users have unlimited access to all features.
+                                        </DialogDescription>
+                                    </div>
+                                    <FormControl>
+                                        <Checkbox
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                        />
+                                    </FormControl>
+                                    </FormItem>
+                                )}
+                                />
+                                <DialogFooter>
+                                    <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
+                                    <Button type="submit" disabled={isLoading}>
+                                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Create User"}
+                                    </Button>
+                                </DialogFooter>
+                            </form>
+                        </Form>
+                    </DialogContent>
+                </Dialog>
+            </div>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
             <div className="relative w-full sm:w-auto flex-1">

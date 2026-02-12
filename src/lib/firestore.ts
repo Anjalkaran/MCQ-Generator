@@ -33,7 +33,7 @@ export const getUserData = async (userId: string): Promise<UserData | null> => {
                 email: auth.currentUser.email || '',
                 examCategory: 'MTS', 
                 totalExamsTaken: 0,
-                isPro: true,
+                isPro: false, // Default changed to false
                 createdAt: serverTimestamp(),
                 lastSeen: serverTimestamp(),
             };
@@ -76,7 +76,7 @@ export const createUserDocument = async (userData: Omit<UserData, 'id'>): Promis
       ...userData,
       totalExamsTaken: 0,
       liveTestsTaken: [],
-      isPro: true,
+      isPro: userData.isPro || false,
       proValidUntil: null,
       lastSeen: serverTimestamp(),
     });
@@ -100,6 +100,32 @@ export const deleteUserDocument = async (userId: string): Promise<void> => {
   const db = getFirebaseDb();
   if (!db) return;
   await deleteDoc(doc(db, 'users', userId));
+};
+
+export const resetAllUsersToFree = async (): Promise<number> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore not initialized");
+    
+    const usersCollection = collection(db, 'users');
+    const snapshot = await getDocs(usersCollection);
+    
+    const batch = writeBatch(db);
+    let count = 0;
+    
+    snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        // Only reset Pro users who are NOT administrators
+        if (data.isPro && !ADMIN_EMAILS.includes(data.email)) {
+            batch.update(doc.ref, { isPro: false, proValidUntil: null });
+            count++;
+        }
+    });
+    
+    if (count > 0) {
+        await batch.commit();
+    }
+    
+    return count;
 };
 
 // CATEGORY MANAGEMENT
@@ -319,20 +345,28 @@ export const getPerformanceByTopic = async (userId: string): Promise<TopicPerfor
   };
 
 // QUESTION BANK MANAGEMENT
-export const getQuestionBankDocuments = async (examCategory?: UserData['examCategory']): Promise<BankedQuestion[]> => {
+export const getQuestionBankDocumentsByCategory = async (examCategory: UserData['examCategory']): Promise<BankedQuestion[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
     const bankCollection = collection(db, 'questionBank');
-    
-    let q;
-    if (examCategory) {
-        q = query(bankCollection, where('examCategory', '==', examCategory), orderBy('uploadedAt', 'desc'));
-    } else {
-        q = query(bankCollection, orderBy('uploadedAt', 'desc'));
-    }
-
+    const q = query(bankCollection, where('examCategory', '==', examCategory), orderBy('uploadedAt', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as BankedQuestion));
+};
+
+export const getQuestionBankDocuments = async (): Promise<BankedQuestion[]> => {
+    const db = getFirebaseDb();
+    if (!db) return [];
+    const bankCollection = collection(db, 'questionBank');
+    const q = query(bankCollection, orderBy('uploadedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as BankedQuestion));
+};
+
+export const deleteQuestionBankDocument = async (docId: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    await deleteDoc(doc(db, 'questionBank', docId));
 };
 
 // LIVE TEST BANK MANAGEMENT
@@ -353,6 +387,12 @@ export const getLiveTestQuestionPaper = async (liveTestId: string): Promise<Bank
     if (!docSnap.exists()) return null;
     const data = docSnap.data();
     return { id: docSnap.id, ...data, uploadedAt: data.uploadedAt.toDate() } as BankedQuestion;
+};
+
+export const deleteLiveTestBankDocument = async (docId: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    await deleteDoc(doc(db, 'liveTestBank', docId));
 };
 
 export const addLiveTest = async (testData: Omit<LiveTest, 'id'>): Promise<DocumentReference> => {
