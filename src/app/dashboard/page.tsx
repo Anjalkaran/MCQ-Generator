@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useDashboard } from "@/app/dashboard/layout";
@@ -10,8 +9,6 @@ import { Button } from "@/components/ui/button";
 import { UpcomingLiveTest } from "@/components/dashboard/upcoming-live-test";
 import { ADMIN_EMAILS } from "@/lib/constants";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AptiSolveIcon } from "@/components/icons/aptisolve-icon";
-import { logAptiSolveLaunch } from "@/lib/firestore";
 
 
 export default function DashboardPage() {
@@ -39,13 +36,6 @@ export default function DashboardPage() {
   }
   
   const isAdmin = userData.email ? ADMIN_EMAILS.includes(userData.email) : false;
-
-  const handleAptiSolveClick = () => {
-    if (user && userData) {
-        logAptiSolveLaunch(user.uid, userData.name, userData.email);
-        window.open("https://aptisolve-582671064856.us-west1.run.app/", "_blank", "noopener,noreferrer");
-    }
-  };
 
   if (userData.examCategory === 'IP') {
     return (
@@ -194,24 +184,6 @@ export default function DashboardPage() {
                 <Link href="/dashboard/study-material">View Materials</Link>
             </Button>
           </CardContent>
-        </Card>
-        <Card className="flex flex-col">
-            <CardHeader>
-                <div className="flex items-center gap-4">
-                    <div className="bg-primary/10 p-3 rounded-full">
-                        <AptiSolveIcon className="h-8 w-8 text-primary" />
-                    </div>
-                    <CardTitle className="text-2xl">AptiSolve</CardTitle>
-                </div>
-                <CardDescription className="pt-4">
-                    Practice aptitude questions with our dedicated AptiSolve application.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow flex items-end">
-                <Button onClick={handleAptiSolveClick} className="w-full">
-                    Launch AptiSolve
-                </Button>
-            </CardContent>
         </Card>
       </div>
     </div>

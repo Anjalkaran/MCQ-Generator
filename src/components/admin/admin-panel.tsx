@@ -15,18 +15,12 @@ import { VideoClassManagement } from '@/components/admin/video-class-management'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, MessageSquare, Video } from "lucide-react";
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
-import { AptiSolveIcon } from "@/components/icons/aptisolve-icon";
-import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback, getStudyMaterials, getAptiSolveLaunches } from "@/lib/firestore";
-import type { UserData, QnAUsage, LiveTest, ReasoningQuestion, Feedback, StudyMaterial, AptiSolveLaunch } from "@/lib/types";
+import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback, getStudyMaterials } from "@/lib/firestore";
+import type { UserData, QnAUsage, LiveTest, ReasoningQuestion, Feedback, StudyMaterial } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { ADMIN_EMAILS } from "@/lib/constants";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import React from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
-import { format } from "date-fns";
-import { Input } from "../ui/input";
 
 function AnalyticsTab({ qnaUsage }: { qnaUsage: QnAUsage[] }) {
     const uniqueUsers = useMemo(() => {
@@ -60,100 +54,6 @@ function AnalyticsTab({ qnaUsage }: { qnaUsage: QnAUsage[] }) {
     );
 }
 
-function AptiSolveReport() {
-    const [launches, setLaunches] = useState<AptiSolveLaunch[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const { toast } = useToast();
-
-    useEffect(() => {
-        const fetchData = async () => {
-            setIsLoading(true);
-            try {
-                const data = await getAptiSolveLaunches();
-                setLaunches(data);
-            } catch (error) {
-                toast({ title: "Error", description: "Could not load AptiSolve report.", variant: "destructive" });
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchData();
-    }, [toast]);
-    
-    const filteredLaunches = useMemo(() => {
-        return launches.filter(l => 
-            l.userName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            l.userEmail.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [launches, searchTerm]);
-
-    const userLaunchCounts = useMemo(() => {
-        const counts: Record<string, { name: string; email: string; count: number }> = {};
-        filteredLaunches.forEach(launch => {
-            if (!counts[launch.userId]) {
-                counts[launch.userId] = { name: launch.userName, email: launch.userEmail, count: 0 };
-            }
-            counts[launch.userId].count++;
-        });
-        return Object.values(counts).sort((a,b) => b.count - a.count);
-    }, [filteredLaunches]);
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>AptiSolve Launch Report</CardTitle>
-                <CardDescription>
-                    Number of times each user has launched the AptiSolve application.
-                </CardDescription>
-                 <div className="pt-4">
-                    <Input 
-                        placeholder="Search by user name or email..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-            </CardHeader>
-            <CardContent>
-                {isLoading ? (
-                    <div className="flex items-center justify-center h-24">
-                        <Loader2 className="h-6 w-6 animate-spin" />
-                    </div>
-                ) : (
-                    <div className="border rounded-md">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>User Name</TableHead>
-                                    <TableHead>Email</TableHead>
-                                    <TableHead className="text-right">Launch Count</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {userLaunchCounts.length > 0 ? (
-                                    userLaunchCounts.map((user) => (
-                                        <TableRow key={user.email}>
-                                            <TableCell className="font-medium">{user.name}</TableCell>
-                                            <TableCell>{user.email}</TableCell>
-                                            <TableCell className="text-right font-semibold">{user.count}</TableCell>
-                                        </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={3} className="h-24 text-center">
-                                            No AptiSolve launches recorded yet.
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-    );
-}
-
 const adminSections = [
     { value: 'users', label: 'User Management', icon: Shield },
     { value: 'topics', label: 'Topic Management', icon: BookCopy },
@@ -162,7 +62,6 @@ const adminSections = [
     { value: 'question-bank', label: 'Question Bank', icon: FileText },
     { value: 'reasoning-bank', label: 'Reasoning Bank', icon: NewLogoIcon },
     { value: 'live-test', label: 'Live Test', icon: Trophy },
-    { value: 'aptisolve', label: 'AptiSolve Report', icon: AptiSolveIcon },
     { value: 'analytics', label: 'Analytics', icon: BarChart3 },
     { value: 'feedback', label: 'Feedback', icon: MessageSquare },
     { value: 'reports', label: 'Reports', icon: Download },
@@ -248,15 +147,13 @@ export default function AdminPage() {
         case 'video-classes':
             return <VideoClassManagement initialVideos={videoClasses} />;
         case 'topic-mcq':
-            return <TopicMCQManagement initialTopics={topics} initialTopicMCQs={[]} />; // Initial state passed from parent
+            return <TopicMCQManagement initialTopics={topics} initialTopicMCQs={[]} />;
         case 'question-bank':
-            return <QuestionBankManagement initialBankedQuestions={[]} />; // Initial state passed from parent
+            return <QuestionBankManagement initialBankedQuestions={[]} />;
         case 'reasoning-bank':
             return <ReasoningBankManagement initialQuestions={reasoningQuestions} />;
         case 'live-test':
             return <LiveTestManagement initialLiveTestBank={[]} initialLiveTests={allLiveTests} />;
-        case 'aptisolve':
-            return <AptiSolveReport />;
         case 'analytics':
             return <AnalyticsTab qnaUsage={qnaUsage} />;
         case 'feedback':

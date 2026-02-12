@@ -9,12 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Gem, Download, Loader2, Languages, Users, History, Database, MousePointer2, HelpCircle } from 'lucide-react';
-import type { UserData, MCQHistory, FreeClassRegistration, QnAUsage, AptiSolveLaunch } from '@/lib/types';
+import { Download, Loader2, Users, History, Database, HelpCircle } from 'lucide-react';
+import type { UserData, MCQHistory, FreeClassRegistration, QnAUsage } from '@/lib/types';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { normalizeDate } from '@/lib/utils';
-import { getAllExamHistory, getFreeClassRegistrations, getQnAUsage, getAptiSolveLaunches } from '@/lib/firestore';
+import { getAllExamHistory, getFreeClassRegistrations, getQnAUsage } from '@/lib/firestore';
 
 type ExamCategory = 'all' | 'MTS' | 'POSTMAN' | 'PA' | 'IP';
 type ProStatus = 'all' | 'pro' | 'free';
@@ -25,7 +24,6 @@ interface ReportsManagementProps {
 
 function EngagementLogCard() {
     const [doubts, setDoubts] = useState<QnAUsage[]>([]);
-    const [aptisolve, setAptiSolve] = useState<AptiSolveLaunch[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const { toast } = useToast();
@@ -34,12 +32,10 @@ function EngagementLogCard() {
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                const [doubtData, aptiData] = await Promise.all([
-                    getQnAUsage(),
-                    getAptiSolveLaunches()
+                const [doubtData] = await Promise.all([
+                    getQnAUsage()
                 ]);
                 setDoubts(doubtData);
-                setAptiSolve(aptiData);
             } catch (error) {
                 toast({ title: "Error", description: "Could not load engagement logs.", variant: "destructive" });
             } finally {
@@ -61,7 +57,7 @@ function EngagementLogCard() {
         <Card>
             <CardHeader>
                 <CardTitle>Engagement History</CardTitle>
-                <CardDescription>Track Doubts asked and AptiSolve app launches.</CardDescription>
+                <CardDescription>Track Doubts asked by users.</CardDescription>
                 <div className="pt-4">
                     <Input placeholder="Search by user, email or topic..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
                 </div>
@@ -91,30 +87,6 @@ function EngagementLogCard() {
                                             </TableRow>
                                         )) : (
                                             <TableRow><TableCell colSpan={3} className="text-center py-4">No doubts logged.</TableCell></TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2"><MousePointer2 className="h-5 w-5 text-primary" /> AptiSolve Launches</h3>
-                            <div className="border rounded-md">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>User</TableHead>
-                                            <TableHead className="text-right">Launched At</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {aptisolve.length > 0 ? aptisolve.map(a => (
-                                            <TableRow key={a.id}>
-                                                <TableCell className="font-medium">{a.userName}<br/><span className="text-xs text-muted-foreground">{a.userEmail}</span></TableCell>
-                                                <TableCell className="text-right text-xs text-muted-foreground">{format(a.launchedAt, 'dd/MM/yy p')}</TableCell>
-                                            </TableRow>
-                                        )) : (
-                                            <TableRow><TableCell colSpan={2} className="text-center py-4">No launches logged.</TableCell></TableRow>
                                         )}
                                     </TableBody>
                                 </Table>
@@ -308,7 +280,7 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
                             <History className="mr-2 h-4 w-4" /> Exam Log
                         </Button>
                          <Button variant={activeTab === 'engagement' ? 'default' : 'outline'} onClick={() => setActiveTab('engagement')} size="sm">
-                            <MousePointer2 className="mr-2 h-4 w-4" /> Engagement
+                            <Database className="mr-2 h-4 w-4" /> Engagement
                         </Button>
                          <Button variant={activeTab === 'legacy-data' ? 'default' : 'outline'} onClick={() => setActiveTab('legacy-data')} size="sm">
                             <Database className="mr-2 h-4 w-4" /> Legacy
