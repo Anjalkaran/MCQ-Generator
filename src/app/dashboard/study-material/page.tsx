@@ -14,11 +14,12 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { logMaterialDownload } from '@/lib/firestore';
 
 // Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
-function PdfViewer({ fileUrl, fileName }: { fileUrl: string, fileName: string }) {
+function PdfViewer({ fileUrl, fileName, materialId, user, userData }: { fileUrl: string, fileName: string, materialId: string, user: any, userData: any }) {
     const [numPages, setNumPages] = useState<number | null>(null);
     const [loadError, setLoadError] = useState<boolean>(false);
 
@@ -36,6 +37,9 @@ function PdfViewer({ fileUrl, fileName }: { fileUrl: string, fileName: string })
     }
     
     const handleDownload = () => {
+        if (user && userData) {
+            logMaterialDownload(user.uid, userData.name, userData.email, materialId, fileName);
+        }
         window.open(fileUrl, '_blank');
     };
 
@@ -85,7 +89,7 @@ function PdfViewer({ fileUrl, fileName }: { fileUrl: string, fileName: string })
 }
 
 export default function StudyMaterialPage() {
-    const { studyMaterials, topics, isLoading } = useDashboard();
+    const { studyMaterials, topics, isLoading, user, userData } = useDashboard();
     const [searchTerm, setSearchTerm] = useState('');
 
     const filteredMaterials = useMemo(() => {
@@ -155,7 +159,7 @@ export default function StudyMaterialPage() {
                                                                 Read Material
                                                             </Button>
                                                         </DialogTrigger>
-                                                        <PdfViewer fileUrl={material.content} fileName={material.fileName} />
+                                                        <PdfViewer fileUrl={material.content} fileName={material.fileName} materialId={material.id} user={user} userData={userData} />
                                                     </Dialog>
                                                 </TableCell>
                                             </TableRow>

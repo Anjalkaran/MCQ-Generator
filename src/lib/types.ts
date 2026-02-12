@@ -190,3 +190,13 @@ export interface AptiSolveLaunch {
     userEmail: string;
     launchedAt: Date;
 }
+
+export interface MaterialDownload {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  materialId: string;
+  materialTitle: string;
+  downloadedAt: Date;
+}

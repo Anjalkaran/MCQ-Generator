@@ -1,7 +1,7 @@
 
 import { getFirebaseDb, getFirebaseAuth } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, VideoClass, StudyMaterial, AptiSolveLaunch } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, VideoClass, StudyMaterial, AptiSolveLaunch, MaterialDownload } from './types';
 import { ADMIN_EMAILS } from './constants';
 import { normalizeDate } from './utils';
 
@@ -25,7 +25,6 @@ export const getUserData = async (userId: string): Promise<UserData | null> => {
             } as UserData;
         }
 
-        // Recovery Logic: If user is authenticated via Firebase Auth but has no document in Firestore.
         const auth = getFirebaseAuth();
         if (auth && auth.currentUser && auth.currentUser.uid === userId) {
             const newUser: UserData = {
@@ -634,6 +633,34 @@ export const deleteStudyMaterial = async (docId: string): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) return;
     await deleteDoc(doc(db, 'studyMaterials', docId));
+};
+
+// DOWNLOAD LOGGING
+export const logMaterialDownload = async (userId: string, userName: string, userEmail: string, materialId: string, materialTitle: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    await addDoc(collection(db, 'materialDownloads'), {
+        userId,
+        userName,
+        userEmail,
+        materialId,
+        materialTitle,
+        downloadedAt: serverTimestamp()
+    });
+};
+
+export const getMaterialDownloads = async (): Promise<MaterialDownload[]> => {
+    const db = getFirebaseDb();
+    if (!db) return [];
+    const snapshot = await getDocs(query(collection(db, 'materialDownloads'), orderBy('downloadedAt', 'desc')));
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            ...data,
+            downloadedAt: normalizeDate(data.downloadedAt) || new Date()
+        } as MaterialDownload;
+    });
 };
 
 // CONSOLIDATED DASHBOARD DATA FETCHING

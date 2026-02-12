@@ -13,8 +13,9 @@ import { ReportsManagement } from '@/components/admin/reports-management';
 import { ReasoningBankManagement } from '@/components/admin/reasoning-bank-management';
 import { FeedbackManagement } from '@/components/admin/feedback-management';
 import { VideoClassManagement } from '@/components/admin/video-class-management';
+import { DownloadHistoryManagement } from '@/components/admin/download-history-management';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, MessageSquare, Video, Library } from "lucide-react";
+import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, MessageSquare, Video, Library, History } from "lucide-react";
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
 import { AptiSolveIcon } from "@/components/icons/aptisolve-icon";
 import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback, getStudyMaterials, getAptiSolveLaunches, getCategories, getTopics, getTopicMCQs, getQuestionBankDocuments, getVideoClasses } from "@/lib/firestore";
@@ -161,6 +162,7 @@ const adminSections = [
     { value: 'question-bank', label: 'Question Bank', icon: FileText },
     { value: 'reasoning-bank', label: 'Reasoning Bank', icon: NewLogoIcon },
     { value: 'live-test', label: 'Live Test', icon: Trophy },
+    { value: 'downloads', label: 'Download History', icon: History },
     { value: 'aptisolve', label: 'AptiSolve Report', icon: AptiSolveIcon },
     { value: 'analytics', label: 'Analytics', icon: BarChart3 },
     { value: 'feedback', label: 'Feedback', icon: MessageSquare },
@@ -246,6 +248,7 @@ export default function AdminPage() {
         case 'question-bank': return <QuestionBankManagement initialBankedQuestions={bankedQuestions} />;
         case 'reasoning-bank': return <ReasoningBankManagement initialQuestions={reasoningQuestions} />;
         case 'live-test': return <LiveTestManagement initialLiveTestBank={bankedQuestions} initialLiveTests={liveTests} />;
+        case 'downloads': return <DownloadHistoryManagement />;
         case 'aptisolve': return <AptiSolveReport />;
         case 'analytics': return <AnalyticsTab qnaUsage={qnaUsage} />;
         case 'feedback': return <FeedbackManagement initialFeedback={feedback} />;
