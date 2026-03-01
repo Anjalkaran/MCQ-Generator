@@ -134,7 +134,7 @@ function AppSidebar() {
                 <Label htmlFor="admin-view-select" className="text-xs text-muted-foreground px-2">View As</Label>
                 <Select value={userData?.examCategory} onValueChange={(v) => setUserData(prev => prev ? ({ ...prev, examCategory: v as any }) : null)}>
                     <SelectTrigger id="admin-view-select" className="h-9"><SelectValue placeholder="Select Course" /></SelectTrigger>
-                    <SelectContent><SelectItem value="MTS">MTS User</SelectItem><SelectItem value="POSTMAN">Postman User</SelectItem><SelectItem value="PA">PA User</SelectItem><SelectItem value="IP">IP User</SelectItem></SelectContent>
+                    <SelectContent><SelectItem value="MTS">MTS User</SelectItem><SelectItem value="POSTMAN">Postman User</SelectItem><SelectItem value="PA">PA User</SelectItem></SelectContent>
                 </Select>
             </div>
           )}
@@ -142,7 +142,7 @@ function AppSidebar() {
           {isAdmin && (
             <>
               <SidebarMenuItem><SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin"><Link href="/dashboard/admin" onClick={onLinkClick}><Shield /><span>Admin</span></Link></SidebarMenuButton></SidebarMenuItem>
-              <SidebarMenuItem><SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/free-class')} tooltip="Free Class"><Link href="/dashboard/free-class" onClick={onLinkClick}><UserCheck /><span>Free Class</span></Link></SidebarMenuButton></SidebarMenuItem>
+              <SidebarMenuItem><SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/free-class')} tooltip="Free Class"><Link href="/dashboard/free-class" onClick={onLinkClick}><UserCheck /><span>Free Class</span></Link></SidebarMenuItem>
             </>
           )}
            {!isIPUser && (
@@ -248,7 +248,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (user?.uid) {
       const heartbeat = async () => { try { const db = getFirebaseDb(); if (db) await updateDoc(doc(db, 'users', user.uid), { lastSeen: serverTimestamp() }); } catch (e) {} };
       heartbeat();
-      const id = setInterval(heartbeat, 600000); // 10 minutes
+      const id = setInterval(heartbeat, 600000); 
       return () => clearInterval(id);
     }
   }, [user?.uid]);
@@ -257,7 +257,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (userData?.email && ADMIN_EMAILS.includes(userData.email)) {
         const fetch = async () => { try { const users = await fetchOnlineUsers(); setOnlineUsers(users); } catch (e) {} };
         fetch();
-        const id = setInterval(fetch, 300000); // 5 minutes
+        const id = setInterval(fetch, 300000); 
         return () => clearInterval(id);
     }
   }, [userData?.email]);

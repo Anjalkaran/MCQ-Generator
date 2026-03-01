@@ -29,12 +29,7 @@ type ExamCategory = UserData['examCategory'];
 
 
 function LeaderboardTable({ data, type = 'general' }: { data: LeaderboardEntry[], type?: 'general' | 'live' }) {
-  // Deduplicate entries by userId to prevent React key conflicts
-  const uniqueData = useMemo(() => {
-    return Array.from(new Map(data.map(entry => [entry.userId, entry])).values());
-  }, [data]);
-
-  if (uniqueData.length === 0) {
+  if (data.length === 0) {
     return (
       <div className="text-center text-muted-foreground py-10">
         No data available yet. Be the first one on the leaderboard!
@@ -77,7 +72,7 @@ function LeaderboardTable({ data, type = 'general' }: { data: LeaderboardEntry[]
           </TableRow>
         </TableHeader>
         <TableBody>
-          {uniqueData.map((entry) => (
+          {data.map((entry) => (
             <TableRow key={entry.userId}>
               <TableCell className="font-bold text-center text-lg">
                 <div className="flex items-center justify-center gap-2">
@@ -110,7 +105,7 @@ function LeaderboardTable({ data, type = 'general' }: { data: LeaderboardEntry[]
 
 function CategorySelector({ selectedCategory, setSelectedCategory, availableCategories }: { selectedCategory: ExamCategory, setSelectedCategory: (category: ExamCategory) => void, availableCategories: ExamCategory[] }) {
     if (availableCategories.length <= 1) {
-        return null; // Don't show the selector if there's only one option
+        return null;
     }
 
     return (
@@ -137,7 +132,6 @@ function WeeklyTestLeaderboard({ pastLiveTests, initialTestId, availableCategori
     const [isLoading, setIsLoading] = useState(false);
 
     const filteredLiveTests = useMemo(() => {
-        // Filter by category if category is not 'All'
         return pastLiveTests
             .filter(test => test.examCategory === selectedCategory || test.examCategory === 'All')
             .sort((a, b) => (normalizeDate(b.createdAt)?.getTime() ?? 0) - (normalizeDate(a.createdAt)?.getTime() ?? 0));
@@ -147,7 +141,7 @@ function WeeklyTestLeaderboard({ pastLiveTests, initialTestId, availableCategori
         if (initialTestId) {
             const initialTest = pastLiveTests.find(t => t.id === initialTestId);
             if (initialTest) {
-                if (initialTest.examCategory !== 'All') {
+                if (initialTest.examCategory !== 'All' && availableCategories.includes(initialTest.examCategory)) {
                     setSelectedCategory(initialTest.examCategory);
                 }
                 setSelectedTestId(initialTestId);
@@ -155,7 +149,7 @@ function WeeklyTestLeaderboard({ pastLiveTests, initialTestId, availableCategori
             }
         }
         setSelectedTestId(filteredLiveTests[0]?.id);
-    }, [initialTestId, pastLiveTests, filteredLiveTests]);
+    }, [initialTestId, pastLiveTests, filteredLiveTests, availableCategories]);
     
      useEffect(() => {
         if (availableCategories.length === 1) {
@@ -236,10 +230,8 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
 
   const availableCategories = useMemo(() => {
     if (!userData) return [];
-    if (userData.email && ADMIN_EMAILS.includes(userData.email)) return ['MTS', 'POSTMAN', 'PA', 'IP'];
+    if (userData.email && ADMIN_EMAILS.includes(userData.email)) return ['MTS', 'POSTMAN', 'PA'];
     switch (userData.examCategory) {
-        case 'IP':
-            return ['IP'];
         case 'PA':
             return ['PA', 'POSTMAN', 'MTS'];
         case 'POSTMAN':
@@ -251,10 +243,10 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
     }
   }, [userData]);
   
-  const [selectedCategory, setSelectedCategory] = useState<ExamCategory>(userData?.examCategory || 'MTS');
+  const [selectedCategory, setSelectedCategory] = useState<ExamCategory>(userData?.examCategory === 'IP' ? 'PA' : (userData?.examCategory || 'MTS'));
   
   useEffect(() => {
-    if (userData?.examCategory) {
+    if (userData?.examCategory && userData.examCategory !== 'IP') {
         setSelectedCategory(userData.examCategory);
     }
   }, [userData]);
@@ -295,7 +287,7 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
         <Card>
           <CardHeader>
             <CardTitle>Weekly Test Leaderboard</CardTitle>
-            <CardDescription>View rankings for our permanent weekly challenges. Ranks are determined by score, then by time taken.</CardDescription>
+            <CardDescription>View rankings for our permanent weekly challenges. Ranks are determined by percentage score, then by time taken.</CardDescription>
           </CardHeader>
           <CardContent>
              {pastLiveTests.length > 0 ? (
@@ -303,7 +295,7 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
                     pastLiveTests={pastLiveTests} 
                     initialTestId={liveTestIdFromUrl ?? undefined}
                     availableCategories={availableCategories}
-                    defaultCategory={userData?.examCategory || 'MTS'}
+                    defaultCategory={userData?.examCategory === 'IP' ? 'PA' : (userData?.examCategory || 'MTS')}
                 />
              ) : (
                 <div className="text-center text-muted-foreground py-10">

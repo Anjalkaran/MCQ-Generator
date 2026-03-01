@@ -7,7 +7,6 @@ import { normalizeDate } from './utils';
 
 // LEADERBOARD RESET CONFIGURATION
 // Any history or tests before this date will be hidden from leaderboards.
-// Set to August 20, 2025 to clear early August results shown in request.
 const LEADERBOARD_RESET_DATE = new Date('2025-08-20T00:00:00Z');
 
 // USER MANAGEMENT
@@ -469,8 +468,6 @@ export const getLiveTestsForLeaderboard = async (): Promise<any[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
     
-    // Per user request, we now only show "Weekly Test" results.
-    // We fetch from the weeklyTests collection (permanent tests).
     const weeklyCollection = collection(db, 'weeklyTests');
     const q = query(weeklyCollection, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
@@ -481,7 +478,7 @@ export const getLiveTestsForLeaderboard = async (): Promise<any[]> => {
             id: doc.id, 
             title: data.title,
             examCategory: data.examCategories?.[0] || 'All',
-            startTime: normalizeDate(data.createdAt), // Map to startTime for component compatibility
+            startTime: normalizeDate(data.createdAt),
             createdAt: normalizeDate(data.createdAt)
         };
     });
@@ -497,7 +494,6 @@ export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategor
     const historySnapshot = await getDocs(historyQuery);
     let histories = historySnapshot.docs.map(doc => doc.data() as MCQHistory);
 
-    // Filter in-memory by reset date
     histories = histories.filter(h => {
         const takenAt = normalizeDate(h.takenAt);
         return takenAt && takenAt >= LEADERBOARD_RESET_DATE;
@@ -535,14 +531,16 @@ export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategor
         }
     });
 
-    return leaderboard.sort((a, b) => b.averageScore - a.averageScore).slice(0, 100).map((entry, index) => ({ ...entry, rank: index + 1 }));
+    return leaderboard
+        .sort((a, b) => b.averageScore - a.averageScore)
+        .slice(0, 100)
+        .map((entry, index) => ({ ...entry, rank: index + 1 }));
 };
 
 export const getLiveTestLeaderboardData = async (testId: string): Promise<LeaderboardEntry[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
     
-    // Query history for either liveTestId or weeklyTestId matching the selected test ID
     const historyRef = collection(db, 'mcqHistory');
     const qLive = query(historyRef, where('liveTestId', '==', testId));
     const qWeekly = query(historyRef, where('weeklyTestId', '==', testId));
@@ -554,37 +552,42 @@ export const getLiveTestLeaderboardData = async (testId: string): Promise<Leader
         ...snapWeekly.docs.map(doc => doc.data() as MCQHistory)
     ];
 
-    // Apply the reset filter
     histories = histories.filter(h => {
         const takenAt = normalizeDate(h.takenAt);
         return takenAt && takenAt >= LEADERBOARD_RESET_DATE;
     });
 
-    const userIds = [...new Set(histories.map(h => h.userId))];
-    if (userIds.length === 0) return [];
-    
     const allUsers = await getAllUsers();
     const userMap = new Map(allUsers.map(u => [u.uid, u]));
     
-    let leaderboard: Omit<LeaderboardEntry, 'rank'>[] = [];
+    // Deduplicate per user, keeping their BEST attempt
+    const bestAttempts = new Map<string, any>();
+
     histories.forEach(h => {
         const user = userMap.get(h.userId);
         if (user && !ADMIN_EMAILS.includes(user.email)) {
-            leaderboard.push({
-                userId: h.userId,
-                userName: user.name,
-                examCategory: user.examCategory,
-                score: h.score,
-                totalQuestions: h.totalQuestions,
-                averageScore: (h.totalQuestions > 0) ? (h.score / h.totalQuestions) * 100 : 0,
-                durationInSeconds: h.durationInSeconds,
-            });
+            const percentage = (h.totalQuestions > 0) ? (h.score / h.totalQuestions) * 100 : 0;
+            const existing = bestAttempts.get(h.userId);
+            
+            if (!existing || percentage > existing.averageScore || (percentage === existing.averageScore && (h.durationInSeconds || Infinity) < (existing.durationInSeconds || Infinity))) {
+                bestAttempts.set(h.userId, {
+                    userId: h.userId,
+                    userName: user.name,
+                    examCategory: user.examCategory,
+                    score: h.score,
+                    totalQuestions: h.totalQuestions,
+                    averageScore: percentage,
+                    durationInSeconds: h.durationInSeconds,
+                });
+            }
         }
     });
     
-    const sortedLeaderboard = leaderboard
+    const sortedLeaderboard = Array.from(bestAttempts.values())
         .sort((a, b) => {
+            // Sort primarily by percentage (averageScore) descending
             if (b.averageScore !== a.averageScore) return b.averageScore - a.averageScore;
+            // Then by duration ascending
             return (a.durationInSeconds || Infinity) - (b.durationInSeconds || Infinity);
         })
         .map((entry, index) => ({ ...entry, rank: index + 1 }));
@@ -798,7 +801,6 @@ export const getDashboardData = async (userId: string, isForAdmin: boolean = fal
             studyMaterials: allStudyMaterials, 
             notifications,
             weeklyTests,
-            // Include extra data for admin panels
             bankedQuestions: await getQuestionBankDocuments(),
             topicMCQs: await getTopicMCQs(),
             liveTestBank: await getLiveTestBankDocuments(),
@@ -814,7 +816,6 @@ export const getDashboardData = async (userId: string, isForAdmin: boolean = fal
     const userTopicIds = new Set(userTopics.map(t => t.id));
     const userStudyMaterials = allStudyMaterials.filter(sm => userTopicIds.has(sm.topicId));
     
-    // Updated filtering for weekly tests to support array of categories
     const userWeeklyTests = weeklyTests.filter(t => 
         t.examCategories && (t.examCategories.includes(userExamCategory) || t.examCategories.includes('All'))
     );
