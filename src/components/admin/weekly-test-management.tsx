@@ -7,22 +7,23 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Trash2, CalendarCheck, Search, Upload } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Search, Upload } from 'lucide-react';
 import { deleteWeeklyTest } from '@/lib/firestore';
 import type { BankedQuestion, WeeklyTest } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
 
-const examCategories = ["All", "MTS", "POSTMAN", "PA", "IP"] as const;
+const categoriesList = ["MTS", "POSTMAN", "PA", "IP", "All"] as const;
 
 const formSchema = z.object({
   title: z.string().min(3, "Title is required."),
-  examCategory: z.enum(examCategories, { required_error: "Select a category." }),
+  examCategories: z.array(z.string()).min(1, "Select at least one category."),
   file: z.any().refine((files) => files?.length > 0, "Question paper JSON file is required.")
 });
 
@@ -39,14 +40,14 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { title: '', examCategory: undefined }
+    defaultValues: { title: '', examCategories: [] }
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     const formData = new FormData();
     formData.append('title', values.title);
-    formData.append('examCategory', values.examCategory);
+    values.examCategories.forEach(cat => formData.append('examCategories', cat));
     if (values.file && values.file[0]) {
         formData.append('file', values.file[0]);
     }
@@ -67,7 +68,6 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
         setWeeklyTests(prev => [newTest, ...prev]);
         toast({ title: "Success", description: "Weekly test created successfully." });
         form.reset();
-        // Clear file input manually as reset() doesn't always handle file refs well
         const fileInput = document.getElementById('weekly-test-file') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
     } catch (error: any) {
@@ -88,7 +88,10 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
   };
 
   const filteredTests = useMemo(() => 
-    weeklyTests.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase()) || t.examCategory.includes(searchTerm)),
+    weeklyTests.filter(t => 
+        t.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        t.examCategories?.some(cat => cat.toLowerCase().includes(searchTerm.toLowerCase()))
+    ),
     [weeklyTests, searchTerm]
   );
 
@@ -97,12 +100,12 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
         <Card>
             <CardHeader>
                 <CardTitle>Add New Weekly Test</CardTitle>
-                <CardDescription>Upload a JSON question paper to make it available as a Weekly Test. This will not affect the general question bank.</CardDescription>
+                <CardDescription>Upload a JSON question paper and select target categories.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FormField
                                 control={form.control}
                                 name="title"
@@ -110,20 +113,6 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                     <FormItem>
                                         <FormLabel>Test Title</FormLabel>
                                         <FormControl><Input placeholder="e.g. Weekly Test 1" {...field} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="examCategory"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Category</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select Course" /></SelectTrigger></FormControl>
-                                            <SelectContent>{examCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                                        </Select>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -148,7 +137,56 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                 )}
                             />
                         </div>
-                        <Button type="submit" disabled={isLoading}>
+
+                        <FormField
+                            control={form.control}
+                            name="examCategories"
+                            render={() => (
+                                <FormItem>
+                                    <div className="mb-2">
+                                        <FormLabel>Target Exam Categories</FormLabel>
+                                    </div>
+                                    <div className="flex flex-wrap gap-6 p-4 border rounded-md bg-muted/20">
+                                        {categoriesList.map((item) => (
+                                            <FormField
+                                                key={item}
+                                                control={form.control}
+                                                name="examCategories"
+                                                render={({ field }) => {
+                                                    return (
+                                                        <FormItem
+                                                            key={item}
+                                                            className="flex flex-row items-center space-x-3 space-y-0"
+                                                        >
+                                                            <FormControl>
+                                                                <Checkbox
+                                                                    checked={field.value?.includes(item)}
+                                                                    onCheckedChange={(checked) => {
+                                                                        return checked
+                                                                            ? field.onChange([...field.value, item])
+                                                                            : field.onChange(
+                                                                                field.value?.filter(
+                                                                                    (value) => value !== item
+                                                                                )
+                                                                            )
+                                                                    }}
+                                                                />
+                                                            </FormControl>
+                                                            <FormLabel className="font-normal cursor-pointer">
+                                                                {item}
+                                                            </FormLabel>
+                                                        </FormItem>
+                                                    )
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
                             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                             Add Weekly Test
                         </Button>
@@ -162,7 +200,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                 <div className="flex justify-between items-center">
                     <div>
                         <CardTitle>Existing Weekly Tests</CardTitle>
-                        <CardDescription>These tests are always available to users in their respective categories.</CardDescription>
+                        <CardDescription>Permanent tests available to selected courses.</CardDescription>
                     </div>
                     <div className="relative w-64">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -176,7 +214,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Title</TableHead>
-                                <TableHead>Course</TableHead>
+                                <TableHead>Target Courses</TableHead>
                                 <TableHead>Created</TableHead>
                                 <TableHead className="text-right">Action</TableHead>
                             </TableRow>
@@ -185,7 +223,11 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                             {filteredTests.map(t => (
                                 <TableRow key={t.id}>
                                     <TableCell className="font-medium">{t.title}</TableCell>
-                                    <TableCell>{t.examCategory}</TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-wrap gap-1">
+                                            {t.examCategories?.map(cat => <Badge key={cat} variant="secondary" className="text-[10px]">{cat}</Badge>)}
+                                        </div>
+                                    </TableCell>
                                     <TableCell className="text-xs text-muted-foreground">{t.createdAt ? format(t.createdAt, 'dd/MM/yyyy') : 'N/A'}</TableCell>
                                     <TableCell className="text-right">
                                         <AlertDialog>
@@ -193,7 +235,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                             <AlertDialogContent>
                                                 <AlertDialogHeader>
                                                     <AlertDialogTitle>Remove Weekly Test?</AlertDialogTitle>
-                                                    <AlertDialogDescription>This will hide the test from all users. This action cannot be undone.</AlertDialogDescription>
+                                                    <AlertDialogDescription>This will hide the test from all selected users.</AlertDialogDescription>
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
                                                     <AlertDialogCancel>Cancel</AlertDialogCancel>

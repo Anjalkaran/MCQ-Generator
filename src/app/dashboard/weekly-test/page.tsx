@@ -36,11 +36,10 @@ function WeeklyTestCard({ test }: { test: WeeklyTest }) {
 
         try {
             const { quizId } = await generateLiveMockTest({ 
-                liveTestId: undefined, // Segregate from legacy scheduled leaderboard
-                weeklyTestId: test.id, // Store as permanent weekly test result
+                liveTestId: undefined, 
+                weeklyTestId: test.id, 
                 questionPaperId: test.questionPaperId,
-                // If test is marked for 'All', use the student's specific category for the blueprint logic
-                examCategory: test.examCategory === 'All' ? userData.examCategory : test.examCategory as any,
+                examCategory: userData.examCategory,
                 language: selectedLanguage,
                 testTitle: test.title,
             });
@@ -55,8 +54,7 @@ function WeeklyTestCard({ test }: { test: WeeklyTest }) {
     };
 
     const handleShare = () => {
-        const categoryLabel = test.examCategory === 'All' ? 'all categories' : test.examCategory;
-        const message = `Check out "${test.title}" on Anjalkaran! Permanent Weekly Test for ${categoryLabel}. Practice now: https://anjalkaran.in`;
+        const message = `Check out "${test.title}" on Anjalkaran! Permanent Weekly Test for your preparation. Practice now: https://anjalkaran.in`;
         window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
     };
 
@@ -102,8 +100,9 @@ export default function WeeklyTestPage() {
         return <div className="flex h-[50vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
     }
 
-    // Filter logic: show tests matching user's category OR tests marked as 'All'
-    const filteredTests = weeklyTests.filter(t => t.examCategory === userData?.examCategory || t.examCategory === 'All');
+    const filteredTests = weeklyTests.filter(t => 
+        t.examCategories?.includes(userData?.examCategory as any) || t.examCategories?.includes('All')
+    );
 
     return (
         <div className="space-y-6">

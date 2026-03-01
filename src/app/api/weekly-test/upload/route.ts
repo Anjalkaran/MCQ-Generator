@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { getFirebaseDb } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -12,18 +13,19 @@ export async function POST(request: Request) {
         const formData = await request.formData();
         const file = formData.get('file') as File;
         const title = formData.get('title') as string;
-        const examCategory = formData.get('examCategory') as string;
+        const examCategories = formData.getAll('examCategories') as string[];
 
-        if (!file || !title || !examCategory) {
-            return NextResponse.json({ error: 'Missing required fields: title, examCategory, and file are required.' }, { status: 400 });
+        if (!file || !title || !examCategories || examCategories.length === 0) {
+            return NextResponse.json({ error: 'Missing required fields: title, categories, and file are required.' }, { status: 400 });
         }
 
         const content = await file.text();
         
         // 1. First, save the question content to the liveTestBank collection
+        // We use the first category as a primary tag for the bank record
         const bankRef = await addDoc(collection(db, 'liveTestBank'), {
             fileName: `${title}_${Date.now()}.json`,
-            examCategory,
+            examCategory: examCategories[0], 
             content,
             uploadedAt: new Date()
         });
@@ -31,7 +33,7 @@ export async function POST(request: Request) {
         // 2. Create the Weekly Test entry referencing the bank document
         const weeklyTestRef = await addDoc(collection(db, 'weeklyTests'), {
             title,
-            examCategory,
+            examCategories,
             questionPaperId: bankRef.id,
             createdAt: serverTimestamp()
         });
@@ -41,7 +43,7 @@ export async function POST(request: Request) {
             newTest: {
                 id: weeklyTestRef.id,
                 title,
-                examCategory,
+                examCategories,
                 questionPaperId: bankRef.id,
                 createdAt: new Date()
             }

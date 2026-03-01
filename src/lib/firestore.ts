@@ -738,7 +738,7 @@ export const getFreeClassRegistrations = async (): Promise<any[]> => {
 };
 
 // CONSOLIDATED DASHBOARD DATA FETCHING
-export const getDashboardData = async (userId: string) => {
+export const getDashboardData = async (userId: string, isForAdmin: boolean = false) => {
     const db = getFirebaseDb();
     if (!db) return { userData: null, categories: [], topics: [], videoClasses: [], studyMaterials: [], notifications: [], weeklyTests: [] };
 
@@ -750,7 +750,6 @@ export const getDashboardData = async (userId: string) => {
     const isAdmin = ADMIN_EMAILS.includes(userData.email);
     const notificationsPromise = isAdmin ? getAdminNotifications() : Promise.resolve([]);
 
-    // Fetch only necessary data for initial view
     const [allCategories, allTopics, allVideoClasses, allStudyMaterials, notifications, weeklyTests] = await Promise.all([
         getCategories(), 
         getTopics(), 
@@ -760,7 +759,7 @@ export const getDashboardData = async (userId: string) => {
         getWeeklyTests()
     ]);
 
-    if (isAdmin) {
+    if (isAdmin && isForAdmin) {
         return { 
             userData, 
             categories: allCategories, 
@@ -768,7 +767,13 @@ export const getDashboardData = async (userId: string) => {
             videoClasses: allVideoClasses, 
             studyMaterials: allStudyMaterials, 
             notifications,
-            weeklyTests
+            weeklyTests,
+            // Include extra data for admin panels
+            bankedQuestions: await getQuestionBankDocuments(),
+            topicMCQs: await getTopicMCQs(),
+            liveTestBank: await getLiveTestBankDocuments(),
+            qnaUsage: await getQnAUsage(),
+            freeClassRegistrations: await getFreeClassRegistrations()
         };
     }
 
@@ -778,7 +783,11 @@ export const getDashboardData = async (userId: string) => {
     const userVideoClasses = allVideoClasses.filter(vc => vc.examCategories && vc.examCategories.includes(userExamCategory));
     const userTopicIds = new Set(userTopics.map(t => t.id));
     const userStudyMaterials = allStudyMaterials.filter(sm => userTopicIds.has(sm.topicId));
-    const userWeeklyTests = weeklyTests.filter(t => t.examCategory === userExamCategory);
+    
+    // Updated filtering for weekly tests to support array of categories
+    const userWeeklyTests = weeklyTests.filter(t => 
+        t.examCategories && (t.examCategories.includes(userExamCategory) || t.examCategories.includes('All'))
+    );
 
     return { userData, categories: userCategories, topics: userTopics, videoClasses: userVideoClasses, studyMaterials: userStudyMaterials, notifications, weeklyTests: userWeeklyTests };
 };

@@ -165,7 +165,7 @@ export interface LiveTest {
 export interface WeeklyTest {
     id: string;
     title: string;
-    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP' | 'All';
+    examCategories: string[];
     questionPaperId: string;
     createdAt: Date;
 }
