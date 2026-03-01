@@ -48,7 +48,7 @@ const translations = {
     },
     practice: {
       title: "विषय-अनुसार अभ्यास",
-      description: "किसी विशेष विषय, कठिनाई और प्रश्नों की संख्या का चयन करके एक कस्टम परीक्षा बनाएं। यह फोकस्ड प्रैक्टिस के लिए आदर्श है।",
+      description: "किसी विशेष विषय, कठिनाई और प्रश्नों की संख्या का चयन करके एक कस्टम परीक्षा बनाएं। यह फोகस्ड प्रैक्टिस के लिए आदर्श है।",
     },
     analysis: {
       title: "प्रदर्शन का विश्लेषण",
@@ -115,12 +115,6 @@ export function FeatureCards({ language }: { language: Language }) {
       title: t.practice.title,
       description: t.practice.description,
       href: "/dashboard/topic-wise-mcq"
-    },
-    {
-      icon: <TrendingUp className="h-8 w-8 text-primary" />,
-      title: t.analysis.title,
-      description: t.analysis.description,
-      href: "/dashboard/performance"
     },
     {
       icon: <Trophy className="h-8 w-8 text-primary" />,
