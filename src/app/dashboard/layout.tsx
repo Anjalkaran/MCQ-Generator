@@ -4,14 +4,14 @@
 import React, { useState, useEffect, createContext, useContext, useCallback, useMemo } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, BookCopy, FileText, Trophy, HelpCircle, Users, Star, PenSquare, RefreshCw, Video, Library, MessageCircle as MessageCircleIcon, CalendarCheck } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, BookCopy, FileText, Trophy, HelpCircle, Users, Star, PenSquare, RefreshCw, Video, Library, MessageCircle as MessageCircleIcon, CalendarCheck, UserCheck } from 'lucide-react';
 import Link from 'next/link';
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebase';
 import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
-import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback, getOnlineUsers as fetchOnlineUsers } from '@/lib/firestore';
+import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback, getOnlineUsers as fetchOnlineUsers, getFreeClassRegistrations as fetchFreeClassRegistrations } from '@/lib/firestore';
 import type { UserData, Category, Topic, Notification, VideoClass, StudyMaterial, WeeklyTest } from "@/lib/types";
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
@@ -128,7 +128,10 @@ function AppSidebar() {
           <div className="p-2 group-data-[collapsible=icon]:hidden"><CardDescription className="text-center text-sm">{userData ? `Welcome, ${userData.name}!` : ''}</CardDescription></div>
           <SidebarMenuItem><SidebarMenuButton asChild isActive={pathname === '/dashboard'} tooltip="Dashboard"><Link href="/dashboard" onClick={() => setOpenMobile(false)}><LayoutDashboard /><span>Dashboard</span></Link></SidebarMenuButton></SidebarMenuItem>
           {isAdmin && (
-            <SidebarMenuItem><SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin"><Link href="/dashboard/admin" onClick={() => setOpenMobile(false)}><Shield /><span>Admin</span></Link></SidebarMenuButton></SidebarMenuItem>
+            <>
+              <SidebarMenuItem><SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin"><Link href="/dashboard/admin" onClick={() => setOpenMobile(false)}><Shield /><span>Admin</span></Link></SidebarMenuButton></SidebarMenuItem>
+              <SidebarMenuItem><SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/free-class')} tooltip="Free Class"><Link href="/dashboard/free-class" onClick={() => setOpenMobile(false)}><UserCheck /><span>Free Class</span></Link></SidebarMenuButton></SidebarMenuItem>
+            </>
           )}
            {!isIPUser && (
             <><SidebarMenuItem><SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/weekly-test')} tooltip="Weekly Test"><Link href="/dashboard/weekly-test" onClick={() => setOpenMobile(false)}><CalendarCheck /><span>Weekly Test</span></Link></SidebarMenuButton></SidebarMenuItem>
@@ -201,10 +204,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             const lastSeen = localStorage.getItem('lastSeenUpdateTimestamp');
             const lastSeenDate = lastSeen ? new Date(parseInt(lastSeen, 10)) : new Date(0);
-            const mostRecent = [...data.videoClasses, ...data.studyMaterials].reduce((latest, item) => { const d = normalizeDate(item.uploadedAt); return d && d > latest ? d : latest; }, new Date(0));
+            const mostRecent = [...(data.videoClasses || []), ...(data.studyMaterials || [])].reduce((latest, item) => { const d = normalizeDate(item.uploadedAt); return d && d > latest ? d : latest; }, new Date(0));
             if (mostRecent > lastSeenDate) {
-                const nv = data.videoClasses.filter(v => normalizeDate(v.uploadedAt)! > lastSeenDate);
-                const nm = data.studyMaterials.filter(m => normalizeDate(m.uploadedAt)! > lastSeenDate);
+                const nv = (data.videoClasses || []).filter(v => normalizeDate(v.uploadedAt)! > lastSeenDate);
+                const nm = (data.studyMaterials || []).filter(m => normalizeDate(m.uploadedAt)! > lastSeenDate);
                 if (nv.length > 0 || nm.length > 0) { setNewContent({ videos: nv as any, materials: nm as any }); setShowNewContentPopup(true); }
             }
             if (!ADMIN_EMAILS.includes(data.userData.email) && (!data.userData.employeeId || data.userData.employeeId.length !== 8 || !data.userData.phone)) {
@@ -213,7 +216,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }
         } catch (error) { 
             console.error("Dashboard init error:", error);
-            toast({ title: "Error", description: "Failed to load dashboard.", variant: "destructive" }); 
+            // Don't show toast for every error to avoid flooding if quota is reached
         } finally {
             setIsLoading(false);
         }
@@ -226,22 +229,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         setIsLoading(false);
       }
     });
-  }, [router, toast, pathname]);
+  }, [router, pathname]); // Removed redundant dependencies
 
+  // Reduced heartbeat frequency to 10 minutes to save quota
   useEffect(() => {
     if (user?.uid) {
       const heartbeat = async () => { try { await updateDoc(doc(getFirebaseDb()!, 'users', user.uid), { lastSeen: serverTimestamp() }); } catch (e) {} };
       heartbeat();
-      const id = setInterval(heartbeat, 60000);
+      const id = setInterval(heartbeat, 600000); // 10 minutes
       return () => clearInterval(id);
     }
   }, [user?.uid]);
 
+  // Reduced online user fetch frequency to 5 minutes for admins
   useEffect(() => {
     if (userData?.email && ADMIN_EMAILS.includes(userData.email)) {
         const fetch = async () => { try { const users = await fetchOnlineUsers(); setOnlineUsers(users); } catch (e) {} };
         fetch();
-        const id = setInterval(fetch, 30000);
+        const id = setInterval(fetch, 300000); // 5 minutes
         return () => clearInterval(id);
     }
   }, [userData?.email]);

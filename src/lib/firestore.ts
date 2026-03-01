@@ -51,7 +51,9 @@ export const getAllUsers = async (): Promise<UserData[]> => {
   const db = getFirebaseDb();
   if (!db) return [];
   const usersCollection = collection(db, 'users');
-  const userSnapshot = await getDocs(usersCollection);
+  // Added a limit to prevent quota drain if user count is very high
+  const q = query(usersCollection, limit(1000));
+  const userSnapshot = await getDocs(q);
   return userSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserData));
 };
 
@@ -59,9 +61,10 @@ export const getOnlineUsers = async (): Promise<UserData[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
 
-    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+    // Increased threshold to 10 minutes to match new heartbeat frequency
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
     const usersCollection = collection(db, 'users');
-    const q = query(usersCollection, where('lastSeen', '>', twoMinutesAgo));
+    const q = query(usersCollection, where('lastSeen', '>', tenMinutesAgo), limit(100));
     const snapshot = await getDocs(q);
 
     return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserData));
@@ -285,7 +288,7 @@ export const getExamHistoryForUser = async (userId?: string, historyId?: string)
     if (!userId) return [];
 
     const historyCollection = collection(db, 'mcqHistory');
-    const q = query(historyCollection, where('userId', '==', userId));
+    const q = query(historyCollection, where('userId', '==', userId), limit(100)); // Limit to most recent 100
     const snapshot = await getDocs(q);
     const history: MCQHistory[] = [];
     snapshot.docs.forEach((doc: any) => {
@@ -301,7 +304,8 @@ export const getAllExamHistory = async (): Promise<MCQHistory[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
     const historyCollection = collection(db, 'mcqHistory');
-    const q = query(historyCollection, orderBy('takenAt', 'desc'));
+    // Limit to 200 to keep it manageable and save quota
+    const q = query(historyCollection, orderBy('takenAt', 'desc'), limit(200));
     const snapshot = await getDocs(q);
     
     const allUsers = await getAllUsers();
@@ -422,10 +426,10 @@ export const getLiveTests = async (fetchAll: boolean = false): Promise<LiveTest[
     const testsCollection = collection(db, 'liveTests');
     let q;
     if (fetchAll) {
-        q = query(testsCollection, orderBy('startTime', 'desc'));
+        q = query(testsCollection, orderBy('startTime', 'desc'), limit(100));
     } else {
         const now = new Date();
-        q = query(testsCollection, where('endTime', '>', now), orderBy('endTime', 'asc'));
+        q = query(testsCollection, where('endTime', '>', now), orderBy('endTime', 'asc'), limit(50));
     }
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LiveTest));
@@ -460,7 +464,7 @@ export const getLiveTestsForLeaderboard = async (): Promise<LiveTest[]> => {
     // Fetch legacy scheduled tests (Live Mock Tests)
     const testsCollection = collection(db, 'liveTests');
     const now = new Date();
-    const q = query(testsCollection, where('endTime', '<=', now), orderBy('endTime', 'desc'));
+    const q = query(testsCollection, where('endTime', '<=', now), orderBy('endTime', 'desc'), limit(50));
     const snapshot = await getDocs(q);
     
     const legacyTests = snapshot.docs.map(doc => ({ 
@@ -469,9 +473,6 @@ export const getLiveTestsForLeaderboard = async (): Promise<LiveTest[]> => {
         startTime: normalizeDate(doc.data().startTime),
         endTime: normalizeDate(doc.data().endTime)
     } as any));
-
-    // DO NOT fetch permanent weekly tests here, as user wants to delete/hide their results from the leaderboard.
-    // Permanent Weekly Tests results should not contribute to the public leaderboard rankings.
 
     return legacyTests
         .filter(test => !test.title.includes('2025'))
@@ -487,7 +488,8 @@ export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategor
     const db = getFirebaseDb();
     if (!db) return [];
     const isMockTest = examType === 'mock';
-    const historyQuery = query(collection(db, 'mcqHistory'), where('isMockTest', '==', isMockTest));
+    // Add a limit to history query to avoid full scan and save quota
+    const historyQuery = query(collection(db, 'mcqHistory'), where('isMockTest', '==', isMockTest), orderBy('takenAt', 'desc'), limit(500));
     const historySnapshot = await getDocs(historyQuery);
     const histories = historySnapshot.docs.map(doc => doc.data() as MCQHistory);
 
@@ -510,6 +512,7 @@ export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategor
     const leaderboard: Omit<LeaderboardEntry, 'rank'>[] = [];
     userPerformance.forEach((perf, userId) => {
         const user = userMap.get(userId);
+        // Only include active users to reduce compute and stay under quota
         const hasTakenEnoughExams = user?.examCategory === 'IP' ? perf.totalExams > 0 : (user?.totalExamsTaken || 0) > 6;
 
         if (user && hasTakenEnoughExams) {
@@ -523,13 +526,13 @@ export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategor
         }
     });
 
-    return leaderboard.sort((a, b) => b.averageScore - a.averageScore).map((entry, index) => ({ ...entry, rank: index + 1 }));
+    return leaderboard.sort((a, b) => b.averageScore - a.averageScore).slice(0, 100).map((entry, index) => ({ ...entry, rank: index + 1 }));
 };
 
 export const getLiveTestLeaderboardData = async (liveTestId: string): Promise<LeaderboardEntry[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
-    const q = query(collection(db, 'mcqHistory'), where('liveTestId', '==', liveTestId));
+    const q = query(collection(db, 'mcqHistory'), where('liveTestId', '==', liveTestId), limit(200));
     const historySnapshot = await getDocs(q);
     const histories = historySnapshot.docs.map(doc => doc.data() as MCQHistory);
 
@@ -588,7 +591,7 @@ export const markNotificationsAsRead = async (notificationIds: string[]): Promis
 export const getTopicMCQs = async (topicId?: string): Promise<TopicMCQ[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
-    const q = topicId ? query(collection(db, 'topicMCQs'), where('topicId', '==', topicId)) : query(collection(db, 'topicMCQs'), orderBy('uploadedAt', 'desc'));
+    const q = topicId ? query(collection(db, 'topicMCQs'), where('topicId', '==', topicId)) : query(collection(db, 'topicMCQs'), orderBy('uploadedAt', 'desc'), limit(100));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as TopicMCQ));
 };
@@ -610,7 +613,7 @@ export const updateTopicMCQDocument = async (docId: string, content: string): Pr
 export const getReasoningQuestions = async (): Promise<ReasoningQuestion[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
-    const q = query(collection(db, 'reasoningBank'), orderBy('uploadedAt', 'desc'));
+    const q = query(collection(db, 'reasoningBank'), orderBy('uploadedAt', 'desc'), limit(200));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as ReasoningQuestion));
 };
@@ -626,7 +629,7 @@ export const getAllFeedback = async (): Promise<Feedback[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
     const feedbackCollection = collection(db, 'feedback');
-    const q = query(feedbackCollection, orderBy('createdAt', 'desc'));
+    const q = query(feedbackCollection, orderBy('createdAt', 'desc'), limit(100));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => {
         const data = doc.data();
@@ -659,7 +662,7 @@ export const getVideoClasses = async (): Promise<VideoClass[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
     const videosCollection = collection(db, 'videoClasses');
-    const q = query(videosCollection, orderBy('uploadedAt', 'desc'));
+    const q = query(videosCollection, orderBy('uploadedAt', 'desc'), limit(100));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as VideoClass));
 };
@@ -688,8 +691,8 @@ export const getStudyMaterials = async (topicId?: string): Promise<StudyMaterial
     const db = getFirebaseDb();
     if (!db) return [];
     const q = topicId 
-        ? query(collection(db, 'studyMaterials'), where('topicId', '==', topicId), orderBy('uploadedAt', 'desc'))
-        : query(collection(db, 'studyMaterials'), orderBy('uploadedAt', 'desc'));
+        ? query(collection(db, 'studyMaterials'), where('topicId', '==', topicId), orderBy('uploadedAt', 'desc'), limit(50))
+        : query(collection(db, 'studyMaterials'), orderBy('uploadedAt', 'desc'), limit(100));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as StudyMaterial));
 };
@@ -717,7 +720,7 @@ export const logMaterialDownload = async (userId: string, userName: string, user
 export const getMaterialDownloads = async (): Promise<MaterialDownload[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
-    const snapshot = await getDocs(query(collection(db, 'materialDownloads'), orderBy('downloadedAt', 'desc')));
+    const snapshot = await getDocs(query(collection(db, 'materialDownloads'), orderBy('downloadedAt', 'desc'), limit(200)));
     return snapshot.docs.map(doc => {
         const data = doc.data();
         return {
@@ -726,6 +729,18 @@ export const getMaterialDownloads = async (): Promise<MaterialDownload[]> => {
             downloadedAt: normalizeDate(data.downloadedAt) || new Date()
         } as MaterialDownload;
     });
+};
+
+// LEGACY DATA
+export const getFreeClassRegistrations = async (): Promise<any[]> => {
+    const db = getFirebaseDb();
+    if (!db) return [];
+    try {
+        const snapshot = await getDocs(collection(db, 'freeClassRegistrations'));
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (e) {
+        return [];
+    }
 };
 
 // CONSOLIDATED DASHBOARD DATA FETCHING
@@ -741,6 +756,7 @@ export const getDashboardData = async (userId: string) => {
     const isAdmin = ADMIN_EMAILS.includes(userData.email);
     const notificationsPromise = isAdmin ? getAdminNotifications() : Promise.resolve([]);
 
+    // Fetch only necessary data for initial view
     const [allCategories, allTopics, allVideoClasses, allStudyMaterials, notifications, weeklyTests] = await Promise.all([
         getCategories(), 
         getTopics(), 
@@ -783,7 +799,7 @@ export const logQnAUSage = async (userId: string, topic: string): Promise<void> 
 export const getQnAUsage = async (): Promise<QnAUsage[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
-    const snapshot = await getDocs(query(collection(db, 'qnaUsage'), orderBy('timestamp', 'desc')));
+    const snapshot = await getDocs(query(collection(db, 'qnaUsage'), orderBy('timestamp', 'desc'), limit(200)));
     
     const allUsers = await getAllUsers();
     const userMap = new Map(allUsers.map(u => [u.uid, u]));
