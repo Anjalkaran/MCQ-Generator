@@ -28,7 +28,7 @@ function WeeklyTestCard({ test }: { test: WeeklyTest }) {
 
     const startTest = async () => {
         setIsGenerating(true);
-        if (!user) {
+        if (!user || !userData) {
             toast({ title: 'Auth Required', description: 'Please login again.', variant: 'destructive' });
             setIsGenerating(false);
             return;
@@ -39,7 +39,8 @@ function WeeklyTestCard({ test }: { test: WeeklyTest }) {
                 liveTestId: undefined, // Segregate from legacy scheduled leaderboard
                 weeklyTestId: test.id, // Store as permanent weekly test result
                 questionPaperId: test.questionPaperId,
-                examCategory: test.examCategory,
+                // If test is marked for 'All', use the student's specific category for the blueprint logic
+                examCategory: test.examCategory === 'All' ? userData.examCategory : test.examCategory as any,
                 language: selectedLanguage,
                 testTitle: test.title,
             });
@@ -54,7 +55,8 @@ function WeeklyTestCard({ test }: { test: WeeklyTest }) {
     };
 
     const handleShare = () => {
-        const message = `Check out "${test.title}" on Anjalkaran! Permanent Weekly Test for ${test.examCategory}. Practice now: https://anjalkaran.in`;
+        const categoryLabel = test.examCategory === 'All' ? 'all categories' : test.examCategory;
+        const message = `Check out "${test.title}" on Anjalkaran! Permanent Weekly Test for ${categoryLabel}. Practice now: https://anjalkaran.in`;
         window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
     };
 
@@ -100,7 +102,8 @@ export default function WeeklyTestPage() {
         return <div className="flex h-[50vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
     }
 
-    const filteredTests = weeklyTests.filter(t => t.examCategory === userData?.examCategory);
+    // Filter logic: show tests matching user's category OR tests marked as 'All'
+    const filteredTests = weeklyTests.filter(t => t.examCategory === userData?.examCategory || t.examCategory === 'All');
 
     return (
         <div className="space-y-6">

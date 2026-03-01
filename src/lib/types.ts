@@ -126,7 +126,7 @@ export interface LeaderboardEntry {
     rank: number;
     userId: string;
     userName: string;
-    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP';
+    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP' | 'All';
     averageScore: number;
     totalExams?: number;
     score?: number;
@@ -155,7 +155,7 @@ export interface Notification {
 export interface LiveTest {
     id: string;
     title: string;
-    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP';
+    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP' | 'All';
     startTime: Timestamp | Date;
     endTime: Timestamp | Date;
     questionPaperId: string; 
@@ -165,7 +165,7 @@ export interface LiveTest {
 export interface WeeklyTest {
     id: string;
     title: string;
-    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP';
+    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP' | 'All';
     questionPaperId: string;
     createdAt: Date;
 }

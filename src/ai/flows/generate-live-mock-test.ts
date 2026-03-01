@@ -13,7 +13,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import type { MCQ } from '@/lib/types';
 import { getLiveTestQuestionPaper, getReasoningQuestions } from '@/lib/firestore';
-import { MTS_BLUEPRINT, PA_BLUEPRINT, POSTMAN_BLUEPRINT } from '@/lib/exam-blueprints';
+import { MTS_BLUEPRINT, PA_BLUEPRINT, POSTMAN_BLUEPRINT, IP_BLUEPRINT } from '@/lib/exam-blueprints';
 import { getFirebaseDb } from '@/lib/firebase';
 import { addDoc, collection } from 'firebase/firestore';
 
@@ -21,6 +21,7 @@ const blueprintMap = {
     MTS: MTS_BLUEPRINT,
     POSTMAN: POSTMAN_BLUEPRINT,
     PA: PA_BLUEPRINT,
+    IP: IP_BLUEPRINT,
 };
 
 
@@ -28,7 +29,7 @@ const GenerateLiveMockTestInputSchema = z.object({
   liveTestId: z.string().optional().describe('The ID of the scheduled live test document in Firestore.'),
   weeklyTestId: z.string().optional().describe('The ID of the permanent weekly test document in Firestore.'),
   questionPaperId: z.string().describe('The ID of the question paper document in the liveTestBank collection.'),
-  examCategory: z.enum(["MTS", "POSTMAN", "PA"]).describe('The exam category for which the test is being generated.'),
+  examCategory: z.enum(["MTS", "POSTMAN", "PA", "IP"]).describe('The exam category for which the test is being generated.'),
   language: z.string().optional().default('English').describe('The language for the generated quiz.'),
   testTitle: z.string().describe('The title of the live test.'),
 });
