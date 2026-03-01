@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -19,7 +18,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 
-const categoriesList = ["MTS", "POSTMAN", "PA", "IP", "All"] as const;
+const categoriesList = ["MTS", "POSTMAN", "PA"] as const;
 
 const formSchema = z.object({
   title: z.string().min(3, "Title is required."),
