@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -7,12 +6,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Trash2, CalendarCheck, Search } from 'lucide-react';
-import { addWeeklyTest, deleteWeeklyTest } from '@/lib/firestore';
+import { Loader2, PlusCircle, Trash2, CalendarCheck, Search, Upload } from 'lucide-react';
+import { deleteWeeklyTest } from '@/lib/firestore';
 import type { BankedQuestion, WeeklyTest } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -23,7 +22,7 @@ const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
 const formSchema = z.object({
   title: z.string().min(3, "Title is required."),
   examCategory: z.enum(examCategories, { required_error: "Select a category." }),
-  questionPaperId: z.string().min(1, "Select a question paper."),
+  file: z.any().refine((files) => files?.length > 0, "Question paper JSON file is required.")
 });
 
 interface WeeklyTestManagementProps {
@@ -39,28 +38,37 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { title: '', examCategory: undefined, questionPaperId: '' }
+    defaultValues: { title: '', examCategory: undefined }
   });
-
-  const selectedCategory = form.watch('examCategory');
-  const filteredPapers = useMemo(() => 
-    initialBankedQuestions.filter(p => p.examCategory === selectedCategory),
-    [selectedCategory, initialBankedQuestions]
-  );
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
+    const formData = new FormData();
+    formData.append('title', values.title);
+    formData.append('examCategory', values.examCategory);
+    if (values.file && values.file[0]) {
+        formData.append('file', values.file[0]);
+    }
+
     try {
-        const docRef = await addWeeklyTest({
-            title: values.title,
-            examCategory: values.examCategory,
-            questionPaperId: values.questionPaperId,
-            createdAt: new Date(),
+        const response = await fetch('/api/weekly-test/upload', {
+            method: 'POST',
+            body: formData,
         });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to create weekly test.');
+        }
+
+        const { newTest } = await response.json();
         
-        setWeeklyTests(prev => [{ id: docRef.id, ...values, createdAt: new Date() }, ...prev]);
-        toast({ title: "Success", description: "Weekly test added successfully." });
+        setWeeklyTests(prev => [newTest, ...prev]);
+        toast({ title: "Success", description: "Weekly test created successfully." });
         form.reset();
+        // Clear file input manually as reset() doesn't always handle file refs well
+        const fileInput = document.getElementById('weekly-test-file') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
     } catch (error: any) {
         toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -88,7 +96,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
         <Card>
             <CardHeader>
                 <CardTitle>Add New Weekly Test</CardTitle>
-                <CardDescription>Select a previously uploaded question paper to make it available as a Weekly Test.</CardDescription>
+                <CardDescription>Upload a JSON question paper to make it available as a Weekly Test. This will not affect the general question bank.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Form {...form}>
@@ -111,7 +119,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Category</FormLabel>
-                                        <Select onValueChange={(val) => { field.onChange(val); form.setValue('questionPaperId', ''); }}>
+                                        <Select onValueChange={field.onChange} value={field.value}>
                                             <FormControl><SelectTrigger><SelectValue placeholder="Select Course" /></SelectTrigger></FormControl>
                                             <SelectContent>{examCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                                         </Select>
@@ -121,14 +129,19 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                             />
                             <FormField
                                 control={form.control}
-                                name="questionPaperId"
-                                render={({ field }) => (
+                                name="file"
+                                render={({ field: { onChange, value, ...rest } }) => (
                                     <FormItem>
-                                        <FormLabel>Question Paper</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCategory}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select Paper" /></SelectTrigger></FormControl>
-                                            <SelectContent>{filteredPapers.map(p => <SelectItem key={p.id} value={p.id}>{p.fileName}</SelectItem>)}</SelectContent>
-                                        </Select>
+                                        <FormLabel>Question Paper (JSON)</FormLabel>
+                                        <FormControl>
+                                            <Input 
+                                                id="weekly-test-file"
+                                                type="file" 
+                                                accept=".json" 
+                                                onChange={(e) => onChange(e.target.files)}
+                                                {...rest}
+                                            />
+                                        </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -172,14 +185,14 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                 <TableRow key={t.id}>
                                     <TableCell className="font-medium">{t.title}</TableCell>
                                     <TableCell>{t.examCategory}</TableCell>
-                                    <TableCell className="text-xs text-muted-foreground">{format(t.createdAt, 'dd/MM/yyyy')}</TableCell>
+                                    <TableCell className="text-xs text-muted-foreground">{t.createdAt ? format(t.createdAt, 'dd/MM/yyyy') : 'N/A'}</TableCell>
                                     <TableCell className="text-right">
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger>
                                             <AlertDialogContent>
                                                 <AlertDialogHeader>
                                                     <AlertDialogTitle>Remove Weekly Test?</AlertDialogTitle>
-                                                    <AlertDialogDescription>This will hide the test from all users. Question paper remains in the bank.</AlertDialogDescription>
+                                                    <AlertDialogDescription>This will hide the test from all users. This action cannot be undone.</AlertDialogDescription>
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
                                                     <AlertDialogCancel>Cancel</AlertDialogCancel>
