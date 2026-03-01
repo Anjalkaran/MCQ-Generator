@@ -119,12 +119,10 @@ const generateLiveMockTestFlow = ai.defineFlow(
     const blueprint = blueprintMap[input.examCategory];
     const quizId = `weekly-test-${Date.now()}`;
     
-    const quizData = {
+    const quizData: any = {
         mcqs: finalMCQs,
         timeLimit: (blueprint?.totalDurationMinutes || 60) * 60,
         isMockTest: true,
-        liveTestId: input.liveTestId,
-        weeklyTestId: input.weeklyTestId,
         examCategory: input.examCategory,
         language: input.language,
         topic: {
@@ -135,6 +133,10 @@ const generateLiveMockTestFlow = ai.defineFlow(
             categoryId: 'weekly-test',
         },
     };
+
+    // Only add IDs if they are defined to avoid Firestore 'undefined' value errors
+    if (input.liveTestId) quizData.liveTestId = input.liveTestId;
+    if (input.weeklyTestId) quizData.weeklyTestId = input.weeklyTestId;
 
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized.");
