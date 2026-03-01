@@ -476,7 +476,7 @@ export const getLiveTestsForLeaderboard = async (): Promise<any[]> => {
         return { 
             id: doc.id, 
             title: data.title,
-            examCategory: data.examCategories?.[0] || 'All',
+            examCategories: data.examCategories || [], // Return the full array for filtering
             startTime: normalizeDate(data.createdAt),
             createdAt: normalizeDate(data.createdAt)
         };
