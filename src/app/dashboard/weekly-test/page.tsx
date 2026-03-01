@@ -4,7 +4,7 @@
 import { useDashboard } from "@/app/dashboard/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlayCircle, CalendarCheck, Clock, Share2 } from "lucide-react";
+import { Loader2, PlayCircle, CalendarCheck, Clock, Share2, Calendar } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -12,6 +12,7 @@ import { generateLiveMockTest } from "@/ai/flows/generate-live-mock-test";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from "@/components/ui/label";
 import type { WeeklyTest } from "@/lib/types";
+import { format } from "date-fns";
 
 const allLanguages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
 const ipLanguages = ["English", "Hindi"] as const;
@@ -67,7 +68,10 @@ function WeeklyTestCard({ test }: { test: WeeklyTest }) {
                     </div>
                     <CardTitle className="text-lg">{test.title}</CardTitle>
                 </div>
-                <CardDescription>Always available for practice</CardDescription>
+                <CardDescription className="flex items-center gap-1 mt-1">
+                    <Calendar className="h-3 w-3" />
+                    Uploaded on: {test.createdAt ? format(test.createdAt, 'dd/MM/yyyy') : 'N/A'}
+                </CardDescription>
             </CardHeader>
             <CardContent className="flex-grow space-y-4">
                 <div className="space-y-2">
