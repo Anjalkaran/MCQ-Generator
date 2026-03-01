@@ -456,16 +456,38 @@ export const deleteWeeklyTest = async (testId: string): Promise<void> => {
 export const getLiveTestsForLeaderboard = async (): Promise<LiveTest[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
+    
+    // Fetch legacy scheduled tests
     const testsCollection = collection(db, 'liveTests');
     const now = new Date();
     const q = query(testsCollection, where('endTime', '<=', now), orderBy('endTime', 'desc'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ 
+    const legacyTests = snapshot.docs.map(doc => ({ 
         id: doc.id, 
         ...doc.data(),
         startTime: normalizeDate(doc.data().startTime),
         endTime: normalizeDate(doc.data().endTime)
     } as any));
+
+    // Fetch permanent weekly tests
+    const weeklyCollection = collection(db, 'weeklyTests');
+    const weeklySnapshot = await getDocs(weeklyCollection);
+    const weeklyTests = weeklySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        startTime: normalizeDate(doc.data().createdAt),
+        endTime: new Date(8640000000000000), // Max possible date for sorting
+    } as any));
+
+    // Combine and filter out 2025 tests
+    const allTests = [...legacyTests, ...weeklyTests];
+    return allTests
+        .filter(test => !test.title.includes('2025'))
+        .sort((a, b) => {
+            const dateA = normalizeDate(a.startTime) || new Date(0);
+            const dateB = normalizeDate(b.startTime) || new Date(0);
+            return dateB.getTime() - dateA.getTime();
+        });
 };
 
 // LEADERBOARD MANAGEMENT
