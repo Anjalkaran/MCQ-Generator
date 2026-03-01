@@ -75,6 +75,7 @@ export interface MCQData {
   timeLimit?: number;
   isMockTest?: boolean;
   liveTestId?: string; 
+  weeklyTestId?: string;
   questionPaperId?: string; 
   examCategory?: UserData['examCategory'];
   language?: string;
@@ -93,6 +94,7 @@ export interface MCQHistory {
     durationInSeconds?: number;
     isMockTest?: boolean;
     liveTestId?: string;
+    weeklyTestId?: string;
     questionPaperId?: string; 
     language?: string;
 }
@@ -131,6 +133,7 @@ export interface LeaderboardEntry {
     totalQuestions?: number;
     durationInSeconds?: number;
     liveTestId?: string;
+    weeklyTestId?: string;
 }
 
 export interface QnAUsage {
@@ -157,6 +160,14 @@ export interface LiveTest {
     endTime: Timestamp | Date;
     questionPaperId: string; 
     price: number; 
+}
+
+export interface WeeklyTest {
+    id: string;
+    title: string;
+    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP';
+    questionPaperId: string;
+    createdAt: Date;
 }
 
 export interface ReasoningQuestion {

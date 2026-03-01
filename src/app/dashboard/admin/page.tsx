@@ -9,22 +9,21 @@ import { StudyMaterialManagement } from '@/components/admin/study-material-manag
 import { QuestionBankManagement } from '@/components/admin/question-bank-management';
 import { TopicMCQManagement } from '@/components/admin/topic-mcq-management';
 import { LiveTestManagement } from '@/components/admin/live-test-management';
+import { WeeklyTestManagement } from '@/components/admin/weekly-test-management';
 import { ReportsManagement } from '@/components/admin/reports-management';
 import { ReasoningBankManagement } from '@/components/admin/reasoning-bank-management';
 import { FeedbackManagement } from '@/components/admin/feedback-management';
 import { VideoClassManagement } from '@/components/admin/video-class-management';
 import { DownloadHistoryManagement } from '@/components/admin/download-history-management';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Calendar, FileQuestion, MessageSquare, Video, Library, History } from "lucide-react";
+import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Calendar, FileQuestion, MessageSquare, Video, Library, History, CalendarCheck } from "lucide-react";
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
-import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback, getStudyMaterials, getCategories, getTopics, getTopicMCQs, getQuestionBankDocuments, getVideoClasses } from "@/lib/firestore";
-import type { UserData, QnAUsage, LiveTest, ReasoningQuestion, Feedback, StudyMaterial, Category, Topic, TopicMCQ, BankedQuestion, VideoClass } from "@/lib/types";
+import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback, getStudyMaterials, getCategories, getTopics, getTopicMCQs, getQuestionBankDocuments, getVideoClasses, getWeeklyTests } from "@/lib/firestore";
+import type { UserData, QnAUsage, LiveTest, WeeklyTest, ReasoningQuestion, Feedback, StudyMaterial, Category, Topic, TopicMCQ, BankedQuestion, VideoClass } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { ADMIN_EMAILS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import React from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
 
 function AnalyticsTab({ qnaUsage }: { qnaUsage: QnAUsage[] }) {
     const uniqueUsers = useMemo(() => {
@@ -60,13 +59,14 @@ function AnalyticsTab({ qnaUsage }: { qnaUsage: QnAUsage[] }) {
 
 const adminSections = [
     { value: 'users', label: 'User Management', icon: Shield },
+    { value: 'weekly-tests', label: 'Weekly Test', icon: CalendarCheck },
     { value: 'topics', label: 'Topic Management', icon: BookCopy },
     { value: 'study-material', label: 'Study Material', icon: Library },
     { value: 'video-classes', label: 'Video Classes', icon: Video },
     { value: 'topic-mcq', label: 'MCQ Bank', icon: FileQuestion },
     { value: 'question-bank', label: 'Question Bank', icon: FileText },
     { value: 'reasoning-bank', label: 'Reasoning Bank', icon: NewLogoIcon },
-    { value: 'live-test', label: 'Weekly Test', icon: Calendar },
+    { value: 'scheduled-tests', label: 'Scheduled Tests', icon: Calendar },
     { value: 'downloads', label: 'Download History', icon: History },
     { value: 'analytics', label: 'Analytics', icon: BarChart3 },
     { value: 'feedback', label: 'Feedback', icon: MessageSquare },
@@ -90,7 +90,8 @@ export default function AdminPage() {
   const [topicMCQs, setTopicMCQs] = useState<TopicMCQ[]>([]);
   const [bankedQuestions, setBankedQuestions] = useState<BankedQuestion[]>([]);
   const [reasoningQuestions, setReasoningQuestions] = useState<ReasoningQuestion[]>([]);
-  const [liveTests, setLiveTests] = useState<LiveTest[]>([]);
+  const [scheduledTests, setScheduledTests] = useState<LiveTest[]>([]);
+  const [weeklyTests, setWeeklyTests] = useState<WeeklyTest[]>([]);
   const [feedback, setFeedback] = useState<Feedback[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
 
@@ -103,11 +104,11 @@ export default function AdminPage() {
         const [
             fetchedUsers, fetchedCategories, fetchedTopics, fetchedMaterials, 
             fetchedVideos, fetchedMCQs, fetchedBank, fetchedReasoning, 
-            fetchedTests, fetchedFeedback, fetchedQnA
+            fetchedScheduled, fetchedWeekly, fetchedFeedback, fetchedQnA
         ] = await Promise.all([
             getAllUsers(), getCategories(), getTopics(), getStudyMaterials(),
             getVideoClasses(), getTopicMCQs(), getQuestionBankDocuments(), getReasoningQuestions(),
-            getLiveTests(true), getAllFeedback(), getQnAUsage()
+            getLiveTests(true), getWeeklyTests(), getAllFeedback(), getQnAUsage()
         ]);
         
         setUsers(fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email)));
@@ -118,7 +119,8 @@ export default function AdminPage() {
         setTopicMCQs(fetchedMCQs);
         setBankedQuestions(fetchedBank);
         setReasoningQuestions(fetchedReasoning);
-        setLiveTests(fetchedTests);
+        setScheduledTests(fetchedScheduled);
+        setWeeklyTests(fetchedWeekly);
         setFeedback(fetchedFeedback);
         setQnaUsage(fetchedQnA);
 
@@ -145,13 +147,14 @@ export default function AdminPage() {
   const renderContent = () => {
     switch(activeSection) {
         case 'users': return <UserManagement initialUsers={users} />;
+        case 'weekly-tests': return <WeeklyTestManagement initialWeeklyTests={weeklyTests} initialBankedQuestions={bankedQuestions} />;
         case 'topics': return <TopicManagement initialCategories={categories} initialTopics={topics} />;
         case 'study-material': return <StudyMaterialManagement initialTopics={topics} initialMaterials={studyMaterials} />;
         case 'video-classes': return <VideoClassManagement initialVideos={videoClasses} />;
         case 'topic-mcq': return <TopicMCQManagement initialTopics={topics} initialTopicMCQs={topicMCQs} />;
         case 'question-bank': return <QuestionBankManagement initialBankedQuestions={bankedQuestions} />;
         case 'reasoning-bank': return <ReasoningBankManagement initialQuestions={reasoningQuestions} />;
-        case 'live-test': return <LiveTestManagement initialLiveTestBank={bankedQuestions} initialLiveTests={liveTests} />;
+        case 'scheduled-tests': return <LiveTestManagement initialLiveTestBank={bankedQuestions} initialLiveTests={scheduledTests} />;
         case 'downloads': return <DownloadHistoryManagement />;
         case 'analytics': return <AnalyticsTab qnaUsage={qnaUsage} />;
         case 'feedback': return <FeedbackManagement initialFeedback={feedback} />;
@@ -164,7 +167,7 @@ export default function AdminPage() {
     <div className="space-y-6">
        <div className="space-y-0.5">
           <h1 className="text-2xl font-bold tracking-tight">Admin Panel</h1>
-          <p className="text-muted-foreground">Manage users, topics, question banks, and view analytics.</p>
+          <p className="text-muted-foreground">Manage users, weekly tests, topics, and view analytics.</p>
         </div>
         
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-12">

@@ -1,7 +1,7 @@
 
 import { getFirebaseDb, getFirebaseAuth } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, QnAUsage, Notification, LiveTest, TopicMCQ, ReasoningQuestion, Feedback, VideoClass, StudyMaterial, AptiSolveLaunch, MaterialDownload, FreeClassRegistration } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, QnAUsage, Notification, LiveTest, WeeklyTest, TopicMCQ, ReasoningQuestion, Feedback, VideoClass, StudyMaterial, AptiSolveLaunch, MaterialDownload } from './types';
 import { ADMIN_EMAILS } from './constants';
 import { normalizeDate } from './utils';
 
@@ -33,7 +33,7 @@ export const getUserData = async (userId: string): Promise<UserData | null> => {
                 email: auth.currentUser.email || '',
                 examCategory: 'MTS', 
                 totalExamsTaken: 0,
-                isPro: false, // Default changed to false
+                isPro: false,
                 createdAt: serverTimestamp(),
                 lastSeen: serverTimestamp(),
             };
@@ -114,7 +114,6 @@ export const resetAllUsersToFree = async (): Promise<number> => {
     
     snapshot.docs.forEach(doc => {
         const data = doc.data();
-        // Only reset Pro users who are NOT administrators
         if (data.isPro && !ADMIN_EMAILS.includes(data.email)) {
             batch.update(doc.ref, { isPro: false, proValidUntil: null });
             count++;
@@ -231,6 +230,7 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
         userId, 
         isMockTest, 
         liveTestId,
+        weeklyTestId,
         questionPaperId,
         ...restOfData
     } = historyData;
@@ -243,6 +243,9 @@ export const saveMCQHistory = async (historyData: Omit<MCQHistory, 'id'>): Promi
 
     if (liveTestId) {
         dataToSave.liveTestId = liveTestId;
+    }
+    if (weeklyTestId) {
+        dataToSave.weeklyTestId = weeklyTestId;
     }
     if (questionPaperId) {
         dataToSave.questionPaperId = questionPaperId;
@@ -426,6 +429,28 @@ export const getLiveTests = async (fetchAll: boolean = false): Promise<LiveTest[
     }
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LiveTest));
+};
+
+// WEEKLY TEST (ALWAYS AVAILABLE) MANAGEMENT
+export const getWeeklyTests = async (): Promise<WeeklyTest[]> => {
+    const db = getFirebaseDb();
+    if (!db) return [];
+    const weeklyCollection = collection(db, 'weeklyTests');
+    const q = query(weeklyCollection, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: normalizeDate(doc.data().createdAt) } as WeeklyTest));
+};
+
+export const addWeeklyTest = async (testData: Omit<WeeklyTest, 'id'>): Promise<DocumentReference> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore not initialized");
+    return await addDoc(collection(db, 'weeklyTests'), { ...testData, createdAt: serverTimestamp() });
+};
+
+export const deleteWeeklyTest = async (testId: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    await deleteDoc(doc(db, 'weeklyTests', testId));
 };
 
 export const getLiveTestsForLeaderboard = async (): Promise<LiveTest[]> => {
@@ -692,22 +717,23 @@ export const getMaterialDownloads = async (): Promise<MaterialDownload[]> => {
 // CONSOLIDATED DASHBOARD DATA FETCHING
 export const getDashboardData = async (userId: string) => {
     const db = getFirebaseDb();
-    if (!db) return { userData: null, categories: [], topics: [], videoClasses: [], studyMaterials: [], notifications: [] };
+    if (!db) return { userData: null, categories: [], topics: [], videoClasses: [], studyMaterials: [], notifications: [], weeklyTests: [] };
 
     const userData = await getUserData(userId);
     if (!userData) {
-        return { userData: null, categories: [], topics: [], videoClasses: [], studyMaterials: [], notifications: [] };
+        return { userData: null, categories: [], topics: [], videoClasses: [], studyMaterials: [], notifications: [], weeklyTests: [] };
     }
 
     const isAdmin = ADMIN_EMAILS.includes(userData.email);
     const notificationsPromise = isAdmin ? getAdminNotifications() : Promise.resolve([]);
 
-    const [allCategories, allTopics, allVideoClasses, allStudyMaterials, notifications] = await Promise.all([
+    const [allCategories, allTopics, allVideoClasses, allStudyMaterials, notifications, weeklyTests] = await Promise.all([
         getCategories(), 
         getTopics(), 
         getVideoClasses(), 
         getStudyMaterials(),
-        notificationsPromise
+        notificationsPromise,
+        getWeeklyTests()
     ]);
 
     if (isAdmin) {
@@ -717,7 +743,8 @@ export const getDashboardData = async (userId: string) => {
             topics: allTopics, 
             videoClasses: allVideoClasses, 
             studyMaterials: allStudyMaterials, 
-            notifications 
+            notifications,
+            weeklyTests
         };
     }
 
@@ -727,8 +754,9 @@ export const getDashboardData = async (userId: string) => {
     const userVideoClasses = allVideoClasses.filter(vc => vc.examCategories && vc.examCategories.includes(userExamCategory));
     const userTopicIds = new Set(userTopics.map(t => t.id));
     const userStudyMaterials = allStudyMaterials.filter(sm => userTopicIds.has(sm.topicId));
+    const userWeeklyTests = weeklyTests.filter(t => t.examCategory === userExamCategory);
 
-    return { userData, categories: userCategories, topics: userTopics, videoClasses: userVideoClasses, studyMaterials: userStudyMaterials, notifications };
+    return { userData, categories: userCategories, topics: userTopics, videoClasses: userVideoClasses, studyMaterials: userStudyMaterials, notifications, weeklyTests: userWeeklyTests };
 };
 
 // ANALYTICS
@@ -759,54 +787,6 @@ export const getQnAUsage = async (): Promise<QnAUsage[]> => {
     });
 };
 
-export const getUserLanguagePreferences = async (): Promise<{ userId: string; name: string; email: string; preferredLanguage: string; }[]> => {
-    const db = getFirebaseDb();
-    if (!db) return [];
-
-    const [allUsers, allHistory] = await Promise.all([
-        getAllUsers(),
-        getAllExamHistory(),
-    ]);
-
-    const historyByUser = new Map<string, MCQHistory[]>();
-    for (const historyItem of allHistory) {
-        const userHistory = historyByUser.get(historyItem.userId) || [];
-        userHistory.push(historyItem);
-        historyByUser.set(historyItem.userId, userHistory);
-    }
-
-    const preferences: { userId: string; name: string; email: string; preferredLanguage: string; }[] = [];
-
-    for (const user of allUsers) {
-        if (ADMIN_EMAILS.includes(user.email)) continue;
-
-        const userHistory = historyByUser.get(user.uid) || [];
-        if (userHistory.length === 0) {
-            preferences.push({ userId: user.uid, name: user.name, email: user.email, preferredLanguage: 'N/A' });
-            continue;
-        }
-
-        const langCounts: Record<string, number> = {};
-        for (const item of userHistory) {
-            const lang = item.language || 'English';
-            langCounts[lang] = (langCounts[lang] || 0) + 1;
-        }
-
-        let preferredLanguage = 'N/A';
-        let maxCount = 0;
-        for (const [lang, count] of Object.entries(langCounts)) {
-            if (count > maxCount) {
-                preferredLanguage = lang;
-                maxCount = count;
-            }
-        }
-        
-        preferences.push({ userId: user.uid, name: user.name, email: user.email, preferredLanguage });
-    }
-
-    return preferences.sort((a,b) => (a.name || '').localeCompare(b.name || ''));
-};
-
 // GENERATED QUIZ MANAGEMENT
 export const getGeneratedQuiz = async (quizId: string): Promise<MCQData | null> => {
     const db = getFirebaseDb();
@@ -826,42 +806,3 @@ export const getGeneratedQuiz = async (quizId: string): Promise<MCQData | null> 
     }
     return null;
 }
-
-// LEGACY FREE CLASS RETRIEVAL
-export const getFreeClassRegistrations = async (): Promise<FreeClassRegistration[]> => {
-    const db = getFirebaseDb();
-    if (!db) return [];
-    try {
-        const snapshot = await getDocs(query(collection(db, 'freeClassRegistrations'), orderBy('createdAt', 'desc')));
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: normalizeDate(doc.data().createdAt) } as FreeClassRegistration));
-    } catch (e) {
-        console.warn("Could not retrieve legacy free class data:", e);
-        return [];
-    }
-};
-
-// APTISOLVE LAUNCH TRACKING
-export const logAptiSolveLaunch = async (userId: string, userName: string, userEmail: string): Promise<void> => {
-    const db = getFirebaseDb();
-    if (!db) return;
-    await addDoc(collection(db, 'aptiSolveLaunches'), { 
-        userId,
-        userName,
-        userEmail,
-        launchedAt: serverTimestamp() 
-    });
-};
-
-export const getAptiSolveLaunches = async (): Promise<AptiSolveLaunch[]> => {
-    const db = getFirebaseDb();
-    if (!db) return [];
-    const snapshot = await getDocs(query(collection(db, 'aptiSolveLaunches'), orderBy('launchedAt', 'desc')));
-    return snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-            id: doc.id,
-            ...data,
-            launchedAt: normalizeDate(data.launchedAt) || new Date()
-        } as AptiSolveLaunch;
-    });
-};

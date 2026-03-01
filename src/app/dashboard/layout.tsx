@@ -1,9 +1,10 @@
+
 "use client";
 
 import React, { useState, useEffect, createContext, useContext, useCallback, useMemo } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, BookCopy, FileText, Trophy, HelpCircle, Users, Star, PenSquare, RefreshCw, Video, Library, MessageCircle as MessageCircleIcon } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, BookCopy, FileText, Trophy, HelpCircle, Users, Star, PenSquare, RefreshCw, Video, Library, MessageCircle as MessageCircleIcon, CalendarCheck } from 'lucide-react';
 import Link from 'next/link';
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebase';
 import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
@@ -11,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback, getOnlineUsers as fetchOnlineUsers } from '@/lib/firestore';
-import type { UserData, Category, Topic, Notification, VideoClass, StudyMaterial } from "@/lib/types";
+import type { UserData, Category, Topic, Notification, VideoClass, StudyMaterial, WeeklyTest } from "@/lib/types";
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
@@ -88,6 +89,7 @@ interface DashboardContextType {
   topics: Topic[];
   videoClasses: VideoClass[];
   studyMaterials: StudyMaterial[];
+  weeklyTests: WeeklyTest[];
   notifications: Notification[];
   onlineUsers: any[];
   isLoading: boolean;
@@ -115,7 +117,6 @@ function AppSidebar() {
   const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
   const isIPUser = userData?.examCategory === 'IP';
   
-  // Deduplicate online users for unique keys
   const uniqueOnlineUsers = useMemo(() => {
     return Array.from(new Map(onlineUsers.map(u => [u.uid, u])).values());
   }, [onlineUsers]);
@@ -130,7 +131,8 @@ function AppSidebar() {
             <SidebarMenuItem><SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin"><Link href="/dashboard/admin" onClick={() => setOpenMobile(false)}><Shield /><span>Admin</span></Link></SidebarMenuButton></SidebarMenuItem>
           )}
            {!isIPUser && (
-            <><SidebarMenuItem><SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/online-test')} tooltip="Online Tests"><Link href="/dashboard/online-test" onClick={() => setOpenMobile(false)}><PenSquare /><span>Online Tests</span></Link></SidebarMenuButton></SidebarMenuItem>
+            <><SidebarMenuItem><SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/weekly-test')} tooltip="Weekly Test"><Link href="/dashboard/weekly-test" onClick={() => setOpenMobile(false)}><CalendarCheck /><span>Weekly Test</span></Link></SidebarMenuButton></SidebarMenuItem>
+              <SidebarMenuItem><SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/online-test')} tooltip="Practice Exams"><Link href="/dashboard/online-test" onClick={() => setOpenMobile(false)}><PenSquare /><span>Practice Exams</span></Link></SidebarMenuButton></SidebarMenuItem>
               <SidebarMenuItem><SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/video-classes')} tooltip="Video Classes"><Link href="/dashboard/video-classes" onClick={() => setOpenMobile(false)}><Video /><span>Video Classes</span></Link></SidebarMenuButton></SidebarMenuItem>
               <SidebarMenuItem><SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/study-material')} tooltip="Study Material"><Link href="/dashboard/study-material" onClick={() => setOpenMobile(false)}><Library /><span>Study Material</span></Link></SidebarMenuButton></SidebarMenuItem></>
            )}
@@ -162,6 +164,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [topics, setTopics] = useState<Topic[]>([]);
   const [videoClasses, setVideoClasses] = useState<VideoClass[]>([]);
   const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
+  const [weeklyTests, setWeeklyTests] = useState<WeeklyTest[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -192,6 +195,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             setTopics(data.topics || []);
             setVideoClasses(data.videoClasses || []);
             setStudyMaterials(data.studyMaterials || []);
+            setWeeklyTests(data.weeklyTests || []);
             setNotifications(data.notifications || []);
             setHasGivenFeedback(feedbackStatus);
 
@@ -242,7 +246,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [userData?.email]);
 
-  const contextValue = useMemo(() => ({ user, userData, categories, topics, videoClasses, studyMaterials, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback }), [user, userData, categories, topics, videoClasses, studyMaterials, notifications, onlineUsers, isLoading, hasGivenFeedback]);
+  const contextValue = useMemo(() => ({ user, userData, categories, topics, videoClasses, studyMaterials, weeklyTests, notifications, onlineUsers, isLoading, setUserData, hasGivenFeedback }), [user, userData, categories, topics, videoClasses, studyMaterials, weeklyTests, notifications, onlineUsers, isLoading, hasGivenFeedback]);
 
   return (
     <DashboardContext.Provider value={contextValue}>
