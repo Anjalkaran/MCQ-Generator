@@ -7,11 +7,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Trash2, Search, Upload } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Search, Upload, FileJson } from 'lucide-react';
 import { deleteWeeklyTest } from '@/lib/firestore';
 import type { BankedQuestion, WeeklyTest } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -24,7 +24,7 @@ const categoriesList = ["MTS", "POSTMAN", "PA", "IP", "All"] as const;
 const formSchema = z.object({
   title: z.string().min(3, "Title is required."),
   examCategories: z.array(z.string()).min(1, "Select at least one category."),
-  file: z.any().refine((files) => files?.length > 0, "Question paper JSON file is required.")
+  file: z.any().refine((files) => files?.length > 0, "At least one JSON question file is required.")
 });
 
 interface WeeklyTestManagementProps {
@@ -48,8 +48,12 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
     const formData = new FormData();
     formData.append('title', values.title);
     values.examCategories.forEach(cat => formData.append('examCategories', cat));
-    if (values.file && values.file[0]) {
-        formData.append('file', values.file[0]);
+    
+    // Append all selected files to the same key
+    if (values.file) {
+        Array.from(values.file as FileList).forEach(file => {
+            formData.append('file', file);
+        });
     }
 
     try {
@@ -66,7 +70,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
         const { newTest } = await response.json();
         
         setWeeklyTests(prev => [newTest, ...prev]);
-        toast({ title: "Success", description: "Weekly test created successfully." });
+        toast({ title: "Success", description: "Weekly test created successfully with merged questions." });
         form.reset();
         const fileInput = document.getElementById('weekly-test-file') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
@@ -100,7 +104,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
         <Card>
             <CardHeader>
                 <CardTitle>Add New Weekly Test</CardTitle>
-                <CardDescription>Upload a JSON question paper and select target categories.</CardDescription>
+                <CardDescription>Upload one or more JSON question papers. All questions will be combined into a single test.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Form {...form}>
@@ -122,16 +126,18 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                 name="file"
                                 render={({ field: { onChange, value, ...rest } }) => (
                                     <FormItem>
-                                        <FormLabel>Question Paper (JSON)</FormLabel>
+                                        <FormLabel>Question Papers (JSON)</FormLabel>
                                         <FormControl>
                                             <Input 
                                                 id="weekly-test-file"
                                                 type="file" 
                                                 accept=".json" 
+                                                multiple
                                                 onChange={(e) => onChange(e.target.files)}
                                                 {...rest}
                                             />
                                         </FormControl>
+                                        <FormDescription>You can select multiple files to merge them.</FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -163,10 +169,10 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                                                     checked={field.value?.includes(item)}
                                                                     onCheckedChange={(checked) => {
                                                                         return checked
-                                                                            ? field.onChange([...field.value, item])
+                                                                            ? field.onChange([...(field.value || []), item])
                                                                             : field.onChange(
                                                                                 field.value?.filter(
-                                                                                    (value) => value !== item
+                                                                                    (value: string) => value !== item
                                                                                 )
                                                                             )
                                                                     }}
@@ -220,7 +226,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredTests.map(t => (
+                            {filteredTests.length > 0 ? filteredTests.map(t => (
                                 <TableRow key={t.id}>
                                     <TableCell className="font-medium">{t.title}</TableCell>
                                     <TableCell>
@@ -245,7 +251,11 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                         </AlertDialog>
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            )) : (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">No weekly tests found.</TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                     </Table>
                 </div>
