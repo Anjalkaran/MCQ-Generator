@@ -9,7 +9,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import type { MCQ } from '@/lib/types';
-import { getLiveTestQuestionPaper, getReasoningQuestions } from '@/lib/firestore';
+import { getLiveTestQuestionPaper } from '@/lib/firestore';
 import { MTS_BLUEPRINT, PA_BLUEPRINT, POSTMAN_BLUEPRINT, IP_BLUEPRINT } from '@/lib/exam-blueprints';
 import { getFirebaseDb } from '@/lib/firebase';
 import { addDoc, collection } from 'firebase/firestore';
@@ -94,27 +94,7 @@ const generateLiveMockTestFlow = ai.defineFlow(
         };
     });
 
-    let finalMCQs = processedQuestions;
-    
-    // Add reasoning questions for PA and POSTMAN if required by blueprint
-    let reasoningNeeded = 0;
-    if (input.examCategory === 'PA') reasoningNeeded = 10;
-    else if (input.examCategory === 'POSTMAN') reasoningNeeded = 5;
-
-    if (reasoningNeeded > 0) {
-        const reasoningBank = await getReasoningQuestions();
-        const selectedReasoning = reasoningBank.sort(() => 0.5 - Math.random()).slice(0, reasoningNeeded);
-        
-        const formattedReasoning: MCQ[] = selectedReasoning.map(q => ({
-            question: `${q.questionText} <img src="${q.questionImage}" alt="Question" class="mt-2 rounded-md max-h-60 mx-auto" />`,
-            options: q.options,
-            correctAnswer: q.correctAnswer,
-            solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution" />` : ""),
-            topic: 'Reasoning',
-        }));
-        
-        finalMCQs = [...finalMCQs, ...formattedReasoning];
-    }
+    const finalMCQs = processedQuestions;
     
     const blueprint = blueprintMap[input.examCategory];
     const quizId = `weekly-test-${Date.now()}`;
