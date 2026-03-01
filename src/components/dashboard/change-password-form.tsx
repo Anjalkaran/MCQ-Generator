@@ -70,7 +70,7 @@ export function ChangePasswordForm() {
   return (
     <Card>
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-0">
+            <form onSubmit={form.handleSubmit(onSubmit)} method="POST" className="space-y-0">
                 <CardHeader>
                     <CardTitle>Change Password</CardTitle>
                     <CardDescription>Enter your current password and a new password.</CardDescription>
