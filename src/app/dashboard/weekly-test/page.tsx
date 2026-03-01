@@ -36,7 +36,8 @@ function WeeklyTestCard({ test }: { test: WeeklyTest }) {
 
         try {
             const { quizId } = await generateLiveMockTest({ 
-                liveTestId: test.id, // Using liveTestId internally for compatibility
+                liveTestId: undefined, // Segregate from legacy scheduled leaderboard
+                weeklyTestId: test.id, // Store as permanent weekly test result
                 questionPaperId: test.questionPaperId,
                 examCategory: test.examCategory,
                 language: selectedLanguage,

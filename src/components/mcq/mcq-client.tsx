@@ -103,6 +103,7 @@ export function MCQClient({ topicId }: MCQClientProps) {
             userAnswers: selectedAnswers,
             isMockTest: quizData.isMockTest || false,
             liveTestId: quizData.liveTestId,
+            weeklyTestId: quizData.weeklyTestId,
             questionPaperId: quizData.questionPaperId, // Include question paper ID
             durationInSeconds: durationInSeconds,
             takenAt: new Date(),
@@ -336,4 +337,3 @@ export function MCQClient({ topicId }: MCQClientProps) {
     </Card>
   );
 }
-

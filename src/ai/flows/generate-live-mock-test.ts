@@ -25,7 +25,8 @@ const blueprintMap = {
 
 
 const GenerateLiveMockTestInputSchema = z.object({
-  liveTestId: z.string().describe('The ID of the live test document in Firestore.'),
+  liveTestId: z.string().optional().describe('The ID of the scheduled live test document in Firestore.'),
+  weeklyTestId: z.string().optional().describe('The ID of the permanent weekly test document in Firestore.'),
   questionPaperId: z.string().describe('The ID of the question paper document in the liveTestBank collection.'),
   examCategory: z.enum(["MTS", "POSTMAN", "PA"]).describe('The exam category for which the test is being generated.'),
   language: z.string().optional().default('English').describe('The language for the generated quiz.'),
@@ -132,18 +133,19 @@ const generateLiveMockTestFlow = ai.defineFlow(
     }
     
     const blueprint = blueprintMap[input.examCategory];
-    const quizId = `live-test-${input.liveTestId}-${Date.now()}`;
+    const quizId = `live-test-${input.liveTestId || input.weeklyTestId || Date.now()}-${Date.now()}`;
     const quizData = {
         mcqs: finalMCQs,
         timeLimit: blueprint.totalDurationMinutes * 60,
         isMockTest: true,
         liveTestId: input.liveTestId,
+        weeklyTestId: input.weeklyTestId,
         examCategory: input.examCategory,
         language: input.language,
         topic: {
             id: quizId,
             title: input.testTitle,
-            description: `Live mock test.`,
+            description: `Weekly mock test.`,
             icon: 'scroll-text',
             categoryId: 'live-mock-test',
         },
