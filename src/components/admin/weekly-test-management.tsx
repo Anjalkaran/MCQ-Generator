@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -23,6 +22,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const categoriesList = ["MTS", "POSTMAN", "PA"] as const;
 
@@ -445,10 +445,9 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                 {isAppending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                                 Append Questions
                             </Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
-            </DialogContent>
+                        </form>
+                    </Form>
+                </DialogContent>
         </Dialog>
 
         {/* MANAGE INDIVIDUAL QUESTIONS DIALOG */}
