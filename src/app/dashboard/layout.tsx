@@ -4,34 +4,33 @@
 import React, { useState, useEffect, createContext, useContext, useCallback, useMemo } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, Menu, BookCopy, FileText, Trophy, HelpCircle, Users, MessageCircle, Star, PenSquare, RefreshCw, Video, Library, UserCheck, CalendarCheck } from 'lucide-react';
+import { LayoutDashboard, User as UserIcon, History, LogOut, Shield, Loader2, TrendingUp, BookCopy, FileText, Trophy, HelpCircle, Users, Star, PenSquare, RefreshCw, Video, Library, MessageCircle as MessageCircleIcon, CalendarCheck, UserCheck } from 'lucide-react';
 import Link from 'next/link';
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebase';
 import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
-import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback, getOnlineUsers as fetchOnlineUsers, updateDoc, doc } from '@/lib/firestore';
+import { getDashboardData, updateUserDocument, hasUserSubmittedFeedback, getOnlineUsers as fetchOnlineUsers } from '@/lib/firestore';
 import type { UserData, Category, Topic, Notification, VideoClass, StudyMaterial, WeeklyTest } from "@/lib/types";
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { CardDescription } from '@/components/ui/card';
 import packageJson from '../../../package.json';
 import { AdminNotifications } from '@/components/dashboard/admin-notifications';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { serverTimestamp } from 'firebase/firestore';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
+import { serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { formatDistanceToNow } from 'date-fns';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const profileUpdateSchema = z.object({
   employeeId: z.string().length(8, { message: 'Employee ID must be exactly 8 digits.' }).regex(/^\d{8}$/, 'Employee ID must be a number.'),
@@ -107,7 +106,7 @@ function AppSidebar() {
   const router = useRouter();
   const { toast } = useToast();
   const { userData, hasGivenFeedback, onlineUsers, setUserData } = useDashboard();
-  const { setOpenMobile, state } = useSidebar();
+  const { setOpenMobile } = useSidebar();
   const [isLogoutAlertOpen, setIsLogoutAlertOpen] = useState(false);
 
   const handleLogout = useCallback(async () => {
@@ -159,7 +158,7 @@ function AppSidebar() {
           )}
           <SidebarMenuItem><SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/leaderboard')} tooltip="Leaderboard"><Link href="/dashboard/leaderboard" onClick={onLinkClick}><Trophy /><span>Leaderboard</span></Link></SidebarMenuButton></SidebarMenuItem>
           <SidebarMenuItem><SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/feedback')} tooltip="Feedback"><Link href="/dashboard/feedback" onClick={onLinkClick}><Star /><span>Feedback</span></Link></SidebarMenuButton></SidebarMenuItem>
-          <SidebarMenuItem><SidebarMenuButton asChild tooltip="WhatsApp Support"><a href="https://wa.me/9003142899" target="_blank" rel="noopener noreferrer"><MessageCircle /><span>WhatsApp Support</span></a></SidebarMenuButton></SidebarMenuItem>
+          <SidebarMenuItem><SidebarMenuButton asChild tooltip="WhatsApp Support"><a href="https://wa.me/9003142899" target="_blank" rel="noopener noreferrer"><MessageCircleIcon /><span>WhatsApp Support</span></a></SidebarMenuButton></SidebarMenuItem>
         </SidebarMenu></SidebarContent>
       <SidebarFooter>
         {isAdmin && (
@@ -247,7 +246,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     if (user?.uid) {
-      const heartbeat = async () => { try { await updateDoc(doc(getFirebaseDb()!, 'users', user.uid), { lastSeen: serverTimestamp() }); } catch (e) {} };
+      const heartbeat = async () => { try { const db = getFirebaseDb(); if (db) await updateDoc(doc(db, 'users', user.uid), { lastSeen: serverTimestamp() }); } catch (e) {} };
       heartbeat();
       const id = setInterval(heartbeat, 600000); // 10 minutes
       return () => clearInterval(id);
