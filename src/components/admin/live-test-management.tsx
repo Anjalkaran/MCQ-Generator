@@ -115,7 +115,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
         if (editingTest) {
             await updateLiveTest(editingTest.id, liveTestData);
             setLiveTests(prev => prev.map(t => t.id === editingTest.id ? { id: editingTest.id, ...liveTestData } : t));
-            toast({ title: 'Success', description: 'Live test updated successfully.' });
+            toast({ title: 'Success', description: 'Weekly test updated successfully.' });
         } else {
             const newDocRef = await addLiveTest(liveTestData);
             const newLiveTest: LiveTest = {
@@ -123,13 +123,13 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                 ...liveTestData,
             }
             setLiveTests(prev => [newLiveTest, ...prev].sort((a,b) => normalizeDate(b.startTime)!.getTime() - normalizeDate(a.startTime)!.getTime()));
-            toast({ title: 'Success', description: 'Live test scheduled successfully.' });
+            toast({ title: 'Success', description: 'Weekly test scheduled successfully.' });
         }
         scheduleForm.reset();
         setIsScheduleDialogOpen(false);
         setEditingTest(null);
     } catch (error: any) {
-      console.error("Live test scheduling error:", error);
+      console.error("Scheduling error:", error);
       toast({ title: 'Operation Failed', description: error.message, variant: 'destructive' });
     } finally {
       setIsLoading(false);
@@ -155,7 +155,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
         }
         const { newDocument } = await response.json();
         setLiveTestBank(prev => [newDocument, ...prev]);
-        toast({ title: 'Success', description: 'File(s) processed and uploaded successfully.' });
+        toast({ title: 'Success', description: 'Question paper uploaded successfully.' });
         uploadForm.reset();
         const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
@@ -171,9 +171,9 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
     try {
         await deleteLiveTest(testId);
         setLiveTests(prev => prev.filter(t => t.id !== testId));
-        toast({ title: "Success", description: "Live test deleted successfully." });
+        toast({ title: "Success", description: "Weekly test deleted successfully." });
     } catch (error) {
-        toast({ title: "Error", description: "Failed to delete live test.", variant: "destructive" });
+        toast({ title: "Error", description: "Failed to delete weekly test.", variant: "destructive" });
     }
   }
   
@@ -225,9 +225,9 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
         <div className="grid gap-6 lg:grid-cols-2">
             <Card>
                 <CardHeader>
-                    <CardTitle>Upload Live Test Papers</CardTitle>
+                    <CardTitle>Upload Weekly Test Papers</CardTitle>
                     <CardDescription>
-                        Upload one or more question papers in JSON format. They will be combined into a single test paper.
+                        Upload question papers in JSON format to be used for the weekly test module.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -280,8 +280,8 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
             </Card>
              <Card>
                 <CardHeader>
-                    <CardTitle>Uploaded Papers</CardTitle>
-                    <CardDescription>Manage your uploaded live test question papers.</CardDescription>
+                    <CardTitle>Available Papers</CardTitle>
+                    <CardDescription>Manage your uploaded weekly test question papers.</CardDescription>
                 </CardHeader>
                 <CardContent>
                      <div className="border rounded-md h-64 overflow-y-auto">
@@ -313,13 +313,13 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
              <DialogTrigger asChild>
                 <Button onClick={() => handleOpenScheduleDialog(null)}>
                     <Clock className="mr-2 h-4 w-4" />
-                    Schedule New Live Test
+                    Schedule New Weekly Test
                 </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>{editingTest ? 'Edit Live Test' : 'Schedule a New Live Test'}</DialogTitle>
-                    <DialogDescription>Select a question paper and set the schedule for the live test.</DialogDescription>
+                    <DialogTitle>{editingTest ? 'Edit Weekly Test' : 'Schedule a New Weekly Test'}</DialogTitle>
+                    <DialogDescription>Select a question paper and set the schedule for the weekly challenge.</DialogDescription>
                 </DialogHeader>
                 <Form {...scheduleForm}>
                     <form onSubmit={scheduleForm.handleSubmit(onScheduleSubmit)} className="space-y-6">
@@ -331,7 +331,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                     <FormItem>
                                     <FormLabel>Test Title</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="e.g., All India MTS Mock Test" {...field} />
+                                        <Input placeholder="e.g., Weekly MTS Challenge - Week 1" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                     </FormItem>
@@ -387,7 +387,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                     <FormItem>
                                     <FormLabel>Price (INR)</FormLabel>
                                     <FormControl>
-                                        <Input type="number" placeholder="e.g., 29" {...field} />
+                                        <Input type="number" placeholder="e.g., 0" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                     </FormItem>
@@ -509,8 +509,8 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
         </Dialog>
         <Card>
             <CardHeader>
-                <CardTitle>All Scheduled Live Tests</CardTitle>
-                <CardDescription>A complete list of upcoming, live, and past tests.</CardDescription>
+                <CardTitle>All Scheduled Weekly Tests</CardTitle>
+                <CardDescription>A complete list of upcoming, active, and completed tests.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="border rounded-md">
@@ -543,7 +543,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                                 <AlertDialogContent>
                                                     <AlertDialogHeader>
                                                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                        <AlertDialogDescription>This action will permanently delete the live test "{test.title}". This cannot be undone.</AlertDialogDescription>
+                                                        <AlertDialogDescription>This action will permanently delete the weekly test "{test.title}".</AlertDialogDescription>
                                                     </AlertDialogHeader>
                                                     <AlertDialogFooter>
                                                         <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -556,7 +556,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="h-24 text-center">No live tests scheduled yet.</TableCell>
+                                    <TableCell colSpan={5} className="h-24 text-center">No weekly tests scheduled yet.</TableCell>
                                 </TableRow>
                             )}
                         </TableBody>
@@ -567,5 +567,3 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
     </div>
   );
 }
-
-    

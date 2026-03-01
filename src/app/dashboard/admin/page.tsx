@@ -15,7 +15,7 @@ import { FeedbackManagement } from '@/components/admin/feedback-management';
 import { VideoClassManagement } from '@/components/admin/video-class-management';
 import { DownloadHistoryManagement } from '@/components/admin/download-history-management';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, MessageSquare, Video, Library, History } from "lucide-react";
+import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Calendar, FileQuestion, MessageSquare, Video, Library, History } from "lucide-react";
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
 import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback, getStudyMaterials, getCategories, getTopics, getTopicMCQs, getQuestionBankDocuments, getVideoClasses } from "@/lib/firestore";
 import type { UserData, QnAUsage, LiveTest, ReasoningQuestion, Feedback, StudyMaterial, Category, Topic, TopicMCQ, BankedQuestion, VideoClass } from "@/lib/types";
@@ -66,7 +66,7 @@ const adminSections = [
     { value: 'topic-mcq', label: 'MCQ Bank', icon: FileQuestion },
     { value: 'question-bank', label: 'Question Bank', icon: FileText },
     { value: 'reasoning-bank', label: 'Reasoning Bank', icon: NewLogoIcon },
-    { value: 'live-test', label: 'Live Test', icon: Trophy },
+    { value: 'live-test', label: 'Weekly Test', icon: Calendar },
     { value: 'downloads', label: 'Download History', icon: History },
     { value: 'analytics', label: 'Analytics', icon: BarChart3 },
     { value: 'feedback', label: 'Feedback', icon: MessageSquare },

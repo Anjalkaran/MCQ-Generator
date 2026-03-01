@@ -34,7 +34,7 @@ function Countdown({ test }: { test: LiveTest }) {
                 
                 setTimeRemaining(countdownString);
             } else {
-                setTimeRemaining('Live Now!');
+                setTimeRemaining('Active Now!');
                 clearInterval(interval);
             }
         }, 1000);
@@ -69,7 +69,7 @@ export function UpcomingLiveTest() {
                 
                 setUpcomingTests(nextTests);
             } catch (error) {
-                console.error("Failed to fetch live tests for dashboard:", error);
+                console.error("Failed to fetch tests for dashboard:", error);
             } finally {
                 setIsLoading(false);
             }
@@ -84,7 +84,7 @@ export function UpcomingLiveTest() {
     if (upcomingTests.length === 0) {
         return (
              <CardDescription className="pt-4 text-center">
-                MTS, PM, and PA Mock Test. Participate in scheduled live tests that simulate real exam conditions.
+                MTS, Postman, and PA Weekly Mock Tests. Participate in scheduled weekly challenges that simulate real exam conditions.
             </CardDescription>
         );
     }

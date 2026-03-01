@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -129,7 +130,7 @@ function CategorySelector({ selectedCategory, setSelectedCategory, availableCate
     );
 }
 
-function LiveTestLeaderboard({ pastLiveTests, initialTestId, availableCategories, defaultCategory }: { pastLiveTests: LiveTest[], initialTestId?: string, availableCategories: ExamCategory[], defaultCategory: ExamCategory }) {
+function WeeklyTestLeaderboard({ pastLiveTests, initialTestId, availableCategories, defaultCategory }: { pastLiveTests: LiveTest[], initialTestId?: string, availableCategories: ExamCategory[], defaultCategory: ExamCategory }) {
     const [selectedCategory, setSelectedCategory] = useState<ExamCategory>(defaultCategory);
     const [selectedTestId, setSelectedTestId] = useState<string | undefined>(undefined);
     const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
@@ -171,7 +172,7 @@ function LiveTestLeaderboard({ pastLiveTests, initialTestId, availableCategories
                 const data = await getLiveTestLeaderboardData(selectedTestId);
                 setLeaderboardData(data);
             } catch (error) {
-                console.error("Failed to fetch live test leaderboard:", error);
+                console.error("Failed to fetch weekly test leaderboard:", error);
                 setLeaderboardData([]);
             } finally {
                 setIsLoading(false);
@@ -194,7 +195,7 @@ function LiveTestLeaderboard({ pastLiveTests, initialTestId, availableCategories
                 <div className="flex-grow">
                     <Select value={selectedTestId} onValueChange={setSelectedTestId}>
                         <SelectTrigger className="w-full sm:w-[300px]">
-                            <SelectValue placeholder="Select a past live test..." />
+                            <SelectValue placeholder="Select a weekly test..." />
                         </SelectTrigger>
                         <SelectContent>
                             {filteredLiveTests.map(test => (
@@ -215,7 +216,7 @@ function LiveTestLeaderboard({ pastLiveTests, initialTestId, availableCategories
                     <LeaderboardTable data={leaderboardData} type="live" />
                 ) : (
                     <div className="text-center text-muted-foreground py-10">
-                        No past live tests found for the {selectedCategory} category.
+                        No results found for the {selectedCategory} Weekly Test.
                     </div>
                 )
             )}
@@ -260,8 +261,8 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
     <Tabs defaultValue={initialTab} className="w-full">
       <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger value="topic">Topic-wise</TabsTrigger>
-        <TabsTrigger value="mock">Mock Test</TabsTrigger>
-        <TabsTrigger value="live">Live Test</TabsTrigger>
+        <TabsTrigger value="mock">Syllabus Mock</TabsTrigger>
+        <TabsTrigger value="live">Weekly Test</TabsTrigger>
       </TabsList>
       <TabsContent value="topic">
         <Card>
@@ -279,7 +280,7 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
         <Card>
           <CardHeader>
             <CardTitle>Mock Test Leaderboard</CardTitle>
-            <CardDescription>Ranking based on average scores from all mock tests. Only users who have completed more than six exams are included.</CardDescription>
+            <CardDescription>Ranking based on average scores from all syllabus-wise mock tests. Only users who have completed more than six exams are included.</CardDescription>
           </CardHeader>
           <CardContent>
              <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} availableCategories={availableCategories} />
@@ -290,12 +291,12 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
        <TabsContent value="live">
         <Card>
           <CardHeader>
-            <CardTitle>Live Test Leaderboard</CardTitle>
-            <CardDescription>View rankings for a specific live test. Ranks are determined by score, then by the time taken to complete the test.</CardDescription>
+            <CardTitle>Weekly Test Leaderboard</CardTitle>
+            <CardDescription>View rankings for our scheduled weekly challenges. Ranks are determined by score, then by time taken.</CardDescription>
           </CardHeader>
           <CardContent>
              {pastLiveTests.length > 0 ? (
-                <LiveTestLeaderboard 
+                <WeeklyTestLeaderboard 
                     pastLiveTests={pastLiveTests} 
                     initialTestId={liveTestIdFromUrl ?? undefined}
                     availableCategories={availableCategories}
@@ -303,7 +304,7 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
                 />
              ) : (
                 <div className="text-center text-muted-foreground py-10">
-                    No live tests have been completed yet.
+                    No weekly tests have been completed yet.
                 </div>
              )}
           </CardContent>

@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { useDashboard } from '@/app/dashboard/layout';
-import { Loader2, PlayCircle, Lock, CheckCircle, TimerOff, Trophy, Gem, Ban, Users, Share2 } from 'lucide-react';
+import { Loader2, PlayCircle, Lock, CheckCircle, TimerOff, Trophy, Gem, Ban, Users, Share2, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -83,7 +83,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
                 setTimeRemaining(formatDistanceToNowStrict(endTime));
             } else {
                 if (testState !== 'ended') setTestState('ended');
-                setTimeRemaining('This live test has ended.');
+                setTimeRemaining('This weekly test has ended.');
                 clearInterval(interval);
             }
         }, 1000);
@@ -120,7 +120,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
             router.push(`/quiz/${quizId}`);
 
         } catch (error: any) {
-            console.error("Error generating live test:", error);
+            console.error("Error generating weekly test:", error);
             toast({ title: 'Error Generating Test', description: error.message || 'Could not generate the test. Please try again.', variant: 'destructive' });
         } finally {
             setIsGenerating(false);
@@ -128,9 +128,9 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     };
     
     const handleShare = () => {
-        const message = `📢 *Anjalkaran Live Mock Test Challenge!* 📢
+        const message = `📢 *Anjalkaran Weekly Mock Test Challenge!* 📢
 
-Get ready to test your knowledge and compete with fellow aspirants! We're hosting live mock tests for:
+Get ready to test your knowledge and compete with fellow aspirants in our Weekly Mock Test!
 
 🔹 *MTS*
 🔹 *POSTMAN*
@@ -158,7 +158,7 @@ https://anjalkaran.in`;
                 ) : (
                     <>
                         <PlayCircle className="mr-2 h-4 w-4" />
-                        Start Live Test (Admin)
+                        Start Weekly Test (Admin)
                     </>
                 )}
             </Button>;
@@ -167,7 +167,7 @@ https://anjalkaran.in`;
         if (testState === 'loading') return <Button disabled className="w-full"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading Status...</Button>;
         if (testState === 'upcoming') return <Button disabled className="w-full"><Lock className="mr-2 h-4 w-4" />Starts In: {timeRemaining}</Button>;
         if (testState === 'completed') return <Button disabled className="w-full"><CheckCircle className="mr-2 h-4 w-4" />Test Already Attempted</Button>;
-        if (testState === 'ended') return <Button disabled className="w-full"><TimerOff className="mr-2 h-4 w-4" />Test Has Ended</Button>;
+        if (testState === 'ended') return <Button disabled className="w-full"><TimerOff className="mr-2 h-4 w-4" />Weekly Test Has Ended</Button>;
 
         return <Button onClick={startTest} disabled={isGenerating} className="w-full bg-green-600 hover:bg-green-700">
             {isGenerating ? (
@@ -178,7 +178,7 @@ https://anjalkaran.in`;
             ) : (
                 <>
                     <PlayCircle className="mr-2 h-4 w-4" />
-                    {hasTakenTest ? "Start Again (Practice)" : "Start Live Test"}
+                    {hasTakenTest ? "Start Again (Practice)" : "Start Weekly Test"}
                 </>
             )}
         </Button>;

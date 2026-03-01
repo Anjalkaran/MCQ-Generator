@@ -3,7 +3,7 @@
 
 import { useDashboard } from "@/app/dashboard/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, PenSquare, Video, Rss, History, FileWarning, BrainCircuit, Library } from 'lucide-react';
+import { Loader2, PenSquare, Video, Calendar, History, FileWarning, BrainCircuit, Library } from 'lucide-react';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { UpcomingLiveTest } from "@/components/dashboard/upcoming-live-test";
@@ -110,26 +110,24 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {isAdmin && (
-            <Card className="flex flex-col">
-              <CardHeader>
-                <div className="flex items-center gap-4">
-                  <div className="bg-primary/10 p-3 rounded-full">
-                    <Rss className="h-8 w-8 text-primary" />
-                  </div>
-                  <CardTitle className="text-2xl">Live Mock Test</CardTitle>
-                </div>
-                <CardDescription className="pt-4">
-                  <UpcomingLiveTest />
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex-grow flex items-end">
-                <Button asChild className="w-full">
-                  <Link href="/dashboard/live-mock-test">View All Tests</Link>
-                </Button>
-              </CardContent>
-            </Card>
-        )}
+        <Card className="flex flex-col border-primary/20 shadow-md">
+          <CardHeader>
+            <div className="flex items-center gap-4">
+              <div className="bg-primary/10 p-3 rounded-full">
+                <Calendar className="h-8 w-8 text-primary" />
+              </div>
+              <CardTitle className="text-2xl">Weekly Mock Test</CardTitle>
+            </div>
+            <CardDescription className="pt-4">
+              <UpcomingLiveTest />
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-grow flex items-end">
+            <Button asChild className="w-full">
+              <Link href="/dashboard/live-mock-test">View Weekly Tests</Link>
+            </Button>
+          </CardContent>
+        </Card>
         <Card className="flex flex-col">
           <CardHeader>
             <div className="flex items-center gap-4">

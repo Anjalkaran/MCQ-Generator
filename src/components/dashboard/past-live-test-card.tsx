@@ -80,8 +80,8 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
             router.push(`/quiz/${quizId}`);
 
         } catch (error: any) {
-            console.error("Error generating past live test:", error);
-            toast({ title: 'Error', description: error.message || 'Could not generate the test. Please try again.', variant: 'destructive' });
+            console.error("Error generating past weekly test:", error);
+            toast({ title: 'Error Generating Test', description: error.message || 'Could not generate the test. Please try again.', variant: 'destructive' });
         } finally {
             setIsGenerating(false);
         }
@@ -121,7 +121,7 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
             <CardHeader>
                 <CardTitle className="text-lg">{test.title}</CardTitle>
                 <CardDescription>
-                    Conducted on: {startTime ? format(startTime, 'dd/MM/yyyy') : 'N/A'}
+                    Held on: {startTime ? format(startTime, 'dd/MM/yyyy') : 'N/A'}
                 </CardDescription>
                  {practiceAttempts > 0 && (
                     <Badge variant="secondary" className="w-fit mt-2">
