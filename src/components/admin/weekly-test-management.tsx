@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -10,11 +11,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Trash2, Search, Upload, FileJson } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Search, Upload, FileJson, FilePlus } from 'lucide-react';
 import { deleteWeeklyTest } from '@/lib/firestore';
 import type { BankedQuestion, WeeklyTest } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 
@@ -26,6 +28,10 @@ const formSchema = z.object({
   file: z.any().refine((files) => files?.length > 0, "At least one JSON question file is required.")
 });
 
+const appendSchema = z.object({
+  file: z.any().refine((files) => files?.length > 0, "At least one JSON question file is required.")
+});
+
 interface WeeklyTestManagementProps {
     initialWeeklyTests: WeeklyTest[];
     initialBankedQuestions: BankedQuestion[];
@@ -34,12 +40,18 @@ interface WeeklyTestManagementProps {
 export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestions }: WeeklyTestManagementProps) {
   const [weeklyTests, setWeeklyTests] = useState<WeeklyTest[]>(initialWeeklyTests);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAppending, setIsAppending] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTestToAppend, setSelectedTestToAppend] = useState<WeeklyTest | null>(null);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: { title: '', examCategories: [] }
+  });
+
+  const appendForm = useForm<z.infer<typeof appendSchema>>({
+    resolver: zodResolver(appendSchema)
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -48,7 +60,6 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
     formData.append('title', values.title);
     values.examCategories.forEach(cat => formData.append('examCategories', cat));
     
-    // Append all selected files to the same key
     if (values.file) {
         Array.from(values.file as FileList).forEach(file => {
             formData.append('file', file);
@@ -69,7 +80,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
         const { newTest } = await response.json();
         
         setWeeklyTests(prev => [newTest, ...prev]);
-        toast({ title: "Success", description: "Weekly test created successfully with merged questions." });
+        toast({ title: "Success", description: "Weekly test created successfully." });
         form.reset();
         const fileInput = document.getElementById('weekly-test-file') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
@@ -77,6 +88,40 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
         toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
         setIsLoading(false);
+    }
+  };
+
+  const onAppendSubmit = async (values: z.infer<typeof appendSchema>) => {
+    if (!selectedTestToAppend) return;
+    setIsAppending(true);
+
+    const formData = new FormData();
+    formData.append('weeklyTestId', selectedTestToAppend.id);
+    if (values.file) {
+        Array.from(values.file as FileList).forEach(file => {
+            formData.append('file', file);
+        });
+    }
+
+    try {
+        const response = await fetch('/api/weekly-test/append', {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to append questions.');
+        }
+
+        const data = await response.json();
+        toast({ title: "Success", description: data.message });
+        appendForm.reset();
+        setSelectedTestToAppend(null);
+    } catch (error: any) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+        setIsAppending(false);
     }
   };
 
@@ -234,7 +279,10 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-xs text-muted-foreground">{t.createdAt ? format(t.createdAt, 'dd/MM/yyyy') : 'N/A'}</TableCell>
-                                    <TableCell className="text-right">
+                                    <TableCell className="text-right space-x-2">
+                                        <Button variant="ghost" size="icon" onClick={() => setSelectedTestToAppend(t)} title="Append Questions">
+                                            <FilePlus className="h-4 w-4 text-blue-600" />
+                                        </Button>
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger>
                                             <AlertDialogContent>
@@ -260,6 +308,50 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                 </div>
             </CardContent>
         </Card>
+
+        <Dialog open={!!selectedTestToAppend} onOpenChange={(open) => !open && setSelectedTestToAppend(null)}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Append Questions</DialogTitle>
+                    <DialogDescription>
+                        Add more questions to <strong>{selectedTestToAppend?.title}</strong>. 
+                        The new questions will be appended to the existing set.
+                    </DialogDescription>
+                </DialogHeader>
+                <Form {...appendForm}>
+                    <form onSubmit={appendForm.handleSubmit(onAppendSubmit)} className="space-y-4">
+                        <FormField
+                            control={appendForm.control}
+                            name="file"
+                            render={({ field: { onChange, value, ...rest } }) => (
+                                <FormItem>
+                                    <FormLabel>Select JSON Files</FormLabel>
+                                    <FormControl>
+                                        <Input 
+                                            type="file" 
+                                            accept=".json" 
+                                            multiple
+                                            onChange={(e) => onChange(e.target.files)}
+                                            {...rest}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <DialogFooter>
+                            <DialogClose asChild>
+                                <Button type="button" variant="outline">Cancel</Button>
+                            </DialogClose>
+                            <Button type="submit" disabled={isAppending}>
+                                {isAppending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                                Append Questions
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
