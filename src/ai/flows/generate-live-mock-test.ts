@@ -2,15 +2,12 @@
 'use server';
 
 /**
- * @fileOverview Generates a live mock test by fetching a specific question paper and extracting its questions.
- *
- * - generateLiveMockTest - A function that handles the live mock test generation process.
- * - GenerateLiveMockTestInput - The input type for the function.
- * - GenerateLiveMockTestOutput - The return type for the function.
+ * @fileOverview Generates a mock test (Weekly or Live) by fetching a question paper and extracting questions.
+ * Supports the user's specific translation format (ta, hi, te, kn).
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'zod';
+import { ai } from '@/ai/genkit';
+import { z } from 'zod';
 import type { MCQ } from '@/lib/types';
 import { getLiveTestQuestionPaper, getReasoningQuestions } from '@/lib/firestore';
 import { MTS_BLUEPRINT, PA_BLUEPRINT, POSTMAN_BLUEPRINT, IP_BLUEPRINT } from '@/lib/exam-blueprints';
@@ -24,19 +21,18 @@ const blueprintMap = {
     IP: IP_BLUEPRINT,
 };
 
-
 const GenerateLiveMockTestInputSchema = z.object({
-  liveTestId: z.string().optional().describe('The ID of the scheduled live test document in Firestore.'),
-  weeklyTestId: z.string().optional().describe('The ID of the permanent weekly test document in Firestore.'),
-  questionPaperId: z.string().describe('The ID of the question paper document in the liveTestBank collection.'),
-  examCategory: z.enum(["MTS", "POSTMAN", "PA", "IP"]).describe('The exam category for which the test is being generated.'),
-  language: z.string().optional().default('English').describe('The language for the generated quiz.'),
-  testTitle: z.string().describe('The title of the live test.'),
+  liveTestId: z.string().optional().describe('ID of scheduled test.'),
+  weeklyTestId: z.string().optional().describe('ID of permanent weekly test.'),
+  questionPaperId: z.string().describe('ID of the paper in liveTestBank.'),
+  examCategory: z.enum(["MTS", "POSTMAN", "PA", "IP"]).describe('Target course.'),
+  language: z.string().optional().default('English').describe('Selected language.'),
+  testTitle: z.string().describe('Display title.'),
 });
 export type GenerateLiveMockTestInput = z.infer<typeof GenerateLiveMockTestInputSchema>;
 
 const GenerateLiveMockTestOutputSchema = z.object({
-  quizId: z.string().describe('The ID of the generated quiz document in Firestore.'),
+  quizId: z.string().describe('Firestore ID of the generated quiz.'),
 });
 export type GenerateLiveMockTestOutput = z.infer<typeof GenerateLiveMockTestOutputSchema>;
 
@@ -58,41 +54,36 @@ const generateLiveMockTestFlow = ai.defineFlow(
     outputSchema: GenerateLiveMockTestOutputSchema,
   },
   async input => {
-    
     const questionPaper = await getLiveTestQuestionPaper(input.questionPaperId);
     
     if (!questionPaper) {
-        throw new Error(`The live test question paper (${input.questionPaperId}) could not be found. Please contact an administrator.`);
+        throw new Error(`The question paper could not be found.`);
     }
     
     let parsedData: { questions: any[] };
     try {
         parsedData = JSON.parse(questionPaper.content);
     } catch (error) {
-        console.error("Failed to parse question paper content as JSON:", error);
-        throw new Error(`The question paper '${questionPaper.fileName}' is not in a valid JSON format. Please upload it again.`);
+        throw new Error(`The question paper format is invalid.`);
     }
 
-    if (!parsedData.questions || !Array.isArray(parsedData.questions) || parsedData.questions.length === 0) {
-        throw new Error(`The live test question paper '${questionPaper.fileName}' is empty or incorrectly formatted. It must be a JSON object with a "questions" array.`);
+    if (!parsedData.questions || !Array.isArray(parsedData.questions)) {
+        throw new Error(`The question paper is empty or incorrectly formatted.`);
     }
 
-    const canonicalQuestions = parsedData.questions;
+    const langKey = languageMap[input.language.toLowerCase()];
     
-    let processedQuestions: MCQ[] = canonicalQuestions.map(q => {
-        if (input.language && input.language.toLowerCase() !== 'english') {
-            const langKey = languageMap[input.language.toLowerCase()];
-            if (langKey && q.translations?.[langKey]) {
-                const translated = q.translations[langKey];
-                return {
-                    ...q,
-                    ...translated,
-                    question: translated.question,
-                    options: translated.options,
-                    correctAnswer: translated.correctAnswer,
-                    solution: translated.solution,
-                };
-            }
+    // Extract questions and apply translations if matching key is found
+    const processedQuestions: MCQ[] = parsedData.questions.map(q => {
+        if (langKey && q.translations?.[langKey]) {
+            const translated = q.translations[langKey];
+            return {
+                question: translated.question || q.question,
+                options: translated.options || q.options,
+                correctAnswer: translated.correctAnswer || q.correctAnswer,
+                solution: translated.solution || q.solution,
+                topic: q.topic,
+            };
         }
         return {
             question: q.question,
@@ -103,41 +94,34 @@ const generateLiveMockTestFlow = ai.defineFlow(
         };
     });
 
-
     let finalMCQs = processedQuestions;
     
-    let reasoningQuestionsNeeded = 0;
-    if (input.examCategory === 'PA') {
-        reasoningQuestionsNeeded = 10;
-    } else if (input.examCategory === 'POSTMAN') {
-        reasoningQuestionsNeeded = 5;
-    }
+    // Add reasoning questions for PA and POSTMAN if required by blueprint
+    let reasoningNeeded = 0;
+    if (input.examCategory === 'PA') reasoningNeeded = 10;
+    else if (input.examCategory === 'POSTMAN') reasoningNeeded = 5;
 
-    if (reasoningQuestionsNeeded > 0) {
-        const reasoningQuestions = await getReasoningQuestions();
+    if (reasoningNeeded > 0) {
+        const reasoningBank = await getReasoningQuestions();
+        const selectedReasoning = reasoningBank.sort(() => 0.5 - Math.random()).slice(0, reasoningNeeded);
         
-        if (reasoningQuestions.length < reasoningQuestionsNeeded) {
-            throw new Error(`Could not find enough reasoning questions for the ${input.examCategory} live test. Found ${reasoningQuestions.length}, but need ${reasoningQuestionsNeeded}. Please upload more.`);
-        }
-
-        const selectedReasoning = reasoningQuestions.sort(() => 0.5 - Math.random()).slice(0, reasoningQuestionsNeeded);
-        
-        const formattedReasoningMCQs: MCQ[] = selectedReasoning.map(q => ({
-            question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
+        const formattedReasoning: MCQ[] = selectedReasoning.map(q => ({
+            question: `${q.questionText} <img src="${q.questionImage}" alt="Question" class="mt-2 rounded-md max-h-60 mx-auto" />`,
             options: q.options,
             correctAnswer: q.correctAnswer,
-            solution: q.solutionText ? `${q.solutionText}${q.solutionImage ? `<br/><img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : ''}` : (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : ""),
+            solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution" />` : ""),
             topic: 'Reasoning',
         }));
         
-        finalMCQs = [...finalMCQs, ...formattedReasoningMCQs];
+        finalMCQs = [...finalMCQs, ...formattedReasoning];
     }
     
     const blueprint = blueprintMap[input.examCategory];
-    const quizId = `live-test-${input.liveTestId || input.weeklyTestId || Date.now()}-${Date.now()}`;
+    const quizId = `weekly-test-${Date.now()}`;
+    
     const quizData = {
         mcqs: finalMCQs,
-        timeLimit: blueprint.totalDurationMinutes * 60,
+        timeLimit: (blueprint?.totalDurationMinutes || 60) * 60,
         isMockTest: true,
         liveTestId: input.liveTestId,
         weeklyTestId: input.weeklyTestId,
@@ -146,18 +130,16 @@ const generateLiveMockTestFlow = ai.defineFlow(
         topic: {
             id: quizId,
             title: input.testTitle,
-            description: `Weekly mock test.`,
+            description: `Permanent weekly mock test.`,
             icon: 'scroll-text',
-            categoryId: 'live-mock-test',
+            categoryId: 'weekly-test',
         },
     };
 
     const db = getFirebaseDb();
-    if (!db) {
-        throw new Error("Firestore is not initialized.");
-    }
-    const docRef = await addDoc(collection(db, "generatedQuizzes"), quizData);
+    if (!db) throw new Error("Firestore is not initialized.");
     
+    const docRef = await addDoc(collection(db, "generatedQuizzes"), quizData);
     return { quizId: docRef.id };
   }
 );

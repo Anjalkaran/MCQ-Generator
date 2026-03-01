@@ -3,6 +3,11 @@ import { NextResponse } from 'next/server';
 import { getFirebaseDb } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
+/**
+ * @fileOverview API route to handle multi-file uploads for Weekly Tests.
+ * Merges questions from all uploaded JSON files into a single master document.
+ */
+
 export async function POST(request: Request) {
     const db = getFirebaseDb();
     if (!db) {
@@ -26,10 +31,11 @@ export async function POST(request: Request) {
             const textContent = await file.text();
             try {
                 const parsed = JSON.parse(textContent);
-                // Handle different formats: { questions: [...] } or just [...]
+                // Handle the user's specific format: { "questions": [...] }
                 if (parsed.questions && Array.isArray(parsed.questions)) {
                     allQuestions.push(...parsed.questions);
                 } else if (Array.isArray(parsed)) {
+                    // Fallback for direct array format
                     allQuestions.push(...parsed);
                 }
             } catch (err) {
@@ -39,13 +45,13 @@ export async function POST(request: Request) {
         }
 
         if (allQuestions.length === 0) {
-            return NextResponse.json({ error: 'No valid questions were found in the provided files.' }, { status: 400 });
+            return NextResponse.json({ error: 'No valid questions were found in the provided files. Ensure the JSON contains a "questions" array.' }, { status: 400 });
         }
 
+        // Store the merged content as a string to stay under document limits if necessary
         const finalContent = JSON.stringify({ questions: allQuestions });
         
         // 1. Save the merged question content to the liveTestBank collection
-        // We use the first category as a primary tag for the bank record
         const bankRef = await addDoc(collection(db, 'liveTestBank'), {
             fileName: `${title}_merged_${Date.now()}.json`,
             examCategory: examCategories[0], 
@@ -62,7 +68,7 @@ export async function POST(request: Request) {
         });
 
         return NextResponse.json({
-            message: 'Weekly test created with merged questions from multiple files.',
+            message: 'Weekly test created successfully with merged questions.',
             newTest: {
                 id: weeklyTestRef.id,
                 title,
@@ -74,6 +80,6 @@ export async function POST(request: Request) {
 
     } catch (error: any) {
         console.error('API Error in weekly-test upload:', error);
-        return NextResponse.json({ error: error.message || 'An unexpected server error occurred.' }, { status: 500 });
+        return NextResponse.json({ error: error.message || 'An unexpected server error occurred during upload.' }, { status: 500 });
     }
 }
