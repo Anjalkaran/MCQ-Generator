@@ -5,6 +5,10 @@ import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQue
 import { ADMIN_EMAILS } from './constants';
 import { normalizeDate } from './utils';
 
+// LEADERBOARD RESET CONFIGURATION
+// Any history or tests before this date will be hidden from leaderboards
+const LEADERBOARD_RESET_DATE = new Date('2025-03-05T00:00:00Z');
+
 // USER MANAGEMENT
 export const getUserData = async (userId: string): Promise<UserData | null> => {
     const db = getFirebaseDb();
@@ -51,7 +55,6 @@ export const getAllUsers = async (): Promise<UserData[]> => {
   const db = getFirebaseDb();
   if (!db) return [];
   const usersCollection = collection(db, 'users');
-  // Removed limit(1000) to ensure all 1076+ users are visible
   const userSnapshot = await getDocs(usersCollection);
   return userSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserData));
 };
@@ -302,7 +305,7 @@ export const getAllExamHistory = async (): Promise<MCQHistory[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
     const historyCollection = collection(db, 'mcqHistory');
-    const q = query(historyCollection, orderBy('takenAt', 'desc'));
+    const q = query(historyCollection, orderBy('takenAt', 'desc'), limit(100));
     const snapshot = await getDocs(q);
     
     const allUsers = await getAllUsers();
@@ -458,7 +461,6 @@ export const getLiveTestsForLeaderboard = async (): Promise<LiveTest[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
     
-    // Fetch legacy scheduled tests (Live Mock Tests)
     const testsCollection = collection(db, 'liveTests');
     const now = new Date();
     const q = query(testsCollection, where('endTime', '<=', now), orderBy('endTime', 'desc'));
@@ -471,8 +473,12 @@ export const getLiveTestsForLeaderboard = async (): Promise<LiveTest[]> => {
         endTime: normalizeDate(doc.data().endTime)
     } as any));
 
+    // Filter by reset date
     return legacyTests
-        .filter(test => !test.title.includes('2025'))
+        .filter(test => {
+            const end = normalizeDate(test.endTime);
+            return end && end >= LEADERBOARD_RESET_DATE;
+        })
         .sort((a, b) => {
             const dateA = normalizeDate(a.startTime) || new Date(0);
             const dateB = normalizeDate(b.startTime) || new Date(0);
@@ -486,11 +492,17 @@ export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategor
     if (!db) return [];
     const isMockTest = examType === 'mock';
     
-    // REMOVED orderBy('takenAt', 'desc') to prevent "The query requires an index" error.
-    // Sorting by date is not needed for aggregating total scores for the leaderboard.
     const historyQuery = query(collection(db, 'mcqHistory'), where('isMockTest', '==', isMockTest));
     const historySnapshot = await getDocs(historyQuery);
-    const histories = historySnapshot.docs.map(doc => doc.data() as MCQHistory);
+    let histories = historySnapshot.docs.map(doc => doc.data() as MCQHistory);
+
+    // Filter in-memory by reset date for mock tests
+    if (isMockTest) {
+        histories = histories.filter(h => {
+            const takenAt = normalizeDate(h.takenAt);
+            return takenAt && takenAt >= LEADERBOARD_RESET_DATE;
+        });
+    }
 
     const allUsers = await getAllUsers();
     const filteredUsers = allUsers.filter(u => u.examCategory === examCategory);
