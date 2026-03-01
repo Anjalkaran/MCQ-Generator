@@ -403,6 +403,13 @@ export const deleteLiveTestBankDocument = async (docId: string): Promise<void> =
     await deleteDoc(doc(db, 'liveTestBank', docId));
 };
 
+export const updateLiveTestBankDocument = async (docId: string, content: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    const docRef = doc(db, 'liveTestBank', docId);
+    await updateDoc(docRef, { content, lastModifiedAt: serverTimestamp() });
+};
+
 export const addLiveTest = async (testData: Omit<LiveTest, 'id'>): Promise<DocumentReference> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");

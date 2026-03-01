@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,14 +11,18 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Trash2, Search, Upload, FileJson, FilePlus } from 'lucide-react';
-import { deleteWeeklyTest } from '@/lib/firestore';
-import type { BankedQuestion, WeeklyTest } from '@/lib/types';
+import { Loader2, PlusCircle, Trash2, Search, Upload, FileJson, FilePlus, List, Edit, Save, X } from 'lucide-react';
+import { deleteWeeklyTest, getLiveTestQuestionPaper, updateLiveTestBankDocument } from '@/lib/firestore';
+import type { BankedQuestion, WeeklyTest, MCQ } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 const categoriesList = ["MTS", "POSTMAN", "PA"] as const;
 
@@ -32,6 +36,20 @@ const appendSchema = z.object({
   file: z.any().refine((files) => files?.length > 0, "At least one JSON question file is required.")
 });
 
+const mcqSchema = z.object({
+    question: z.string().min(1, "Question text is required."),
+    options: z.array(z.string().min(1, "Option text is required.")).length(4),
+    correctAnswer: z.string().min(1, "Correct answer is required."),
+    solution: z.string().optional(),
+    topic: z.string().optional(),
+    translations: z.record(z.object({
+        question: z.string(),
+        options: z.array(z.string()),
+        correctAnswer: z.string(),
+        solution: z.string().optional(),
+    })).optional(),
+});
+
 interface WeeklyTestManagementProps {
     initialWeeklyTests: WeeklyTest[];
     initialBankedQuestions: BankedQuestion[];
@@ -43,6 +61,14 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
   const [isAppending, setIsAppending] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTestToAppend, setSelectedTestToAppend] = useState<WeeklyTest | null>(null);
+  
+  // Question Editing State
+  const [managingTest, setManagingTest] = useState<WeeklyTest | null>(null);
+  const [testQuestions, setQuestions] = useState<MCQ[]>([]);
+  const [isQuestionsLoading, setIsQuestionsLoading] = useState(false);
+  const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
+  const [isSavingQuestions, setIsSavingQuestions] = useState(false);
+  
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -53,6 +79,8 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
   const appendForm = useForm<z.infer<typeof appendSchema>>({
     resolver: zodResolver(appendSchema)
   });
+
+  const editQuestionForm = useForm<z.infer<typeof mcqSchema>>();
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
@@ -132,6 +160,72 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
         toast({ title: "Deleted", description: "Weekly test removed." });
     } catch (error) {
         toast({ title: "Error", description: "Failed to delete test.", variant: "destructive" });
+    }
+  };
+
+  // MANAGE QUESTIONS LOGIC
+  const handleManageQuestions = async (test: WeeklyTest) => {
+    setManagingTest(test);
+    setIsQuestionsLoading(true);
+    try {
+        const paper = await getLiveTestQuestionPaper(test.questionPaperId);
+        if (paper) {
+            const data = JSON.parse(paper.content);
+            setQuestions(data.questions || []);
+        }
+    } catch (e) {
+        toast({ title: "Error", description: "Could not load questions.", variant: "destructive" });
+    } finally {
+        setIsQuestionsLoading(false);
+    }
+  };
+
+  const handleEditQuestion = (index: number) => {
+    const q = testQuestions[index];
+    setEditingQuestionIndex(index);
+    editQuestionForm.reset({
+        question: q.question,
+        options: [...q.options],
+        correctAnswer: q.correctAnswer,
+        solution: q.solution || '',
+        topic: q.topic || '',
+        translations: q.translations || {}
+    });
+  };
+
+  const onEditQuestionSubmit = (values: z.infer<typeof mcqSchema>) => {
+    if (editingQuestionIndex === null) return;
+    
+    const updatedQuestions = [...testQuestions];
+    updatedQuestions[editingQuestionIndex] = {
+        ...updatedQuestions[editingQuestionIndex],
+        ...values,
+    };
+    
+    setQuestions(updatedQuestions);
+    setEditingQuestionIndex(null);
+    toast({ title: "Question Updated", description: "Changes applied locally. Remember to click Save All Changes." });
+  };
+
+  const handleDeleteQuestion = (index: number) => {
+    const updated = [...testQuestions];
+    updated.splice(index, 1);
+    setQuestions(updated);
+    toast({ title: "Removed", description: "Question removed from this test." });
+  };
+
+  const saveAllQuestionChanges = async () => {
+    if (!managingTest) return;
+    setIsSavingQuestions(true);
+    try {
+        const content = JSON.stringify({ questions: testQuestions });
+        await updateLiveTestBankDocument(managingTest.questionPaperId, content);
+        toast({ title: "Success", description: "Question paper updated successfully." });
+        setManagingTest(null);
+    } catch (error) {
+        toast({ title: "Error", description: "Failed to save changes to database.", variant: "destructive" });
+    } finally {
+        setIsSavingQuestions(false);
     }
   };
 
@@ -280,7 +374,10 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                     </TableCell>
                                     <TableCell className="text-xs text-muted-foreground">{t.createdAt ? format(t.createdAt, 'dd/MM/yyyy') : 'N/A'}</TableCell>
                                     <TableCell className="text-right space-x-2">
-                                        <Button variant="ghost" size="icon" onClick={() => setSelectedTestToAppend(t)} title="Append Questions">
+                                        <Button variant="ghost" size="icon" onClick={() => handleManageQuestions(t)} title="Edit Individual Questions">
+                                            <List className="h-4 w-4 text-primary" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={() => setSelectedTestToAppend(t)} title="Append JSON Files">
                                             <FilePlus className="h-4 w-4 text-blue-600" />
                                         </Button>
                                         <AlertDialog>
@@ -309,10 +406,11 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
             </CardContent>
         </Card>
 
+        {/* APPEND JSON FILES DIALOG */}
         <Dialog open={!!selectedTestToAppend} onOpenChange={(open) => !open && setSelectedTestToAppend(null)}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Append Questions</DialogTitle>
+                    <DialogTitle>Append JSON Questions</DialogTitle>
                     <DialogDescription>
                         Add more questions to <strong>{selectedTestToAppend?.title}</strong>. 
                         The new questions will be appended to the existing set.
@@ -350,6 +448,180 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                         </DialogFooter>
                     </form>
                 </Form>
+            </DialogContent>
+        </Dialog>
+
+        {/* MANAGE INDIVIDUAL QUESTIONS DIALOG */}
+        <Dialog open={!!managingTest} onOpenChange={(open) => !open && !isSavingQuestions && setManagingTest(null)}>
+            <DialogContent className="max-w-5xl h-[90vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle>Manage Questions: {managingTest?.title}</DialogTitle>
+                    <DialogDescription>Edit or remove individual questions from this test.</DialogDescription>
+                </DialogHeader>
+                
+                <div className="flex-grow min-h-0">
+                    {isQuestionsLoading ? (
+                        <div className="flex h-full items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>
+                    ) : (
+                        <ScrollArea className="h-full border rounded-md p-4">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-16">Index</TableHead>
+                                        <TableHead>Question Text</TableHead>
+                                        <TableHead>Topic</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {testQuestions.map((q, idx) => (
+                                        <TableRow key={idx}>
+                                            <TableCell className="text-muted-foreground font-mono">{String(idx + 1).padStart(3, '0')}</TableCell>
+                                            <TableCell>
+                                                <div className="line-clamp-2 text-sm" dangerouslySetInnerHTML={{ __html: q.question }} />
+                                            </TableCell>
+                                            <TableCell className="text-xs text-muted-foreground">{q.topic || 'N/A'}</TableCell>
+                                            <TableCell className="text-right space-x-1">
+                                                <Button variant="ghost" size="icon" onClick={() => handleEditQuestion(idx)}><Edit className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteQuestion(idx)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </ScrollArea>
+                    )}
+                </div>
+
+                <DialogFooter className="pt-4 gap-2">
+                    <DialogClose asChild>
+                        <Button variant="outline" disabled={isSavingQuestions}>Cancel Changes</Button>
+                    </DialogClose>
+                    <Button onClick={saveAllQuestionChanges} disabled={isSavingQuestions || isQuestionsLoading}>
+                        {isSavingQuestions ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save All Changes
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        {/* EDIT SINGLE MCQ DIALOG */}
+        <Dialog open={editingQuestionIndex !== null} onOpenChange={(open) => !open && setEditingQuestionIndex(null)}>
+            <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle>Edit Question {editingQuestionIndex !== null ? editingQuestionIndex + 1 : ''}</DialogTitle>
+                </DialogHeader>
+                
+                <ScrollArea className="flex-grow pr-4">
+                    <Form {...editQuestionForm}>
+                        <form onSubmit={editQuestionForm.handleSubmit(onEditQuestionSubmit)} className="space-y-6 pb-4">
+                            <FormField
+                                control={editQuestionForm.control}
+                                name="question"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Question Text (HTML allowed for images)</FormLabel>
+                                        <FormControl><Textarea rows={3} {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {[0, 1, 2, 3].map(i => (
+                                    <FormField
+                                        key={i}
+                                        control={editQuestionForm.control}
+                                        name={`options.${i}`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Option {i + 1}</FormLabel>
+                                                <FormControl><Input {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                ))}
+                            </div>
+
+                            <FormField
+                                control={editQuestionForm.control}
+                                name="correctAnswer"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Correct Answer</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="Select correct answer" /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                {editQuestionForm.watch('options')?.map((opt, i) => (
+                                                    <SelectItem key={i} value={opt || `Option ${i+1}`}>{opt || `Option ${i+1}`}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={editQuestionForm.control}
+                                name="solution"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Step-by-Step Solution</FormLabel>
+                                        <FormControl><Textarea rows={4} {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <div className="border rounded-md p-4 bg-muted/10 space-y-4">
+                                <h4 className="font-semibold text-sm">Translations (ta, hi, te, kn)</h4>
+                                {['ta', 'hi', 'te', 'kn'].map(lang => (
+                                    <div key={lang} className="p-3 border rounded bg-background space-y-3">
+                                        <Badge variant="outline">{lang.toUpperCase()}</Badge>
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px]">Translated Question</Label>
+                                            <Input 
+                                                className="text-xs h-8"
+                                                defaultValue={editQuestionForm.watch(`translations.${lang}.question`)}
+                                                onChange={(e) => editQuestionForm.setValue(`translations.${lang}.question`, e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {[0, 1, 2, 3].map(i => (
+                                                <Input 
+                                                    key={i}
+                                                    className="text-[10px] h-7"
+                                                    placeholder={`Option ${i+1}`}
+                                                    defaultValue={editQuestionForm.watch(`translations.${lang}.options.${i}`)}
+                                                    onChange={(e) => {
+                                                        const current = editQuestionForm.getValues(`translations.${lang}.options`) || ['', '', '', ''];
+                                                        current[i] = e.target.value;
+                                                        editQuestionForm.setValue(`translations.${lang}.options`, current);
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px]">Translated Correct Answer</Label>
+                                            <Input 
+                                                className="text-xs h-8"
+                                                defaultValue={editQuestionForm.watch(`translations.${lang}.correctAnswer`)}
+                                                onChange={(e) => editQuestionForm.setValue(`translations.${lang}.correctAnswer`, e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </form>
+                    </Form>
+                </ScrollArea>
+
+                <DialogFooter className="pt-4">
+                    <Button variant="outline" onClick={() => setEditingQuestionIndex(null)}>Cancel</Button>
+                    <Button onClick={editQuestionForm.handleSubmit(onEditQuestionSubmit)}>Apply Changes</Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     </div>
