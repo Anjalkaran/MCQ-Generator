@@ -10,33 +10,48 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LiveTestCard } from '@/components/dashboard/live-test-card';
 import { normalizeDate } from '@/lib/utils';
 import { PastLiveTestCard } from '@/components/dashboard/past-live-test-card';
+import { ADMIN_EMAILS } from '@/lib/constants';
+import { useRouter } from 'next/navigation';
 
 export default function LiveMockTestPage() {
-    const { isLoading: isDashboardLoading } = useDashboard();
+    const { userData, isLoading: isDashboardLoading } = useDashboard();
+    const router = useRouter();
     const [allLiveTests, setAllLiveTests] = useState<LiveTest[]>([]);
     const [isLoadingTests, setIsLoadingTests] = useState(true);
 
-    useEffect(() => {
-        const fetchTests = async () => {
-            try {
-                const tests = await getLiveTests(true); // Fetch all tests
-                setAllLiveTests(tests);
-            } catch (error) {
-                console.error("Failed to fetch tests:", error);
-            } finally {
-                setIsLoadingTests(false);
-            }
-        };
-        fetchTests();
-    }, []);
+    const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
 
-    if (isDashboardLoading || isLoadingTests) {
+    useEffect(() => {
+        if (!isDashboardLoading && !isAdmin) {
+            router.push('/dashboard');
+        }
+    }, [isAdmin, isDashboardLoading, router]);
+
+    useEffect(() => {
+        if (isAdmin) {
+            const fetchTests = async () => {
+                try {
+                    const tests = await getLiveTests(true); // Fetch all tests
+                    setAllLiveTests(tests);
+                } catch (error) {
+                    console.error("Failed to fetch tests:", error);
+                } finally {
+                    setIsLoadingTests(false);
+                }
+            };
+            fetchTests();
+        }
+    }, [isAdmin]);
+
+    if (isDashboardLoading || (isAdmin && isLoadingTests)) {
         return (
             <div className="flex h-[50vh] w-full items-center justify-center">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
         );
     }
+
+    if (!isAdmin) return null;
     
     const now = new Date();
     const upcomingTests = allLiveTests
@@ -50,9 +65,9 @@ export default function LiveMockTestPage() {
     return (
         <div className="space-y-6">
             <div className="space-y-2 text-center">
-                <h1 className="text-3xl font-bold tracking-tight">Weekly Mock Tests</h1>
+                <h1 className="text-3xl font-bold tracking-tight">Admin: Scheduled Weekly Tests</h1>
                 <p className="text-muted-foreground">
-                    Participate in our scheduled weekly exams or practice with previous tests.
+                    This section is for managing historical scheduled tests. Standard users access the permanent module.
                 </p>
             </div>
 
@@ -67,7 +82,7 @@ export default function LiveMockTestPage() {
                             upcomingTests.map(test => <LiveTestCard key={test.id} test={test} />)
                         ) : (
                             <div className="col-span-full text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
-                                No tests are scheduled at the moment. Please check back soon for our next weekly challenge!
+                                No scheduled tests found.
                             </div>
                         )}
                     </div>
@@ -78,7 +93,7 @@ export default function LiveMockTestPage() {
                             pastTests.map(test => <PastLiveTestCard key={test.id} test={test} />)
                         ) : (
                             <div className="col-span-full text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
-                                No previous weekly tests are available yet.
+                                No previous scheduled tests recorded.
                             </div>
                         )}
                     </div>
