@@ -51,6 +51,7 @@ export const getAllUsers = async (): Promise<UserData[]> => {
   const db = getFirebaseDb();
   if (!db) return [];
   const usersCollection = collection(db, 'users');
+  // Removed limit(1000) to ensure all 1076+ users are visible
   const userSnapshot = await getDocs(usersCollection);
   return userSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserData));
 };
@@ -484,7 +485,10 @@ export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategor
     const db = getFirebaseDb();
     if (!db) return [];
     const isMockTest = examType === 'mock';
-    const historyQuery = query(collection(db, 'mcqHistory'), where('isMockTest', '==', isMockTest), orderBy('takenAt', 'desc'));
+    
+    // REMOVED orderBy('takenAt', 'desc') to prevent "The query requires an index" error.
+    // Sorting by date is not needed for aggregating total scores for the leaderboard.
+    const historyQuery = query(collection(db, 'mcqHistory'), where('isMockTest', '==', isMockTest));
     const historySnapshot = await getDocs(historyQuery);
     const histories = historySnapshot.docs.map(doc => doc.data() as MCQHistory);
 
