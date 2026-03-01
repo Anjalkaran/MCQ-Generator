@@ -22,7 +22,7 @@ import { ADMIN_EMAILS } from '@/lib/constants';
 interface LeaderboardClientProps {
   initialTopicLeaderboards: Record<UserData['examCategory'], LeaderboardEntry[]>;
   initialMockTestLeaderboards: Record<UserData['examCategory'], LeaderboardEntry[]>;
-  pastLiveTests: LiveTest[];
+  pastLiveTests: any[];
 }
 
 type ExamCategory = UserData['examCategory'];
@@ -130,23 +130,26 @@ function CategorySelector({ selectedCategory, setSelectedCategory, availableCate
     );
 }
 
-function WeeklyTestLeaderboard({ pastLiveTests, initialTestId, availableCategories, defaultCategory }: { pastLiveTests: LiveTest[], initialTestId?: string, availableCategories: ExamCategory[], defaultCategory: ExamCategory }) {
+function WeeklyTestLeaderboard({ pastLiveTests, initialTestId, availableCategories, defaultCategory }: { pastLiveTests: any[], initialTestId?: string, availableCategories: ExamCategory[], defaultCategory: ExamCategory }) {
     const [selectedCategory, setSelectedCategory] = useState<ExamCategory>(defaultCategory);
     const [selectedTestId, setSelectedTestId] = useState<string | undefined>(undefined);
     const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
     const filteredLiveTests = useMemo(() => {
+        // Filter by category if category is not 'All'
         return pastLiveTests
-            .filter(test => test.examCategory === selectedCategory)
-            .sort((a, b) => (normalizeDate(b.endTime)?.getTime() ?? 0) - (normalizeDate(a.endTime)?.getTime() ?? 0));
+            .filter(test => test.examCategory === selectedCategory || test.examCategory === 'All')
+            .sort((a, b) => (normalizeDate(b.createdAt)?.getTime() ?? 0) - (normalizeDate(a.createdAt)?.getTime() ?? 0));
     }, [pastLiveTests, selectedCategory]);
 
     useEffect(() => {
         if (initialTestId) {
             const initialTest = pastLiveTests.find(t => t.id === initialTestId);
             if (initialTest) {
-                setSelectedCategory(initialTest.examCategory);
+                if (initialTest.examCategory !== 'All') {
+                    setSelectedCategory(initialTest.examCategory);
+                }
                 setSelectedTestId(initialTestId);
                 return; 
             }
@@ -183,7 +186,7 @@ function WeeklyTestLeaderboard({ pastLiveTests, initialTestId, availableCategori
 
     const getFormattedDate = (date: any) => {
         const normalized = normalizeDate(date);
-        return normalized ? format(normalized, 'dd/MM/yyyy') : 'Invalid Date';
+        return normalized ? format(normalized, 'dd/MM/yyyy') : 'N/A';
     };
 
     return (
@@ -200,7 +203,7 @@ function WeeklyTestLeaderboard({ pastLiveTests, initialTestId, availableCategori
                         <SelectContent>
                             {filteredLiveTests.map(test => (
                                 <SelectItem key={test.id} value={test.id}>
-                                    {test.title} ({getFormattedDate(test.startTime)})
+                                    {test.title} (Uploaded: {getFormattedDate(test.createdAt)})
                                 </SelectItem>
                             ))}
                         </SelectContent>
@@ -216,7 +219,7 @@ function WeeklyTestLeaderboard({ pastLiveTests, initialTestId, availableCategori
                     <LeaderboardTable data={leaderboardData} type="live" />
                 ) : (
                     <div className="text-center text-muted-foreground py-10">
-                        No results found for the {selectedCategory} Weekly Test.
+                        No results found for the selected Weekly Test.
                     </div>
                 )
             )}
@@ -292,7 +295,7 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
         <Card>
           <CardHeader>
             <CardTitle>Weekly Test Leaderboard</CardTitle>
-            <CardDescription>View rankings for our scheduled weekly challenges. Ranks are determined by score, then by time taken.</CardDescription>
+            <CardDescription>View rankings for our permanent weekly challenges. Ranks are determined by score, then by time taken.</CardDescription>
           </CardHeader>
           <CardContent>
              {pastLiveTests.length > 0 ? (

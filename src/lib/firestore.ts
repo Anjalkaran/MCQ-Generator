@@ -6,8 +6,9 @@ import { ADMIN_EMAILS } from './constants';
 import { normalizeDate } from './utils';
 
 // LEADERBOARD RESET CONFIGURATION
-// Any history or tests before this date will be hidden from leaderboards
-const LEADERBOARD_RESET_DATE = new Date('2025-03-05T00:00:00Z');
+// Any history or tests before this date will be hidden from leaderboards.
+// Set to August 20, 2025 to clear early August results shown in request.
+const LEADERBOARD_RESET_DATE = new Date('2025-08-20T00:00:00Z');
 
 // USER MANAGEMENT
 export const getUserData = async (userId: string): Promise<UserData | null> => {
@@ -457,33 +458,26 @@ export const deleteWeeklyTest = async (testId: string): Promise<void> => {
     await deleteDoc(doc(db, 'weeklyTests', testId));
 };
 
-export const getLiveTestsForLeaderboard = async (): Promise<LiveTest[]> => {
+export const getLiveTestsForLeaderboard = async (): Promise<any[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
     
-    const testsCollection = collection(db, 'liveTests');
-    const now = new Date();
-    const q = query(testsCollection, where('endTime', '<=', now), orderBy('endTime', 'desc'));
+    // Per user request, we now only show "Weekly Test" results.
+    // We fetch from the weeklyTests collection (permanent tests).
+    const weeklyCollection = collection(db, 'weeklyTests');
+    const q = query(weeklyCollection, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
     
-    const legacyTests = snapshot.docs.map(doc => ({ 
-        id: doc.id, 
-        ...doc.data(),
-        startTime: normalizeDate(doc.data().startTime),
-        endTime: normalizeDate(doc.data().endTime)
-    } as any));
-
-    // Filter by reset date
-    return legacyTests
-        .filter(test => {
-            const end = normalizeDate(test.endTime);
-            return end && end >= LEADERBOARD_RESET_DATE;
-        })
-        .sort((a, b) => {
-            const dateA = normalizeDate(a.startTime) || new Date(0);
-            const dateB = normalizeDate(b.startTime) || new Date(0);
-            return dateB.getTime() - dateA.getTime();
-        });
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+            id: doc.id, 
+            title: data.title,
+            examCategory: data.examCategories?.[0] || 'All',
+            startTime: normalizeDate(data.createdAt), // Map to startTime for component compatibility
+            createdAt: normalizeDate(data.createdAt)
+        };
+    });
 };
 
 // LEADERBOARD MANAGEMENT
@@ -496,13 +490,11 @@ export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategor
     const historySnapshot = await getDocs(historyQuery);
     let histories = historySnapshot.docs.map(doc => doc.data() as MCQHistory);
 
-    // Filter in-memory by reset date for mock tests
-    if (isMockTest) {
-        histories = histories.filter(h => {
-            const takenAt = normalizeDate(h.takenAt);
-            return takenAt && takenAt >= LEADERBOARD_RESET_DATE;
-        });
-    }
+    // Filter in-memory by reset date
+    histories = histories.filter(h => {
+        const takenAt = normalizeDate(h.takenAt);
+        return takenAt && takenAt >= LEADERBOARD_RESET_DATE;
+    });
 
     const allUsers = await getAllUsers();
     const filteredUsers = allUsers.filter(u => u.examCategory === examCategory);
@@ -539,12 +531,27 @@ export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategor
     return leaderboard.sort((a, b) => b.averageScore - a.averageScore).slice(0, 100).map((entry, index) => ({ ...entry, rank: index + 1 }));
 };
 
-export const getLiveTestLeaderboardData = async (liveTestId: string): Promise<LeaderboardEntry[]> => {
+export const getLiveTestLeaderboardData = async (testId: string): Promise<LeaderboardEntry[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
-    const q = query(collection(db, 'mcqHistory'), where('liveTestId', '==', liveTestId));
-    const historySnapshot = await getDocs(q);
-    const histories = historySnapshot.docs.map(doc => doc.data() as MCQHistory);
+    
+    // Query history for either liveTestId or weeklyTestId matching the selected test ID
+    const historyRef = collection(db, 'mcqHistory');
+    const qLive = query(historyRef, where('liveTestId', '==', testId));
+    const qWeekly = query(historyRef, where('weeklyTestId', '==', testId));
+    
+    const [snapLive, snapWeekly] = await Promise.all([getDocs(qLive), getDocs(qWeekly)]);
+    
+    let histories = [
+        ...snapLive.docs.map(doc => doc.data() as MCQHistory),
+        ...snapWeekly.docs.map(doc => doc.data() as MCQHistory)
+    ];
+
+    // Apply the reset filter
+    histories = histories.filter(h => {
+        const takenAt = normalizeDate(h.takenAt);
+        return takenAt && takenAt >= LEADERBOARD_RESET_DATE;
+    });
 
     const userIds = [...new Set(histories.map(h => h.userId))];
     if (userIds.length === 0) return [];
