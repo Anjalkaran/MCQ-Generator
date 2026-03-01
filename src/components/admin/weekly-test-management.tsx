@@ -10,16 +10,15 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Trash2, Search, Upload, FileJson, FilePlus, List, Edit, Save, X } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Search, Upload, FilePlus, List, Edit, Save } from 'lucide-react';
 import { deleteWeeklyTest, getLiveTestQuestionPaper, updateLiveTestBankDocument } from '@/lib/firestore';
 import type { BankedQuestion, WeeklyTest, MCQ } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -163,7 +162,6 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
     }
   };
 
-  // MANAGE QUESTIONS LOGIC
   const handleManageQuestions = async (test: WeeklyTest) => {
     setManagingTest(test);
     setIsQuestionsLoading(true);
@@ -275,7 +273,6 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                                 {...rest}
                                             />
                                         </FormControl>
-                                        <FormDescription>You can select multiple files to merge them.</FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -412,8 +409,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                 <DialogHeader>
                     <DialogTitle>Append JSON Questions</DialogTitle>
                     <DialogDescription>
-                        Add more questions to <strong>{selectedTestToAppend?.title}</strong>. 
-                        The new questions will be appended to the existing set.
+                        Add more questions to <strong>{selectedTestToAppend?.title}</strong>.
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...appendForm}>
@@ -426,6 +422,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                     <FormLabel>Select JSON Files</FormLabel>
                                     <FormControl>
                                         <Input 
+                                            id="weekly-test-file-append"
                                             type="file" 
                                             accept=".json" 
                                             multiple
@@ -445,9 +442,10 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                 {isAppending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                                 Append Questions
                             </Button>
-                        </form>
-                    </Form>
-                </DialogContent>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
         </Dialog>
 
         {/* MANAGE INDIVIDUAL QUESTIONS DIALOG */}
