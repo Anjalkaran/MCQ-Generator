@@ -1,2 +1,2 @@
 
-export { useDashboard } from '@/app/dashboard/layout';
+export { useDashboard } from '@/context/dashboard-context';
