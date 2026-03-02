@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -141,14 +140,6 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/free-class')} tooltip="Free Class">
-                  <Link href="/dashboard/free-class" onClick={onLinkClick}>
-                    <UserCheck />
-                    <span>Free Class</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </>
           )}
           <SidebarMenuItem>
@@ -199,16 +190,6 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          {isAdmin && (
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/performance')} tooltip="Performance">
-                <Link href="/dashboard/performance" onClick={onLinkClick}>
-                  <TrendingUp />
-                  <span>Performance</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          )}
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/leaderboard')} tooltip="Leaderboard">
               <Link href="/dashboard/leaderboard" onClick={onLinkClick}>
@@ -231,8 +212,7 @@ export function AppSidebar() {
                 <MessageCircleIcon />
                 <span>WhatsApp Support</span>
               </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+            </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
@@ -296,7 +276,7 @@ export function AppSidebar() {
           </AlertDialog>
         </div>
         <div className='p-4 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden'>
-          <p>&copy; {new Date().getFullYear()} Anjalkaran</p>
+          <p>&copy; {new Date().getFullYear()} Anjalkaran | v{process.env.APP_VERSION}</p>
         </div>
       </SidebarFooter>
     </Sidebar>

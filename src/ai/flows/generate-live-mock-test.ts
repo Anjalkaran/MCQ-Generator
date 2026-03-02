@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -64,7 +63,7 @@ const generateLiveMockTestFlow = ai.defineFlow(
     try {
         parsedData = JSON.parse(questionPaper.content);
     } catch (error) {
-        throw new Error(`The question paper format is invalid.`);
+        throw new Error(`The question paper format is invalid JSON.`);
     }
 
     if (!parsedData.questions || !Array.isArray(parsedData.questions)) {
@@ -95,6 +94,9 @@ const generateLiveMockTestFlow = ai.defineFlow(
     });
 
     const finalMCQs = processedQuestions;
+    if (finalMCQs.length === 0) {
+        throw new Error("No questions found in this paper.");
+    }
     
     const blueprint = blueprintMap[input.examCategory];
     const quizId = `weekly-test-${Date.now()}`;
@@ -105,16 +107,16 @@ const generateLiveMockTestFlow = ai.defineFlow(
         isMockTest: true,
         examCategory: input.examCategory,
         language: input.language,
+        questionPaperId: input.questionPaperId,
         topic: {
             id: quizId,
             title: input.testTitle,
-            description: `Permanent weekly mock test.`,
+            description: `A full mock test.`,
             icon: 'scroll-text',
             categoryId: 'weekly-test',
         },
     };
 
-    // Only add IDs if they are defined to avoid Firestore 'undefined' value errors
     if (input.liveTestId) quizData.liveTestId = input.liveTestId;
     if (input.weeklyTestId) quizData.weeklyTestId = input.weeklyTestId;
 

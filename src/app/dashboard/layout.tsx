@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -7,9 +6,6 @@ import {
   SidebarTrigger 
 } from '@/components/ui/sidebar';
 import { Loader2 } from 'lucide-react';
-import { 
-  updateUserDocument 
-} from '@/lib/firestore';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { AdminNotifications } from '@/components/dashboard/admin-notifications';
@@ -17,6 +13,8 @@ import { DashboardProvider, useDashboard } from '@/context/dashboard-context';
 import { AppSidebar } from '@/components/dashboard/app-sidebar';
 import { ProfileUpdateDialog, NewContentPopup } from '@/components/dashboard/layout-modals';
 import type { VideoClass, StudyMaterial } from '@/lib/types';
+import { doc, updateDoc } from 'firebase/firestore';
+import { getFirebaseDb } from '@/lib/firebase';
 
 // Re-export useDashboard for backward compatibility
 export { useDashboard } from '@/context/dashboard-context';
@@ -59,12 +57,27 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       }
       
       // Logic for mandatory profile update
-      if (!ADMIN_EMAILS.includes(userData.email) && (!userData.employeeId || userData.employeeId.length !== 8 || !userData.phone)) {
+      const isAdmin = ADMIN_EMAILS.includes(userData.email);
+      if (!isAdmin && (!userData.employeeId || userData.employeeId.length !== 8 || !userData.phone)) {
         setProfileUpdateDefaults({ employeeId: userData.employeeId || '', mobileNumber: userData.phone || '' });
         setShowProfileUpdateModal(true);
       }
     }
   }, [isLoading, userData, user, videoClasses, studyMaterials]);
+
+  const handleProfileUpdate = async (values: { employeeId: string, mobileNumber: string }) => {
+    if (!user) return;
+    const db = getFirebaseDb();
+    if (!db) return;
+    
+    await updateDoc(doc(db, 'users', user.uid), { 
+        employeeId: values.employeeId, 
+        phone: values.mobileNumber 
+    }); 
+    
+    setUserData(p => p ? { ...p, ...values, phone: values.mobileNumber } : null); 
+    setShowProfileUpdateModal(false); 
+  };
 
   if (isLoading) {
     return (
@@ -76,6 +89,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
+
+  const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
 
   return (
     <div className="flex min-h-svh flex-col md:flex-row overflow-hidden">
@@ -89,17 +104,13 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             <div className="relative flex-1 flex items-center gap-2">
               <SidebarTrigger className="hidden sm:inline-flex" />
             </div>
-            {userData && ADMIN_EMAILS.includes(userData.email) && <AdminNotifications initialNotifications={notifications} />}
+            {isAdmin && <AdminNotifications initialNotifications={notifications} />}
           </header>
           <div className="p-4 md:p-6 flex-1 overflow-auto min-h-0">
             {showProfileUpdateModal && (
               <ProfileUpdateDialog 
                 open={showProfileUpdateModal} 
-                onUpdateSubmit={async (v) => { 
-                  await updateUserDocument(user!.uid, { employeeId: v.employeeId, phone: v.mobileNumber }); 
-                  setUserData(p => p ? { ...p, ...v, phone: v.mobileNumber } : null); 
-                  setShowProfileUpdateModal(false); 
-                }} 
+                onUpdateSubmit={handleProfileUpdate} 
                 defaultValues={profileUpdateDefaults} 
               />
             )}

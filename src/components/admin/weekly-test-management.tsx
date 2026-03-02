@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
@@ -42,9 +42,9 @@ const mcqSchema = z.object({
     solution: z.string().optional(),
     topic: z.string().optional(),
     translations: z.record(z.object({
-        question: z.string(),
-        options: z.array(z.string()),
-        correctAnswer: z.string(),
+        question: z.string().optional(),
+        options: z.array(z.string()).optional(),
+        correctAnswer: z.string().optional(),
         solution: z.string().optional(),
     })).optional(),
 });
@@ -616,7 +616,9 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                 </ScrollArea>
 
                 <DialogFooter className="pt-4">
-                    <Button variant="outline" onClick={() => setEditingQuestionIndex(null)}>Cancel</Button>
+                    <DialogClose asChild>
+                        <Button variant="outline">Cancel</Button>
+                    </DialogClose>
                     <Button onClick={editQuestionForm.handleSubmit(onEditQuestionSubmit)}>Apply Changes</Button>
                 </DialogFooter>
             </DialogContent>
