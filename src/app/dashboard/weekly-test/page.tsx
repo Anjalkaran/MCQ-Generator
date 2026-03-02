@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useDashboard } from "@/app/dashboard/layout";
@@ -104,9 +103,8 @@ export default function WeeklyTestPage() {
         return <div className="flex h-[50vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
     }
 
-    const filteredTests = weeklyTests.filter(t => 
-        t.examCategories?.includes(userData?.examCategory as any) || t.examCategories?.includes('All')
-    );
+    // The context now provides tests correctly filtered for the current userData.examCategory
+    const filteredTests = weeklyTests;
 
     return (
         <div className="space-y-6">

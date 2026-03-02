@@ -41,10 +41,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { 
-  getDashboardData, 
   updateUserDocument, 
   hasUserSubmittedFeedback, 
-  getOnlineUsers as fetchOnlineUsers 
+  getOnlineUsers as fetchOnlineUsers,
+  getDashboardData
 } from '@/lib/firestore';
 import type { UserData, Category, Topic, Notification, VideoClass, StudyMaterial, WeeklyTest } from "@/lib/types";
 import { ADMIN_EMAILS } from '@/lib/constants';
@@ -243,7 +243,6 @@ function AppSidebar() {
   }, [router, toast]);
 
   const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
-  const isIPUser = userData?.examCategory === 'IP';
   
   const uniqueOnlineUsers = useMemo(() => {
     return Array.from(new Map(onlineUsers.map(u => [u.uid, u])).values());
@@ -308,42 +307,38 @@ function AppSidebar() {
               </SidebarMenuItem>
             </>
           )}
-          {!isIPUser && (
-            <>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/weekly-test')} tooltip="Weekly Test">
-                  <Link href="/dashboard/weekly-test" onClick={onLinkClick}>
-                    <CalendarCheck />
-                    <span>Weekly Test</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/online-test')} tooltip="Practice Exams">
-                  <Link href="/dashboard/online-test" onClick={onLinkClick}>
-                    <PenSquare />
-                    <span>Practice Exams</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/video-classes')} tooltip="Video Classes">
-                  <Link href="/dashboard/video-classes" onClick={onLinkClick}>
-                    <Video />
-                    <span>Video Classes</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/study-material')} tooltip="Study Material">
-                  <Link href="/dashboard/study-material" onClick={onLinkClick}>
-                    <Library />
-                    <span>Study Material</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </>
-          )}
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/weekly-test')} tooltip="Weekly Test">
+              <Link href="/dashboard/weekly-test" onClick={onLinkClick}>
+                <CalendarCheck />
+                <span>Weekly Test</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/online-test')} tooltip="Practice Exams">
+              <Link href="/dashboard/online-test" onClick={onLinkClick}>
+                <PenSquare />
+                <span>Practice Exams</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/video-classes')} tooltip="Video Classes">
+              <Link href="/dashboard/video-classes" onClick={onLinkClick}>
+                <Video />
+                <span>Video Classes</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/study-material')} tooltip="Study Material">
+              <Link href="/dashboard/study-material" onClick={onLinkClick}>
+                <Library />
+                <span>Study Material</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/dashboard/profile'} tooltip="Profile">
               <Link href="/dashboard/profile" onClick={onLinkClick}>
@@ -467,14 +462,13 @@ function AppSidebar() {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [topics, setTopics] = useState<Topic[]>([]);
-  const [videoClasses, setVideoClasses] = useState<VideoClass[]>([]);
-  const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
-  const [weeklyTests, setWeeklyTests] = useState<WeeklyTest[]>([]);
+  const [rawCategories, setRawCategories] = useState<Category[]>([]);
+  const [rawTopics, setRawTopics] = useState<Topic[]>([]);
+  const [rawVideoClasses, setRawVideoClasses] = useState<VideoClass[]>([]);
+  const [rawStudyMaterials, setRawStudyMaterials] = useState<StudyMaterial[]>([]);
+  const [rawWeeklyTests, setRawWeeklyTests] = useState<WeeklyTest[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -509,11 +503,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           }
           
           setUserData(data.userData);
-          setCategories(data.categories || []);
-          setTopics(data.topics || []);
-          setVideoClasses(data.videoClasses || []);
-          setStudyMaterials(data.studyMaterials || []);
-          setWeeklyTests(data.weeklyTests || []);
+          setRawCategories(data.categories || []);
+          setRawTopics(data.topics || []);
+          setRawVideoClasses(data.videoClasses || []);
+          setRawStudyMaterials(data.studyMaterials || []);
+          setRawWeeklyTests(data.weeklyTests || []);
           setNotifications(data.notifications || []);
           setHasGivenFeedback(feedbackStatus);
 
@@ -582,20 +576,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [userData?.email]);
 
+  const filteredContent = useMemo(() => {
+    if (!userData) return { categories: [], topics: [], videoClasses: [], studyMaterials: [], weeklyTests: [] };
+    
+    const cat = userData.examCategory;
+    
+    const categories = rawCategories.filter(c => c.examCategories?.includes(cat) || c.examCategories?.includes('All'));
+    const topics = rawTopics.filter(t => t.examCategories?.includes(cat) || t.examCategories?.includes('All'));
+    const videoClasses = rawVideoClasses.filter(v => v.examCategories?.includes(cat) || v.examCategories?.includes('All'));
+    const weeklyTests = rawWeeklyTests.filter(t => t.examCategories?.includes(cat) || t.examCategories?.includes('All'));
+    
+    const activeTopicIds = new Set(topics.map(t => t.id));
+    const studyMaterials = rawStudyMaterials.filter(m => activeTopicIds.has(m.topicId));
+
+    return { categories, topics, videoClasses, studyMaterials, weeklyTests };
+  }, [userData?.examCategory, rawCategories, rawTopics, rawVideoClasses, rawStudyMaterials, rawWeeklyTests]);
+
   const contextValue = useMemo(() => ({ 
     user, 
     userData, 
-    categories, 
-    topics, 
-    videoClasses, 
-    studyMaterials, 
-    weeklyTests, 
+    ...filteredContent,
     notifications, 
     onlineUsers, 
     isLoading, 
     setUserData, 
     hasGivenFeedback 
-  }), [user, userData, categories, topics, videoClasses, studyMaterials, weeklyTests, notifications, onlineUsers, isLoading, hasGivenFeedback]);
+  }), [user, userData, filteredContent, notifications, onlineUsers, isLoading, hasGivenFeedback]);
 
   return (
     <DashboardContext.Provider value={contextValue}>
@@ -637,7 +643,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         setShowNewContentPopup(false); 
                         localStorage.setItem('lastSeenUpdateTimestamp', String(Date.now())); 
                       }} 
-                      topics={topics} 
+                      topics={rawTopics} 
                     />
                   )}
                   {children}

@@ -770,7 +770,7 @@ export const getFreeClassRegistrations = async (): Promise<any[]> => {
 };
 
 // CONSOLIDATED DASHBOARD DATA FETCHING
-export const getDashboardData = async (userId: string, isForAdmin: boolean = false) => {
+export const getDashboardData = async (userId: string) => {
     const db = getFirebaseDb();
     if (!db) return { userData: null, categories: [], topics: [], videoClasses: [], studyMaterials: [], notifications: [], weeklyTests: [] };
 
@@ -782,7 +782,7 @@ export const getDashboardData = async (userId: string, isForAdmin: boolean = fal
     const isAdmin = ADMIN_EMAILS.includes(userData.email);
     const notificationsPromise = isAdmin ? getAdminNotifications() : Promise.resolve([]);
 
-    const [allCategories, allTopics, allVideoClasses, allStudyMaterials, notifications, weeklyTests] = await Promise.all([
+    const [categories, topics, videoClasses, studyMaterials, notifications, weeklyTests] = await Promise.all([
         getCategories(), 
         getTopics(), 
         getVideoClasses(), 
@@ -791,35 +791,17 @@ export const getDashboardData = async (userId: string, isForAdmin: boolean = fal
         getWeeklyTests()
     ]);
 
-    if (isAdmin && isForAdmin) {
-        return { 
-            userData, 
-            categories: allCategories, 
-            topics: allTopics, 
-            videoClasses: allVideoClasses, 
-            studyMaterials: allStudyMaterials, 
-            notifications,
-            weeklyTests,
-            bankedQuestions: await getQuestionBankDocuments(),
-            topicMCQs: await getTopicMCQs(),
-            liveTestBank: await getLiveTestBankDocuments(),
-            qnaUsage: await getQnAUsage(),
-            freeClassRegistrations: await getFreeClassRegistrations()
-        };
-    }
-
-    const userExamCategory = userData.examCategory;
-    const userCategories = allCategories.filter(c => c.examCategories && c.examCategories.includes(userExamCategory));
-    const userTopics = allTopics.filter(t => t.examCategories && t.examCategories.includes(userExamCategory));
-    const userVideoClasses = allVideoClasses.filter(vc => vc.examCategories && vc.examCategories.includes(userExamCategory));
-    const userTopicIds = new Set(userTopics.map(t => t.id));
-    const userStudyMaterials = allStudyMaterials.filter(sm => userTopicIds.has(sm.topicId));
-    
-    const userWeeklyTests = weeklyTests.filter(t => 
-        t.examCategories && (t.examCategories.includes(userExamCategory) || t.examCategories.includes('All'))
-    );
-
-    return { userData, categories: userCategories, topics: userTopics, videoClasses: userVideoClasses, studyMaterials: userStudyMaterials, notifications, weeklyTests: userWeeklyTests };
+    // Return ALL data. Filtering will happen in the DashboardLayout context provider
+    // to support the dynamic "View As" functionality for admins and reactivity.
+    return { 
+        userData, 
+        categories, 
+        topics, 
+        videoClasses, 
+        studyMaterials, 
+        notifications, 
+        weeklyTests 
+    };
 };
 
 // ANALYTICS
