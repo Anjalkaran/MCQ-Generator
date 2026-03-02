@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -159,21 +158,26 @@ const generateMCQsFlow = ai.defineFlow(
         }
         
         const processedQuestions = unansweredQuestions.map(mcq => {
+            const base = {
+                ...mcq,
+                topic: mcq.topic || input.topic,
+                solution: mcq.solution || "",
+            };
+
             if (input.language && input.language !== 'English') {
                 const langKey = languageMap[input.language.toLowerCase()];
                 if (langKey && mcq.translations?.[langKey]) {
                     const translated = mcq.translations[langKey];
                     return {
-                        ...mcq,
-                        ...translated,
-                        question: translated.question,
-                        options: translated.options,
-                        correctAnswer: translated.correctAnswer,
-                        solution: translated.solution,
+                        ...base,
+                        question: translated.question || base.question,
+                        options: translated.options || base.options,
+                        correctAnswer: translated.correctAnswer || base.correctAnswer,
+                        solution: translated.solution || base.solution,
                     };
                 }
             }
-            return mcq; // Return the original English MCQ
+            return base;
         });
 
         finalMCQs = shuffleArray(processedQuestions).slice(0, input.numberOfQuestions);
@@ -256,9 +260,15 @@ const generateMCQsFlow = ai.defineFlow(
             title: input.topic,
             description: 'A custom generated exam.',
             icon: 'file-text',
-            categoryId: input.category,
+            categoryId: input.category || "uncategorized",
         },
-        mcqs: finalMCQs,
+        mcqs: finalMCQs.map(m => ({
+            question: m.question,
+            options: m.options,
+            correctAnswer: m.correctAnswer,
+            topic: m.topic || input.topic,
+            solution: m.solution || ""
+        })),
         timeLimit,
         language: input.language,
     };

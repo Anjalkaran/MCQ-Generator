@@ -8,11 +8,11 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT, IP_BLUEPRINT } from '@/lib/exam-blueprints';
 import type { MCQ, Topic } from '@/lib/types';
-import { getShuffledMCQsForTopics, getTopics, updateTopicMCQWithTranslation, getTopicMCQs, getReasoningQuestions } from '@/lib/firestore';
+import { getTopics, getTopicMCQs, getReasoningQuestions } from '@/lib/firestore';
 import { generate } from '@genkit-ai/ai';
 import { gemini15Flash } from '@genkit-ai/googleai';
 import { getFirebaseDb } from '@/lib/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const GenerateMockTestInputSchema = z.object({
   examCategory: z.string().describe('The exam category (e.g., MTS, POSTMAN, PA).'),
@@ -40,7 +40,7 @@ const translateMCQBatch = async (mcqs: MCQ[], targetLanguage: string): Promise<M
     
     const prompt = `Translate the following list of MCQ objects to ${targetLanguage}.
       
-      **CRITICAL RULE:** Keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", etc. Translate only the descriptive text around them.
+      **CRITICAL RULE:** Keep all technical postal terms, scheme names, and abbreviations in English. Do NOT translate words like "Post Office", "Savings Bank", "Recurring Deposit (RD)", "PLI", "Postman", "Transit Mail Office", "Head Office", "Sub Office", etc. Translate only the descriptive text around them.
       
       **SOURCE MCQs JSON:**
       ${JSON.stringify(mcqs)}
@@ -58,10 +58,10 @@ const translateMCQBatch = async (mcqs: MCQ[], targetLanguage: string): Promise<M
         });
         
         const output = result.json();
-        return output?.translatedMcqs || mcqs;
+        return (output?.translatedMcqs || mcqs).map(m => ({ ...m, solution: m.solution || "" }));
     } catch (error) {
         console.error("Batch translation failed, returning originals:", error);
-        return mcqs;
+        return mcqs.map(m => ({ ...m, solution: m.solution || "" }));
     }
 }
 
@@ -128,8 +128,8 @@ const generateMockTestFlow = ai.defineFlow(
                     question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
                     options: q.options,
                     correctAnswer: q.correctAnswer,
-                    solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : undefined),
-                    topic: q.topic,
+                    solution: q.solutionText || (q.solutionImage ? `<img src="${q.solutionImage}" alt="Solution Image" class="mt-2 rounded-md max-h-60 mx-auto" />` : ""),
+                    topic: q.topic || "Reasoning",
                 }));
                 allQuestions.push(...formatted);
             }
@@ -153,8 +153,6 @@ const generateMockTestFlow = ai.defineFlow(
             randomFromRequest = { topics: topicIds, questions: section.randomFrom.questions };
         }
         
-        // This helper function needs to be available in firestore.ts or logic implemented here.
-        // For brevity, assuming a simple shuffle and pick for now if specific helper is unavailable.
         const filteredForSection = allMcqsForCategory.filter(m => {
             if (topicRequests.has(m.topicId)) return true;
             if (randomFromRequest?.topics.includes(m.topicId)) return true;
@@ -171,16 +169,16 @@ const generateMockTestFlow = ai.defineFlow(
 
     allQuestions.forEach((q, idx) => {
         if (targetLang === 'english' || !targetLangKey) {
-            finalProcessedQuestions[idx] = q;
+            finalProcessedQuestions[idx] = { ...q, topic: q.topic || "", solution: q.solution || "" };
         } else if ((q as any).translations && (q as any).translations[targetLangKey]) {
-            finalProcessedQuestions[idx] = { ...q, ...(q as any).translations[targetLangKey] };
+            const translated = (q as any).translations[targetLangKey];
+            finalProcessedQuestions[idx] = { ...q, ...translated, topic: q.topic || "", solution: translated.solution || q.solution || "" };
         } else {
             needTranslation.push({ mcq: q, index: idx });
         }
     });
 
     if (needTranslation.length > 0 && input.language && targetLang !== 'english') {
-        // Process in chunks of 15 to stay within token limits and reasonable response times
         const CHUNK_SIZE = 15;
         for (let i = 0; i < needTranslation.length; i += CHUNK_SIZE) {
             const chunk = needTranslation.slice(i, i + CHUNK_SIZE);
@@ -189,36 +187,43 @@ const generateMockTestFlow = ai.defineFlow(
             translatedChunk.forEach((translated, chunkIdx) => {
                 if (chunkIdx < chunk.length) {
                     const original = chunk[chunkIdx];
-                    finalProcessedQuestions[original.index] = translated;
-                    
-                    // Cache translation asynchronously if possible
-                    if (original.mcq.sourceDocId) {
-                        updateTopicMCQWithTranslation(original.mcq.sourceDocId, original.mcq.question, targetLangKey, translated).catch(() => {});
-                    }
+                    finalProcessedQuestions[original.index] = {
+                        ...translated,
+                        topic: original.mcq.topic || "",
+                        solution: translated.solution || ""
+                    };
                 }
             });
         }
     }
 
-    // Final pass to fill any holes (fallback to English)
+    // Final pass to fill any holes (fallback to English) and sanitize
     allQuestions.forEach((q, idx) => {
-        if (!finalProcessedQuestions[idx]) finalProcessedQuestions[idx] = q;
+        if (!finalProcessedQuestions[idx]) {
+            finalProcessedQuestions[idx] = { ...q, topic: q.topic || "", solution: q.solution || "" };
+        }
     });
 
     const quizData = {
-        mcqs: shuffleArray(finalProcessedQuestions.filter(Boolean)).map(m => ({ ...m, solution: m.solution || "" })),
-        timeLimit: blueprint.totalDurationMinutes * 60,
+        mcqs: shuffleArray(finalProcessedQuestions.filter(Boolean)).map(m => ({
+            question: m.question,
+            options: m.options,
+            correctAnswer: m.correctAnswer,
+            topic: m.topic || "",
+            solution: m.solution || ""
+        })),
+        timeLimit: (blueprint?.totalDurationMinutes || 60) * 60,
         isMockTest: true,
         language: input.language,
         examCategory: input.examCategory,
         topic: {
             id: `mock-test-${input.examCategory}-${Date.now()}`,
-            title: `${blueprint.examName} Mock Test`,
+            title: `${blueprint?.examName || input.examCategory} Mock Test`,
             description: `A full-length mock test based on the official ${input.examCategory} syllabus.`,
             icon: 'scroll-text',
             categoryId: 'mock-test',
         },
-        createdAt: new Date(),
+        createdAt: serverTimestamp(),
     };
     
     const db = getFirebaseDb();
@@ -228,9 +233,3 @@ const generateMockTestFlow = ai.defineFlow(
     return { quizId: docRef.id };
   }
 );
-
-// Stub for update function to ensure types are consistent
-async function updateTopicMCQWithTranslation(docId: string, question: string, langKey: string, translated: MCQ) {
-    // This function would ideally update the TopicMCQ document in Firestore
-    // For now, it's a stub to prevent errors.
-}

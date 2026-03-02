@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -15,7 +14,7 @@ import {z} from 'zod';
 import { getQuestionBankDocumentsByCategory, getUserData } from '@/lib/firestore';
 import type { MCQ } from '@/lib/types';
 import { getFirebaseDb } from '@/lib/firebase';
-import { addDoc, collection } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { MTS_BLUEPRINT, PA_BLUEPRINT, POSTMAN_BLUEPRINT } from '@/lib/exam-blueprints';
 
 const blueprintMap = {
@@ -104,18 +103,25 @@ const generateMockTestFromBankFlow = ai.defineFlow(
 
     const quizId = `mock-test-bank-${input.examCategory}-${Date.now()}`;
     const quizData = {
-        mcqs: finalMCQs,
-        timeLimit: blueprint.totalDurationMinutes * 60,
+        mcqs: finalMCQs.map(m => ({
+            question: m.question,
+            options: m.options,
+            correctAnswer: m.correctAnswer,
+            topic: m.topic || "",
+            solution: m.solution || ""
+        })),
+        timeLimit: Math.floor((blueprint?.totalDurationMinutes || 60) * 60),
         isMockTest: true,
         questionPaperId: selectedPaper.id, // Store the ID of the paper being used
         language: input.language,
         topic: {
             id: quizId,
-            title: `${blueprint.examName} Mock Test (Previous Year)`,
+            title: `${blueprint?.examName || input.examCategory} Mock Test (Previous Year)`,
             description: `A mock test from the question bank file: ${selectedPaper.fileName}.`,
             icon: 'scroll-text',
             categoryId: 'mock-test-bank',
         },
+        createdAt: serverTimestamp(),
     };
     
     const db = getFirebaseDb();

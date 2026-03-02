@@ -76,27 +76,28 @@ const generateLiveMockTestFlow = ai.defineFlow(
     const processedQuestions: MCQ[] = parsedData.questions
         .filter(q => q && q.question && q.options && Array.isArray(q.options))
         .map(q => {
-            if (langKey && q.translations?.[langKey]) {
-                const translated = q.translations[langKey];
-                return {
-                    question: translated.question || q.question,
-                    options: translated.options || q.options,
-                    correctAnswer: translated.correctAnswer || q.correctAnswer,
-                    solution: translated.solution || q.solution,
-                    topic: q.topic,
-                };
-            }
-            return {
+            const base = {
                 question: q.question,
                 options: q.options,
                 correctAnswer: q.correctAnswer,
-                topic: q.topic,
-                solution: q.solution,
+                topic: q.topic || "",
+                solution: q.solution || "",
             };
+
+            if (langKey && q.translations?.[langKey]) {
+                const translated = q.translations[langKey];
+                return {
+                    question: translated.question || base.question,
+                    options: translated.options || base.options,
+                    correctAnswer: translated.correctAnswer || base.correctAnswer,
+                    solution: translated.solution || base.solution,
+                    topic: base.topic,
+                };
+            }
+            return base;
         });
 
-    const finalMCQs = processedQuestions;
-    if (finalMCQs.length === 0) {
+    if (processedQuestions.length === 0) {
         throw new Error("No valid questions found in this paper.");
     }
     
@@ -104,8 +105,8 @@ const generateLiveMockTestFlow = ai.defineFlow(
     const quizId = `weekly-test-${Date.now()}`;
     
     const quizData: any = {
-        mcqs: finalMCQs,
-        timeLimit: (blueprint?.totalDurationMinutes || 60) * 60,
+        mcqs: processedQuestions,
+        timeLimit: Math.floor((blueprint?.totalDurationMinutes || 60) * 60),
         isMockTest: true,
         examCategory: input.examCategory,
         language: input.language,

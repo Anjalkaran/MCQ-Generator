@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -11,7 +10,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { getFirebaseDb } from '@/lib/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getExamHistoryForUser } from '@/lib/firestore';
 
 const GenerateKnowledgeMCQsInputSchema = z.object({
@@ -128,9 +127,16 @@ const generateKnowledgeMCQsFlow = ai.defineFlow(
         icon: 'globe',
         categoryId: 'general-knowledge',
       },
-      mcqs: output.mcqs,
+      mcqs: output.mcqs.map(m => ({
+          question: m.question,
+          options: m.options,
+          correctAnswer: m.correctAnswer,
+          topic: m.topic || input.topicName,
+          solution: m.solution || ""
+      })),
       timeLimit,
       language: input.language,
+      createdAt: serverTimestamp(),
     };
 
     const db = getFirebaseDb();
