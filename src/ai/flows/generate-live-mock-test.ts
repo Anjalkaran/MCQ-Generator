@@ -11,7 +11,7 @@ import type { MCQ } from '@/lib/types';
 import { getLiveTestQuestionPaper } from '@/lib/firestore';
 import { MTS_BLUEPRINT, PA_BLUEPRINT, POSTMAN_BLUEPRINT, IP_BLUEPRINT } from '@/lib/exam-blueprints';
 import { getFirebaseDb } from '@/lib/firebase';
-import { addDoc, collection } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 
 const blueprintMap = {
     MTS: MTS_BLUEPRINT,
@@ -73,32 +73,34 @@ const generateLiveMockTestFlow = ai.defineFlow(
     const langKey = languageMap[input.language.toLowerCase()];
     
     // Extract questions and apply translations if matching key is found
-    const processedQuestions: MCQ[] = parsedData.questions.map(q => {
-        if (langKey && q.translations?.[langKey]) {
-            const translated = q.translations[langKey];
+    const processedQuestions: MCQ[] = parsedData.questions
+        .filter(q => q && q.question && q.options && Array.isArray(q.options))
+        .map(q => {
+            if (langKey && q.translations?.[langKey]) {
+                const translated = q.translations[langKey];
+                return {
+                    question: translated.question || q.question,
+                    options: translated.options || q.options,
+                    correctAnswer: translated.correctAnswer || q.correctAnswer,
+                    solution: translated.solution || q.solution,
+                    topic: q.topic,
+                };
+            }
             return {
-                question: translated.question || q.question,
-                options: translated.options || q.options,
-                correctAnswer: translated.correctAnswer || q.correctAnswer,
-                solution: translated.solution || q.solution,
+                question: q.question,
+                options: q.options,
+                correctAnswer: q.correctAnswer,
                 topic: q.topic,
+                solution: q.solution,
             };
-        }
-        return {
-            question: q.question,
-            options: q.options,
-            correctAnswer: q.correctAnswer,
-            topic: q.topic,
-            solution: q.solution,
-        };
-    });
+        });
 
     const finalMCQs = processedQuestions;
     if (finalMCQs.length === 0) {
-        throw new Error("No questions found in this paper.");
+        throw new Error("No valid questions found in this paper.");
     }
     
-    const blueprint = blueprintMap[input.examCategory];
+    const blueprint = (blueprintMap as any)[input.examCategory];
     const quizId = `weekly-test-${Date.now()}`;
     
     const quizData: any = {
@@ -115,6 +117,7 @@ const generateLiveMockTestFlow = ai.defineFlow(
             icon: 'scroll-text',
             categoryId: 'weekly-test',
         },
+        createdAt: serverTimestamp(),
     };
 
     if (input.liveTestId) quizData.liveTestId = input.liveTestId;

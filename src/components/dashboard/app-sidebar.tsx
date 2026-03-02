@@ -19,7 +19,6 @@ import {
   History, 
   LogOut, 
   Shield, 
-  TrendingUp, 
   Trophy, 
   Users, 
   Star, 
@@ -27,8 +26,7 @@ import {
   Video, 
   Library, 
   MessageCircle as MessageCircleIcon, 
-  CalendarCheck, 
-  UserCheck 
+  CalendarCheck 
 } from 'lucide-react';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -131,16 +129,14 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           {isAdmin && (
-            <>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin">
-                  <Link href="/dashboard/admin" onClick={onLinkClick}>
-                    <Shield />
-                    <span>Admin Panel</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin">
+                <Link href="/dashboard/admin" onClick={onLinkClick}>
+                  <Shield />
+                  <span>Admin Panel</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           )}
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/weekly-test')} tooltip="Weekly Test">
@@ -212,7 +208,8 @@ export function AppSidebar() {
                 <MessageCircleIcon />
                 <span>WhatsApp Support</span>
               </a>
-            </SidebarMenuItem>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
@@ -276,7 +273,7 @@ export function AppSidebar() {
           </AlertDialog>
         </div>
         <div className='p-4 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden'>
-          <p>&copy; {new Date().getFullYear()} Anjalkaran | v{process.env.APP_VERSION}</p>
+          <p>&copy; {new Date().getFullYear()} Anjalkaran</p>
         </div>
       </SidebarFooter>
     </Sidebar>

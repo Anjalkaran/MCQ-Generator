@@ -1,17 +1,14 @@
-import { notFound } from "next/navigation";
 import { MCQClient } from "@/components/mcq/mcq-client";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 
-export default function MCQPage({
+export default async function MCQPage({
   params,
 }: {
-  params: { topicId: string };
+  params: Promise<{ topicId: string }>;
 }) {
-
-  // This page now relies on fetching the quiz data from Firestore
-  // using the quiz ID from the URL.
+  const { topicId } = await params;
 
   return (
     <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-6 bg-muted/40">
@@ -22,7 +19,7 @@ export default function MCQPage({
             Back to Dashboard
           </Link>
          </Button>
-        <MCQClient topicId={params.topicId} />
+        <MCQClient topicId={topicId} />
       </div>
     </main>
   );
