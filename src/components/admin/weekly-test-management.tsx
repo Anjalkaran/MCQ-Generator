@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Trash2, Search, Upload, FilePlus, List, Edit, Save, FileCode } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Search, Upload, FilePlus, List, Edit, Save, FileCode, ClipboardPaste } from 'lucide-react';
 import { deleteWeeklyTest, getLiveTestQuestionPaper, updateLiveTestBankDocument } from '@/lib/firestore';
 import type { BankedQuestion, WeeklyTest, MCQ } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -23,17 +23,22 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const categoriesList = ["MTS", "POSTMAN", "PA"] as const;
 
 const formSchema = z.object({
   title: z.string().min(3, "Title is required."),
   examCategories: z.array(z.string()).min(1, "Select at least one category."),
-  file: z.any().refine((files) => files?.length > 0, "At least one JSON question file is required.")
+  method: z.enum(["file", "paste"]).default("file"),
+  file: z.any().optional(),
+  pastedJson: z.string().optional()
 });
 
 const appendSchema = z.object({
-  file: z.any().refine((files) => files?.length > 0, "At least one JSON question file is required.")
+  method: z.enum(["file", "paste"]).default("file"),
+  file: z.any().optional(),
+  pastedJson: z.string().optional()
 });
 
 const mcqSchema = z.object({
@@ -72,11 +77,12 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { title: '', examCategories: [] }
+    defaultValues: { title: '', examCategories: [], method: 'file', pastedJson: '' }
   });
 
   const appendForm = useForm<z.infer<typeof appendSchema>>({
-    resolver: zodResolver(appendSchema)
+    resolver: zodResolver(appendSchema),
+    defaultValues: { method: 'file', pastedJson: '' }
   });
 
   const editQuestionForm = useForm<z.infer<typeof mcqSchema>>();
@@ -87,10 +93,30 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
     formData.append('title', values.title);
     values.examCategories.forEach(cat => formData.append('examCategories', cat));
     
-    if (values.file) {
+    if (values.method === 'file') {
+        if (!values.file || values.file.length === 0) {
+            toast({ title: "Error", description: "Please select a JSON file.", variant: "destructive" });
+            setIsLoading(false);
+            return;
+        }
         Array.from(values.file as FileList).forEach(file => {
             formData.append('file', file);
         });
+    } else {
+        if (!values.pastedJson || values.pastedJson.trim().length === 0) {
+            toast({ title: "Error", description: "Please paste the JSON content.", variant: "destructive" });
+            setIsLoading(false);
+            return;
+        }
+        try {
+            JSON.parse(values.pastedJson); // Validate JSON
+            const blob = new Blob([values.pastedJson], { type: 'application/json' });
+            formData.append('file', blob, 'pasted_questions.json');
+        } catch (e) {
+            toast({ title: "Invalid JSON", description: "The content you pasted is not a valid JSON. Please check the structure.", variant: "destructive" });
+            setIsLoading(false);
+            return;
+        }
     }
 
     try {
@@ -124,10 +150,31 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
 
     const formData = new FormData();
     formData.append('weeklyTestId', selectedTestToAppend.id);
-    if (values.file) {
+    
+    if (values.method === 'file') {
+        if (!values.file || values.file.length === 0) {
+            toast({ title: "Error", description: "Please select a JSON file.", variant: "destructive" });
+            setIsAppending(false);
+            return;
+        }
         Array.from(values.file as FileList).forEach(file => {
             formData.append('file', file);
         });
+    } else {
+        if (!values.pastedJson || values.pastedJson.trim().length === 0) {
+            toast({ title: "Error", description: "Please paste the JSON content.", variant: "destructive" });
+            setIsAppending(false);
+            return;
+        }
+        try {
+            JSON.parse(values.pastedJson);
+            const blob = new Blob([values.pastedJson], { type: 'application/json' });
+            formData.append('file', blob, 'appended_questions.json');
+        } catch (e) {
+            toast({ title: "Invalid JSON", description: "The pasted content is not valid JSON.", variant: "destructive" });
+            setIsAppending(false);
+            return;
+        }
     }
 
     try {
@@ -241,7 +288,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
             <Card className="lg:col-span-2">
                 <CardHeader>
                     <CardTitle>Add New Weekly Test</CardTitle>
-                    <CardDescription>Upload one or more JSON question papers. All questions will be combined into a single test.</CardDescription>
+                    <CardDescription>Upload a JSON question paper file or paste the JSON content directly.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
@@ -258,26 +305,59 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                         </FormItem>
                                     )}
                                 />
-                                <FormField
-                                    control={form.control}
-                                    name="file"
-                                    render={({ field: { onChange, value, ...rest } }) => (
-                                        <FormItem>
-                                            <FormLabel>Question Papers (JSON)</FormLabel>
-                                            <FormControl>
-                                                <Input 
-                                                    id="weekly-test-file"
-                                                    type="file" 
-                                                    accept=".json" 
-                                                    multiple
-                                                    onChange={(e) => onChange(e.target.files)}
-                                                    {...rest}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                                <div className="space-y-2">
+                                    <Label>Input Method</Label>
+                                    <Tabs value={form.watch('method')} onValueChange={(v) => form.setValue('method', v as any)}>
+                                        <TabsList className="grid w-full grid-cols-2">
+                                            <TabsTrigger value="file"><Upload className="mr-2 h-4 w-4" /> File</TabsTrigger>
+                                            <TabsTrigger value="paste"><ClipboardPaste className="mr-2 h-4 w-4" /> Paste</TabsTrigger>
+                                        </TabsList>
+                                    </Tabs>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                {form.watch('method') === 'file' ? (
+                                    <FormField
+                                        control={form.control}
+                                        name="file"
+                                        render={({ field: { onChange, value, ...rest } }) => (
+                                            <FormItem>
+                                                <FormLabel>Question Papers (JSON)</FormLabel>
+                                                <FormControl>
+                                                    <Input 
+                                                        id="weekly-test-file"
+                                                        type="file" 
+                                                        accept=".json" 
+                                                        multiple
+                                                        onChange={(e) => onChange(e.target.files)}
+                                                        {...rest}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                ) : (
+                                    <FormField
+                                        control={form.control}
+                                        name="pastedJson"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Paste JSON Content</FormLabel>
+                                                <FormControl>
+                                                    <Textarea 
+                                                        rows={8} 
+                                                        placeholder='{ "questions": [ ... ] }'
+                                                        className="font-mono text-xs"
+                                                        {...field} 
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
                             </div>
 
                             <FormField
@@ -409,7 +489,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                         <Button variant="ghost" size="icon" onClick={() => handleManageQuestions(t)} title="Edit Individual Questions">
                                             <List className="h-4 w-4 text-primary" />
                                         </Button>
-                                        <Button variant="ghost" size="icon" onClick={() => setSelectedTestToAppend(t)} title="Append JSON Files">
+                                        <Button variant="ghost" size="icon" onClick={() => setSelectedTestToAppend(t)} title="Append Questions">
                                             <FilePlus className="h-4 w-4 text-blue-600" />
                                         </Button>
                                         <AlertDialog>
@@ -438,37 +518,69 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
             </CardContent>
         </Card>
 
-        {/* APPEND JSON FILES DIALOG */}
+        {/* APPEND QUESTIONS DIALOG */}
         <Dialog open={!!selectedTestToAppend} onOpenChange={(open) => !open && setSelectedTestToAppend(null)}>
-            <DialogContent>
+            <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>Append JSON Questions</DialogTitle>
+                    <DialogTitle>Append Questions</DialogTitle>
                     <DialogDescription>
                         Add more questions to <strong>{selectedTestToAppend?.title}</strong>.
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...appendForm}>
                     <form onSubmit={appendForm.handleSubmit(onAppendSubmit)} className="space-y-4">
-                        <FormField
-                            control={appendForm.control}
-                            name="file"
-                            render={({ field: { onChange, value, ...rest } }) => (
-                                <FormItem>
-                                    <FormLabel>Select JSON Files</FormLabel>
-                                    <FormControl>
-                                        <Input 
-                                            id="weekly-test-file-append"
-                                            type="file" 
-                                            accept=".json" 
-                                            multiple
-                                            onChange={(e) => onChange(e.target.files)}
-                                            {...rest}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                        <div className="space-y-2">
+                            <Label>Input Method</Label>
+                            <Tabs value={appendForm.watch('method')} onValueChange={(v) => appendForm.setValue('method', v as any)}>
+                                <TabsList className="grid w-full grid-cols-2">
+                                    <TabsTrigger value="file"><Upload className="mr-2 h-4 w-4" /> File</TabsTrigger>
+                                    <TabsTrigger value="paste"><ClipboardPaste className="mr-2 h-4 w-4" /> Paste</TabsTrigger>
+                                </TabsList>
+                            </Tabs>
+                        </div>
+
+                        {appendForm.watch('method') === 'file' ? (
+                            <FormField
+                                control={appendForm.control}
+                                name="file"
+                                render={({ field: { onChange, value, ...rest } }) => (
+                                    <FormItem>
+                                        <FormLabel>Select JSON Files</FormLabel>
+                                        <FormControl>
+                                            <Input 
+                                                id="weekly-test-file-append"
+                                                type="file" 
+                                                accept=".json" 
+                                                multiple
+                                                onChange={(e) => onChange(e.target.files)}
+                                                {...rest}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        ) : (
+                            <FormField
+                                control={appendForm.control}
+                                name="pastedJson"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Paste JSON Content</FormLabel>
+                                        <FormControl>
+                                            <Textarea 
+                                                rows={10} 
+                                                placeholder='{ "questions": [ ... ] }'
+                                                className="font-mono text-xs"
+                                                {...field} 
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        )}
+
                         <DialogFooter>
                             <DialogClose asChild>
                                 <Button type="button" variant="outline">Cancel</Button>
@@ -617,7 +729,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                             <Input 
                                                 className="text-xs h-8"
                                                 defaultValue={editQuestionForm.watch(`translations.${lang}.question`)}
-                                                onChange={(e) => editQuestionForm.setValue(`translations.${lang}.question`, e.target.value)}
+                                                onChange={(e) => editQuestionForm.setValue(`translations.${lang}.question` as any, e.target.value)}
                                             />
                                         </div>
                                         <div className="grid grid-cols-2 gap-2">
@@ -626,11 +738,11 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                                     key={i}
                                                     className="text-[10px] h-7"
                                                     placeholder={`Option ${i+1}`}
-                                                    defaultValue={editQuestionForm.watch(`translations.${lang}.options.${i}`)}
+                                                    defaultValue={editQuestionForm.watch(`translations.${lang}.options.${i}` as any)}
                                                     onChange={(e) => {
-                                                        const current = editQuestionForm.getValues(`translations.${lang}.options`) || ['', '', '', ''];
+                                                        const current = editQuestionForm.getValues(`translations.${lang}.options` as any) || ['', '', '', ''];
                                                         current[i] = e.target.value;
-                                                        editQuestionForm.setValue(`translations.${lang}.options`, current);
+                                                        editQuestionForm.setValue(`translations.${lang}.options` as any, current);
                                                     }}
                                                 />
                                             ))}
@@ -639,8 +751,8 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                             <Label className="text-[10px]">Translated Correct Answer</Label>
                                             <Input 
                                                 className="text-xs h-8"
-                                                defaultValue={editQuestionForm.watch(`translations.${lang}.correctAnswer`)}
-                                                onChange={(e) => editQuestionForm.setValue(`translations.${lang}.correctAnswer`, e.target.value)}
+                                                defaultValue={editQuestionForm.watch(`translations.${lang}.correctAnswer` as any)}
+                                                onChange={(e) => editQuestionForm.setValue(`translations.${lang}.correctAnswer` as any, e.target.value)}
                                             />
                                         </div>
                                     </div>
