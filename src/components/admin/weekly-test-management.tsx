@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -10,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Trash2, Search, Upload, FilePlus, List, Edit, Save } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Search, Upload, FilePlus, List, Edit, Save, FileCode } from 'lucide-react';
 import { deleteWeeklyTest, getLiveTestQuestionPaper, updateLiveTestBankDocument } from '@/lib/firestore';
 import type { BankedQuestion, WeeklyTest, MCQ } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -61,7 +62,6 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTestToAppend, setSelectedTestToAppend] = useState<WeeklyTest | null>(null);
   
-  // Question Editing State
   const [managingTest, setManagingTest] = useState<WeeklyTest | null>(null);
   const [testQuestions, setQuestions] = useState<MCQ[]>([]);
   const [isQuestionsLoading, setIsQuestionsLoading] = useState(false);
@@ -237,104 +237,139 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
 
   return (
     <div className="space-y-6">
-        <Card>
-            <CardHeader>
-                <CardTitle>Add New Weekly Test</CardTitle>
-                <CardDescription>Upload one or more JSON question papers. All questions will be combined into a single test.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FormField
-                                control={form.control}
-                                name="title"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Test Title</FormLabel>
-                                        <FormControl><Input placeholder="e.g. Weekly Test 1" {...field} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="file"
-                                render={({ field: { onChange, value, ...rest } }) => (
-                                    <FormItem>
-                                        <FormLabel>Question Papers (JSON)</FormLabel>
-                                        <FormControl>
-                                            <Input 
-                                                id="weekly-test-file"
-                                                type="file" 
-                                                accept=".json" 
-                                                multiple
-                                                onChange={(e) => onChange(e.target.files)}
-                                                {...rest}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card className="lg:col-span-2">
+                <CardHeader>
+                    <CardTitle>Add New Weekly Test</CardTitle>
+                    <CardDescription>Upload one or more JSON question papers. All questions will be combined into a single test.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <FormField
+                                    control={form.control}
+                                    name="title"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Test Title</FormLabel>
+                                            <FormControl><Input placeholder="e.g. Weekly Test 1" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="file"
+                                    render={({ field: { onChange, value, ...rest } }) => (
+                                        <FormItem>
+                                            <FormLabel>Question Papers (JSON)</FormLabel>
+                                            <FormControl>
+                                                <Input 
+                                                    id="weekly-test-file"
+                                                    type="file" 
+                                                    accept=".json" 
+                                                    multiple
+                                                    onChange={(e) => onChange(e.target.files)}
+                                                    {...rest}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
 
-                        <FormField
-                            control={form.control}
-                            name="examCategories"
-                            render={() => (
-                                <FormItem>
-                                    <div className="mb-2">
-                                        <FormLabel>Target Exam Categories</FormLabel>
-                                    </div>
-                                    <div className="flex flex-wrap gap-6 p-4 border rounded-md bg-muted/20">
-                                        {categoriesList.map((item) => (
-                                            <FormField
-                                                key={item}
-                                                control={form.control}
-                                                name="examCategories"
-                                                render={({ field }) => {
-                                                    return (
-                                                        <FormItem
-                                                            key={item}
-                                                            className="flex flex-row items-center space-x-3 space-y-0"
-                                                        >
-                                                            <FormControl>
-                                                                <Checkbox
-                                                                    checked={field.value?.includes(item)}
-                                                                    onCheckedChange={(checked) => {
-                                                                        return checked
-                                                                            ? field.onChange([...(field.value || []), item])
-                                                                            : field.onChange(
-                                                                                field.value?.filter(
-                                                                                    (value: string) => value !== item
+                            <FormField
+                                control={form.control}
+                                name="examCategories"
+                                render={() => (
+                                    <FormItem>
+                                        <div className="mb-2">
+                                            <FormLabel>Target Exam Categories</FormLabel>
+                                        </div>
+                                        <div className="flex flex-wrap gap-6 p-4 border rounded-md bg-muted/20">
+                                            {categoriesList.map((item) => (
+                                                <FormField
+                                                    key={item}
+                                                    control={form.control}
+                                                    name="examCategories"
+                                                    render={({ field }) => {
+                                                        return (
+                                                            <FormItem
+                                                                key={item}
+                                                                className="flex flex-row items-center space-x-3 space-y-0"
+                                                            >
+                                                                <FormControl>
+                                                                    <Checkbox
+                                                                        checked={field.value?.includes(item)}
+                                                                        onCheckedChange={(checked) => {
+                                                                            return checked
+                                                                                ? field.onChange([...(field.value || []), item])
+                                                                                : field.onChange(
+                                                                                    field.value?.filter(
+                                                                                        (value: string) => value !== item
+                                                                                    )
                                                                                 )
-                                                                            )
-                                                                    }}
-                                                                />
-                                                            </FormControl>
-                                                            <FormLabel className="font-normal cursor-pointer">
-                                                                {item}
-                                                            </FormLabel>
-                                                        </FormItem>
-                                                    )
-                                                }}
-                                            />
-                                        ))}
-                                    </div>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                                                                        }}
+                                                                    />
+                                                                </FormControl>
+                                                                <FormLabel className="font-normal cursor-pointer">
+                                                                    {item}
+                                                                </FormLabel>
+                                                            </FormItem>
+                                                        )
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
 
-                        <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
-                            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                            Add Weekly Test
-                        </Button>
-                    </form>
-                </Form>
-            </CardContent>
-        </Card>
+                            <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
+                                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                                Add Weekly Test
+                            </Button>
+                        </form>
+                    </Form>
+                </CardContent>
+            </Card>
+
+            <Card className="border-blue-200 bg-blue-50/30">
+                <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                        <FileCode className="h-4 w-4 text-primary" /> Expected JSON Structure
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <pre className="text-[10px] leading-relaxed font-mono bg-background p-3 border rounded-md overflow-x-auto">
+{`{
+  "questions": [
+    {
+      "question": "Question text (HTML allowed)",
+      "options": ["A", "B", "C", "D"],
+      "correctAnswer": "A",
+      "solution": "Optional logic/steps",
+      "topic": "Topic Name",
+      "translations": {
+        "ta": { 
+          "question": "தமிழ்...", 
+          "options": [...], 
+          "correctAnswer": "..." 
+        }
+      }
+    }
+  ]
+}`}
+                    </pre>
+                    <p className="text-[10px] text-muted-foreground mt-3 leading-snug">
+                        * Supported translations keys: <strong>ta</strong> (Tamil), <strong>hi</strong> (Hindi), <strong>te</strong> (Telugu), <strong>kn</strong> (Kannada).
+                    </p>
+                </CardContent>
+            </Card>
+        </div>
 
         <Card>
             <CardHeader>
