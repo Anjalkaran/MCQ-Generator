@@ -130,7 +130,7 @@ function WeeklyTestLeaderboard({ pastLiveTests, initialTestId, availableCategori
         return pastLiveTests
             .filter(test => {
                 if (selectedCategory === 'All') return true;
-                return test.examCategories?.includes(selectedCategory) || test.examCategories?.includes('All');
+                return test.examCategories?.includes(selectedCategory);
             })
             .sort((a, b) => (normalizeDate(b.createdAt)?.getTime() ?? 0) - (normalizeDate(a.createdAt)?.getTime() ?? 0));
     }, [pastLiveTests, selectedCategory]);
@@ -222,8 +222,10 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
 
   const availableCategories = useMemo(() => {
     if (!userData) return [];
-    if (userData.email && ADMIN_EMAILS.includes(userData.email)) return ['MTS', 'POSTMAN', 'PA'] as ExamCategory[];
+    if (userData.email && ADMIN_EMAILS.includes(userData.email)) return ['MTS', 'POSTMAN', 'PA', 'IP'] as ExamCategory[];
     switch (userData.examCategory) {
+        case 'IP':
+            return ['IP'] as ExamCategory[];
         case 'PA':
             return ['PA', 'POSTMAN', 'MTS'] as ExamCategory[];
         case 'POSTMAN':
@@ -235,10 +237,10 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
     }
   }, [userData]);
   
-  const [selectedCategory, setSelectedCategory] = useState<ExamCategory>(userData?.examCategory === 'IP' ? 'PA' : (userData?.examCategory || 'MTS'));
+  const [selectedCategory, setSelectedCategory] = useState<ExamCategory>(userData?.examCategory || 'MTS');
   
   useEffect(() => {
-    if (userData?.examCategory && userData.examCategory !== 'IP') {
+    if (userData?.examCategory) {
         setSelectedCategory(userData.examCategory);
     }
   }, [userData]);
@@ -259,7 +261,7 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
           </CardHeader>
           <CardContent>
             <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} availableCategories={availableCategories} />
-            <LeaderboardTable data={initialTopicLeaderboards[selectedCategory]} />
+            <LeaderboardTable data={initialTopicLeaderboards[selectedCategory] || []} />
           </CardContent>
         </Card>
       </TabsContent>
@@ -271,7 +273,7 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
           </CardHeader>
           <CardContent>
              <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} availableCategories={availableCategories} />
-            <LeaderboardTable data={initialMockTestLeaderboards[selectedCategory]} />
+            <LeaderboardTable data={initialMockTestLeaderboards[selectedCategory] || []} />
           </CardContent>
         </Card>
       </TabsContent>
@@ -287,7 +289,7 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
                     pastLiveTests={pastLiveTests} 
                     initialTestId={liveTestIdFromUrl ?? undefined}
                     availableCategories={['All', ...availableCategories]}
-                    defaultCategory={userData?.examCategory === 'IP' ? 'PA' : (userData?.examCategory || 'MTS')}
+                    defaultCategory={userData?.examCategory || 'MTS'}
                 />
              ) : (
                 <div className="text-center text-muted-foreground py-10">

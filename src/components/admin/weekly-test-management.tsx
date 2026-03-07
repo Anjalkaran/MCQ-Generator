@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -25,7 +24,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const categoriesList = ["MTS", "POSTMAN", "PA"] as const;
+const categoriesList = ["MTS", "POSTMAN", "PA", "IP"] as const;
 
 const formSchema = z.object({
   title: z.string().min(3, "Title is required."),
@@ -728,7 +727,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                             <Label className="text-[10px]">Translated Question</Label>
                                             <Input 
                                                 className="text-xs h-8"
-                                                defaultValue={editQuestionForm.watch(`translations.${lang}.question`)}
+                                                defaultValue={editQuestionForm.watch(`translations.${lang}.question` as any)}
                                                 onChange={(e) => editQuestionForm.setValue(`translations.${lang}.question` as any, e.target.value)}
                                             />
                                         </div>

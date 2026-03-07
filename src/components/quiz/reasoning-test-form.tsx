@@ -1,29 +1,26 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, AlertTriangle, Gem } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { normalizeDate } from '@/lib/utils';
-import Link from 'next/link';
 import { useDashboard } from '@/app/dashboard/layout';
 import { getReasoningQuestions } from '@/lib/firestore';
 import type { ReasoningQuestion, MCQ } from '@/lib/types';
-import { ADMIN_EMAILS, FREE_EXAM_LIMIT } from '@/lib/constants';
+import { ADMIN_EMAILS } from '@/lib/constants';
 import { getFirebaseDb } from '@/lib/firebase';
-import { addDoc, collection } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 
 
-const examCategories = ["POSTMAN", "PA"] as const;
+const examCategories = ["POSTMAN", "PA", "IP"] as const;
 
 const formSchema = z.object({
   examType: z.enum(examCategories, {
@@ -36,11 +33,12 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 function shuffleArray<T>(array: T[]): T[] {
-  for (let i = array.length - 1; i > 0; i--) {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
   }
-  return array;
+  return newArray;
 }
 
 export function ReasoningTestForm() {
@@ -78,8 +76,10 @@ export function ReasoningTestForm() {
 
   const availableExams = useMemo(() => {
     if (!userData) return [];
-    if (userData.email && ADMIN_EMAILS.includes(userData.email)) return ["POSTMAN", "PA"];
+    if (userData.email && ADMIN_EMAILS.includes(userData.email)) return ["POSTMAN", "PA", "IP"];
     switch (userData.examCategory) {
+        case 'IP':
+            return ['IP'];
         case 'PA':
             return ['PA', 'POSTMAN'];
         case 'POSTMAN':
@@ -98,7 +98,7 @@ export function ReasoningTestForm() {
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
     if (!user || !userData) {
-      toast({ title: 'Not Authenticated', description: 'You must be logged in.', variant: 'destructive' });
+      toast({ title: 'Not Authenticated', description: 'You must be logged in to create a quiz.', variant: 'destructive' });
       setIsGenerating(false);
       return;
     }
@@ -132,7 +132,8 @@ export function ReasoningTestForm() {
       const quizData = {
         mcqs: mcqs,
         timeLimit: timeLimit,
-        isMockTest: true, // Treat as mock to show topic breakdown in results
+        isMockTest: true, 
+        createdAt: serverTimestamp(),
         topic: {
           id: quizId,
           title: `${values.topic} Test`,
@@ -155,10 +156,6 @@ export function ReasoningTestForm() {
       setIsGenerating(false);
     }
   };
-  
-  const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
-  const proValidUntilDate = normalizeDate(userData?.proValidUntil);
-  const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date()) || isAdmin;
   
   return (
      <Card>

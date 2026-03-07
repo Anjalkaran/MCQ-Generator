@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -25,7 +24,7 @@ import { Timestamp } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-const examCategories = ["MTS", "POSTMAN", "PA"] as const;
+const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
 
 const uploadSchema = z.object({
   examCategory: z.enum(examCategories),
@@ -86,7 +85,7 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
         scheduleForm.reset({
             title: editingTest.title,
             questionPaperId: editingTest.questionPaperId,
-            examCategory: editingTest.examCategory,
+            examCategory: editingTest.examCategory as any,
             price: editingTest.price,
             startTime: normalizeDate(editingTest.startTime)!,
             endTime: normalizeDate(editingTest.endTime)!,

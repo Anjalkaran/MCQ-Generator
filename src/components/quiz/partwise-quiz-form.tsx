@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -30,8 +29,8 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
-const parts = ["Part A", "Part B"] as const;
-const examCategories = ["MTS", "POSTMAN", "PA"] as const;
+const parts = ["Part A", "Part B", "Paper-I", "Paper-III"] as const;
+const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
 
 export function PartwiseQuizForm() {
   const router = useRouter();
@@ -53,6 +52,8 @@ export function PartwiseQuizForm() {
     if (!userData) return [];
     if (userData.email && ADMIN_EMAILS.includes(userData.email)) return examCategories;
     switch (userData.examCategory) {
+        case 'IP':
+            return ['IP'];
         case 'PA':
             return ['PA', 'POSTMAN', 'MTS'];
         case 'POSTMAN':
@@ -65,14 +66,16 @@ export function PartwiseQuizForm() {
   }, [userData]);
 
   useEffect(() => {
-    if (userData?.examCategory === 'MTS') {
-        form.setValue('examType', 'MTS');
+    if (userData?.examCategory) {
+        form.setValue('examType', userData.examCategory);
     } else {
         form.setValue('examType', '');
     }
   }, [userData?.examCategory, form]);
 
   const selectedExamType = form.watch('examType');
+  const isIPUser = selectedExamType === 'IP';
+  const availableParts = isIPUser ? ["Paper-I", "Paper-III"] : ["Part A", "Part B"];
 
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
@@ -86,7 +89,7 @@ export function PartwiseQuizForm() {
     try {
       const { mcqs } = await generatePartwiseMCQs({
           examCategory: values.examType,
-          part: values.part as 'Part A' | 'Part B',
+          part: values.part as any,
           numberOfQuestions: values.numberOfQuestions,
           userId: user.uid,
           language: values.language,
@@ -193,15 +196,15 @@ export function PartwiseQuizForm() {
                     name="part"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Part</FormLabel>
+                        <FormLabel>{isIPUser ? 'Paper' : 'Part'}</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value} disabled={!selectedExamType}>
                             <FormControl>
                             <SelectTrigger>
-                                <SelectValue placeholder={!selectedExamType ? "Select an exam first" : "Select a part"} />
+                                <SelectValue placeholder={!selectedExamType ? "Select an exam first" : (isIPUser ? "Select a paper" : "Select a part")} />
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                            {parts.map((part) => (
+                            {availableParts.map((part) => (
                                 <SelectItem key={part} value={part}>
                                 {part}
                                 </SelectItem>

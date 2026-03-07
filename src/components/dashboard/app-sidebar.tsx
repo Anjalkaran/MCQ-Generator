@@ -116,6 +116,7 @@ export function AppSidebar() {
                   <SelectItem value="MTS">MTS User</SelectItem>
                   <SelectItem value="POSTMAN">Postman User</SelectItem>
                   <SelectItem value="PA">PA User</SelectItem>
+                  <SelectItem value="IP">IP User</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -253,10 +254,10 @@ export function AppSidebar() {
         )}
         <div className="p-2">
           <AlertDialog open={isLogoutAlertOpen} onOpenChange={setIsLogoutAlertOpen}>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => hasGivenFeedback ? handleLogout() : setIsLogoutAlertOpen(true)}>
+            <SidebarMenuButton onClick={() => hasGivenFeedback ? handleLogout() : setIsLogoutAlertOpen(true)}>
               <LogOut className="mr-2 h-4 w-4" />
-              <span className="group-data-[collapsible=icon]:hidden">Logout</span>
-            </Button>
+              <span>Logout</span>
+            </SidebarMenuButton>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Log out?</AlertDialogTitle>
