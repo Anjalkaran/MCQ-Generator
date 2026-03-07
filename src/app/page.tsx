@@ -15,7 +15,7 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-muted/40">
       <MainHeader />
       <main className="flex-1">
-        <section className="w-full py-12 md:py-24 lg:py-32">
+        <section className="w-full py-8 md:py-16 lg:py-20">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center space-y-4 text-center">
               <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none">
@@ -32,11 +32,11 @@ export default function Home() {
             </div>
           </div>
         </section>
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
+        <section className="w-full py-8 md:py-16 lg:py-20 bg-background">
           <div className="container px-4 md:px-6">
-             <div className="flex flex-col items-center space-y-4 text-center mb-12">
+             <div className="flex flex-col items-center space-y-2 text-center mb-10">
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">Features</h2>
-                <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl">
+                <p className="mx-auto max-w-[700px] text-muted-foreground md:text-lg">
                     Everything you need to ace the exam.
                 </p>
             </div>
