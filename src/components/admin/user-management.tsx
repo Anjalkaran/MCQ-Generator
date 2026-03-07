@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Trash2, Edit, Eye, PlusCircle, Gem, Search, Calendar as CalendarIcon, RefreshCcw } from 'lucide-react';
+import { Loader2, Trash2, Edit, Eye, PlusCircle, Gem, Search, Calendar as CalendarIcon, RefreshCcw, Users as UsersIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { deleteUserDocument, updateUserDocument, createUserDocument, resetAllUsersToFree } from '@/lib/firestore';
 import { getFirebaseAuth } from '@/lib/firebase';
@@ -98,6 +98,14 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     });
     setUsers(sortedUsers);
   }, [initialUsers]);
+
+  const grandTotals = useMemo(() => {
+    return {
+      all: users.length,
+      pro: users.filter(u => u.isPro).length,
+      free: users.filter(u => !u.isPro).length,
+    };
+  }, [users]);
 
   const uniqueCities = useMemo(() => {
     const cityMap = new Map<string, string>();
@@ -298,8 +306,11 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     <CardHeader>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-                <CardTitle>Users</CardTitle>
-                <CardDescription>A list of all registered users in the system.</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                    <UsersIcon className="h-5 w-5 text-primary" />
+                    User Management
+                </CardTitle>
+                <CardDescription>View, manage and audit all registered students in the academy.</CardDescription>
             </div>
             <div className="flex items-center gap-2">
                 <AlertDialog>
@@ -449,7 +460,23 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                 </Dialog>
             </div>
         </div>
-        <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
+        
+        <div className="grid grid-cols-3 gap-4 pt-6">
+            <div className="bg-muted/50 p-3 rounded-lg border text-center">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Total Users</p>
+                <p className="text-2xl font-bold">{grandTotals.all}</p>
+            </div>
+            <div className="bg-green-50 dark:bg-green-900/10 p-3 rounded-lg border border-green-100 dark:border-green-900/30 text-center">
+                <p className="text-xs text-green-600 dark:text-green-400 font-medium uppercase tracking-wider">Pro Users</p>
+                <p className="text-2xl font-bold text-green-700 dark:text-green-300">{grandTotals.pro}</p>
+            </div>
+            <div className="bg-orange-50 dark:bg-orange-900/10 p-3 rounded-lg border border-orange-100 dark:border-orange-900/30 text-center">
+                <p className="text-xs text-orange-600 dark:text-orange-400 font-medium uppercase tracking-wider">Free Users</p>
+                <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">{grandTotals.free}</p>
+            </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-4 pt-6">
             <div className="relative w-full sm:w-auto flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -462,7 +489,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
             </div>
              <Tabs value={filter} onValueChange={setFilter} className="w-full sm:w-auto">
                 <TabsList>
-                    <TabsTrigger value="all">All ({filteredCounts.all})</TabsTrigger>
+                    <TabsTrigger value="all">Current View ({filteredCounts.all})</TabsTrigger>
                     <TabsTrigger value="pro">Pro ({filteredCounts.pro})</TabsTrigger>
                     <TabsTrigger value="free">Free ({filteredCounts.free})</TabsTrigger>
                 </TabsList>
@@ -470,10 +497,10 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
              <div className="w-full sm:w-auto">
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                     <SelectTrigger className="w-full sm:w-[180px]">
-                        <SelectValue placeholder="Filter by category" />
+                        <SelectValue placeholder="Course Filter" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All Categories</SelectItem>
+                        <SelectItem value="all">All Courses</SelectItem>
                         <SelectItem value="MTS">MTS</SelectItem>
                         <SelectItem value="POSTMAN">POSTMAN</SelectItem>
                         <SelectItem value="PA">PA</SelectItem>
@@ -484,7 +511,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
              <div className="w-full sm:w-auto">
                 <Select value={cityFilter} onValueChange={setCityFilter}>
                     <SelectTrigger className="w-full sm:w-[180px]">
-                        <SelectValue placeholder="Filter by city" />
+                        <SelectValue placeholder="City Filter" />
                     </SelectTrigger>
                     <SelectContent>
                         {uniqueCities.map(city => (

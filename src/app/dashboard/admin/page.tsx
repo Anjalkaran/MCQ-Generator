@@ -111,7 +111,9 @@ export default function AdminPage() {
             getLiveTests(true), getWeeklyTests(), getAllFeedback(), getQnAUsage()
         ]);
         
-        setUsers(fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email)));
+        // Filter out admin emails from the user list for statistics
+        const regularUsers = fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email));
+        setUsers(regularUsers);
         setCategories(fetchedCategories);
         setTopics(fetchedTopics);
         setStudyMaterials(fetchedMaterials);
@@ -165,9 +167,21 @@ export default function AdminPage() {
 
   return (
     <div className="space-y-6">
-       <div className="space-y-0.5">
-          <h1 className="text-2xl font-bold tracking-tight">Admin Panel</h1>
-          <p className="text-muted-foreground">Manage users, weekly tests, topics, and view analytics.</p>
+       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-0.5">
+            <h1 className="text-2xl font-bold tracking-tight">Admin Panel</h1>
+            <p className="text-muted-foreground">System-wide monitoring and content management.</p>
+          </div>
+          <div className="flex gap-4">
+             <div className="bg-primary/5 px-4 py-2 rounded-lg border border-primary/10 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Total Students</p>
+                <p className="text-xl font-bold text-primary">{users.length}</p>
+             </div>
+             <div className="bg-green-500/5 px-4 py-2 rounded-lg border border-green-500/10 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Active Pro</p>
+                <p className="text-xl font-bold text-green-600">{users.filter(u => u.isPro).length}</p>
+             </div>
+          </div>
         </div>
         
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-12">
@@ -177,11 +191,11 @@ export default function AdminPage() {
               onClick={() => setActiveSection(section.value)}
               className={cn(
                 "cursor-pointer transition-all hover:shadow-md flex flex-col items-center justify-center h-28",
-                activeSection === section.value && "border-primary ring-2 ring-primary"
+                activeSection === section.value && "border-primary ring-2 ring-primary bg-primary/5"
               )}
             >
               <CardHeader className="items-center text-center p-4">
-                {React.createElement(section.icon, { className: "h-6 w-6 text-muted-foreground mb-2" })}
+                {React.createElement(section.icon, { className: cn("h-6 w-6 mb-2", activeSection === section.value ? "text-primary" : "text-muted-foreground") })}
                 <CardTitle className="text-sm font-medium">{section.label}</CardTitle>
               </CardHeader>
             </Card>
