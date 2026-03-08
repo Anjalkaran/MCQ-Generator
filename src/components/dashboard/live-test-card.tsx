@@ -5,12 +5,11 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { useDashboard } from '@/app/dashboard/layout';
-import { Loader2, PlayCircle, Lock, CheckCircle, TimerOff, Trophy, Gem, Ban, Users, Share2, Calendar } from 'lucide-react';
+import { Loader2, PlayCircle, Lock, CheckCircle, TimerOff, Trophy, Repeat, Users, Share2, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { generateLiveMockTest } from '@/ai/flows/generate-live-mock-test';
-import type { LiveTest, UserData } from '@/lib/types';
+import type { LiveTest } from '@/lib/types';
 import { markLiveTestAsTaken } from '@/lib/firestore';
 import { normalizeDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -67,18 +66,13 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
         }
 
         const interval = setInterval(() => {
-            if (hasTakenTest) {
-                if(testState !== 'completed') setTestState('completed');
-                clearInterval(interval);
-                return;
-            }
-            
             const now = new Date();
 
             if (now < startTime) {
                 if (testState !== 'upcoming') setTestState('upcoming');
                 setTimeRemaining(formatDistanceToNowStrict(startTime));
             } else if (now >= startTime && now <= endTime) {
+                // Even if completed, we stay in 'live' state UI-wise to allow retakes
                 if (testState !== 'live') setTestState('live');
                 setTimeRemaining(formatDistanceToNowStrict(endTime));
             } else {
@@ -128,20 +122,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     };
     
     const handleShare = () => {
-        const message = `📢 *Anjalkaran Weekly Mock Test Challenge!* 📢
-
-Get ready to test your knowledge and compete with fellow aspirants in our Weekly Mock Test!
-
-🔹 *MTS*
-🔹 *POSTMAN*
-🔹 *PA*
-
-Simulate real exam conditions, find out where you stand, and boost your preparation. 
-
-Join now and aim for the top of the leaderboard! 🏆
-
-*Download the App:*
-https://anjalkaran.in`;
+        const message = `📢 *Anjalkaran Weekly Mock Test Challenge!* 📢\n\nGet ready to test your knowledge and compete with fellow aspirants in our Weekly Mock Test!\n\n🔹 *MTS*\n🔹 *POSTMAN*\n🔹 *PA*\n\nSimulate real exam conditions, find out where you stand, and boost your preparation. \n\nJoin now and aim for the top of the leaderboard! 🏆\n\n*Download the App:*\nhttps://anjalkaran.in`;
         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, '_blank');
     };
@@ -153,7 +134,7 @@ https://anjalkaran.in`;
                 {isGenerating ? (
                     <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Generating... Please wait
+                        Generating...
                     </>
                 ) : (
                     <>
@@ -166,26 +147,28 @@ https://anjalkaran.in`;
         
         if (testState === 'loading') return <Button disabled className="w-full"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading Status...</Button>;
         if (testState === 'upcoming') return <Button disabled className="w-full"><Lock className="mr-2 h-4 w-4" />Starts In: {timeRemaining}</Button>;
-        if (testState === 'completed') return <Button disabled className="w-full"><CheckCircle className="mr-2 h-4 w-4" />Test Already Attempted</Button>;
+        
+        // Removed the 'completed' state block to allow retakes. 
+        // We now show a different style if they've already taken it.
         if (testState === 'ended') return <Button disabled className="w-full"><TimerOff className="mr-2 h-4 w-4" />Weekly Test Has Ended</Button>;
 
-        return <Button onClick={startTest} disabled={isGenerating} className="w-full bg-green-600 hover:bg-green-700">
+        return <Button onClick={startTest} disabled={isGenerating} className={cn("w-full", hasTakenTest ? "bg-orange-600 hover:bg-orange-700" : "bg-green-600 hover:bg-green-700")}>
             {isGenerating ? (
                 <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating... Please wait
+                    Generating...
                 </>
             ) : (
                 <>
-                    <PlayCircle className="mr-2 h-4 w-4" />
-                    {hasTakenTest ? "Start Again (Practice)" : "Start Weekly Test"}
+                    {hasTakenTest ? <Repeat className="mr-2 h-4 w-4" /> : <PlayCircle className="mr-2 h-4 w-4" />}
+                    {hasTakenTest ? "Retake Test" : "Start Weekly Test"}
                 </>
             )}
         </Button>;
     };
     
     if (!startTime || !endTime) {
-        return <Card><CardContent><Loader2 className="animate-spin" /></CardContent></Card>
+        return <Card><CardContent className="flex justify-center p-6"><Loader2 className="animate-spin" /></CardContent></Card>
     }
 
     return (
@@ -201,6 +184,13 @@ https://anjalkaran.in`;
                 <CardDescription>
                     {format(startTime, 'dd/MM/yyyy p')}
                 </CardDescription>
+                {hasTakenTest && (
+                    <div className="flex justify-center mt-1">
+                        <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
+                            <CheckCircle className="mr-1 h-3 w-3" /> Attempted
+                        </Badge>
+                    </div>
+                )}
             </CardHeader>
             <CardContent className="text-center space-y-4 flex-grow">
                  {!isAdmin && (
@@ -214,7 +204,7 @@ https://anjalkaran.in`;
                     </div>
                  )}
                  <div className="space-y-2 text-left">
-                    <Label htmlFor={`language-select-${test.id}`}>Language</Label>
+                    <Label htmlFor={`language-select-${test.id}`}>Language Preference</Label>
                     <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
                         <SelectTrigger id={`language-select-${test.id}`}>
                             <SelectValue placeholder="Select a language" />

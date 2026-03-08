@@ -10,11 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, AlertTriangle, Gem } from 'lucide-react';
+import { Loader2, AlertTriangle, Gem, Repeat } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import Link from 'next/link';
 import { useDashboard } from '@/app/dashboard/layout';
 import { generateMockTestFromBank } from '@/ai/flows/generate-mock-test-from-bank';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-blueprints';
@@ -34,16 +32,10 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-const blueprintMap = {
-    MTS: MTS_BLUEPRINT,
-    POSTMAN: POSTMAN_BLUEPRINT,
-    PA: PA_BLUEPRINT,
-};
-
 export function PreviousYearMockTestForm() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user, userData, isLoading, bankedQuestions: allBankedQuestions, setUserData } = useDashboard();
+  const { user, userData, isLoading, bankedQuestions: allBankedQuestions } = useDashboard();
   const [isGenerating, setIsGenerating] = useState(false);
   const [questionBank, setQuestionBank] = useState<BankedQuestion[]>([]);
   const [isBankLoading, setIsBankLoading] = useState(true);
@@ -59,7 +51,6 @@ export function PreviousYearMockTestForm() {
   const availableExams = useMemo(() => {
     if (!userData) return [];
     if (userData.email && ADMIN_EMAILS.includes(userData.email)) return examCategories;
-    // This component is admin-only, but we keep the logic for robustness
     switch (userData.examCategory) {
         case 'PA':
             return ['PA', 'POSTMAN', 'MTS'];
@@ -128,7 +119,7 @@ export function PreviousYearMockTestForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CardContent className="pt-6">
-                <fieldset disabled={isGenerating || isLoading || hasCompletedAllPapers} className="space-y-6">
+                <fieldset disabled={isGenerating || isLoading} className="space-y-6">
                     <FormField
                       control={form.control}
                       name="examType"
@@ -178,30 +169,33 @@ export function PreviousYearMockTestForm() {
                             <AlertTriangle className="h-4 w-4" />
                             <AlertTitle>No Question Papers Found</AlertTitle>
                             <AlertDescription>
-                                No question papers have been uploaded for the {selectedExamType} category. Please go to the Admin panel to upload documents.
+                                No question papers have been uploaded for the {selectedExamType} category yet.
                             </AlertDescription>
                         </Alert>
                     )}
                     {hasCompletedAllPapers && (
-                         <Alert variant="default" className="border-green-500">
-                            <Gem className="h-4 w-4" />
-                            <AlertTitle>Congratulations!</AlertTitle>
-                            <AlertDescription>
-                                You have completed all available previous year papers for the {selectedExamType} category.
+                         <Alert variant="default" className="border-green-500 bg-green-50">
+                            <Gem className="h-4 w-4 text-green-600" />
+                            <AlertTitle className="text-green-800">Review Mode</AlertTitle>
+                            <AlertDescription className="text-green-700">
+                                You have completed all available papers for the {selectedExamType} category. You can now retake them for practice.
                             </AlertDescription>
                         </Alert>
                     )}
                 </fieldset>
              </CardContent>
              <CardFooter>
-                <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading || isBankLoading || !hasQuestionPapersForCategory || hasCompletedAllPapers} className="w-full">
+                <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading || isBankLoading || !hasQuestionPapersForCategory} className="w-full">
                     {isGenerating || isBankLoading ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                             {isGenerating ? "Extracting Questions..." : "Loading..."}
+                             {isGenerating ? "Preparing Exam..." : "Loading..."}
                         </>
                     ) : (
-                        "Generate Mock Test"
+                        <>
+                            {hasCompletedAllPapers ? <Repeat className="mr-2 h-4 w-4" /> : null}
+                            {hasCompletedAllPapers ? "Start Practice Session" : "Generate Mock Test"}
+                        </>
                     )}
                 </Button>
             </CardFooter>

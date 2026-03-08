@@ -1,12 +1,9 @@
+
 'use server';
 
 /**
  * @fileOverview Generates a mock test by selecting one JSON question paper and extracting its questions.
- * The number of questions selected is based on the exam blueprint to prevent document size errors.
- *
- * - generateMockTestFromBank - A function that handles the mock test generation process.
- * - GenerateMockTestFromBankInput - The input type for the function.
- * - GenerateMockTestFromBankOutput - The return type for the function.
+ * Allows retaking papers if all have been completed.
  */
 
 import {ai} from '@/ai/genkit';
@@ -60,21 +57,22 @@ const generateMockTestFromBankFlow = ai.defineFlow(
     const allQuestionPapers = await getQuestionBankDocumentsByCategory(input.examCategory);
     
     if (!allQuestionPapers || allQuestionPapers.length === 0) {
-        throw new Error(`No question papers found for exam category: ${input.examCategory}. Please upload some JSON documents.`);
+        throw new Error(`No question papers found for exam category: ${input.examCategory}. Please check back later.`);
     }
 
     // Fetch user data to see which tests they have already completed
     const userData = await getUserData(input.userId);
     const completedTestIds = new Set(userData?.completedMockBankTests || []);
     
-    // Filter out papers the user has already taken
-    const availablePapers = allQuestionPapers.filter(paper => !completedTestIds.has(paper.id));
+    // Attempt to filter out papers the user has already taken
+    let availablePapers = allQuestionPapers.filter(paper => !completedTestIds.has(paper.id));
     
+    // If user has completed ALL papers, recycle them so they can practice again
     if (availablePapers.length === 0) {
-        throw new Error("You have completed all available previous year papers for this category! Please check back later for new additions.");
+        availablePapers = allQuestionPapers;
     }
     
-    // Randomly select one question paper to process from the available ones
+    // Randomly select one question paper
     const selectedPaper = availablePapers[Math.floor(Math.random() * availablePapers.length)];
 
     let parsedData: { questions: MCQ[] };
@@ -82,11 +80,11 @@ const generateMockTestFromBankFlow = ai.defineFlow(
         parsedData = JSON.parse(selectedPaper.content);
     } catch (error) {
         console.error("Failed to parse question paper content as JSON:", error);
-        throw new Error(`The question paper '${selectedPaper.fileName}' is not in a valid JSON format. Please check and upload it again.`);
+        throw new Error(`The question paper format is invalid.`);
     }
 
     if (!parsedData.questions || !Array.isArray(parsedData.questions) || parsedData.questions.length === 0) {
-        throw new Error(`The question paper '${selectedPaper.fileName}' is empty or incorrectly formatted. It must be a JSON object with a "questions" array.`);
+        throw new Error(`The question paper is incorrectly formatted.`);
     }
     
     const blueprint = blueprintMap[input.examCategory];
@@ -94,30 +92,26 @@ const generateMockTestFromBankFlow = ai.defineFlow(
 
     let allAvailableMCQs = parsedData.questions;
 
-    // Randomly select the correct number of questions based on the blueprint to ensure the document is under the 1MB limit.
+    // Randomly select the correct number of questions based on the blueprint
     const finalMCQs = shuffleArray(allAvailableMCQs).slice(0, totalQuestions);
-
-    if (finalMCQs.length < totalQuestions) {
-        console.warn(`Selected paper has only ${finalMCQs.length} questions. Test will be shorter than the expected ${totalQuestions}.`);
-    }
 
     const quizId = `mock-test-bank-${input.examCategory}-${Date.now()}`;
     const quizData = {
         mcqs: finalMCQs.map(m => ({
-            question: m.question,
-            options: m.options,
-            correctAnswer: m.correctAnswer,
+            question: m.question || "",
+            options: m.options || [],
+            correctAnswer: m.correctAnswer || "",
             topic: m.topic || "",
             solution: m.solution || ""
         })),
         timeLimit: Math.floor((blueprint?.totalDurationMinutes || 60) * 60),
         isMockTest: true,
-        questionPaperId: selectedPaper.id, // Store the ID of the paper being used
+        questionPaperId: selectedPaper.id, 
         language: input.language,
         topic: {
             id: quizId,
-            title: `${blueprint?.examName || input.examCategory} Mock Test (Previous Year)`,
-            description: `A mock test from the question bank file: ${selectedPaper.fileName}.`,
+            title: `${blueprint?.examName || input.examCategory} Previous Year Paper`,
+            description: `Practice session using a past exam paper.`,
             icon: 'scroll-text',
             categoryId: 'mock-test-bank',
         },
