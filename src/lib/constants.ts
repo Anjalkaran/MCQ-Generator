@@ -1,8 +1,6 @@
 
 export const ADMIN_EMAILS = ["admin@anjalkaran.com", "raamamoorthy@gmail.com", "arulkumaran5566@gmail.com"];
 
-export const FREE_EXAM_LIMIT = 10;
-
 // All payment related constants can be removed or ignored.
 export const RAZORPAY_KEY_ID = "";
 export const RAZORPAY_KEY_SECRET = "";
