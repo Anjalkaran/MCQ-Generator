@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -9,24 +10,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Link as LinkIcon, Trash2, Search, PlusCircle, Upload, FileText } from 'lucide-react';
+import { Loader2, Link as LinkIcon, Trash2, Search, PlusCircle, Globe, FileText } from 'lucide-react';
 import { deleteStudyMaterial } from '@/lib/firestore';
 import type { Topic, StudyMaterial } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription as AlertDialogDesc, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from 'date-fns';
 import { Checkbox } from '../ui/checkbox';
-import { Progress } from '@/components/ui/progress';
-import { getFirebaseStorage, getFirebaseDb } from '@/lib/firebase';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 
 const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
 
 const formSchema = z.object({
   topicName: z.string().min(1, 'Display Title is required.'),
-  file: z.instanceof(File).refine(file => file.type === 'application/pdf', 'Please upload a PDF file.'),
+  contentUrl: z.string().url('Please enter a valid URL.').min(1, 'PDF Link is required.'),
   examCategories: z.array(z.string()).min(1, "Select at least one exam category."),
 });
 
@@ -37,8 +34,7 @@ interface StudyMaterialManagementProps {
 
 export function StudyMaterialManagement({ initialTopics, initialMaterials }: StudyMaterialManagementProps) {
     const { toast } = useToast();
-    const [isUploading, setIsUploading] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState(0);
+    const [isRegistering, setIsRegistering] = useState(false);
     const [topics, setTopics] = useState<Topic[]>(initialTopics);
     const [materials, setMaterials] = useState<StudyMaterial[]>(initialMaterials);
     const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
@@ -48,6 +44,7 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
         resolver: zodResolver(formSchema),
         defaultValues: {
             topicName: '',
+            contentUrl: '',
             examCategories: [],
         }
     });
@@ -61,76 +58,36 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
       }, [searchTerm, materials, topics]);
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
-        setIsUploading(true);
-        setUploadProgress(0);
+        setIsRegistering(true);
         
-        const storage = getFirebaseStorage();
-        const db = getFirebaseDb();
-        if (!storage || !db) {
-            toast({ title: 'Error', description: 'Firebase services not initialized.', variant: 'destructive' });
-            setIsUploading(false);
-            return;
-        }
-
-        const { topicName, file, examCategories } = values;
-        const cleanFileName = file.name.replace(/[^\w-.]/g, '_');
-        const storagePath = `study-materials/${Date.now()}_${cleanFileName}`;
-        const storageRef = ref(storage, storagePath);
-
         try {
-            const uploadTask = uploadBytesResumable(storageRef, file);
+            const response = await fetch('/api/study-material/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(values),
+            });
 
-            uploadTask.on('state_changed', 
-                (snapshot) => {
-                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    setUploadProgress(progress);
-                },
-                (error) => {
-                    console.error("Upload Error:", error);
-                    toast({ 
-                        title: 'Upload Failed', 
-                        description: error.code === 'storage/unauthorized' ? 'Permission Denied. Please check storage rules.' : 'An error occurred during upload.',
-                        variant: 'destructive' 
-                    });
-                    setIsUploading(false);
-                },
-                async () => {
-                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    
-                    // Call the processing logic via API or handle it here
-                    try {
-                        const response = await fetch('/api/study-material/upload', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                topicName,
-                                contentUrl: downloadURL,
-                                examCategories
-                            }),
-                        });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Server processing failed.');
+            }
 
-                        const data = await response.json();
-                        if (!response.ok) throw new Error(data.error || 'Server processing failed.');
-
-                        const { newMaterial, newTopic } = data;
-                        setMaterials(prev => [newMaterial, ...prev]);
-                        if (newTopic) setTopics(prev => [...prev, newTopic]);
-
-                        toast({ title: 'Success', description: 'Study material uploaded and AI content processed.' });
-                        form.reset();
-                        setIsUploadDialogOpen(false);
-                    } catch (err: any) {
-                        toast({ title: 'Processing Failed', description: err.message, variant: 'destructive' });
-                    } finally {
-                        setIsUploading(false);
-                        setUploadProgress(0);
-                    }
-                }
-            );
+            const data = await response.json();
+            const { newMaterial, newTopic } = data;
             
+            setMaterials(prev => [newMaterial, ...prev]);
+            if (newTopic) {
+                setTopics(prev => [...prev, newTopic]);
+            }
+
+            toast({ title: 'Success', description: 'Study material registered successfully and AI content extracted.' });
+            form.reset();
+            setIsUploadDialogOpen(false);
         } catch (error: any) {
-            toast({ title: 'Operation Failed', description: error.message, variant: 'destructive' });
-            setIsUploading(false);
+            console.error('Registration Error:', error);
+            toast({ title: 'Registration Failed', description: error.message, variant: 'destructive' });
+        } finally {
+            setIsRegistering(false);
         }
     };
     
@@ -151,7 +108,7 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
             <Card>
                 <CardHeader>
                     <CardTitle>Study Material</CardTitle>
-                    <CardDescription>Upload PDF documents and manage study content. The AI will automatically extract text for Doubts.</CardDescription>
+                    <CardDescription>Register PDF links and manage study content. The AI will automatically extract text from the link for Doubts.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-col sm:flex-row gap-4 justify-between items-start">
@@ -159,14 +116,14 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                             <DialogTrigger asChild>
                                 <Button>
                                     <PlusCircle className="mr-2 h-4 w-4" />
-                                    Upload New PDF
+                                    Register New PDF Link
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-lg">
                                 <DialogHeader>
-                                    <DialogTitle>Upload Study Material</DialogTitle>
+                                    <DialogTitle>Register Study Material</DialogTitle>
                                     <DialogDescription>
-                                        Select a PDF file. The system will store it and prepare it for AI answering.
+                                        Provide a direct link to a PDF. The system will fetch it and prepare it for AI answering.
                                     </DialogDescription>
                                 </DialogHeader>
                                 <Form {...form}>
@@ -186,18 +143,14 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                                         />
                                         <FormField
                                             control={form.control}
-                                            name="file"
-                                            render={({ field: { value, onChange, ...rest } }) => (
+                                            name="contentUrl"
+                                            render={({ field }) => (
                                                 <FormItem>
-                                                <FormLabel>PDF File</FormLabel>
+                                                <FormLabel>PDF Direct Link</FormLabel>
                                                 <FormControl>
-                                                    <Input 
-                                                        type="file" 
-                                                        accept="application/pdf"
-                                                        onChange={(e) => onChange(e.target.files?.[0])}
-                                                        {...rest}
-                                                    />
+                                                    <Input placeholder="https://example.com/file.pdf" {...field} />
                                                 </FormControl>
+                                                <FormDescription>Ensure this is a direct public URL to the PDF file.</FormDescription>
                                                 <FormMessage />
                                                 </FormItem>
                                             )}
@@ -239,16 +192,9 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                                         )}
                                         />
 
-                                        {isUploading && (
-                                            <div className="space-y-2">
-                                                <Progress value={uploadProgress} />
-                                                <p className="text-xs text-center text-muted-foreground">{uploadProgress.toFixed(0)}% Uploaded</p>
-                                            </div>
-                                        )}
-
-                                        <Button type="submit" disabled={isUploading} className="w-full">
-                                            {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                                            {isUploading ? 'Uploading...' : 'Upload & Register'}
+                                        <Button type="submit" disabled={isRegistering} className="w-full">
+                                            {isRegistering ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Globe className="mr-2 h-4 w-4" />}
+                                            {isRegistering ? 'Processing...' : 'Register Link'}
                                         </Button>
                                     </form>
                                 </Form>
@@ -278,7 +224,7 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Title</TableHead>
-                                    <TableHead>Uploaded At</TableHead>
+                                    <TableHead>Registered At</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -301,7 +247,7 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                                                     <AlertDialogContent>
                                                         <AlertDialogHeader>
                                                             <AlertDialogTitle>Delete Material?</AlertDialogTitle>
-                                                            <AlertDialogDesc>This will remove the material record. The PDF will remain in Storage but will no longer be linked.</AlertDialogDesc>
+                                                            <AlertDialogDesc>This will remove the material record and the extracted AI text. The original link remains untouched.</AlertDialogDesc>
                                                         </AlertDialogHeader>
                                                         <AlertDialogFooter>
                                                             <AlertDialogCancel>Cancel</AlertDialogCancel>
