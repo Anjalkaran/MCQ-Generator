@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -10,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Link as LinkIcon, Trash2, Search, PlusCircle } from 'lucide-react';
+import { Loader2, Link as LinkIcon, Trash2, Search, PlusCircle, Upload, FileText } from 'lucide-react';
 import { deleteStudyMaterial } from '@/lib/firestore';
 import type { Topic, StudyMaterial } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -18,12 +17,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription as AlertDialogDesc, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from 'date-fns';
 import { Checkbox } from '../ui/checkbox';
+import { Progress } from '@/components/ui/progress';
+import { getFirebaseStorage, getFirebaseDb } from '@/lib/firebase';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 
 const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
 
 const formSchema = z.object({
   topicName: z.string().min(1, 'Display Title is required.'),
-  contentUrl: z.string().url('Please enter a valid PDF URL.'),
+  file: z.instanceof(File).refine(file => file.type === 'application/pdf', 'Please upload a PDF file.'),
   examCategories: z.array(z.string()).min(1, "Select at least one exam category."),
 });
 
@@ -35,6 +38,7 @@ interface StudyMaterialManagementProps {
 export function StudyMaterialManagement({ initialTopics, initialMaterials }: StudyMaterialManagementProps) {
     const { toast } = useToast();
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
     const [topics, setTopics] = useState<Topic[]>(initialTopics);
     const [materials, setMaterials] = useState<StudyMaterial[]>(initialMaterials);
     const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
@@ -44,12 +48,9 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
         resolver: zodResolver(formSchema),
         defaultValues: {
             topicName: '',
-            contentUrl: '',
             examCategories: [],
         }
     });
-
-    const { handleSubmit, control } = form;
 
     const filteredMaterials = useMemo(() => {
         const lowercasedFilter = searchTerm.toLowerCase();
@@ -61,39 +62,74 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setIsUploading(true);
+        setUploadProgress(0);
         
+        const storage = getFirebaseStorage();
+        const db = getFirebaseDb();
+        if (!storage || !db) {
+            toast({ title: 'Error', description: 'Firebase services not initialized.', variant: 'destructive' });
+            setIsUploading(false);
+            return;
+        }
+
+        const { topicName, file, examCategories } = values;
+        const cleanFileName = file.name.replace(/[^\w-.]/g, '_');
+        const storagePath = `study-materials/${Date.now()}_${cleanFileName}`;
+        const storageRef = ref(storage, storagePath);
+
         try {
-            const response = await fetch('/api/study-material/upload', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(values),
-            });
+            const uploadTask = uploadBytesResumable(storageRef, file);
 
-            const data = await response.json();
+            uploadTask.on('state_changed', 
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    setUploadProgress(progress);
+                },
+                (error) => {
+                    console.error("Upload Error:", error);
+                    toast({ 
+                        title: 'Upload Failed', 
+                        description: error.code === 'storage/unauthorized' ? 'Permission Denied. Please check storage rules.' : 'An error occurred during upload.',
+                        variant: 'destructive' 
+                    });
+                    setIsUploading(false);
+                },
+                async () => {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    
+                    // Call the processing logic via API or handle it here
+                    try {
+                        const response = await fetch('/api/study-material/upload', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                topicName,
+                                contentUrl: downloadURL,
+                                examCategories
+                            }),
+                        });
 
-            if (!response.ok) {
-                throw new Error(data.error || 'The server failed to process the PDF registration.');
-            }
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.error || 'Server processing failed.');
 
-            const { newMaterial, newTopic } = data;
+                        const { newMaterial, newTopic } = data;
+                        setMaterials(prev => [newMaterial, ...prev]);
+                        if (newTopic) setTopics(prev => [...prev, newTopic]);
 
-            setMaterials(prev => [newMaterial, ...prev].sort((a,b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()));
-            if (newTopic) {
-                setTopics(prev => [...prev, newTopic]);
-            }
-
-            toast({ title: 'Success', description: 'Study material registered and AI content processed.' });
-            form.reset();
-            setIsUploadDialogOpen(false);
+                        toast({ title: 'Success', description: 'Study material uploaded and AI content processed.' });
+                        form.reset();
+                        setIsUploadDialogOpen(false);
+                    } catch (err: any) {
+                        toast({ title: 'Processing Failed', description: err.message, variant: 'destructive' });
+                    } finally {
+                        setIsUploading(false);
+                        setUploadProgress(0);
+                    }
+                }
+            );
             
         } catch (error: any) {
-            console.error("Study material registration error:", error);
-            toast({ 
-                title: 'Registration Failed', 
-                description: error.message || 'An unexpected error occurred. Please ensure the URL is a direct link to a PDF.', 
-                variant: 'destructive' 
-            });
-        } finally {
+            toast({ title: 'Operation Failed', description: error.message, variant: 'destructive' });
             setIsUploading(false);
         }
     };
@@ -104,7 +140,6 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
             setMaterials(prev => prev.filter(m => m.id !== materialId));
             toast({ title: 'Success', description: 'Study material deleted.' });
         } catch (error) {
-            console.error("Failed to delete study material", error);
             toast({ title: 'Error', description: 'Could not delete the material.', variant: 'destructive' });
         }
     };
@@ -116,7 +151,7 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
             <Card>
                 <CardHeader>
                     <CardTitle>Study Material</CardTitle>
-                    <CardDescription>Register PDF links and manage study content for various topics.</CardDescription>
+                    <CardDescription>Upload PDF documents and manage study content. The AI will automatically extract text for Doubts.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-col sm:flex-row gap-4 justify-between items-start">
@@ -124,20 +159,20 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                             <DialogTrigger asChild>
                                 <Button>
                                     <PlusCircle className="mr-2 h-4 w-4" />
-                                    Register New PDF Link
+                                    Upload New PDF
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent>
+                            <DialogContent className="max-w-lg">
                                 <DialogHeader>
-                                    <DialogTitle>Register Study Material Link</DialogTitle>
+                                    <DialogTitle>Upload Study Material</DialogTitle>
                                     <DialogDescription>
-                                        Enter the link to a PDF file. The AI will attempt to extract text for the "Ask Your Doubt" feature.
+                                        Select a PDF file. The system will store it and prepare it for AI answering.
                                     </DialogDescription>
                                 </DialogHeader>
                                 <Form {...form}>
-                                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                                         <FormField
-                                            control={control}
+                                            control={form.control}
                                             name="topicName"
                                             render={({ field }) => (
                                                 <FormItem>
@@ -145,60 +180,57 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                                                 <FormControl>
                                                     <Input placeholder="e.g., Organization of the Department" {...field} />
                                                 </FormControl>
-                                                <FormDescription>If a topic with this name exists, it will link. Otherwise, a new one is created.</FormDescription>
                                                 <FormMessage />
                                                 </FormItem>
                                             )}
                                         />
                                         <FormField
-                                            control={control}
-                                            name="contentUrl"
-                                            render={({ field }) => (
+                                            control={form.control}
+                                            name="file"
+                                            render={({ field: { value, onChange, ...rest } }) => (
                                                 <FormItem>
-                                                <FormLabel>Direct PDF URL</FormLabel>
+                                                <FormLabel>PDF File</FormLabel>
                                                 <FormControl>
-                                                    <Input type="url" placeholder="https://firebasestorage.googleapis.com/..." {...field} />
+                                                    <Input 
+                                                        type="file" 
+                                                        accept="application/pdf"
+                                                        onChange={(e) => onChange(e.target.files?.[0])}
+                                                        {...rest}
+                                                    />
                                                 </FormControl>
                                                 <FormMessage />
                                                 </FormItem>
                                             )}
                                         />
                                         <FormField
-                                        control={control}
+                                        control={form.control}
                                         name="examCategories"
                                         render={() => (
                                             <FormItem>
-                                            <div className="mb-4">
-                                                <FormLabel className="text-base">Exam Categories</FormLabel>
-                                                <FormDescription>Select which courses this material should be available for.</FormDescription>
+                                            <div className="mb-2">
+                                                <FormLabel>Exam Categories</FormLabel>
                                             </div>
-                                            <div className="space-y-2">
+                                            <div className="grid grid-cols-2 gap-2 p-3 border rounded-md bg-muted/20">
                                             {examCategories.map((item) => (
                                                 <FormField
                                                 key={item}
-                                                control={control}
+                                                control={form.control}
                                                 name="examCategories"
-                                                render={({ field }) => {
-                                                    return (
-                                                    <FormItem key={item} className="flex flex-row items-start space-x-3 space-y-0">
+                                                render={({ field }) => (
+                                                    <FormItem key={item} className="flex flex-row items-center space-x-2 space-y-0">
                                                         <FormControl>
                                                         <Checkbox
                                                             checked={field.value?.includes(item)}
                                                             onCheckedChange={(checked) => {
                                                             return checked
                                                                 ? field.onChange([...(field.value || []), item])
-                                                                : field.onChange(
-                                                                    field.value?.filter(
-                                                                    (value) => value !== item
-                                                                    )
-                                                                )
+                                                                : field.onChange(field.value?.filter(v => v !== item))
                                                             }}
                                                         />
                                                         </FormControl>
-                                                        <FormLabel className="font-normal">{item}</FormLabel>
+                                                        <FormLabel className="font-normal cursor-pointer">{item}</FormLabel>
                                                     </FormItem>
-                                                    )
-                                                }}
+                                                )}
                                                 />
                                             ))}
                                             </div>
@@ -207,9 +239,16 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                                         )}
                                         />
 
+                                        {isUploading && (
+                                            <div className="space-y-2">
+                                                <Progress value={uploadProgress} />
+                                                <p className="text-xs text-center text-muted-foreground">{uploadProgress.toFixed(0)}% Uploaded</p>
+                                            </div>
+                                        )}
+
                                         <Button type="submit" disabled={isUploading} className="w-full">
-                                            {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LinkIcon className="mr-2 h-4 w-4" />}
-                                            Register Material
+                                            {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                                            {isUploading ? 'Uploading...' : 'Upload & Register'}
                                         </Button>
                                     </form>
                                 </Form>
@@ -231,7 +270,7 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Registered Materials</CardTitle>
+                    <CardTitle>Managed Materials</CardTitle>
                 </CardHeader>
                 <CardContent>
                      <div className="border rounded-md">
@@ -239,7 +278,6 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Title</TableHead>
-                                    <TableHead>Source URL</TableHead>
                                     <TableHead>Uploaded At</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
@@ -248,8 +286,12 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                                 {filteredMaterials.length > 0 ? (
                                     filteredMaterials.map(material => (
                                         <TableRow key={material.id}>
-                                            <TableCell className="font-medium">{getTopicTitle(material.topicId)}</TableCell>
-                                            <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground">{material.content}</TableCell>
+                                            <TableCell className="font-medium">
+                                                <div className="flex items-center gap-2">
+                                                    <FileText className="h-4 w-4 text-primary" />
+                                                    {getTopicTitle(material.topicId)}
+                                                </div>
+                                            </TableCell>
                                             <TableCell className="text-xs">{format(new Date(material.uploadedAt), 'dd/MM/yyyy')}</TableCell>
                                             <TableCell className="text-right">
                                                 <AlertDialog>
@@ -258,8 +300,8 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                                                     </AlertDialogTrigger>
                                                     <AlertDialogContent>
                                                         <AlertDialogHeader>
-                                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                            <AlertDialogDesc>This will remove the material reference. It will not delete the file from your Storage.</AlertDialogDesc>
+                                                            <AlertDialogTitle>Delete Material?</AlertDialogTitle>
+                                                            <AlertDialogDesc>This will remove the material record. The PDF will remain in Storage but will no longer be linked.</AlertDialogDesc>
                                                         </AlertDialogHeader>
                                                         <AlertDialogFooter>
                                                             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -272,7 +314,7 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="h-24 text-center">No study materials found.</TableCell>
+                                        <TableCell colSpan={3} className="h-24 text-center">No study materials found.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>

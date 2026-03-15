@@ -1,8 +1,7 @@
 'use server';
 
 /**
- * @fileOverview Generates a mock test (Weekly or Live) by fetching a question paper and extracting questions.
- * Supports the user's specific translation format (ta, hi, te, kn).
+ * @fileOverview Generates a mock test by extracting questions and sanitizing optional fields.
  */
 
 import { ai } from '@/ai/genkit';
@@ -54,10 +53,7 @@ const generateLiveMockTestFlow = ai.defineFlow(
   },
   async input => {
     const questionPaper = await getLiveTestQuestionPaper(input.questionPaperId);
-    
-    if (!questionPaper) {
-        throw new Error(`The question paper could not be found.`);
-    }
+    if (!questionPaper) throw new Error(`The question paper could not be found.`);
     
     let parsedData: { questions: any[] };
     try {
@@ -72,7 +68,6 @@ const generateLiveMockTestFlow = ai.defineFlow(
 
     const langKey = languageMap[input.language.toLowerCase()];
     
-    // Extract questions and apply translations if matching key is found
     const processedQuestions: MCQ[] = parsedData.questions
         .filter(q => q && q.question && q.options && Array.isArray(q.options))
         .map(q => {
@@ -90,19 +85,17 @@ const generateLiveMockTestFlow = ai.defineFlow(
                     question: translated.question || base.question,
                     options: translated.options || base.options,
                     correctAnswer: translated.correctAnswer || base.correctAnswer,
-                    solution: translated.solution || base.solution,
+                    solution: translated.solution || base.solution || "",
                     topic: base.topic,
                 };
             }
             return base;
         });
 
-    if (processedQuestions.length === 0) {
-        throw new Error("No valid questions found in this paper.");
-    }
+    if (processedQuestions.length === 0) throw new Error("No valid questions found in this paper.");
     
     const blueprint = (blueprintMap as any)[input.examCategory];
-    const quizId = `weekly-test-${Date.now()}`;
+    const quizId = `test-${Date.now()}`;
     
     const quizData: any = {
         mcqs: processedQuestions,
@@ -114,7 +107,7 @@ const generateLiveMockTestFlow = ai.defineFlow(
         topic: {
             id: quizId,
             title: input.testTitle,
-            description: `A full mock test.`,
+            description: `Full practice test.`,
             icon: 'scroll-text',
             categoryId: 'weekly-test',
         },

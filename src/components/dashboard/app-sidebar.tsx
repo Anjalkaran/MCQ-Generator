@@ -102,25 +102,29 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          <div className="p-2 group-data-[collapsible=icon]:hidden">
-            <CardDescription className="text-center text-sm">{userData ? `Welcome, ${userData.name}!` : ''}</CardDescription>
+          <div className="p-2 group-data-[collapsible=icon]:hidden text-center">
+            <CardDescription className="text-sm font-medium">
+              {userData ? `Welcome, ${userData.name}!` : ''}
+            </CardDescription>
           </div>
+          
           {isAdmin && (
-            <div className="px-2 pb-2 group-data-[collapsible=icon]:hidden">
-              <Label htmlFor="admin-view-select" className="text-xs text-muted-foreground px-2">View As</Label>
+            <div className="px-2 pb-4 group-data-[collapsible=icon]:hidden">
+              <Label htmlFor="admin-view-select" className="text-[10px] uppercase font-bold text-muted-foreground px-2 tracking-widest">Admin Control</Label>
               <Select value={userData?.examCategory} onValueChange={(v) => setUserData(prev => prev ? ({ ...prev, examCategory: v as any }) : null)}>
-                <SelectTrigger id="admin-view-select" className="h-9">
+                <SelectTrigger id="admin-view-select" className="h-9 mt-1 bg-primary/5 border-primary/20">
                   <SelectValue placeholder="Select Course" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="MTS">MTS User</SelectItem>
-                  <SelectItem value="POSTMAN">Postman User</SelectItem>
-                  <SelectItem value="PA">PA User</SelectItem>
-                  <SelectItem value="IP">IP User</SelectItem>
+                  <SelectItem value="MTS">View as MTS</SelectItem>
+                  <SelectItem value="POSTMAN">View as Postman</SelectItem>
+                  <SelectItem value="PA">View as PA</SelectItem>
+                  <SelectItem value="IP">View as IP (Inspector)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           )}
+
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/dashboard'} tooltip="Dashboard">
               <Link href="/dashboard" onClick={onLinkClick}>
@@ -129,9 +133,10 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+
           {isAdmin && (
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin">
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin Panel">
                 <Link href="/dashboard/admin" onClick={onLinkClick}>
                   <Shield />
                   <span>Admin Panel</span>
@@ -139,6 +144,7 @@ export function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           )}
+
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/weekly-test')} tooltip="Weekly Test">
               <Link href="/dashboard/weekly-test" onClick={onLinkClick}>
@@ -147,6 +153,7 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/online-test')} tooltip="Practice Exams">
               <Link href="/dashboard/online-test" onClick={onLinkClick}>
@@ -155,6 +162,7 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/video-classes')} tooltip="Video Classes">
               <Link href="/dashboard/video-classes" onClick={onLinkClick}>
@@ -163,6 +171,7 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/study-material')} tooltip="Study Material">
               <Link href="/dashboard/study-material" onClick={onLinkClick}>
@@ -171,6 +180,7 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/dashboard/profile'} tooltip="Profile">
               <Link href="/dashboard/profile" onClick={onLinkClick}>
@@ -179,6 +189,7 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/dashboard/history'} tooltip="Exam History">
               <Link href="/dashboard/history" onClick={onLinkClick}>
@@ -187,6 +198,7 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/leaderboard')} tooltip="Leaderboard">
               <Link href="/dashboard/leaderboard" onClick={onLinkClick}>
@@ -195,6 +207,7 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/feedback')} tooltip="Feedback">
               <Link href="/dashboard/feedback" onClick={onLinkClick}>
@@ -203,6 +216,7 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip="WhatsApp Support">
               <a href="https://wa.me/9003142899" target="_blank" rel="noopener noreferrer">
@@ -213,6 +227,7 @@ export function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
+
       <SidebarFooter>
         {isAdmin && (
           <div className="p-2 border-t group-data-[collapsible=icon]:hidden">
@@ -253,15 +268,15 @@ export function AppSidebar() {
           </div>
         )}
         <div className="p-2">
+          <SidebarMenuButton onClick={() => hasGivenFeedback ? handleLogout() : setIsLogoutAlertOpen(true)}>
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Logout</span>
+          </SidebarMenuButton>
           <AlertDialog open={isLogoutAlertOpen} onOpenChange={setIsLogoutAlertOpen}>
-            <SidebarMenuButton onClick={() => hasGivenFeedback ? handleLogout() : setIsLogoutAlertOpen(true)}>
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Logout</span>
-            </SidebarMenuButton>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Log out?</AlertDialogTitle>
-                <AlertDialogDescription>Please consider giving feedback before you leave.</AlertDialogDescription>
+                <AlertDialogDescription>Please consider giving feedback before you leave. It helps us improve the platform.</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter className="sm:justify-between">
                 <Button variant="outline" onClick={() => { setIsLogoutAlertOpen(false); router.push('/dashboard/feedback'); }}>Give Feedback</Button>
@@ -273,8 +288,8 @@ export function AppSidebar() {
             </AlertDialogContent>
           </AlertDialog>
         </div>
-        <div className='p-4 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden'>
-          <p>&copy; {new Date().getFullYear()} Anjalkaran</p>
+        <div className='p-4 text-[10px] text-muted-foreground group-data-[collapsible=icon]:hidden'>
+          <p>&copy; {new Date().getFullYear()} Anjalkaran Academy</p>
         </div>
       </SidebarFooter>
     </Sidebar>

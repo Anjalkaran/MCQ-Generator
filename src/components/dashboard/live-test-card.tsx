@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -17,6 +16,7 @@ import { ADMIN_EMAILS } from '@/lib/constants';
 import { formatDistanceToNowStrict, format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '../ui/label';
+import { cn } from '@/lib/utils';
 
 const allLanguages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
 const ipLanguages = ["English", "Hindi"] as const;
@@ -28,7 +28,6 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState('');
     const [testState, setTestState] = useState<'upcoming' | 'live' | 'ended' | 'completed' | 'loading'>('loading');
-    const [participantCount, setParticipantCount] = useState<number | null>(null);
     const [selectedLanguage, setSelectedLanguage] = useState<string>('English');
 
     const startTime = useMemo(() => normalizeDate(test.startTime), [test.startTime]);
@@ -39,56 +38,32 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
 
     const isIPTest = test.examCategory === 'IP';
     const availableLanguages = isIPTest ? ipLanguages : allLanguages;
-    
-    useEffect(() => {
-        const fetchParticipantCount = async () => {
-            try {
-                const response = await fetch(`/api/live-test-participants/${test.id}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    setParticipantCount(data.participantCount);
-                }
-            } catch (error) {
-                console.error("Failed to fetch participant count:", error);
-            }
-        };
-
-        fetchParticipantCount();
-    }, [test.id]);
-
 
     useEffect(() => {
         if (!startTime || !endTime) return;
-
-        if (isAdmin) {
-            setTestState('live');
-            return;
-        }
+        if (isAdmin) { setTestState('live'); return; }
 
         const interval = setInterval(() => {
             const now = new Date();
-
             if (now < startTime) {
                 if (testState !== 'upcoming') setTestState('upcoming');
                 setTimeRemaining(formatDistanceToNowStrict(startTime));
             } else if (now >= startTime && now <= endTime) {
-                // Even if completed, we stay in 'live' state UI-wise to allow retakes
                 if (testState !== 'live') setTestState('live');
                 setTimeRemaining(formatDistanceToNowStrict(endTime));
             } else {
                 if (testState !== 'ended') setTestState('ended');
-                setTimeRemaining('This weekly test has ended.');
+                setTimeRemaining('Ended');
                 clearInterval(interval);
             }
         }, 1000);
-
         return () => clearInterval(interval);
-    }, [startTime, endTime, testState, hasTakenTest, isAdmin]);
+    }, [startTime, endTime, testState, isAdmin]);
 
     const startTest = async () => {
         setIsGenerating(true);
-        if (!user) {
-            toast({ title: 'Authentication Error', description: 'You must be logged in to start the test.', variant: 'destructive' });
+        if (!user || !userData) {
+            toast({ title: 'Auth Required', description: 'Please login again.', variant: 'destructive' });
             setIsGenerating(false);
             return;
         }
@@ -97,133 +72,53 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
             const { quizId } = await generateLiveMockTest({ 
                 liveTestId: test.id,
                 questionPaperId: test.questionPaperId,
-                examCategory: test.examCategory,
+                examCategory: userData.examCategory,
                 language: selectedLanguage,
                 testTitle: test.title,
             });
 
-            if (!quizId) {
-                 throw new Error("The AI failed to generate the test questions. Please try again later.");
-            }
-            
             if (!isAdmin && !hasTakenTest) {
                 await markLiveTestAsTaken(user.uid, test.id);
                 setUserData(prev => prev ? ({ ...prev, liveTestsTaken: [...(prev.liveTestsTaken || []), test.id] }) : null);
             }
 
             router.push(`/quiz/${quizId}`);
-
         } catch (error: any) {
-            console.error("Error generating weekly test:", error);
-            toast({ title: 'Error Generating Test', description: error.message || 'Could not generate the test. Please try again.', variant: 'destructive' });
+            toast({ title: 'Error', description: error.message || 'Could not start test.', variant: 'destructive' });
         } finally {
             setIsGenerating(false);
         }
     };
-    
-    const handleShare = () => {
-        const message = `📢 *Anjalkaran Weekly Mock Test Challenge!* 📢\n\nGet ready to test your knowledge and compete with fellow aspirants in our Weekly Mock Test!\n\n🔹 *MTS*\n🔹 *POSTMAN*\n🔹 *PA*\n\nSimulate real exam conditions, find out where you stand, and boost your preparation. \n\nJoin now and aim for the top of the leaderboard! 🏆\n\n*Download the App:*\nhttps://anjalkaran.in`;
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-        window.open(whatsappUrl, '_blank');
-    };
 
-
-    const getButton = () => {
-        if (isAdmin) {
-             return <Button onClick={startTest} disabled={isGenerating} className="w-full bg-green-600 hover:bg-green-700">
-                {isGenerating ? (
-                    <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Generating...
-                    </>
-                ) : (
-                    <>
-                        <PlayCircle className="mr-2 h-4 w-4" />
-                        Start Weekly Test (Admin)
-                    </>
-                )}
-            </Button>;
-        }
-        
-        if (testState === 'loading') return <Button disabled className="w-full"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading Status...</Button>;
-        if (testState === 'upcoming') return <Button disabled className="w-full"><Lock className="mr-2 h-4 w-4" />Starts In: {timeRemaining}</Button>;
-        
-        // Removed the 'completed' state block to allow retakes. 
-        // We now show a different style if they've already taken it.
-        if (testState === 'ended') return <Button disabled className="w-full"><TimerOff className="mr-2 h-4 w-4" />Weekly Test Has Ended</Button>;
-
-        return <Button onClick={startTest} disabled={isGenerating} className={cn("w-full", hasTakenTest ? "bg-orange-600 hover:bg-orange-700" : "bg-green-600 hover:bg-green-700")}>
-            {isGenerating ? (
-                <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
-                </>
-            ) : (
-                <>
-                    {hasTakenTest ? <Repeat className="mr-2 h-4 w-4" /> : <PlayCircle className="mr-2 h-4 w-4" />}
-                    {hasTakenTest ? "Retake Test" : "Start Weekly Test"}
-                </>
-            )}
-        </Button>;
-    };
-    
-    if (!startTime || !endTime) {
-        return <Card><CardContent className="flex justify-center p-6"><Loader2 className="animate-spin" /></CardContent></Card>
-    }
+    if (!startTime || !endTime) return <Card><CardContent className="p-6 flex justify-center"><Loader2 className="animate-spin" /></CardContent></Card>;
 
     return (
-        <Card className="border-primary border-2 shadow-lg relative overflow-hidden flex flex-col">
-             {participantCount !== null && (
-                <Badge variant="secondary" className="absolute top-4 right-4 flex items-center gap-1.5">
-                    <Users className="h-3.5 w-3.5" />
-                    {participantCount}
-                </Badge>
-            )}
+        <Card className="border-primary/20 shadow-sm flex flex-col h-full hover:shadow-md transition-shadow">
             <CardHeader className="text-center">
-                <CardTitle className="text-xl text-primary">{test.title}</CardTitle>
-                <CardDescription>
-                    {format(startTime, 'dd/MM/yyyy p')}
-                </CardDescription>
-                {hasTakenTest && (
-                    <div className="flex justify-center mt-1">
-                        <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
-                            <CheckCircle className="mr-1 h-3 w-3" /> Attempted
-                        </Badge>
-                    </div>
-                )}
+                <CardTitle className="text-lg text-primary">{test.title}</CardTitle>
+                <CardDescription>{format(startTime, 'dd/MM/yyyy p')}</CardDescription>
+                {hasTakenTest && <div className="flex justify-center mt-1"><Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200">Attempted</Badge></div>}
             </CardHeader>
-            <CardContent className="text-center space-y-4 flex-grow">
+            <CardContent className="space-y-4 flex-grow text-center">
                  {!isAdmin && (
-                     <div className="p-4 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">
-                            {testState === 'upcoming' ? 'Starts in' : 'Ends in'}
-                        </p>
-                        <p className="text-2xl font-bold tracking-tighter">
-                            {timeRemaining}
-                        </p>
+                     <div className="bg-muted p-3 rounded-md">
+                        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">{testState === 'upcoming' ? 'Starts In' : 'Ends In'}</p>
+                        <p className="text-xl font-bold">{timeRemaining}</p>
                     </div>
                  )}
-                 <div className="space-y-2 text-left">
-                    <Label htmlFor={`language-select-${test.id}`}>Language Preference</Label>
+                 <div className="text-left space-y-1.5">
+                    <Label className="text-xs">Language</Label>
                     <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-                        <SelectTrigger id={`language-select-${test.id}`}>
-                            <SelectValue placeholder="Select a language" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {availableLanguages.map((lang) => (
-                                <SelectItem key={lang} value={lang}>{lang}</SelectItem>
-                            ))}
-                        </SelectContent>
+                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                        <SelectContent>{availableLanguages.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
                     </Select>
                  </div>
             </CardContent>
-            <CardFooter className="flex flex-col gap-2">
-                <div className="flex w-full gap-2">
-                    <div className="flex-grow">{getButton()}</div>
-                    <Button onClick={handleShare} variant="outline" size="icon" aria-label="Share on WhatsApp">
-                        <Share2 className="h-5 w-5" />
-                    </Button>
-                </div>
+            <CardFooter>
+                <Button onClick={startTest} disabled={isGenerating || (testState === 'upcoming' && !isAdmin)} className={cn("w-full", hasTakenTest ? "bg-orange-600 hover:bg-orange-700" : "bg-green-600 hover:bg-green-700")}>
+                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (hasTakenTest ? <Repeat className="mr-2 h-4 w-4" /> : <PlayCircle className="mr-2 h-4 w-4" />)}
+                    {testState === 'upcoming' && !isAdmin ? `Starts in ${timeRemaining}` : (hasTakenTest ? "Retake Test" : "Start Weekly Test")}
+                </Button>
             </CardFooter>
         </Card>
     );

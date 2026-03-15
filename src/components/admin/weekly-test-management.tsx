@@ -108,11 +108,11 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
             return;
         }
         try {
-            JSON.parse(values.pastedJson); // Validate JSON
+            JSON.parse(values.pastedJson);
             const blob = new Blob([values.pastedJson], { type: 'application/json' });
             formData.append('file', blob, 'pasted_questions.json');
         } catch (e) {
-            toast({ title: "Invalid JSON", description: "The content you pasted is not a valid JSON. Please check the structure.", variant: "destructive" });
+            toast({ title: "Invalid JSON", description: "The content you pasted is not valid JSON.", variant: "destructive" });
             setIsLoading(false);
             return;
         }
@@ -130,12 +130,9 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
         }
 
         const { newTest } = await response.json();
-        
         setWeeklyTests(prev => [newTest, ...prev]);
         toast({ title: "Success", description: "Weekly test created successfully." });
         form.reset();
-        const fileInput = document.getElementById('weekly-test-file') as HTMLInputElement;
-        if (fileInput) fileInput.value = '';
     } catch (error: any) {
         toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -224,38 +221,13 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
     }
   };
 
-  const handleEditQuestion = (index: number) => {
-    const q = testQuestions[index];
-    setEditingQuestionIndex(index);
-    editQuestionForm.reset({
-        question: q.question,
-        options: [...q.options],
-        correctAnswer: q.correctAnswer,
-        solution: q.solution || '',
-        topic: q.topic || '',
-        translations: q.translations || {}
-    });
-  };
-
   const onEditQuestionSubmit = (values: z.infer<typeof mcqSchema>) => {
     if (editingQuestionIndex === null) return;
-    
     const updatedQuestions = [...testQuestions];
-    updatedQuestions[editingQuestionIndex] = {
-        ...updatedQuestions[editingQuestionIndex],
-        ...values,
-    };
-    
+    updatedQuestions[editingQuestionIndex] = { ...updatedQuestions[editingQuestionIndex], ...values };
     setQuestions(updatedQuestions);
     setEditingQuestionIndex(null);
-    toast({ title: "Question Updated", description: "Changes applied locally. Remember to click Save All Changes." });
-  };
-
-  const handleDeleteQuestion = (index: number) => {
-    const updated = [...testQuestions];
-    updated.splice(index, 1);
-    setQuestions(updated);
-    toast({ title: "Removed", description: "Question removed from this test." });
+    toast({ title: "Updated Locally", description: "Save all changes to sync with database." });
   };
 
   const saveAllQuestionChanges = async () => {
@@ -264,10 +236,10 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
     try {
         const content = JSON.stringify({ questions: testQuestions });
         await updateLiveTestBankDocument(managingTest.questionPaperId, content);
-        toast({ title: "Success", description: "Question paper updated successfully." });
+        toast({ title: "Success", description: "Question paper updated." });
         setManagingTest(null);
     } catch (error) {
-        toast({ title: "Error", description: "Failed to save changes to database.", variant: "destructive" });
+        toast({ title: "Error", description: "Failed to save changes.", variant: "destructive" });
     } finally {
         setIsSavingQuestions(false);
     }
@@ -287,7 +259,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
             <Card className="lg:col-span-2">
                 <CardHeader>
                     <CardTitle>Add New Weekly Test</CardTitle>
-                    <CardDescription>Upload a JSON question paper file or paste the JSON content directly.</CardDescription>
+                    <CardDescription>Upload a JSON file or paste content directly.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
@@ -299,13 +271,13 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Test Title</FormLabel>
-                                            <FormControl><Input placeholder="e.g. Weekly Test 1" {...field} /></FormControl>
+                                            <FormControl><Input placeholder="e.g. Week 1 MTS Challenge" {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
                                 <div className="space-y-2">
-                                    <Label>Input Method</Label>
+                                    <Label>Method</Label>
                                     <Tabs value={form.watch('method')} onValueChange={(v) => form.setValue('method', v as any)}>
                                         <TabsList className="grid w-full grid-cols-2">
                                             <TabsTrigger value="file"><Upload className="mr-2 h-4 w-4" /> File</TabsTrigger>
@@ -315,90 +287,55 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                 </div>
                             </div>
 
-                            <div className="space-y-4">
-                                {form.watch('method') === 'file' ? (
-                                    <FormField
-                                        control={form.control}
-                                        name="file"
-                                        render={({ field: { onChange, value, ...rest } }) => (
-                                            <FormItem>
-                                                <FormLabel>Question Papers (JSON)</FormLabel>
-                                                <FormControl>
-                                                    <Input 
-                                                        id="weekly-test-file"
-                                                        type="file" 
-                                                        accept=".json" 
-                                                        multiple
-                                                        onChange={(e) => onChange(e.target.files)}
-                                                        {...rest}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                ) : (
-                                    <FormField
-                                        control={form.control}
-                                        name="pastedJson"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Paste JSON Content</FormLabel>
-                                                <FormControl>
-                                                    <Textarea 
-                                                        rows={8} 
-                                                        placeholder='{ "questions": [ ... ] }'
-                                                        className="font-mono text-xs"
-                                                        {...field} 
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                )}
-                            </div>
+                            {form.watch('method') === 'file' ? (
+                                <FormField
+                                    control={form.control}
+                                    name="file"
+                                    render={({ field: { onChange, value, ...rest } }) => (
+                                        <FormItem>
+                                            <FormLabel>JSON Files</FormLabel>
+                                            <FormControl><Input type="file" accept=".json" multiple onChange={(e) => onChange(e.target.files)} {...rest} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            ) : (
+                                <FormField
+                                    control={form.control}
+                                    name="pastedJson"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Paste JSON Content</FormLabel>
+                                            <FormControl><Textarea rows={8} placeholder='{ "questions": [ ... ] }' className="font-mono text-xs" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
 
                             <FormField
                                 control={form.control}
                                 name="examCategories"
                                 render={() => (
                                     <FormItem>
-                                        <div className="mb-2">
-                                            <FormLabel>Target Exam Categories</FormLabel>
-                                        </div>
+                                        <div className="mb-2"><FormLabel>Target Exam Categories</FormLabel></div>
                                         <div className="flex flex-wrap gap-6 p-4 border rounded-md bg-muted/20">
                                             {categoriesList.map((item) => (
                                                 <FormField
                                                     key={item}
                                                     control={form.control}
                                                     name="examCategories"
-                                                    render={({ field }) => {
-                                                        return (
-                                                            <FormItem
-                                                                key={item}
-                                                                className="flex flex-row items-center space-x-3 space-y-0"
-                                                            >
-                                                                <FormControl>
-                                                                    <Checkbox
-                                                                        checked={field.value?.includes(item)}
-                                                                        onCheckedChange={(checked) => {
-                                                                            return checked
-                                                                                ? field.onChange([...(field.value || []), item])
-                                                                                : field.onChange(
-                                                                                    field.value?.filter(
-                                                                                        (value: string) => value !== item
-                                                                                    )
-                                                                                )
-                                                                        }}
-                                                                    />
-                                                                </FormControl>
-                                                                <FormLabel className="font-normal cursor-pointer">
-                                                                    {item}
-                                                                </FormLabel>
-                                                            </FormItem>
-                                                        )
-                                                    }}
+                                                    render={({ field }) => (
+                                                        <FormItem key={item} className="flex flex-row items-center space-x-2 space-y-0">
+                                                            <FormControl>
+                                                                <Checkbox
+                                                                    checked={field.value?.includes(item)}
+                                                                    onCheckedChange={(checked) => checked ? field.onChange([...(field.value || []), item]) : field.onChange(field.value?.filter((v: string) => v !== item))}
+                                                                />
+                                                            </FormControl>
+                                                            <FormLabel className="font-normal cursor-pointer">{item}</FormLabel>
+                                                        </FormItem>
+                                                    )}
                                                 />
                                             ))}
                                         </div>
@@ -407,7 +344,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                 )}
                             />
 
-                            <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
+                            <Button type="submit" disabled={isLoading}>
                                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                                 Add Weekly Test
                             </Button>
@@ -416,22 +353,18 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                 </CardContent>
             </Card>
 
-            <Card className="border-blue-200 bg-blue-50/30">
-                <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                        <FileCode className="h-4 w-4 text-primary" /> Expected JSON Structure
-                    </CardTitle>
-                </CardHeader>
+            <Card className="bg-primary/5 border-primary/20">
+                <CardHeader className="pb-3"><CardTitle className="text-sm font-semibold flex items-center gap-2"><FileCode className="h-4 w-4" /> JSON Model Structure</CardTitle></CardHeader>
                 <CardContent>
-                    <pre className="text-[10px] leading-relaxed font-mono bg-background p-3 border rounded-md overflow-x-auto">
+                    <pre className="text-[10px] font-mono bg-background p-3 border rounded-md overflow-x-auto">
 {`{
   "questions": [
     {
-      "question": "Question text (HTML allowed)",
+      "question": "Text (HTML ok)",
       "options": ["A", "B", "C", "D"],
       "correctAnswer": "A",
-      "solution": "Optional logic/steps",
-      "topic": "Topic Name",
+      "solution": "Logic/steps",
+      "topic": "Name",
       "translations": {
         "ta": { 
           "question": "தமிழ்...", 
@@ -443,9 +376,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
   ]
 }`}
                     </pre>
-                    <p className="text-[10px] text-muted-foreground mt-3 leading-snug">
-                        * Supported translations keys: <strong>ta</strong> (Tamil), <strong>hi</strong> (Hindi), <strong>te</strong> (Telugu), <strong>kn</strong> (Kannada).
-                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-3">Keys: ta (Tamil), hi (Hindi), te (Telugu), kn (Kannada).</p>
                 </CardContent>
             </Card>
         </div>
@@ -453,320 +384,101 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
         <Card>
             <CardHeader>
                 <div className="flex justify-between items-center">
-                    <div>
-                        <CardTitle>Existing Weekly Tests</CardTitle>
-                        <CardDescription>Permanent tests available to selected courses.</CardDescription>
-                    </div>
-                    <div className="relative w-64">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Search..." className="pl-8" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-                    </div>
+                    <div><CardTitle>Existing Weekly Tests</CardTitle><CardDescription>Permanent tests for selected courses.</CardDescription></div>
+                    <div className="relative w-64"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input placeholder="Search..." className="pl-8" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} /></div>
                 </div>
             </CardHeader>
             <CardContent>
                 <div className="border rounded-md">
                     <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Title</TableHead>
-                                <TableHead>Target Courses</TableHead>
-                                <TableHead>Created</TableHead>
-                                <TableHead className="text-right">Action</TableHead>
-                            </TableRow>
-                        </TableHeader>
+                        <TableHeader><TableRow><TableHead>Title</TableHead><TableHead>Categories</TableHead><TableHead>Created</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader>
                         <TableBody>
                             {filteredTests.length > 0 ? filteredTests.map(t => (
                                 <TableRow key={t.id}>
                                     <TableCell className="font-medium">{t.title}</TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-wrap gap-1">
-                                            {t.examCategories?.map(cat => <Badge key={cat} variant="secondary" className="text-[10px]">{cat}</Badge>)}
-                                        </div>
-                                    </TableCell>
+                                    <TableCell><div className="flex flex-wrap gap-1">{t.examCategories?.map(cat => <Badge key={cat} variant="secondary" className="text-[10px]">{cat}</Badge>)}</div></TableCell>
                                     <TableCell className="text-xs text-muted-foreground">{t.createdAt ? format(t.createdAt, 'dd/MM/yyyy') : 'N/A'}</TableCell>
                                     <TableCell className="text-right space-x-2">
-                                        <Button variant="ghost" size="icon" onClick={() => handleManageQuestions(t)} title="Edit Individual Questions">
-                                            <List className="h-4 w-4 text-primary" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" onClick={() => setSelectedTestToAppend(t)} title="Append Questions">
-                                            <FilePlus className="h-4 w-4 text-blue-600" />
-                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={() => handleManageQuestions(t)} title="Edit Questions"><List className="h-4 w-4 text-primary" /></Button>
+                                        <Button variant="ghost" size="icon" onClick={() => setSelectedTestToAppend(t)} title="Append"><FilePlus className="h-4 w-4 text-blue-600" /></Button>
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger>
                                             <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>Remove Weekly Test?</AlertDialogTitle>
-                                                    <AlertDialogDescription>This will hide the test from all selected users.</AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => handleDelete(t.id)}>Delete</AlertDialogAction>
-                                                </AlertDialogFooter>
+                                                <AlertDialogHeader><AlertDialogTitle>Delete Weekly Test?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
+                                                <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(t.id)}>Delete</AlertDialogAction></AlertDialogFooter>
                                             </AlertDialogContent>
                                         </AlertDialog>
                                     </TableCell>
                                 </TableRow>
-                            )) : (
-                                <TableRow>
-                                    <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">No weekly tests found.</TableCell>
-                                </TableRow>
-                            )}
+                            )) : <TableRow><TableCell colSpan={4} className="h-24 text-center">No tests found.</TableCell></TableRow>}
                         </TableBody>
                     </Table>
                 </div>
             </CardContent>
         </Card>
 
-        {/* APPEND QUESTIONS DIALOG */}
+        {/* APPEND DIALOG */}
         <Dialog open={!!selectedTestToAppend} onOpenChange={(open) => !open && setSelectedTestToAppend(null)}>
             <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                    <DialogTitle>Append Questions</DialogTitle>
-                    <DialogDescription>
-                        Add more questions to <strong>{selectedTestToAppend?.title}</strong>.
-                    </DialogDescription>
-                </DialogHeader>
+                <DialogHeader><DialogTitle>Append Questions</DialogTitle></DialogHeader>
                 <Form {...appendForm}>
                     <form onSubmit={appendForm.handleSubmit(onAppendSubmit)} className="space-y-4">
-                        <div className="space-y-2">
-                            <Label>Input Method</Label>
-                            <Tabs value={appendForm.watch('method')} onValueChange={(v) => appendForm.setValue('method', v as any)}>
-                                <TabsList className="grid w-full grid-cols-2">
-                                    <TabsTrigger value="file"><Upload className="mr-2 h-4 w-4" /> File</TabsTrigger>
-                                    <TabsTrigger value="paste"><ClipboardPaste className="mr-2 h-4 w-4" /> Paste</TabsTrigger>
-                                </TabsList>
-                            </Tabs>
-                        </div>
-
+                        <Tabs value={appendForm.watch('method')} onValueChange={(v) => appendForm.setValue('method', v as any)}>
+                            <TabsList className="grid w-full grid-cols-2">
+                                <TabsTrigger value="file"><Upload className="mr-2 h-4 w-4" /> File</TabsTrigger>
+                                <TabsTrigger value="paste"><ClipboardPaste className="mr-2 h-4 w-4" /> Paste</TabsTrigger>
+                            </TabsList>
+                        </Tabs>
                         {appendForm.watch('method') === 'file' ? (
-                            <FormField
-                                control={appendForm.control}
-                                name="file"
-                                render={({ field: { onChange, value, ...rest } }) => (
-                                    <FormItem>
-                                        <FormLabel>Select JSON Files</FormLabel>
-                                        <FormControl>
-                                            <Input 
-                                                id="weekly-test-file-append"
-                                                type="file" 
-                                                accept=".json" 
-                                                multiple
-                                                onChange={(e) => onChange(e.target.files)}
-                                                {...rest}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            <FormField control={appendForm.control} name="file" render={({ field: { onChange, value, ...rest } }) => (<FormItem><FormControl><Input type="file" accept=".json" multiple onChange={(e) => onChange(e.target.files)} {...rest} /></FormControl></FormItem>)} />
                         ) : (
-                            <FormField
-                                control={appendForm.control}
-                                name="pastedJson"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Paste JSON Content</FormLabel>
-                                        <FormControl>
-                                            <Textarea 
-                                                rows={10} 
-                                                placeholder='{ "questions": [ ... ] }'
-                                                className="font-mono text-xs"
-                                                {...field} 
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            <FormField control={appendForm.control} name="pastedJson" render={({ field }) => (<FormItem><FormControl><Textarea rows={10} className="font-mono text-xs" {...field} /></FormControl></FormItem>)} />
                         )}
-
-                        <DialogFooter>
-                            <DialogClose asChild>
-                                <Button type="button" variant="outline">Cancel</Button>
-                            </DialogClose>
-                            <Button type="submit" disabled={isAppending}>
-                                {isAppending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                                Append Questions
-                            </Button>
-                        </DialogFooter>
+                        <DialogFooter><Button type="submit" disabled={isAppending}>{isAppending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Append</Button></DialogFooter>
                     </form>
                 </Form>
             </DialogContent>
         </Dialog>
 
-        {/* MANAGE INDIVIDUAL QUESTIONS DIALOG */}
+        {/* MANAGE QUESTIONS DIALOG */}
         <Dialog open={!!managingTest} onOpenChange={(open) => !open && !isSavingQuestions && setManagingTest(null)}>
             <DialogContent className="max-w-5xl h-[90vh] flex flex-col">
-                <DialogHeader>
-                    <DialogTitle>Manage Questions: {managingTest?.title}</DialogTitle>
-                    <DialogDescription>Edit or remove individual questions from this test.</DialogDescription>
-                </DialogHeader>
-                
-                <div className="flex-grow min-h-0">
-                    {isQuestionsLoading ? (
-                        <div className="flex h-full items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>
-                    ) : (
-                        <ScrollArea className="h-full border rounded-md p-4">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-16">Index</TableHead>
-                                        <TableHead>Question Text</TableHead>
-                                        <TableHead>Topic</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
+                <DialogHeader><DialogTitle>Edit Questions: {managingTest?.title}</DialogTitle></DialogHeader>
+                <ScrollArea className="flex-grow border rounded-md p-4">
+                    {isQuestionsLoading ? <div className="flex h-full items-center justify-center"><Loader2 className="animate-spin" /></div> : (
+                        <Table>
+                            <TableBody>
+                                {testQuestions.map((q, idx) => (
+                                    <TableRow key={idx}>
+                                        <TableCell className="w-16 font-mono text-xs">{idx + 1}</TableCell>
+                                        <TableCell className="text-sm"><div className="line-clamp-2" dangerouslySetInnerHTML={{ __html: q.question }} /></TableCell>
+                                        <TableCell className="text-right space-x-1">
+                                            <Button variant="ghost" size="icon" onClick={() => { setEditingQuestionIndex(idx); editQuestionForm.reset(q as any); }}><Edit className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" onClick={() => { const u = [...testQuestions]; u.splice(idx, 1); setQuestions(u); }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                        </TableCell>
                                     </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {testQuestions.map((q, idx) => (
-                                        <TableRow key={idx}>
-                                            <TableCell className="text-muted-foreground font-mono">{String(idx + 1).padStart(3, '0')}</TableCell>
-                                            <TableCell>
-                                                <div className="line-clamp-2 text-sm" dangerouslySetInnerHTML={{ __html: q.question }} />
-                                            </TableCell>
-                                            <TableCell className="text-xs text-muted-foreground">{q.topic || 'N/A'}</TableCell>
-                                            <TableCell className="text-right space-x-1">
-                                                <Button variant="ghost" size="icon" onClick={() => handleEditQuestion(idx)}><Edit className="h-4 w-4" /></Button>
-                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteQuestion(idx)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </ScrollArea>
+                                ))}
+                            </TableBody>
+                        </Table>
                     )}
-                </div>
-
-                <DialogFooter className="pt-4 gap-2">
-                    <DialogClose asChild>
-                        <Button variant="outline" disabled={isSavingQuestions}>Cancel Changes</Button>
-                    </DialogClose>
-                    <Button onClick={saveAllQuestionChanges} disabled={isSavingQuestions || isQuestionsLoading}>
-                        {isSavingQuestions ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        Save All Changes
-                    </Button>
-                </DialogFooter>
+                </ScrollArea>
+                <DialogFooter className="pt-4"><Button onClick={saveAllQuestionChanges} disabled={isSavingQuestions}>{isSavingQuestions && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save All Changes</Button></DialogFooter>
             </DialogContent>
         </Dialog>
 
-        {/* EDIT SINGLE MCQ DIALOG */}
-        <Dialog open={editingQuestionIndex !== null} onOpenChange={(open) => !open && setEditingQuestionIndex(null)}>
+        {/* EDIT SINGLE DIALOG */}
+        <Dialog open={editingQuestionIndex !== null} onOpenChange={() => setEditingQuestionIndex(null)}>
             <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
-                <DialogHeader>
-                    <DialogTitle>Edit Question {editingQuestionIndex !== null ? editingQuestionIndex + 1 : ''}</DialogTitle>
-                </DialogHeader>
-                
+                <DialogHeader><DialogTitle>Edit Question {editingQuestionIndex! + 1}</DialogTitle></DialogHeader>
                 <ScrollArea className="flex-grow pr-4">
-                    <Form {...editQuestionForm}>
-                        <form onSubmit={editQuestionForm.handleSubmit(onEditQuestionSubmit)} className="space-y-6 pb-4">
-                            <FormField
-                                control={editQuestionForm.control}
-                                name="question"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Question Text (HTML allowed for images)</FormLabel>
-                                        <FormControl><Textarea rows={3} {...field} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {[0, 1, 2, 3].map(i => (
-                                    <FormField
-                                        key={i}
-                                        control={editQuestionForm.control}
-                                        name={`options.${i}`}
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Option {i + 1}</FormLabel>
-                                                <FormControl><Input {...field} /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                ))}
-                            </div>
-
-                            <FormField
-                                control={editQuestionForm.control}
-                                name="correctAnswer"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Correct Answer</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select correct answer" /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                {editQuestionForm.watch('options')?.map((opt, i) => (
-                                                    <SelectItem key={i} value={opt || `Option ${i+1}`}>{opt || `Option ${i+1}`}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={editQuestionForm.control}
-                                name="solution"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Step-by-Step Solution</FormLabel>
-                                        <FormControl><Textarea rows={4} {...field} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <div className="border rounded-md p-4 bg-muted/10 space-y-4">
-                                <h4 className="font-semibold text-sm">Translations (ta, hi, te, kn)</h4>
-                                {['ta', 'hi', 'te', 'kn'].map(lang => (
-                                    <div key={lang} className="p-3 border rounded bg-background space-y-3">
-                                        <Badge variant="outline">{lang.toUpperCase()}</Badge>
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px]">Translated Question</Label>
-                                            <Input 
-                                                className="text-xs h-8"
-                                                defaultValue={editQuestionForm.watch(`translations.${lang}.question` as any)}
-                                                onChange={(e) => editQuestionForm.setValue(`translations.${lang}.question` as any, e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {[0, 1, 2, 3].map(i => (
-                                                <Input 
-                                                    key={i}
-                                                    className="text-[10px] h-7"
-                                                    placeholder={`Option ${i+1}`}
-                                                    defaultValue={editQuestionForm.watch(`translations.${lang}.options.${i}` as any)}
-                                                    onChange={(e) => {
-                                                        const current = editQuestionForm.getValues(`translations.${lang}.options` as any) || ['', '', '', ''];
-                                                        current[i] = e.target.value;
-                                                        editQuestionForm.setValue(`translations.${lang}.options` as any, current);
-                                                    }}
-                                                />
-                                            ))}
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px]">Translated Correct Answer</Label>
-                                            <Input 
-                                                className="text-xs h-8"
-                                                defaultValue={editQuestionForm.watch(`translations.${lang}.correctAnswer` as any)}
-                                                onChange={(e) => editQuestionForm.setValue(`translations.${lang}.correctAnswer` as any, e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </form>
-                    </Form>
+                    <Form {...editQuestionForm}><form onSubmit={editQuestionForm.handleSubmit(onEditQuestionSubmit)} className="space-y-4">
+                        <FormField control={editQuestionForm.control} name="question" render={({ field }) => (<FormItem><FormLabel>Question</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>)} />
+                        <div className="grid grid-cols-2 gap-4">{[0,1,2,3].map(i => (<FormField key={i} control={editQuestionForm.control} name={`options.${i}`} render={({ field }) => (<FormItem><FormLabel>Opt {i+1}</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />))}</div>
+                        <FormField control={editQuestionForm.control} name="correctAnswer" render={({ field }) => (<FormItem><FormLabel>Correct Answer</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                        <FormField control={editQuestionForm.control} name="solution" render={({ field }) => (<FormItem><FormLabel>Solution</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>)} />
+                        <Button type="submit" className="w-full">Update locally</Button>
+                    </form></Form>
                 </ScrollArea>
-
-                <DialogFooter className="pt-4">
-                    <DialogClose asChild>
-                        <Button variant="outline">Cancel</Button>
-                    </DialogClose>
-                    <Button onClick={editQuestionForm.handleSubmit(onEditQuestionSubmit)}>Apply Changes</Button>
-                </DialogFooter>
             </DialogContent>
         </Dialog>
     </div>
