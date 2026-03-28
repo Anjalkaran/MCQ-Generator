@@ -3,15 +3,20 @@
 
 import { useDashboard } from "@/app/dashboard/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, PenSquare, Video, History, FileWarning, BrainCircuit, Library, CalendarCheck } from 'lucide-react';
+import { Loader2, PenSquare, Video, History, FileWarning, BrainCircuit, Library, CalendarCheck, Shield } from 'lucide-react';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ADMIN_EMAILS } from "@/lib/constants";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { updateDoc, doc } from "firebase/firestore";
+import { getFirebaseDb } from "@/lib/firebase";
+import { FadeIn } from '@/components/animations/motion-wrapper';
+import { useToast } from "@/hooks/use-toast";
 
 
 export default function DashboardPage() {
-  const { user, userData, isLoading } = useDashboard();
+  const { user, userData, isLoading, setUserData } = useDashboard();
+  const { toast } = useToast();
 
   if (isLoading) {
     return (
@@ -36,95 +41,177 @@ export default function DashboardPage() {
   
   const isAdmin = userData.email ? ADMIN_EMAILS.includes(userData.email) : false;
 
-  const isIPUser = userData.examCategory === 'IP';
+  const handleCourseSelect = async (category: string) => {
+    if (!userData?.uid) return;
+    
+    // Update local state first for immediate UI feedback
+    setUserData(prev => prev ? ({ ...prev, examCategory: category as any }) : null);
+
+    try {
+      const db = getFirebaseDb();
+      if (db) {
+        await updateDoc(doc(db, 'users', userData.uid), {
+          examCategory: category
+        });
+        toast({
+          title: "Course Selected",
+          description: `You are now viewing ${category} content.`,
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Selection Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Define available courses based on subscription
+  const subCat = userData.subscribedCategory || userData.examCategory || 'MTS';
   
-  if (isIPUser) {
-    // Add a small badge or note that they are in the IP track if needed, 
-    // but the main dashboard cards should be regular.
-  }
+  const availableCourses = [
+    { 
+      id: 'MTS', 
+      title: 'MTS', 
+      subtitle: 'Multi Tasking Staff',
+      description: 'Foundational study materials and practice tests for MTS aspirants.',
+      icon: <BrainCircuit className="h-10 w-10" />,
+      color: 'from-blue-500/20 to-cyan-500/20',
+      textColor: 'text-blue-600',
+      allowed: true // Everyone can see MTS
+    },
+    { 
+      id: 'POSTMAN', 
+      title: 'Postman', 
+      subtitle: 'Mail Guard',
+      description: 'Comprehensive coverage for Postman and Mail Guard examinations.',
+      icon: <PenSquare className="h-10 w-10" />,
+      color: 'from-orange-500/20 to-red-500/20',
+      textColor: 'text-orange-600',
+      allowed: ['POSTMAN', 'PA', 'IP'].includes(subCat)
+    },
+    { 
+      id: 'PA', 
+      title: 'PA / SA', 
+      subtitle: 'Postal Assistant',
+      description: 'Advanced materials for Postal and Sorting Assistant exams.',
+      icon: <Library className="h-10 w-10" />,
+      color: 'from-purple-500/20 to-indigo-500/20',
+      textColor: 'text-purple-600',
+      allowed: ['PA', 'IP'].includes(subCat)
+    },
+    { 
+      id: 'IP', 
+      title: 'IP', 
+      subtitle: 'Inspector Post',
+      description: 'Elite preparation track for the Inspector Post examination.',
+      icon: <Shield className="h-10 w-10" />,
+      color: 'from-red-600/20 to-rose-600/20',
+      textColor: 'text-red-700',
+      allowed: subCat === 'IP'
+    }
+  ].filter(course => course.allowed || isAdmin);
 
   return (
-    <div className="space-y-6">
-       <div className="space-y-2 text-center pt-4">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Select an option to get started.</p>
+    <div className="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="space-y-4 text-center py-6">
+        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
+          Welcome back, <span className="text-red-600">{userData.name}</span>
+        </h1>
+        <p className="text-xl text-slate-500 max-w-2xl mx-auto">
+          Choose your course to continue your preparation and access your study materials.
+        </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="flex flex-col border-primary/20 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <div className="bg-primary/10 p-3 rounded-full group-hover:bg-primary group-hover:text-white transition-colors duration-300">
-                <CalendarCheck className="h-8 w-8 text-primary group-hover:text-white" />
+      <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        {availableCourses.map((course) => (
+          <Card 
+            key={course.id}
+            onClick={() => handleCourseSelect(course.id)}
+            className={`group relative flex flex-col overflow-hidden border-slate-200 cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 ${
+              userData.examCategory === course.id ? 'ring-2 ring-red-600 shadow-xl' : ''
+            }`}
+          >
+            {userData.examCategory === course.id && (
+              <div className="absolute top-0 right-0 bg-red-600 text-white px-3 py-1 text-xs font-bold rounded-bl-lg z-10">
+                ACTIVE
               </div>
-              <CardTitle className="text-2xl">Weekly Test</CardTitle>
-            </div>
-            <CardDescription className="pt-4 text-base">
-              Access the latest full-length mock tests released every week for permanent practice.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex-grow flex items-end">
-            <Button asChild className="w-full shadow-md group-hover:shadow-lg transition-all">
-              <Link href="/dashboard/weekly-test">View Weekly Tests</Link>
-            </Button>
-          </CardContent>
-        </Card>
-        <Card className="flex flex-col border-border/40 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <div className="bg-primary/10 p-3 rounded-full group-hover:bg-primary transition-colors duration-300">
-                <PenSquare className="h-8 w-8 text-primary group-hover:text-white" />
+            )}
+            
+            <div className={`h-32 bg-gradient-to-br ${course.color} flex items-center justify-center transition-transform duration-500 group-hover:scale-105`}>
+              <div className={`${course.textColor} transform group-hover:scale-110 transition-transform duration-500`}>
+                {course.icon}
               </div>
-              <CardTitle className="text-2xl">Practice Exams</CardTitle>
             </div>
-            <CardDescription className="pt-4 text-base">
-              Access other exam types including syllabus mock tests, practice MCQs, and reasoning tests.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex-grow flex items-end">
-            <Button asChild className="w-full shadow-md group-hover:shadow-lg transition-all">
-              <Link href="/dashboard/online-test">Go to Practice</Link>
-            </Button>
-          </CardContent>
-        </Card>
-        
-        <Card className="flex flex-col border-border/40 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <div className="bg-primary/10 p-3 rounded-full group-hover:bg-primary transition-colors duration-300">
-                <Video className="h-8 w-8 text-primary group-hover:text-white" />
+
+            <CardHeader>
+              <div className="space-y-1">
+                <CardTitle className="text-2xl font-bold">{course.title}</CardTitle>
+                <CardDescription className="font-semibold text-slate-600">{course.subtitle}</CardDescription>
               </div>
-              <CardTitle className="text-2xl">Video Classes</CardTitle>
+            </CardHeader>
+            
+            <CardContent className="flex-grow">
+              <p className="text-sm text-slate-500 leading-relaxed">
+                {course.description}
+              </p>
+            </CardContent>
+
+            <div className="p-6 pt-0 mt-auto">
+              <Button 
+                variant={userData.examCategory === course.id ? "default" : "outline"}
+                className={`w-full font-bold h-11 ${
+                  userData.examCategory === course.id 
+                    ? 'bg-red-600 hover:bg-red-700' 
+                    : 'group-hover:bg-slate-50'
+                }`}
+              >
+                {userData.examCategory === course.id ? 'Enter Course' : 'Select Course'}
+              </Button>
             </div>
-            <CardDescription className="pt-4 text-base">
-              Access recorded video classes for comprehensive learning and expert guidance.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex-grow flex items-end">
-            <Button asChild className="w-full shadow-md group-hover:shadow-lg transition-all">
-                <Link href="/dashboard/video-classes">Watch Videos</Link>
-            </Button>
-          </CardContent>
-        </Card>
-        <Card className="flex flex-col border-border/40 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <div className="bg-primary/10 p-3 rounded-full group-hover:bg-primary transition-colors duration-300">
-                <Library className="h-8 w-8 text-primary group-hover:text-white" />
-              </div>
-              <CardTitle className="text-2xl">Study Material</CardTitle>
-            </div>
-            <CardDescription className="pt-4 text-base">
-              View and read study materials, notes, and documents for your exam preparation.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex-grow flex items-end">
-            <Button asChild className="w-full shadow-md group-hover:shadow-lg transition-all">
-                <Link href="/dashboard/study-material">View Materials</Link>
-            </Button>
-          </CardContent>
-        </Card>
+          </Card>
+        ))}
       </div>
+
+      {userData.examCategory && (
+        <FadeIn>
+          <div className="mt-12 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex items-center gap-3 border-b border-slate-200 pb-4">
+              <h2 className="text-2xl font-bold text-slate-900">
+                Current Course: <span className="text-red-600">{userData.examCategory}</span> Quick Access
+              </h2>
+            </div>
+            
+            <div className="grid gap-4 md:grid-cols-4">
+              <Button asChild variant="outline" className="h-20 flex flex-col gap-2 hover:bg-red-50 hover:border-red-200 transition-all">
+                <Link href="/dashboard/weekly-test">
+                  <CalendarCheck className="h-6 w-6 text-red-600" />
+                  <span>Weekly Test</span>
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="h-20 flex flex-col gap-2 hover:bg-red-50 hover:border-red-200 transition-all">
+                <Link href="/dashboard/online-test">
+                  <PenSquare className="h-6 w-6 text-red-600" />
+                  <span>Practice Exams</span>
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="h-20 flex flex-col gap-2 hover:bg-red-50 hover:border-red-200 transition-all">
+                <Link href="/dashboard/video-classes">
+                  <Video className="h-6 w-6 text-red-600" />
+                  <span>Video Classes</span>
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="h-20 flex flex-col gap-2 hover:bg-red-50 hover:border-red-200 transition-all">
+                <Link href="/dashboard/study-material">
+                  <Library className="h-6 w-6 text-red-600" />
+                  <span>Study Material</span>
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </FadeIn>
+      )}
     </div>
   );
 }

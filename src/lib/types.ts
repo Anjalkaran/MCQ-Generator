@@ -60,6 +60,7 @@ export interface UserData {
     city?: string;
     division?: string;
     examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP';
+    subscribedCategory?: 'MTS' | 'POSTMAN' | 'PA' | 'IP';
     totalExamsTaken: number;
     liveTestsTaken?: string[]; 
     completedMockBankTests?: string[]; 

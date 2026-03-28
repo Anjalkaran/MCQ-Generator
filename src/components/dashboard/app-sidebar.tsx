@@ -149,10 +149,14 @@ export function AppSidebar() {
                   <SelectTrigger className="h-9 text-sm font-medium bg-background border-muted-foreground/20 hover:bg-accent transition-colors">
                     <SelectValue placeholder="Select Course" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MTS">MTS (Multi Tasking Staff)</SelectItem>
-                    <SelectItem value="POSTMAN">POSTMAN / Mail Guard</SelectItem>
-                    <SelectItem value="PA">PA / SA (Postal Assistant)</SelectItem>
+                  <SelectContent className="bg-white border-slate-200">
+                    <SelectItem value="MTS" className="text-slate-900 focus:bg-red-50">MTS (Multi Tasking Staff)</SelectItem>
+                    {['POSTMAN', 'PA', 'IP'].includes(userData.subscribedCategory || userData.examCategory || 'MTS') && (
+                      <SelectItem value="POSTMAN" className="text-slate-900 focus:bg-red-50">POSTMAN / Mail Guard</SelectItem>
+                    )}
+                    {['PA', 'IP'].includes(userData.subscribedCategory || userData.examCategory || 'MTS') && (
+                      <SelectItem value="PA" className="text-slate-900 focus:bg-red-50">PA / SA (Postal Assistant)</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               )}
