@@ -12,6 +12,8 @@ export interface StudyMaterial {
 }
 
 export interface MCQ {
+  questionId?: string;
+  topicId?: string;
   question: string;
   options: string[];
   correctAnswer: string;
@@ -210,4 +212,25 @@ export interface MaterialDownload {
   materialId: string;
   materialTitle: string;
   downloadedAt: Date;
+}
+
+export interface Bookmark {
+  id: string; // questionId or hash
+  userId: string;
+  question: MCQ;
+  topicId?: string;
+  comment?: string;
+  createdAt: any; // Timestamp or Date
+}
+
+export interface MCQReport {
+  id: string;
+  userId: string;
+  userName?: string;
+  userEmail?: string;
+  question: MCQ;
+  comment: string;
+  topicId?: string;
+  createdAt: any;
+  status: 'pending' | 'resolved';
 }

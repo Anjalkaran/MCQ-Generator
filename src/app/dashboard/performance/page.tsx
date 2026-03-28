@@ -2,39 +2,33 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { getPerformanceByTopic } from '@/lib/firestore';
+import { getExamHistoryForUser } from '@/lib/firestore';
 import { PerformanceClient } from '@/components/performance/performance-client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from 'lucide-react';
-import type { TopicPerformance } from '@/lib/types';
-import { useDashboard } from '@/app/dashboard/layout';
+import type { MCQHistory } from '@/lib/types';
+import { useDashboard } from '@/context/dashboard-context';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { useRouter } from 'next/navigation';
 
 export default function PerformancePage() {
   const { user, userData, isLoading: isDashboardLoading } = useDashboard();
   const router = useRouter();
-  const [performanceData, setPerformanceData] = useState<TopicPerformance[]>([]);
+  const [historyData, setHistoryData] = useState<MCQHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (isDashboardLoading) return;
 
-    if (!user || !userData) {
+    if (!user) {
         setIsLoading(false);
         return;
     }
 
-    const isAdmin = ADMIN_EMAILS.includes(userData.email);
-    if (!isAdmin) {
-        router.push('/dashboard');
-        return;
-    }
-
-    const fetchPerformance = async () => {
+    const fetchData = async () => {
         try {
-            const data = await getPerformanceByTopic(user.uid);
-            setPerformanceData(data);
+            const data = await getExamHistoryForUser(user.uid);
+            setHistoryData(data);
         } catch (error) {
             console.error("Failed to fetch performance data:", error);
         } finally {
@@ -42,8 +36,8 @@ export default function PerformancePage() {
         }
     };
 
-    fetchPerformance();
-  }, [user, userData, isDashboardLoading, router]);
+    fetchData();
+  }, [user, isDashboardLoading]);
 
   if (isDashboardLoading || isLoading) {
     return (
@@ -83,7 +77,7 @@ export default function PerformancePage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Your Performance</h1>
-      <PerformanceClient initialPerformanceData={performanceData} />
+      <PerformanceClient history={historyData} />
     </div>
   );
 }

@@ -110,10 +110,8 @@ export function FeedbackManagement({ initialFeedback }: FeedbackManagementProps)
             <Dialog open={isReplyDialogOpen} onOpenChange={setIsReplyDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Reply to {currentFeedback?.userName}'s Feedback</DialogTitle>
-                        <DialogDescription>
-                            Your reply will be visible to the user.
-                        </DialogDescription>
+                        <DialogTitle>Feedback Details</DialogTitle>
+                        <DialogDescription>From {currentFeedback?.userName || 'User'} on {currentFeedback ? format(currentFeedback.createdAt, 'PPp') : ''}</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="p-3 bg-muted rounded-md border">

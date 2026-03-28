@@ -12,7 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Clock, Trash2, Edit, CalendarIcon, Upload, Eye } from 'lucide-react';
-import { addLiveTest, updateLiveTest, deleteLiveTest, deleteLiveTestBankDocument } from '@/lib/firestore';
+import { addLiveTest, updateLiveTest, deleteLiveTest, deleteLiveTestBankDocument, updateQuestionBankDocument } from '@/lib/firestore';
+import { MCQStructuredEditor } from './mcq-structured-editor';
 import type { BankedQuestion, LiveTest } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -61,7 +62,10 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
   const [liveTestBank, setLiveTestBank] = useState<BankedQuestion[]>(initialLiveTestBank);
   const [liveTests, setLiveTests] = useState<LiveTest[]>(initialLiveTests);
   const [editingTest, setEditingTest] = useState<LiveTest | null>(null);
+  const [editingPaper, setEditingPaper] = useState<BankedQuestion | null>(null);
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
+  const [isPaperEditDialogOpen, setIsPaperEditDialogOpen] = useState(false);
+  const [isSavingPaper, setIsSavingPaper] = useState(false);
   const { toast } = useToast();
 
   const scheduleForm = useForm<z.infer<typeof scheduleSchema>>({
@@ -186,6 +190,28 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
     }
   }
 
+  const handleOpenPaperEditDialog = (paper: BankedQuestion) => {
+    setEditingPaper(paper);
+    setIsPaperEditDialogOpen(true);
+  };
+
+  const handleSavePaperEdit = async (newContent: string) => {
+    if (!editingPaper) return;
+    setIsSavingPaper(true);
+    try {
+        await updateQuestionBankDocument(editingPaper.id, newContent);
+        setLiveTestBank(prev => prev.map(p => p.id === editingPaper.id ? { ...p, content: newContent } : p));
+        setIsPaperEditDialogOpen(false);
+        setEditingPaper(null);
+        toast({ title: "Success", description: "Question paper updated successfully." });
+    } catch (error: any) {
+        console.error("Failed to update question paper", error);
+        throw error;
+    } finally {
+        setIsSavingPaper(false);
+    }
+  };
+
   const handleOpenScheduleDialog = (test: LiveTest | null) => {
     setEditingTest(test);
     setIsScheduleDialogOpen(true);
@@ -294,7 +320,23 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                         <TableRow key={p.id}>
                                             <TableCell>{p.fileName}</TableCell>
                                             <TableCell className="text-right">
-                                                 <Dialog><DialogTrigger asChild><Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button></DialogTrigger><DialogContent><ScrollArea className="h-96 w-full rounded-md border p-4"><pre className="text-sm whitespace-pre-wrap">{getFormattedContent(p.content)}</pre></ScrollArea></DialogContent></Dialog>
+                                                 <Dialog>
+    <DialogTrigger asChild>
+        <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
+    </DialogTrigger>
+    <DialogContent>
+        <DialogHeader>
+            <DialogTitle>Question Paper Content</DialogTitle>
+            <DialogDescription>{p.fileName}</DialogDescription>
+        </DialogHeader>
+        <ScrollArea className="h-96 w-full rounded-md border p-4">
+            <pre className="text-sm whitespace-pre-wrap">{getFormattedContent(p.content)}</pre>
+        </ScrollArea>
+    </DialogContent>
+</Dialog>
+                                                 <Button variant="ghost" size="icon" onClick={() => handleOpenPaperEditDialog(p)}>
+                                                    <Edit className="h-4 w-4" />
+                                                 </Button>
                                                  <AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will delete "{p.fileName}". This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePaper(p.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
                                             </TableCell>
                                         </TableRow>
@@ -504,6 +546,27 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                         </DialogFooter>
                     </form>
                 </Form>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog open={isPaperEditDialogOpen} onOpenChange={setIsPaperEditDialogOpen}>
+            <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-6">
+                <DialogHeader className="pb-2">
+                    <DialogTitle className="text-2xl font-bold">Edit Weekly Test Paper: {editingPaper?.fileName}</DialogTitle>
+                    <DialogDescription>
+                        Modify questions for {editingPaper?.examCategory}.
+                    </DialogDescription>
+                </DialogHeader>
+                
+                <div className="flex-1 overflow-hidden pt-4">
+                    {editingPaper && (
+                        <MCQStructuredEditor 
+                            initialContent={editingPaper.content} 
+                            onSave={handleSavePaperEdit}
+                            onCancel={() => setIsPaperEditDialogOpen(false)}
+                        />
+                    )}
+                </div>
             </DialogContent>
         </Dialog>
         <Card>

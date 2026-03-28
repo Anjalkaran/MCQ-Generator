@@ -36,69 +36,11 @@ export default function DashboardPage() {
   
   const isAdmin = userData.email ? ADMIN_EMAILS.includes(userData.email) : false;
 
-  if (userData.examCategory === 'IP') {
-    return (
-        <div className="space-y-6">
-            <div className="space-y-2 text-center pt-4">
-                <h1 className="text-3xl font-bold tracking-tight">Inspector Posts Dashboard</h1>
-                <p className="text-muted-foreground">Select a paper to start your practice session.</p>
-            </div>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <Card className="flex flex-col">
-                    <CardHeader>
-                        <div className="flex items-center gap-4">
-                            <div className="bg-primary/10 p-3 rounded-full">
-                                <PenSquare className="h-8 w-8 text-primary" />
-                            </div>
-                            <CardTitle className="text-2xl">Paper I</CardTitle>
-                        </div>
-                        <CardDescription className="pt-4">
-                            Practice MCQs and generate full mock tests for Paper I.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-grow flex items-end">
-                        <Button asChild className="w-full">
-                            <Link href="/dashboard/online-test?paper=Paper-I">Start Practice</Link>
-                        </Button>
-                    </CardContent>
-                </Card>
-                 <Card className="flex flex-col">
-                    <CardHeader>
-                        <div className="flex items-center gap-4">
-                            <div className="bg-primary/10 p-3 rounded-full">
-                                <FileWarning className="h-8 w-8 text-primary" />
-                            </div>
-                            <CardTitle className="text-2xl">Paper II</CardTitle>
-                        </div>
-                        <CardDescription className="pt-4">
-                           Paper II is a descriptive test (Noting & Drafting). This app only supports MCQ practice.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-grow flex items-end">
-                       <Button disabled className="w-full">MCQ Not Applicable</Button>
-                    </CardContent>
-                </Card>
-                 <Card className="flex flex-col">
-                    <CardHeader>
-                        <div className="flex items-center gap-4">
-                            <div className="bg-primary/10 p-3 rounded-full">
-                                <PenSquare className="h-8 w-8 text-primary" />
-                            </div>
-                            <CardTitle className="text-2xl">Paper III</CardTitle>
-                        </div>
-                        <CardDescription className="pt-4">
-                            Practice MCQs and generate full mock tests for Paper III.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-grow flex items-end">
-                        <Button asChild className="w-full">
-                            <Link href="/dashboard/online-test?paper=Paper-III">Start Practice</Link>
-                        </Button>
-                    </CardContent>
-                </Card>
-            </div>
-        </div>
-    );
+  const isIPUser = userData.examCategory === 'IP';
+  
+  if (isIPUser) {
+    // Add a small badge or note that they are in the IP track if needed, 
+    // but the main dashboard cards should be regular.
   }
 
   return (
@@ -109,75 +51,75 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="flex flex-col border-primary/20 shadow-md">
+        <Card className="flex flex-col border-primary/20 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
           <CardHeader>
             <div className="flex items-center gap-4">
-              <div className="bg-primary/10 p-3 rounded-full">
-                <CalendarCheck className="h-8 w-8 text-primary" />
+              <div className="bg-primary/10 p-3 rounded-full group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+                <CalendarCheck className="h-8 w-8 text-primary group-hover:text-white" />
               </div>
               <CardTitle className="text-2xl">Weekly Test</CardTitle>
             </div>
-            <CardDescription className="pt-4">
+            <CardDescription className="pt-4 text-base">
               Access the latest full-length mock tests released every week for permanent practice.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-grow flex items-end">
-            <Button asChild className="w-full">
+            <Button asChild className="w-full shadow-md group-hover:shadow-lg transition-all">
               <Link href="/dashboard/weekly-test">View Weekly Tests</Link>
             </Button>
           </CardContent>
         </Card>
-        <Card className="flex flex-col">
+        <Card className="flex flex-col border-border/40 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
           <CardHeader>
             <div className="flex items-center gap-4">
-              <div className="bg-primary/10 p-3 rounded-full">
-                <PenSquare className="h-8 w-8 text-primary" />
+              <div className="bg-primary/10 p-3 rounded-full group-hover:bg-primary transition-colors duration-300">
+                <PenSquare className="h-8 w-8 text-primary group-hover:text-white" />
               </div>
               <CardTitle className="text-2xl">Practice Exams</CardTitle>
             </div>
-            <CardDescription className="pt-4">
+            <CardDescription className="pt-4 text-base">
               Access other exam types including syllabus mock tests, practice MCQs, and reasoning tests.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-grow flex items-end">
-            <Button asChild className="w-full">
+            <Button asChild className="w-full shadow-md group-hover:shadow-lg transition-all">
               <Link href="/dashboard/online-test">Go to Practice</Link>
             </Button>
           </CardContent>
         </Card>
         
-        <Card className="flex flex-col">
+        <Card className="flex flex-col border-border/40 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
           <CardHeader>
             <div className="flex items-center gap-4">
-              <div className="bg-primary/10 p-3 rounded-full">
-                <Video className="h-8 w-8 text-primary" />
+              <div className="bg-primary/10 p-3 rounded-full group-hover:bg-primary transition-colors duration-300">
+                <Video className="h-8 w-8 text-primary group-hover:text-white" />
               </div>
               <CardTitle className="text-2xl">Video Classes</CardTitle>
             </div>
-            <CardDescription className="pt-4">
+            <CardDescription className="pt-4 text-base">
               Access recorded video classes for comprehensive learning and expert guidance.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-grow flex items-end">
-            <Button asChild className="w-full">
+            <Button asChild className="w-full shadow-md group-hover:shadow-lg transition-all">
                 <Link href="/dashboard/video-classes">Watch Videos</Link>
             </Button>
           </CardContent>
         </Card>
-        <Card className="flex flex-col">
+        <Card className="flex flex-col border-border/40 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
           <CardHeader>
             <div className="flex items-center gap-4">
-              <div className="bg-primary/10 p-3 rounded-full">
-                <Library className="h-8 w-8 text-primary" />
+              <div className="bg-primary/10 p-3 rounded-full group-hover:bg-primary transition-colors duration-300">
+                <Library className="h-8 w-8 text-primary group-hover:text-white" />
               </div>
               <CardTitle className="text-2xl">Study Material</CardTitle>
             </div>
-            <CardDescription className="pt-4">
+            <CardDescription className="pt-4 text-base">
               View and read study materials, notes, and documents for your exam preparation.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-grow flex items-end">
-            <Button asChild className="w-full">
+            <Button asChild className="w-full shadow-md group-hover:shadow-lg transition-all">
                 <Link href="/dashboard/study-material">View Materials</Link>
             </Button>
           </CardContent>

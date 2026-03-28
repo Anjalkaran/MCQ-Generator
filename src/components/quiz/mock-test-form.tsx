@@ -31,6 +31,7 @@ const formSchema = z.object({
     required_error: 'Please select an exam type.',
   }),
   language: z.enum(allLanguages).optional().default('English'),
+  paper: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -53,6 +54,7 @@ export function MockTestForm() {
     defaultValues: {
       examType: undefined,
       language: 'English',
+      paper: 'Paper-I',
     },
   });
 
@@ -97,6 +99,7 @@ export function MockTestForm() {
           examCategory: values.examType,
           userId: user.uid,
           language: values.language,
+          paper: values.examType === 'IP' ? values.paper : undefined,
       });
 
       if (!quizId) {
@@ -146,35 +149,49 @@ export function MockTestForm() {
                         </FormItem>
                     )}
                     />
-                     <FormField
-                        control={form.control}
-                        name="language"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Language</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select a language" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {availableLanguages.map((lang) => (
-                                            <SelectItem key={lang} value={lang}>{lang}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                    {selectedExamType === 'IP' && (
+                        <FormField
+                            control={form.control}
+                            name="paper"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Select Paper</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a paper" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="Paper-I">Paper-I (Departmental Rules & Acts)</SelectItem>
+                                            <SelectItem value="Paper-III">Paper-III (Rules, Management & Accounts)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    )}
                     
                     {selectedExamType && (
-                        <Alert>
-                            <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle>{blueprintMap[selectedExamType].examName}</AlertTitle>
-                            <AlertDescription>
-                                This test will have {blueprintMap[selectedExamType].parts.reduce((sum, p) => sum + p.totalQuestions, 0)} questions and a time limit of {blueprintMap[selectedExamType].totalDurationMinutes} minutes.
+                        <Alert className="border-red-100 bg-red-50/50">
+                            <Gem className="h-4 w-4 text-red-600" />
+                            <AlertTitle className="text-red-900">
+                                {blueprintMap[selectedExamType].examName} 
+                                {selectedExamType === 'IP' && ` (${form.watch('paper')})`}
+                            </AlertTitle>
+                            <AlertDescription className="text-red-700">
+                                {selectedExamType === 'IP' ? (
+                                    <>
+                                        This {form.watch('paper')} test will have {
+                                            blueprintMap.IP.parts.find(p => p.partName === form.watch('paper'))?.totalQuestions
+                                        } questions and a specialized time limit.
+                                    </>
+                                ) : (
+                                    <>
+                                        This test will have {blueprintMap[selectedExamType].parts.reduce((sum, p) => sum + p.totalQuestions, 0)} questions and a time limit of {blueprintMap[selectedExamType].totalDurationMinutes} minutes.
+                                    </>
+                                )}
                             </AlertDescription>
                         </Alert>
                     )}

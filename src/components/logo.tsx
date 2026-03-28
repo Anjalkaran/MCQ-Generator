@@ -1,34 +1,19 @@
 
+import Image from 'next/image';
 import type { ComponentProps } from 'react';
+import { cn } from '@/lib/utils';
 
-export function Logo(props: Omit<ComponentProps<'svg'>, 'children'>) {
+export function Logo({ className, height = 40, width = 120, ...props }: Omit<ComponentProps<'div'>, 'children'> & { height?: number; width?: number }) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 300 100"
-      width={280}
-      height={100}
-      {...props}
-    >
-      <text
-        x="10"
-        y="65"
-        fontFamily="Verdana, sans-serif"
-        fontSize="50"
-        fill="#FFC700"
-        fontStyle="italic"
-      >
-        Anjal
-      </text>
-      <text
-        x="115"
-        y="65"
-        fontFamily="Verdana, sans-serif"
-        fontSize="50"
-        fill="hsl(var(--primary))"
-      >
-        karan
-      </text>
-    </svg>
+    <div className={cn("relative h-10 w-auto", className)} style={{ height: `${height}px`, width: `${width}px` }} {...props}>
+      <Image
+        src="/header-logo.png"
+        alt="AnjalKaran Logo"
+        width={width * 3} // Maintain crispness
+        height={height * 3}
+        priority
+        className="h-full w-auto object-contain"
+      />
+    </div>
   );
 }

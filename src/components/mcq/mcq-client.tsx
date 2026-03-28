@@ -28,6 +28,8 @@ import type { User } from "firebase/auth";
 import { cn } from "@/lib/utils";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { BookmarkButton } from "@/components/dashboard/bookmark-button";
+import { MCQCommentDialog } from "@/components/dashboard/mcq-comment-dialog";
 
 interface MCQClientProps {
   topicId: string;
@@ -245,23 +247,36 @@ export function MCQClient({ topicId }: MCQClientProps) {
                 Question {currentQuestionIndex + 1} of {quizMcqs.length}
                 </CardDescription>
             </div>
-            {timeLeft !== null && (
-                <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2 text-lg font-semibold text-primary">
-                        <Clock className="h-6 w-6" />
-                        <span>{formatTime(timeLeft)}</span>
+            <div className="flex items-center gap-2">
+                <BookmarkButton mcq={currentQuestion} topicId={topicId} />
+                <MCQCommentDialog 
+                  questionId={currentQuestion.questionId || topicId + currentQuestionIndex} 
+                  mode="personal"
+                />
+                <MCQCommentDialog 
+                  questionId={currentQuestion.questionId || topicId + currentQuestionIndex} 
+                  mcq={currentQuestion}
+                  topicId={topicId}
+                  mode="admin"
+                />
+                {timeLeft !== null && (
+                    <div className="flex items-center gap-2 ml-2">
+                        <div className="flex items-center gap-2 text-lg font-semibold text-primary">
+                            <Clock className="h-6 w-6" />
+                            <span>{formatTime(timeLeft)}</span>
+                        </div>
+                         <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            onClick={handleExtendTime}
+                            disabled={timeExtensionsUsed >= MAX_TIME_EXTENSIONS}
+                            aria-label="Extend Time"
+                         >
+                            <PlusCircle className="h-5 w-5" />
+                        </Button>
                     </div>
-                     <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        onClick={handleExtendTime}
-                        disabled={timeExtensionsUsed >= MAX_TIME_EXTENSIONS}
-                        aria-label="Extend Time"
-                     >
-                        <PlusCircle className="h-5 w-5" />
-                    </Button>
-                </div>
-            )}
+                )}
+            </div>
         </div>
         <Progress value={progress} className="mt-4" />
       </CardHeader>

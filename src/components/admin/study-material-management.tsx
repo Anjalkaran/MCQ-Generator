@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Link as LinkIcon, Trash2, Search, PlusCircle, Globe, FileText } from 'lucide-react';
+import { Loader2, Link as LinkIcon, Trash2, Search, PlusCircle, Globe, FileText, Upload } from 'lucide-react';
 import { deleteStudyMaterial } from '@/lib/firestore';
 import type { Topic, StudyMaterial } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -18,13 +18,26 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription as AlertDialogDesc, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from 'date-fns';
 import { Checkbox } from '../ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getFirebaseStorage } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
 
 const formSchema = z.object({
   topicName: z.string().min(1, 'Display Title is required.'),
-  contentUrl: z.string().url('Please enter a valid URL.').min(1, 'PDF Link is required.'),
+  method: z.enum(['url', 'file']).default('url'),
+  contentUrl: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
+  file: z.any().optional(),
   examCategories: z.array(z.string()).min(1, "Select at least one exam category."),
+}).refine((data) => {
+  if (data.method === 'url') {
+    return !!data.contentUrl && data.contentUrl.length > 0;
+  }
+  return true; 
+}, {
+  message: "PDF Link is required when using URL method.",
+  path: ["contentUrl"]
 });
 
 interface StudyMaterialManagementProps {
@@ -44,6 +57,7 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
         resolver: zodResolver(formSchema),
         defaultValues: {
             topicName: '',
+            method: 'url',
             contentUrl: '',
             examCategories: [],
         }
@@ -59,20 +73,60 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setIsRegistering(true);
+        console.log('Starting submission with values:', values);
         
         try {
+            let finalContentUrl = values.contentUrl || "";
+            let fileName = values.topicName;
+
+            if (values.method === 'file') {
+                if (!values.file || values.file.length === 0) throw new Error('Please select a PDF file.');
+                
+                const storage = getFirebaseStorage();
+                if (!storage) throw new Error("Firebase Storage not initialized.");
+
+                const file = values.file[0];
+                fileName = file.name;
+                const storagePath = `study-materials/${Date.now()}_${fileName}`;
+                const storageRef = ref(storage, storagePath);
+
+                console.log('Uploading file to Firebase Storage:', storagePath);
+                toast({ title: 'Uploading...', description: 'Sending file to Firebase Storage.' });
+
+                try {
+                    await uploadBytes(storageRef, file, { contentType: 'application/pdf' });
+                    console.log('Upload successful, getting download URL...');
+                    finalContentUrl = await getDownloadURL(storageRef);
+                    console.log('Download URL obtained:', finalContentUrl);
+                } catch (uploadError: any) {
+                    console.error('Firebase Storage Upload Error:', uploadError);
+                    throw new Error(`Storage Error: ${uploadError.message || 'Upload failed'}`);
+                }
+            }
+
+            if (!finalContentUrl) throw new Error('Content URL is missing.');
+
+            console.log('Sending registration request to API...');
             const response = await fetch('/api/study-material/upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(values),
+                body: JSON.stringify({
+                    topicName: values.topicName,
+                    contentUrl: finalContentUrl,
+                    fileName: fileName,
+                    examCategories: values.examCategories
+                }),
             });
 
+            console.log('API Response status:', response.status);
             if (!response.ok) {
-                const errorData = await response.json();
+                const errorData = await response.json().catch(() => ({ error: 'Server processing failed.' }));
+                console.warn('API Error payload:', errorData);
                 throw new Error(errorData.error || 'Server processing failed.');
             }
 
             const data = await response.json();
+            console.log('API Registration Success:', data);
             const { newMaterial, newTopic } = data;
             
             setMaterials(prev => [newMaterial, ...prev]);
@@ -84,10 +138,11 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
             form.reset();
             setIsUploadDialogOpen(false);
         } catch (error: any) {
-            console.error('Registration Error:', error);
+            console.error('Registration Error Details:', error);
             toast({ title: 'Registration Failed', description: error.message, variant: 'destructive' });
         } finally {
             setIsRegistering(false);
+            console.log('Submission process finished.');
         }
     };
     
@@ -108,7 +163,7 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
             <Card>
                 <CardHeader>
                     <CardTitle>Study Material</CardTitle>
-                    <CardDescription>Register PDF links and manage study content. The AI will automatically extract text from the link for Doubts.</CardDescription>
+                    <CardDescription>Register PDF links or upload files and manage study content. The AI will automatically extract text for Doubts.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-col sm:flex-row gap-4 justify-between items-start">
@@ -116,14 +171,14 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                             <DialogTrigger asChild>
                                 <Button>
                                     <PlusCircle className="mr-2 h-4 w-4" />
-                                    Register New PDF Link
+                                    Register New Study Material
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-lg">
                                 <DialogHeader>
                                     <DialogTitle>Register Study Material</DialogTitle>
                                     <DialogDescription>
-                                        Provide a direct link to a PDF. The system will fetch it and prepare it for AI answering.
+                                        Provide a direct link or upload a PDF. The system will process it for AI answering.
                                     </DialogDescription>
                                 </DialogHeader>
                                 <Form {...form}>
@@ -141,20 +196,53 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
                                                 </FormItem>
                                             )}
                                         />
-                                        <FormField
-                                            control={form.control}
-                                            name="contentUrl"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                <FormLabel>PDF Direct Link</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="https://example.com/file.pdf" {...field} />
-                                                </FormControl>
-                                                <FormDescription>Ensure this is a direct public URL to the PDF file.</FormDescription>
-                                                <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
+
+                                        <div className="space-y-4">
+                                            <Tabs defaultValue="url" onValueChange={(v) => form.setValue('method', v as 'url' | 'file')}>
+                                                <TabsList className="grid w-full grid-cols-2">
+                                                    <TabsTrigger value="url"><Globe className="mr-2 h-4 w-4" /> URL Link</TabsTrigger>
+                                                    <TabsTrigger value="file"><Upload className="mr-2 h-4 w-4" /> File Upload</TabsTrigger>
+                                                </TabsList>
+                                                <TabsContent value="url" className="mt-4">
+                                                    <FormField
+                                                        control={form.control}
+                                                        name="contentUrl"
+                                                        render={({ field }) => (
+                                                            <FormItem>
+                                                            <FormLabel>PDF Direct Link</FormLabel>
+                                                            <FormControl>
+                                                                <Input placeholder="https://example.com/file.pdf" {...field} />
+                                                            </FormControl>
+                                                            <FormDescription>Ensure this is a direct public URL to the PDF file.</FormDescription>
+                                                            <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                </TabsContent>
+                                                <TabsContent value="file" className="mt-4">
+                                                    <FormField
+                                                        control={form.control}
+                                                        name="file"
+                                                        render={({ field: { onChange, value, ...rest } }) => (
+                                                            <FormItem>
+                                                                <FormLabel>PDF File</FormLabel>
+                                                                <FormControl>
+                                                                    <Input 
+                                                                        type="file" 
+                                                                        accept=".pdf" 
+                                                                        onChange={(e) => onChange(e.target.files)} 
+                                                                        {...rest} 
+                                                                    />
+                                                                </FormControl>
+                                                                <FormDescription>Upload the study material PDF directly.</FormDescription>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                </TabsContent>
+                                            </Tabs>
+                                        </div>
+
                                         <FormField
                                         control={form.control}
                                         name="examCategories"

@@ -13,12 +13,14 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload, Eye, Trash2, Edit, Download, Search } from 'lucide-react';
-import { deleteQuestionBankDocument } from '@/lib/firestore';
+import { deleteQuestionBankDocument, updateQuestionBankDocument } from '@/lib/firestore';
+import { MCQStructuredEditor } from './mcq-structured-editor';
 import type { BankedQuestion } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { JsonFormatGuide } from './json-format-guide';
 
 const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
 
@@ -47,6 +49,9 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
   const [isUploading, setIsUploading] = useState(false);
   const [bankedQuestions, setBankedQuestions] = useState<BankedQuestion[]>(initialBankedQuestions);
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingQuestionBank, setEditingQuestionBank] = useState<BankedQuestion | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof questionBankSchema>>({
@@ -114,6 +119,28 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
         toast({ title: "Error", description: "Could not delete the question paper.", variant: "destructive" });
     }
   }
+
+  const handleOpenEditDialog = (bq: BankedQuestion) => {
+    setEditingQuestionBank(bq);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async (newContent: string) => {
+    if (!editingQuestionBank) return;
+    setIsSaving(true);
+    try {
+        await updateQuestionBankDocument(editingQuestionBank.id, newContent);
+        setBankedQuestions(prev => prev.map(bq => bq.id === editingQuestionBank.id ? { ...bq, content: newContent } : bq));
+        setIsEditDialogOpen(false);
+        setEditingQuestionBank(null);
+        toast({ title: "Success", description: "Question bank updated successfully." });
+    } catch (error: any) {
+        console.error("Failed to update question bank document", error);
+        throw error;
+    } finally {
+        setIsSaving(false);
+    }
+  };
   
   const handleDownload = (question: BankedQuestion) => {
     const blob = new Blob([question.content], { type: 'application/json;charset=utf-8;' });
@@ -185,6 +212,8 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                     </FormItem>
                 )}
                 />
+                <JsonFormatGuide type="question-bank" />
+
                 <Button type="submit" disabled={isUploading}>
                 {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                 Upload Questions
@@ -241,6 +270,9 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                                                     </ScrollArea>
                                                 </DialogContent>
                                             </Dialog>
+                                            <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(bq)}>
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
                                             <Button variant="ghost" size="icon" onClick={() => handleDownload(bq)}>
                                                 <Download className="h-4 w-4" />
                                             </Button>
@@ -274,6 +306,27 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                  </div>
             </CardContent>
         </Card>
+
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-6">
+                <DialogHeader className="pb-2">
+                    <DialogTitle className="text-2xl font-bold">Edit Question Bank: {editingQuestionBank?.fileName}</DialogTitle>
+                    <DialogDescription>
+                        Modify questions for {editingQuestionBank?.examCategory}.
+                    </DialogDescription>
+                </DialogHeader>
+                
+                <div className="flex-1 overflow-hidden pt-4">
+                    {editingQuestionBank && (
+                        <MCQStructuredEditor 
+                            initialContent={editingQuestionBank.content} 
+                            onSave={handleSaveEdit}
+                            onCancel={() => setIsEditDialogOpen(false)}
+                        />
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }

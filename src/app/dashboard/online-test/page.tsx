@@ -39,68 +39,8 @@ function OnlineTestContent() {
   }
 
   const isAdmin = userData.email ? ADMIN_EMAILS.includes(userData.email) : false;
-  const canSeeReasoning = isAdmin || userData.examCategory === 'PA' || userData.examCategory === 'POSTMAN';
-
-  // Specific layout for Inspector Posts (IP)
-  if (userData.examCategory === 'IP') {
-    return (
-      <div className="space-y-6">
-        <Button variant="ghost" asChild>
-          <Link href="/dashboard">
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
-          </Link>
-        </Button>
-        <div className="space-y-2 text-center pt-4">
-          <h1 className="text-3xl font-bold tracking-tight">Inspector Posts: {paper}</h1>
-          <p className="text-muted-foreground">Select an option below to practice for your exam.</p>
-        </div>
-        <div className="grid gap-6 md:grid-cols-2">
-          {(!paper || paper === 'Paper-I') && (
-            <Card className="flex flex-col">
-              <CardHeader>
-                <div className="flex items-center gap-4">
-                  <div className="bg-primary/10 p-3 rounded-full">
-                    <PenSquare className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Paper I: Practice MCQs</CardTitle>
-                </div>
-                <CardDescription className="pt-4">
-                  Create a custom exam by selecting a topic from the Paper I syllabus. Ideal for focused practice.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex-grow flex items-end">
-                <Button asChild className="w-full">
-                  <Link href="/dashboard/topic-wise-mcq">Create Practice Exam</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          {(!paper || paper === 'Paper-III') && (
-            <Card className="flex flex-col">
-              <CardHeader>
-                <div className="flex items-center gap-4">
-                  <div className="bg-primary/10 p-3 rounded-full">
-                    <PenSquare className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Paper III: Practice MCQs</CardTitle>
-                </div>
-                <CardDescription className="pt-4">
-                  Create a custom exam by selecting a topic from the Paper III syllabus for practice.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex-grow flex items-end">
-                <Button asChild className="w-full">
-                  <Link href="/dashboard/topic-wise-mcq">Create Practice Exam</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
-    );
-  }
+  const isIPUser = userData.examCategory === 'IP';
+  const canSeeReasoning = isAdmin || userData.examCategory === 'PA' || userData.examCategory === 'POSTMAN' || isIPUser;
 
   // Default layout for MTS, Postman, PA
   return (
@@ -119,7 +59,10 @@ function OnlineTestContent() {
               <CardTitle>Practice MCQ</CardTitle>
             </div>
             <CardDescription className="pt-4">
-              Create a custom exam by selecting a specific topic or syllabus part. Ideal for focused practice on theoretical subjects.
+              {isIPUser 
+                ? "Create a custom exam by selecting topics from Paper I or Paper III. Ideal for focused practice."
+                : "Create a custom exam by selecting a specific topic or syllabus part. Ideal for focused practice on theoretical subjects."
+              }
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-grow flex items-end">

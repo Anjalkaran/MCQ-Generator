@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload, Eye, Trash2, Search, Edit, Download } from 'lucide-react';
 import { deleteTopicMCQDocument, updateTopicMCQDocument } from '@/lib/firestore';
+import { MCQStructuredEditor } from './mcq-structured-editor';
 import type { Topic, TopicMCQ, MCQ } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -24,6 +25,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
+import { JsonFormatGuide } from './json-format-guide';
 
 const uploadSchema = z.object({
   topicId: z.string({
@@ -51,7 +53,6 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingMCQ, setEditingMCQ] = useState<TopicMCQ | null>(null);
-  const [editedContent, setEditedContent] = useState('');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { toast } = useToast();
 
@@ -128,25 +129,21 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
 
   const handleOpenEditDialog = (mcqDoc: TopicMCQ) => {
     setEditingMCQ(mcqDoc);
-    setEditedContent(mcqDoc.content);
     setIsEditDialogOpen(true);
   };
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = async (newContent: string) => {
     if (!editingMCQ) return;
     setIsSaving(true);
     try {
-        // Validate JSON content before saving
-        JSON.parse(editedContent);
-        await updateTopicMCQDocument(editingMCQ.id, editedContent);
-        setTopicMCQs(prev => prev.map(q => q.id === editingMCQ.id ? { ...q, content: editedContent } : q));
-        toast({ title: "Success", description: "Document updated successfully." });
+        await updateTopicMCQDocument(editingMCQ.id, newContent);
+        setTopicMCQs(prev => prev.map(tm => tm.id === editingMCQ.id ? { ...tm, content: newContent } : tm));
         setIsEditDialogOpen(false);
         setEditingMCQ(null);
+        toast({ title: "Success", description: "Document updated successfully." });
     } catch (error: any) {
-        console.error("Failed to update document", error);
-        const errorMessage = error instanceof SyntaxError ? "Invalid JSON format. Please check your syntax." : "Could not update the document.";
-        toast({ title: "Error", description: errorMessage, variant: "destructive" });
+        console.error("Failed to update MCQ document", error);
+        throw error; // Rethrow so the editor can show the toast
     } finally {
         setIsSaving(false);
     }
@@ -280,6 +277,8 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
                     </FormItem>
                 )}
                 />
+                <JsonFormatGuide type="topic-mcq" />
+
                 <Button type="submit" disabled={isUploading}>
                 {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                 Upload & Process MCQs
@@ -374,28 +373,23 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
         </Card>
 
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent className="max-w-3xl">
-                <DialogHeader>
-                    <DialogTitle>Edit: {editingMCQ?.fileName}</DialogTitle>
+            <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-6">
+                <DialogHeader className="pb-2">
+                    <DialogTitle className="text-2xl font-bold">Edit MCQ Batch: {editingMCQ?.fileName}</DialogTitle>
                     <DialogDescription>
-                        Make changes to the JSON content below. Ensure the format remains valid.
+                        Modify individual questions or use the code editor for bulk changes.
                     </DialogDescription>
                 </DialogHeader>
-                <Textarea
-                    value={editedContent}
-                    onChange={(e) => setEditedContent(e.target.value)}
-                    className="h-96 text-sm font-mono"
-                    placeholder='{ "mcqs": [ { "question": "...", "options": [...], ... } ] }'
-                />
-                <DialogFooter>
-                    <DialogClose asChild>
-                        <Button variant="outline">Cancel</Button>
-                    </DialogClose>
-                    <Button onClick={handleSaveEdit} disabled={isSaving}>
-                        {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Save Changes
-                    </Button>
-                </DialogFooter>
+                
+                <div className="flex-1 overflow-hidden pt-4">
+                    {editingMCQ && (
+                        <MCQStructuredEditor 
+                            initialContent={editingMCQ.content} 
+                            onSave={handleSaveEdit}
+                            onCancel={() => setIsEditDialogOpen(false)}
+                        />
+                    )}
+                </div>
             </DialogContent>
         </Dialog>
     </div>

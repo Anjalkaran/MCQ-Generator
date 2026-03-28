@@ -1,6 +1,6 @@
 import { getFirebaseDb, getFirebaseAuth } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, QnAUsage, Notification, LiveTest, WeeklyTest, TopicMCQ, ReasoningQuestion, Feedback, VideoClass, StudyMaterial, AptiSolveLaunch, MaterialDownload } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, QnAUsage, Notification, LiveTest, WeeklyTest, TopicMCQ, ReasoningQuestion, Feedback, VideoClass, StudyMaterial, AptiSolveLaunch, MaterialDownload, MCQData, MCQ, Bookmark, MCQReport } from './types';
 import { ADMIN_EMAILS } from './constants';
 import { normalizeDate } from './utils';
 
@@ -49,6 +49,145 @@ export const getUserData = async (userId: string): Promise<UserData | null> => {
 
     return null;
 }
+
+/**
+ * MCQ Reports / Admin Feedback
+ */
+
+export async function submitMCQReport(
+  userId: string, 
+  mcq: MCQ, 
+  comment: string, 
+  topicId?: string
+) {
+  const db = getFirebaseDb();
+  if (!db) return;
+
+  const auth = getFirebaseAuth();
+  const userName = auth?.currentUser?.displayName || 'Anonymous';
+  const userEmail = auth?.currentUser?.email || '';
+
+  const reportData: Omit<MCQReport, 'id'> = {
+    userId,
+    userName,
+    userEmail,
+    question: mcq,
+    comment,
+    topicId,
+    createdAt: serverTimestamp(),
+    status: 'pending'
+  };
+
+  const reportsRef = collection(db, "mcq_reports");
+  await addDoc(reportsRef, reportData);
+}
+
+export async function getMCQReports() {
+  const db = getFirebaseDb();
+  if (!db) return [];
+
+  const reportsRef = collection(db, "mcq_reports");
+  const q = query(reportsRef, orderBy("createdAt", "desc"));
+  const querySnapshot = await getDocs(q);
+
+  return querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  } as MCQReport));
+}
+
+export async function deleteMCQReport(reportId: string) {
+  const db = getFirebaseDb();
+  if (!db) return;
+
+  const reportRef = doc(db, "mcq_reports", reportId);
+  await deleteDoc(reportRef);
+}
+
+// BOOKMARK MANAGEMENT
+const getSafeId = (text: string) => {
+    // Generate a consistent ID from text that is safe for Firestore document IDs
+    // We'll use a simple approach: remove non-alphanumeric and truncate
+    return text.replace(/[^a-z0-9]/gi, '_').substring(0, 100);
+};
+
+export const toggleBookmark = async (userId: string, mcq: MCQ, topicId?: string): Promise<boolean> => {
+    const db = getFirebaseDb();
+    if (!db) return false;
+
+    const questionId = mcq.questionId || getSafeId(mcq.question);
+    const bookmarkRef = doc(db, 'users', userId, 'bookmarks', questionId);
+
+    try {
+        const docSnap = await getDoc(bookmarkRef);
+        if (docSnap.exists()) {
+            await deleteDoc(bookmarkRef);
+            return false; // Removed
+        } else {
+            const bookmarkData: Bookmark = {
+                id: questionId,
+                userId,
+                question: mcq,
+                topicId,
+                createdAt: serverTimestamp() as any,
+            };
+            await setDoc(bookmarkRef, bookmarkData);
+            return true; // Added
+        }
+    } catch (error) {
+        console.error("Error toggling bookmark:", error);
+        throw error;
+    }
+};
+
+export const updateBookmarkComment = async (userId: string, questionId: string, comment: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+
+    const bookmarkRef = doc(db, 'users', userId, 'bookmarks', questionId);
+    try {
+        await updateDoc(bookmarkRef, { comment });
+    } catch (error) {
+        console.error("Error updating bookmark comment:", error);
+        throw error;
+    }
+};
+
+export const getUserBookmarks = async (userId: string): Promise<Bookmark[]> => {
+    const db = getFirebaseDb();
+    if (!db) return [];
+
+    const bookmarksRef = collection(db, 'users', userId, 'bookmarks');
+    try {
+        const q = query(bookmarksRef, orderBy('createdAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({
+            ...doc.data() as Bookmark,
+            id: doc.id
+        }));
+    } catch (error) {
+        console.error("Error fetching bookmarks:", error);
+        return [];
+    }
+};
+
+export const isQuestionBookmarked = async (userId: string, questionIdOrText: string): Promise<boolean> => {
+    const db = getFirebaseDb();
+    if (!db) return false;
+
+    const questionId = questionIdOrText.includes('<') || questionIdOrText.length > 50 
+        ? getSafeId(questionIdOrText) 
+        : questionIdOrText;
+    const bookmarkRef = doc(db, 'users', userId, 'bookmarks', questionId);
+
+    try {
+        const docSnap = await getDoc(bookmarkRef);
+        return docSnap.exists();
+    } catch (error) {
+        console.error("Error checking bookmark status:", error);
+        return false;
+    }
+};
 
 export const getAllUsers = async (): Promise<UserData[]> => {
   const db = getFirebaseDb();
@@ -317,7 +456,7 @@ export const getAllExamHistory = async (): Promise<MCQHistory[]> => {
             ...data, 
             userName: userMap.get(data.userId) || 'Unknown User',
             takenAt: normalizeDate(data.takenAt) 
-        } as MCQHistory;
+        } as any;
     });
 };
 
@@ -357,7 +496,7 @@ export const getQuestionBankDocumentsByCategory = async (examCategory: UserData[
     const bankCollection = collection(db, 'questionBank');
     const q = query(bankCollection, where('examCategory', '==', examCategory), orderBy('uploadedAt', 'desc'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as BankedQuestion));
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: normalizeDate(doc.data().uploadedAt) || new Date() } as BankedQuestion));
 };
 
 export const getQuestionBankDocuments = async (): Promise<BankedQuestion[]> => {
@@ -366,13 +505,20 @@ export const getQuestionBankDocuments = async (): Promise<BankedQuestion[]> => {
     const bankCollection = collection(db, 'questionBank');
     const q = query(bankCollection, orderBy('uploadedAt', 'desc'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as BankedQuestion));
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: normalizeDate(doc.data().uploadedAt) || new Date() } as BankedQuestion));
 };
 
 export const deleteQuestionBankDocument = async (docId: string): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) return;
     await deleteDoc(doc(db, 'questionBank', docId));
+};
+
+export const updateQuestionBankDocument = async (docId: string, content: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    const docRef = doc(db, 'questionBank', docId);
+    await updateDoc(docRef, { content, lastModifiedAt: serverTimestamp() });
 };
 
 // LIVE TEST BANK MANAGEMENT
@@ -382,7 +528,7 @@ export const getLiveTestBankDocuments = async (): Promise<BankedQuestion[]> => {
     const bankCollection = collection(db, 'liveTestBank');
     const q = query(bankCollection, orderBy('uploadedAt', 'desc'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as BankedQuestion));
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: normalizeDate(doc.data().uploadedAt) || new Date() } as BankedQuestion));
 };
 
 export const getLiveTestQuestionPaper = async (liveTestId: string): Promise<BankedQuestion | null> => {
@@ -392,7 +538,7 @@ export const getLiveTestQuestionPaper = async (liveTestId: string): Promise<Bank
     const docSnap = await getDoc(docRef);
     if (!docSnap.exists()) return null;
     const data = docSnap.data();
-    return { id: docSnap.id, ...data, uploadedAt: data.uploadedAt.toDate() } as BankedQuestion;
+    return { id: docSnap.id, ...data, uploadedAt: normalizeDate(data.uploadedAt) || new Date() } as BankedQuestion;
 };
 
 export const deleteLiveTestBankDocument = async (docId: string): Promise<void> => {
@@ -600,7 +746,7 @@ export const getAdminNotifications = async (): Promise<Notification[]> => {
     if (!db) return [];
     const q = query(collection(db, 'notifications'), orderBy('createdAt', 'desc'), limit(20));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: doc.data().createdAt.toDate() } as Notification));
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: normalizeDate(doc.data().createdAt) || new Date() } as Notification));
 };
 
 export const markNotificationsAsRead = async (notificationIds: string[]): Promise<void> => {
@@ -619,7 +765,7 @@ export const getTopicMCQs = async (topicId?: string): Promise<TopicMCQ[]> => {
     if (!db) return [];
     const q = topicId ? query(collection(db, 'topicMCQs'), where('topicId', '==', topicId)) : query(collection(db, 'topicMCQs'), orderBy('uploadedAt', 'desc'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as TopicMCQ));
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: normalizeDate(doc.data().uploadedAt) || new Date() } as TopicMCQ));
 };
 
 export const deleteTopicMCQDocument = async (docId: string): Promise<void> => {
@@ -641,7 +787,7 @@ export const getReasoningQuestions = async (): Promise<ReasoningQuestion[]> => {
     if (!db) return [];
     const q = query(collection(db, 'reasoningBank'), orderBy('uploadedAt', 'desc'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as ReasoningQuestion));
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: normalizeDate(doc.data().uploadedAt) || new Date() } as ReasoningQuestion));
 };
 
 export const deleteReasoningQuestion = async (docId: string): Promise<void> => {
@@ -662,7 +808,7 @@ export const getAllFeedback = async (): Promise<Feedback[]> => {
         return {
             id: doc.id,
             ...data,
-            createdAt: data.createdAt.toDate()
+            createdAt: normalizeDate(data.createdAt) || new Date()
         } as Feedback;
     });
 };
@@ -690,7 +836,7 @@ export const getVideoClasses = async (): Promise<VideoClass[]> => {
     const videosCollection = collection(db, 'videoClasses');
     const q = query(videosCollection, orderBy('uploadedAt', 'desc'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as VideoClass));
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: normalizeDate(doc.data().uploadedAt) || new Date() } as VideoClass));
 };
 
 export const addVideoClass = async (data: Omit<VideoClass, 'id'>): Promise<DocumentReference> => {
@@ -720,7 +866,7 @@ export const getStudyMaterials = async (topicId?: string): Promise<StudyMaterial
         ? query(collection(db, 'studyMaterials'), where('topicId', '==', topicId), orderBy('uploadedAt', 'desc'))
         : query(collection(db, 'studyMaterials'), orderBy('uploadedAt', 'desc'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: doc.data().uploadedAt.toDate() } as StudyMaterial));
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: normalizeDate(doc.data().uploadedAt) || new Date() } as StudyMaterial));
 };
 
 export const deleteStudyMaterial = async (docId: string): Promise<void> => {

@@ -14,6 +14,15 @@ export const metadata: Metadata = {
   title: siteTitle,
   description: siteDescription,
   manifest: '/manifest.json',
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/logo.png', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/logo.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
   openGraph: {
     type: "website",
     url: siteUrl,
@@ -54,16 +63,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
-      <head>
-        <meta name="application-name" content={siteTitle} />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content={siteTitle} />
-        <meta name="format-detection" content="telephone=no" />
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" content="#D62927" />
-        <link rel="apple-touch-icon" href="/images/logo.png" />
-      </head>
       <body className={`${inter.variable} font-sans antialiased h-full`} suppressHydrationWarning>
         {children}
         <Toaster />

@@ -92,6 +92,8 @@ const translations = {
 };
 
 
+import { StaggerContainer, StaggerItem, HoverScale } from "@/components/animations/motion-wrapper";
+
 export function FeatureCards({ language }: { language: Language }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -99,31 +101,37 @@ export function FeatureCards({ language }: { language: Language }) {
 
   const features = [
     {
-      icon: <BrainCircuit className="h-8 w-8 text-primary" />,
+      icon: <BrainCircuit className="h-10 w-10 text-red-600" />,
       title: t.mcqs.title,
       description: t.mcqs.description,
       href: "/dashboard"
     },
     {
-      icon: <FileText className="h-8 w-8 text-primary" />,
+      icon: <FileText className="h-10 w-10 text-red-600" />,
       title: t.mockTests.title,
       description: t.mockTests.description,
       href: "/dashboard/mock-test"
     },
     {
-      icon: <BookCopy className="h-8 w-8 text-primary" />,
+      icon: <BookCopy className="h-10 w-10 text-red-600" />,
       title: t.practice.title,
       description: t.practice.description,
       href: "/dashboard/topic-wise-mcq"
     },
     {
-      icon: <Trophy className="h-8 w-8 text-primary" />,
+      icon: <TrendingUp className="h-10 w-10 text-red-600" />,
+      title: t.analysis.title,
+      description: t.analysis.description,
+      href: "/dashboard/performance"
+    },
+    {
+      icon: <Trophy className="h-10 w-10 text-red-600" />,
       title: t.leaderboard.title,
       description: t.leaderboard.description,
       href: "/dashboard/leaderboard"
     },
     {
-      icon: <HelpCircle className="h-8 w-8 text-primary" />,
+      icon: <HelpCircle className="h-10 w-10 text-red-600" />,
       title: t.askDoubt.title,
       description: t.askDoubt.description,
       href: "/dashboard/q-and-a"
@@ -149,20 +157,36 @@ export function FeatureCards({ language }: { language: Language }) {
   };
 
   return (
-    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <StaggerContainer className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
       {features.map((feature) => (
-        <Link href={getHref(feature.href)} key={feature.title} className="flex" aria-disabled={loading}>
-          <Card className="flex flex-col text-center items-center p-6 hover:shadow-lg transition-shadow w-full">
-            <div className="mb-4 bg-primary/10 p-3 rounded-full">
-              {feature.icon}
-            </div>
-            <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-            <p className="text-sm text-muted-foreground flex-grow">
-              {feature.description}
-            </p>
-          </Card>
-        </Link>
+        <StaggerItem key={feature.title} className="flex">
+          <Link 
+            href={getHref(feature.href)} 
+            className="flex w-full group" 
+            aria-disabled={loading}
+          >
+            <HoverScale className="w-full">
+              <Card className="flex flex-col h-full text-center items-center p-8 bg-white/50 backdrop-blur-sm border border-slate-100 hover:border-red-100 hover:shadow-2xl hover:shadow-red-500/10 transition-all duration-300 rounded-3xl group">
+                <div className="mb-6 p-4 bg-red-50 rounded-2xl group-hover:bg-red-600 group-hover:scale-110 transition-all duration-300">
+                  <div className="group-hover:text-white transition-colors">
+                    {feature.icon}
+                  </div>
+                </div>
+                <h3 className="text-2xl font-bold mb-3 text-slate-900 group-hover:text-red-600 transition-colors">
+                  {feature.title}
+                </h3>
+                <p className="text-slate-500 leading-relaxed">
+                  {feature.description}
+                </p>
+                
+                <div className="mt-6 flex items-center text-red-600 font-bold text-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                  Learn More <TrendingUp className="ml-2 h-4 w-4" />
+                </div>
+              </Card>
+            </HoverScale>
+          </Link>
+        </StaggerItem>
       ))}
-    </div>
+    </StaggerContainer>
   );
 }

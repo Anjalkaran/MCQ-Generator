@@ -14,6 +14,8 @@ import { getGeneratedQuiz, getExamHistoryForUser } from "@/lib/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { BookmarkButton } from "@/components/dashboard/bookmark-button";
+import { MCQCommentDialog } from "@/components/dashboard/mcq-comment-dialog";
 
 interface MCQResultsClientProps {
   topicId: string; // This is the quizId
@@ -167,9 +169,22 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
               return (
                 <li key={index}>
                   <div className="font-semibold mb-2" dangerouslySetInnerHTML={{ __html: `${index + 1}. ${mcq.question}` }} />
-                   {quizData.isMockTest && mcq.topic && (
-                       <Badge variant="outline" className="mb-2">Topic: {mcq.topic}</Badge>
-                   )}
+                    {quizData.isMockTest && mcq.topic && (
+                        <Badge variant="outline" className="mb-2">Topic: {mcq.topic}</Badge>
+                    )}
+                  <div className="flex items-center gap-2 mb-2">
+                    <BookmarkButton mcq={mcq} topicId={topicId} />
+                    <MCQCommentDialog 
+                      questionId={mcq.questionId || topicId + index} 
+                      mode="personal"
+                    />
+                    <MCQCommentDialog 
+                      questionId={mcq.questionId || topicId + index} 
+                      mcq={mcq}
+                      topicId={topicId}
+                      mode="admin"
+                    />
+                  </div>
                   <div className="space-y-2">
                     {mcq.options.map((option) => {
                       const isUserChoice = normalizeAnswer(userAnswer) === normalizeAnswer(option);
@@ -206,7 +221,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
                                 </div>
                             </AccordionTrigger>
                             <AccordionContent>
-                                <div className="p-4 bg-muted/50 rounded-lg border prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: mcq.solution }}/>
+                                <div className="p-4 bg-muted/50 rounded-lg border prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: mcq.solution || "" }}/>
                             </AccordionContent>
                         </AccordionItem>
                     </Accordion>

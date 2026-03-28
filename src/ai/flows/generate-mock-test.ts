@@ -9,7 +9,6 @@ import {z} from 'zod';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT, IP_BLUEPRINT } from '@/lib/exam-blueprints';
 import type { MCQ, Topic } from '@/lib/types';
 import { getTopics, getTopicMCQs, getReasoningQuestions } from '@/lib/firestore';
-import { generate } from '@genkit-ai/ai';
 import { gemini15Flash } from '@genkit-ai/googleai';
 import { getFirebaseDb } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -18,6 +17,7 @@ const GenerateMockTestInputSchema = z.object({
   examCategory: z.string().describe('The exam category (e.g., MTS, POSTMAN, PA).'),
   userId: z.string().describe('The ID of the user requesting the quiz.'),
   language: z.string().optional().default('English').describe('The language for the generated quiz.'),
+  paper: z.string().optional().describe('Specific paper for IP exam (e.g., Paper-I, Paper-III).'),
 });
 export type GenerateMockTestInput = z.infer<typeof GenerateMockTestInputSchema>;
 
@@ -47,7 +47,7 @@ const translateMCQBatch = async (mcqs: MCQ[], targetLanguage: string): Promise<M
       `;
 
     try {
-        const result = await generate({
+        const result = await ai.generate({
             model: gemini15Flash,
             prompt: prompt,
             output: {
@@ -57,8 +57,8 @@ const translateMCQBatch = async (mcqs: MCQ[], targetLanguage: string): Promise<M
             config: { temperature: 0.1 }
         });
         
-        const output = result.json();
-        return (output?.translatedMcqs || mcqs).map(m => ({ ...m, solution: m.solution || "" }));
+        const output = result.output;
+        return (output?.translatedMcqs || mcqs).map((m: any) => ({ ...m, solution: m.solution || "" }));
     } catch (error) {
         console.error("Batch translation failed, returning originals:", error);
         return mcqs.map(m => ({ ...m, solution: m.solution || "" }));
@@ -118,6 +118,9 @@ const generateMockTestFlow = ai.defineFlow(
     });
 
     for (const part of blueprint.parts) {
+      if (input.examCategory === 'IP' && input.paper && part.partName !== input.paper) {
+        continue;
+      }
       for (const section of part.sections) {
         if (section.nonVerbalTopics) {
             const allReasoningQuestions = await getReasoningQuestions();
@@ -217,9 +220,9 @@ const generateMockTestFlow = ai.defineFlow(
         language: input.language,
         examCategory: input.examCategory,
         topic: {
-            id: `mock-test-${input.examCategory}-${Date.now()}`,
-            title: `${blueprint?.examName || input.examCategory} Mock Test`,
-            description: `A full-length mock test based on the official ${input.examCategory} syllabus.`,
+            id: `mock-test-${input.examCategory}-${input.paper || 'full'}-${Date.now()}`,
+            title: `${blueprint?.examName || input.examCategory} ${input.paper || ''} Mock Test`.trim(),
+            description: `A full-length mock test based on the official ${input.examCategory} ${input.paper || ''} syllabus.`.trim(),
             icon: 'scroll-text',
             categoryId: 'mock-test',
         },
