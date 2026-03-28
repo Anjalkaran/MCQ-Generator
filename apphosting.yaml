@@ -2,6 +2,18 @@
 # https://firebase.google.com/docs/app-hosting/configure
 
 runConfig:
-  # Increase this value if you'd like to automatically spin up
-  # more instances in response to increased traffic.
-  maxInstances: 1
+  # Increase memory to prevent OOM errors with Next.js 15 + AI modules
+  memory: 2Gi
+  cpu: 1
+  maxInstances: 2
+
+env:
+  # Injected via Cloud Secret Manager - you'll need to create these secrets
+  - variable: GEMINI_API_KEY
+    secret: GEMINI_API_KEY
+  - variable: RAZORPAY_KEY_ID
+    secret: RAZORPAY_KEY_ID
+  - variable: RAZORPAY_KEY_SECRET
+    secret: RAZORPAY_KEY_SECRET
+  - variable: RAZORPAY_WEBHOOK_SECRET
+    secret: RAZORPAY_WEBHOOK_SECRET

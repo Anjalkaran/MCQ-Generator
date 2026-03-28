@@ -6,7 +6,7 @@ export const ADMIN_EMAILS = [
     "shanmugasundaram.tsm@gmail.com"
 ];
 
-// All payment related constants can be removed or ignored.
-export const RAZORPAY_KEY_ID = "";
-export const RAZORPAY_KEY_SECRET = "";
-export const RAZORPAY_WEBHOOK_SECRET = "";
+// Razorpay constants - using env variables for security
+export const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || "";
+export const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || "";
+export const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET || "";
