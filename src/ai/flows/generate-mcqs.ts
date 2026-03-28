@@ -10,8 +10,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { getTopicMCQs, getExamHistoryForUser } from '@/lib/firestore';
 import type { MCQ } from '@/lib/types';
-import { getFirebaseDb } from '@/lib/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { getFirebaseDb } from '@/lib/firebase-admin';
 
 const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
@@ -292,7 +291,7 @@ const generateMCQsFlow = ai.defineFlow(
     if (!db) {
         throw new Error("Firestore is not initialized.");
     }
-    const docRef = await addDoc(collection(db, "generatedQuizzes"), quizData);
+    const docRef = await db.collection("generatedQuizzes").add(quizData);
 
     return { quizId: docRef.id };
   }

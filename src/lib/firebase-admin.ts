@@ -1,33 +1,67 @@
 
 import * as admin from 'firebase-admin';
-import serviceAccount from './serviceAccountKey.json';
 
-function initializeFirebaseAdmin() {
-  if (admin.apps.length === 0) {
-    try {
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount as any),
-        storageBucket: 'quizwiz-be479.appspot.com'
-      });
-      console.log('Firebase Admin SDK Initialized.');
-    } catch (e) {
-      console.error('Firebase Admin Initialization Error', e);
+let isInitialized = false;
+
+/**
+ * Ensures the Firebase Admin SDK is initialized exactly once.
+ * Falls back through service account key, default credentials, and basic project config.
+ */
+export function initializeFirebaseAdmin() {
+    if (isInitialized || admin.apps.length > 0) {
+        isInitialized = true;
+        return admin;
     }
-  }
+
+    try {
+        let serviceAccount;
+        try {
+            serviceAccount = require('./serviceAccountKey.json');
+        } catch (e) {
+            // Ignore missing file - will use defaults
+        }
+
+        if (serviceAccount && Object.keys(serviceAccount).length > 0) {
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount as any),
+                storageBucket: 'quizwiz-be479.appspot.com'
+            });
+        } else {
+            admin.initializeApp({
+                credential: admin.credential.applicationDefault(),
+                storageBucket: 'quizwiz-be479.appspot.com'
+            });
+        }
+    } catch (e) {
+        // Last-ditch effort: Initialize with empty config if on GCP
+        try {
+            if (admin.apps.length === 0) {
+                admin.initializeApp({
+                    storageBucket: 'quizwiz-be479.appspot.com'
+                });
+            }
+        } catch (innerError) {
+            // Don't rethrow, let the specific service call fail with a better error message if init truly failed
+        }
+    }
+
+    isInitialized = true;
+    return admin;
 }
 
-initializeFirebaseAdmin();
+// Export the initialized instance
+const initializedAdmin = initializeFirebaseAdmin();
+export { initializedAdmin as admin };
 
 export const getFirebaseDb = () => {
-    if (admin.apps.length === 0) {
-        initializeFirebaseAdmin();
-    }
-    return admin.firestore();
+    return initializeFirebaseAdmin().firestore();
 }
 
 export const getFirebaseStorage = () => {
-    if (admin.apps.length === 0) {
-        initializeFirebaseAdmin();
-    }
-    return admin.storage();
+    return initializeFirebaseAdmin().storage();
 }
+
+export const getFirebaseAuth = () => {
+    return initializeFirebaseAdmin().auth();
+}
+

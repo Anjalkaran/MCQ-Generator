@@ -1,18 +1,39 @@
-
 import { NextResponse } from 'next/server';
-import { getFirebaseDb } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirebaseDb, admin } from '@/lib/firebase-admin';
+import { ADMIN_EMAILS } from '@/lib/constants';
 
 /**
  * @fileOverview API route to handle multi-file uploads for Weekly Tests.
  * Merges questions from all uploaded JSON files into a single master document.
  */
 
-export async function POST(request: Request) {
-    const db = getFirebaseDb();
-    if (!db) {
-        return NextResponse.json({ error: 'Firestore is not initialized.' }, { status: 500 });
+async function isAdmin(request: Request) {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+        console.error('Missing or invalid Authorization header');
+        return false;
     }
+    
+    const idToken = authHeader.split('Bearer ')[1];
+    try {
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const hasAccess = decodedToken.email && ADMIN_EMAILS.includes(decodedToken.email);
+        if (!hasAccess) {
+            console.warn(`User ${decodedToken.email} is authenticated but NOT in ADMIN_EMAILS list.`);
+        }
+        return hasAccess;
+    } catch (error) {
+        console.error('Error verifying ID token:', error);
+        return false;
+    }
+}
+
+export async function POST(request: Request) {
+    if (!await isAdmin(request)) {
+        return NextResponse.json({ error: 'Unauthorized: Admin access required.' }, { status: 403 });
+    }
+
+    const db = getFirebaseDb();
 
     try {
         const formData = await request.formData();
@@ -52,19 +73,19 @@ export async function POST(request: Request) {
         const finalContent = JSON.stringify({ questions: allQuestions });
         
         // 1. Save the merged question content to the liveTestBank collection
-        const bankRef = await addDoc(collection(db, 'liveTestBank'), {
+        const bankRef = await db.collection('liveTestBank').add({
             fileName: `${title}_merged_${Date.now()}.json`,
             examCategory: examCategories[0], 
             content: finalContent,
-            uploadedAt: new Date()
+            uploadedAt: admin.firestore.Timestamp.now()
         });
 
         // 2. Create the Weekly Test entry referencing the bank document
-        const weeklyTestRef = await addDoc(collection(db, 'weeklyTests'), {
+        const weeklyTestRef = await db.collection('weeklyTests').add({
             title,
             examCategories,
             questionPaperId: bankRef.id,
-            createdAt: serverTimestamp()
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
         });
 
         return NextResponse.json({
@@ -79,7 +100,12 @@ export async function POST(request: Request) {
         });
 
     } catch (error: any) {
-        console.error('API Error in weekly-test upload:', error);
-        return NextResponse.json({ error: error.message || 'An unexpected server error occurred during upload.' }, { status: 500 });
+        console.error('FULL API Error Object:', error);
+        console.error('Error Message:', error.message);
+        console.error('Error Code:', error.code);
+        return NextResponse.json({ 
+            error: error.message || 'An unexpected server error occurred during upload.',
+            details: error.code === 7 ? 'Firestore Permission Denied inside Admin SDK. Please check IAM roles.' : undefined
+        }, { status: 500 });
     }
 }

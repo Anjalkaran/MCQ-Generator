@@ -7,6 +7,6 @@ console.log('GEMINI_API_KEY being used by Genkit:', process.env.GEMINI_API_KEY);
 
 export const ai = genkit({
   plugins: [
-    googleAI(),
+    googleAI({ apiKey: process.env.GEMINI_API_KEY }),
   ],
 });

@@ -9,8 +9,7 @@ import { z } from 'zod';
 import type { MCQ } from '@/lib/types';
 import { getLiveTestQuestionPaper } from '@/lib/firestore';
 import { MTS_BLUEPRINT, PA_BLUEPRINT, POSTMAN_BLUEPRINT, IP_BLUEPRINT } from '@/lib/exam-blueprints';
-import { getFirebaseDb } from '@/lib/firebase';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { getFirebaseDb, admin } from '@/lib/firebase-admin';
 
 const blueprintMap = {
     MTS: MTS_BLUEPRINT,
@@ -52,7 +51,9 @@ const generateLiveMockTestFlow = ai.defineFlow(
     outputSchema: GenerateLiveMockTestOutputSchema,
   },
   async input => {
-    const questionPaper = await getLiveTestQuestionPaper(input.questionPaperId);
+    const db = getFirebaseDb();
+    const questionPaperSnap = await db.collection('liveTestBank').doc(input.questionPaperId).get();
+    const questionPaper = questionPaperSnap.exists ? questionPaperSnap.data() : null;
     if (!questionPaper) throw new Error(`The question paper could not be found.`);
     
     let parsedData: { questions: any[] };
@@ -111,16 +112,13 @@ const generateLiveMockTestFlow = ai.defineFlow(
             icon: 'scroll-text',
             categoryId: 'weekly-test',
         },
-        createdAt: serverTimestamp(),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
     if (input.liveTestId) quizData.liveTestId = input.liveTestId;
     if (input.weeklyTestId) quizData.weeklyTestId = input.weeklyTestId;
 
-    const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized.");
-    
-    const docRef = await addDoc(collection(db, "generatedQuizzes"), quizData);
+    const docRef = await db.collection("generatedQuizzes").add(quizData);
     return { quizId: docRef.id };
   }
 );

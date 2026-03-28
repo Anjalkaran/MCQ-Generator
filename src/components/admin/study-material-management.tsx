@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Link as LinkIcon, Trash2, Search, PlusCircle, Globe, FileText, Upload } from 'lucide-react';
 import { deleteStudyMaterial } from '@/lib/firestore';
+import { getFirebaseAuth } from '@/lib/firebase';
 import type { Topic, StudyMaterial } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -106,10 +107,16 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials }: Stu
 
             if (!finalContentUrl) throw new Error('Content URL is missing.');
 
+            const auth = getFirebaseAuth();
+            const idToken = auth?.currentUser ? await auth.currentUser.getIdToken() : null;
+
             console.log('Sending registration request to API...');
             const response = await fetch('/api/study-material/upload', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': idToken ? `Bearer ${idToken}` : ''
+                },
                 body: JSON.stringify({
                     topicName: values.topicName,
                     contentUrl: finalContentUrl,

@@ -10,8 +10,8 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { getQuestionBankDocumentsByCategory, getUserData } from '@/lib/firestore';
 import type { MCQ } from '@/lib/types';
-import { getFirebaseDb } from '@/lib/firebase';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { getFirebaseDb } from '@/lib/firebase-admin';
+import * as admin from 'firebase-admin';
 import { MTS_BLUEPRINT, PA_BLUEPRINT, POSTMAN_BLUEPRINT } from '@/lib/exam-blueprints';
 
 const blueprintMap = {
@@ -115,14 +115,11 @@ const generateMockTestFromBankFlow = ai.defineFlow(
             icon: 'scroll-text',
             categoryId: 'mock-test-bank',
         },
-        createdAt: serverTimestamp(),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
     
     const db = getFirebaseDb();
-    if (!db) {
-        throw new Error("Firestore is not initialized.");
-    }
-    const docRef = await addDoc(collection(db, "generatedQuizzes"), quizData);
+    const docRef = await db.collection("generatedQuizzes").add(quizData);
 
     return { quizId: docRef.id };
   }

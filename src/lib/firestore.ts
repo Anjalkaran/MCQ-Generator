@@ -991,9 +991,24 @@ export const getGeneratedQuiz = async (quizId: string): Promise<MCQData | null> 
     } catch (e) {
         console.error("Error fetching quiz from Firestore:", e);
     }
-    const localQuiz = localStorage.getItem(`quiz-${quizId}`);
-    if (localQuiz) {
-        return JSON.parse(localQuiz);
+    try {
+        if (typeof window !== "undefined") {
+            const localQuiz = localStorage.getItem(`quiz-${quizId}`);
+            if (localQuiz) {
+                return JSON.parse(localQuiz);
+            }
+        }
+    } catch (e) {
+        console.warn("Could not access localStorage:", e);
     }
     return null;
 }
+
+export const markLiveTestAsTaken = async (userId: string, testId: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+        liveTestsTaken: arrayUnion(testId)
+    });
+};

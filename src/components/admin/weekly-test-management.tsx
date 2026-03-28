@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, PlusCircle, Trash2, Search, Upload, FilePlus, List, Edit, Save, FileCode, ClipboardPaste } from 'lucide-react';
 import { deleteWeeklyTest, getLiveTestQuestionPaper, updateLiveTestBankDocument } from '@/lib/firestore';
+import { getFirebaseAuth } from '@/lib/firebase';
 import type { BankedQuestion, WeeklyTest, MCQ } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -119,9 +120,13 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
     }
 
     try {
+        const auth = getFirebaseAuth();
+        const idToken = auth?.currentUser ? await auth.currentUser.getIdToken() : null;
+
         const response = await fetch('/api/weekly-test/upload', {
             method: 'POST',
             body: formData,
+            headers: idToken ? { 'Authorization': `Bearer ${idToken}` } : {},
         });
 
         if (!response.ok) {
@@ -174,9 +179,13 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
     }
 
     try {
+        const auth = getFirebaseAuth();
+        const idToken = auth?.currentUser ? await auth.currentUser.getIdToken() : null;
+
         const response = await fetch('/api/weekly-test/append', {
             method: 'POST',
             body: formData,
+            headers: idToken ? { 'Authorization': `Bearer ${idToken}` } : {},
         });
 
         if (!response.ok) {

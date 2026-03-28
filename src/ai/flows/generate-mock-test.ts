@@ -10,8 +10,7 @@ import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT, IP_BLUEPRINT } from '@/
 import type { MCQ, Topic } from '@/lib/types';
 import { getTopics, getTopicMCQs, getReasoningQuestions } from '@/lib/firestore';
 import { gemini15Flash } from '@genkit-ai/googleai';
-import { getFirebaseDb } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirebaseDb, admin } from '@/lib/firebase-admin';
 
 const GenerateMockTestInputSchema = z.object({
   examCategory: z.string().describe('The exam category (e.g., MTS, POSTMAN, PA).'),
@@ -226,12 +225,11 @@ const generateMockTestFlow = ai.defineFlow(
             icon: 'scroll-text',
             categoryId: 'mock-test',
         },
-        createdAt: serverTimestamp(),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
     
     const db = getFirebaseDb();
-    if (!db) throw new Error("Firestore is not initialized.");
-    const docRef = await addDoc(collection(db, "generatedQuizzes"), quizData);
+    const docRef = await db.collection("generatedQuizzes").add(quizData);
 
     return { quizId: docRef.id };
   }

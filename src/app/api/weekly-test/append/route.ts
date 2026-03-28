@@ -1,17 +1,33 @@
 
 import { NextResponse } from 'next/server';
-import { getFirebaseDb } from '@/lib/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { getFirebaseDb } from '@/lib/firebase-admin';
+import * as admin from 'firebase-admin';
+import { ADMIN_EMAILS } from '@/lib/constants';
 
 /**
  * @fileOverview API route to append questions to an existing Weekly Test.
  */
 
-export async function POST(request: Request) {
-    const db = getFirebaseDb();
-    if (!db) {
-        return NextResponse.json({ error: 'Firestore is not initialized.' }, { status: 500 });
+async function isAdmin(request: Request) {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) return false;
+    
+    const idToken = authHeader.split('Bearer ')[1];
+    try {
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        return decodedToken.email && ADMIN_EMAILS.includes(decodedToken.email);
+    } catch (error) {
+        console.error('Error verifying ID token:', error);
+        return false;
     }
+}
+
+export async function POST(request: Request) {
+    if (!await isAdmin(request)) {
+        return NextResponse.json({ error: 'Unauthorized: Admin access required.' }, { status: 403 });
+    }
+
+    const db = getFirebaseDb();
 
     try {
         const formData = await request.formData();
@@ -23,26 +39,26 @@ export async function POST(request: Request) {
         }
 
         // 1. Get the Weekly Test to find its bank ID
-        const weeklyTestRef = doc(db, 'weeklyTests', weeklyTestId);
-        const weeklyTestSnap = await getDoc(weeklyTestRef);
+        const weeklyTestRef = db.collection('weeklyTests').doc(weeklyTestId);
+        const weeklyTestSnap = await weeklyTestRef.get();
 
-        if (!weeklyTestSnap.exists()) {
+        if (!weeklyTestSnap.exists) {
             return NextResponse.json({ error: 'Weekly test not found.' }, { status: 404 });
         }
 
-        const { questionPaperId } = weeklyTestSnap.data();
+        const questionPaperId = weeklyTestSnap.get('questionPaperId');
         if (!questionPaperId) {
             return NextResponse.json({ error: 'This test does not have an associated question paper.' }, { status: 400 });
         }
 
         // 2. Get existing questions from the bank
-        const bankRef = doc(db, 'liveTestBank', questionPaperId);
-        const bankSnap = await getDoc(bankRef);
+        const bankRef = db.collection('liveTestBank').doc(questionPaperId);
+        const bankSnap = await bankRef.get();
 
         let existingQuestions: any[] = [];
-        if (bankSnap.exists()) {
+        if (bankSnap.exists) {
             try {
-                const bankData = JSON.parse(bankSnap.data().content);
+                const bankData = JSON.parse(bankSnap.get('content'));
                 existingQuestions = bankData.questions || [];
             } catch (e) {
                 console.warn("Could not parse existing bank content, starting fresh.");
@@ -71,9 +87,9 @@ export async function POST(request: Request) {
 
         // 4. Update the bank document
         const finalContent = JSON.stringify({ questions: [...existingQuestions, ...newQuestions] });
-        await updateDoc(bankRef, {
+        await bankRef.update({
             content: finalContent,
-            lastAppendedAt: new Date()
+            lastAppendedAt: admin.firestore.FieldValue.serverTimestamp()
         });
 
         return NextResponse.json({
