@@ -149,39 +149,54 @@ const generateMCQsFlow = ai.defineFlow(
         });
     }
     
-    // Filter out questions the user has already answered
-    const unansweredQuestions = canonicalQuestions.filter(mcq => !answeredQuestionTexts.has(mcq.question.trim()));
-
-    if (unansweredQuestions.length > 0) {
-        if (unansweredQuestions.length < input.numberOfQuestions) {
-            console.warn(`Could only find ${unansweredQuestions.length} unique, unanswered questions in the MCQ bank for topic "${input.topic}", though ${input.numberOfQuestions} were requested.`);
-        }
+    // Logic for selecting questions from the bank
+    if (canonicalQuestions.length > 0) {
+        // Filter out questions the user has already answered
+        const unansweredQuestions = canonicalQuestions.filter(mcq => !answeredQuestionTexts.has(mcq.question.trim()));
+        const answeredQuestions = canonicalQuestions.filter(mcq => answeredQuestionTexts.has(mcq.question.trim()));
         
-        const processedQuestions = unansweredQuestions.map(mcq => {
-            const base = {
-                ...mcq,
-                topic: mcq.topic || input.topic,
-                solution: mcq.solution || "",
-            };
+        let selectedQuestions: MCQ[] = [];
+        
+        // 1. Take as many unanswered questions as possible up to the requested number
+        selectedQuestions = shuffleArray([...unansweredQuestions]).slice(0, input.numberOfQuestions);
+        
+        // 2. If we still need more questions to reach the requested count, take from already answered ones
+        if (selectedQuestions.length < input.numberOfQuestions && answeredQuestions.length > 0) {
+            const needed = input.numberOfQuestions - selectedQuestions.length;
+            const extra = shuffleArray([...answeredQuestions]).slice(0, needed);
+            selectedQuestions = [...selectedQuestions, ...extra];
+        }
 
-            if (input.language && input.language !== 'English') {
-                const langKey = languageMap[input.language.toLowerCase()];
-                if (langKey && mcq.translations?.[langKey]) {
-                    const translated = mcq.translations[langKey];
-                    return {
-                        ...base,
-                        question: translated.question || base.question,
-                        options: translated.options || base.options,
-                        correctAnswer: translated.correctAnswer || base.correctAnswer,
-                        solution: translated.solution || base.solution,
-                    };
+        if (selectedQuestions.length > 0) {
+             const processedQuestions = selectedQuestions.map(mcq => {
+                const base = {
+                    ...mcq,
+                    topic: mcq.topic || input.topic,
+                    solution: mcq.solution || "",
+                };
+
+                if (input.language && input.language !== 'English') {
+                    const langKey = languageMap[input.language.toLowerCase()];
+                    if (langKey && mcq.translations?.[langKey]) {
+                        const translated = mcq.translations[langKey];
+                        return {
+                            ...base,
+                            question: translated.question || base.question,
+                            options: translated.options || base.options,
+                            correctAnswer: translated.correctAnswer || base.correctAnswer,
+                            solution: translated.solution || base.solution,
+                        };
+                    }
                 }
-            }
-            return base;
-        });
+                return base;
+            });
 
-        finalMCQs = shuffleArray(processedQuestions).slice(0, input.numberOfQuestions);
+            finalMCQs = processedQuestions;
+        }
+    }
 
+    if (finalMCQs.length > 0) {
+        // We successfully found questions in the bank
     // **PRIORITY 2: Fallback to generating from raw .docx material**
     } else if (input.material) {
         let collectedMCQs: z.infer<typeof MCQSchema>[] = [];
