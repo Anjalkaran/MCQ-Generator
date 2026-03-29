@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { BookCopy, FileText, TrendingUp, Trophy, BrainCircuit, HelpCircle } from 'lucide-react';
+import { BookCopy, FileText, TrendingUp, Trophy, BrainCircuit } from 'lucide-react';
 import { getFirebaseAuth } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from "firebase/auth";
 
@@ -31,10 +31,6 @@ const translations = {
     leaderboard: {
       title: "Competitive Leaderboard",
       description: "See how you measure up against other users with separate leaderboards for topic quizzes and mock tests.",
-    },
-    askDoubt: {
-      title: "Ask Your Doubt",
-      description: "Get instant, material-based answers from our AI tutor to clarify your doubts on any topic, ensuring you're always prepared.",
     }
   },
   hi: {
@@ -57,10 +53,6 @@ const translations = {
     leaderboard: {
       title: "प्रतिस्पर्धी लीडरबोर्ड",
       description: "देखें कि आप दूसरे उपयोगकर्ताओं के मुकाबले कहां खड़े हैं, जिसमें टॉपिक क्विज़ और मॉक टेस्ट के लिए अलग-अलग लीडरबोर्ड हैं।",
-    },
-    askDoubt: {
-      title: "अपना संदेह पूछें",
-      description: "हमारे AI ट्यूटर से किसी भी विषय पर अपने संदेहों को दूर करने के लिए तुरंत उत्तर प्राप्त करें, ताकि आप हमेशा तैयार रहें।",
     }
   },
   ta: {
@@ -83,10 +75,6 @@ const translations = {
     leaderboard: {
       title: "போட்டி லீடர்போர்டு",
       description: "மற்ற பயனர்களுடன் ஒப்பிடும்போது நீங்கள் எங்கே இருக்கிறீர்கள் என்பதை தலைப்பு வினாவிடை மற்றும் மாதிரித் தேர்வுகளுக்கான தனித்தனி லீடர்போர்டுகள் மூலம் பாருங்கள்.",
-    },
-    askDoubt: {
-      title: "உங்கள் சந்தேகத்தைக் கேளுங்கள்",
-      description: "எந்தவொரு தலைப்பிலும் உங்கள் சந்தேகங்களைத் தெளிவுபடுத்த, எங்கள் AI ஆசிரியரிடமிருந்து உடனடி, பாடப்பொருள் அடிப்படையிலான பதில்களைப் பெறுங்கள்.",
     }
   }
 };
@@ -129,12 +117,6 @@ export function FeatureCards({ language }: { language: Language }) {
       title: t.leaderboard.title,
       description: t.leaderboard.description,
       href: "/dashboard/leaderboard"
-    },
-    {
-      icon: <HelpCircle className="h-10 w-10 text-red-600" />,
-      title: t.askDoubt.title,
-      description: t.askDoubt.description,
-      href: "/dashboard/q-and-a"
     }
   ];
 
