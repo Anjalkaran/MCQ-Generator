@@ -643,115 +643,143 @@ export const getLiveTestsForLeaderboard = async (): Promise<any[]> => {
     });
 };
 
-// LEADERBOARD MANAGEMENT
-export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategory: UserData['examCategory']): Promise<LeaderboardEntry[]> => {
+// OPTIMIZED LEADERBOARD FETCHING
+// To avoid server timeouts and excessive reads, we provide a unified fetch
+export const getUnifiedLeaderboards = async (): Promise<{
+    topics: Record<UserData['examCategory'], LeaderboardEntry[]>;
+    mocks: Record<UserData['examCategory'], LeaderboardEntry[]>;
+    pastLiveTests: any[];
+}> => {
     const db = getFirebaseDb();
-    if (!db) return [];
-    const isMockTest = examType === 'mock';
-    
-    const historyQuery = query(collection(db, 'mcqHistory'), where('isMockTest', '==', isMockTest));
-    const historySnapshot = await getDocs(historyQuery);
-    let histories = historySnapshot.docs.map(doc => doc.data() as MCQHistory);
+    if (!db) return { topics: {} as any, mocks: {} as any, pastLiveTests: [] };
 
-    histories = histories.filter(h => {
-        const takenAt = normalizeDate(h.takenAt);
-        return takenAt && takenAt >= LEADERBOARD_RESET_DATE;
-    });
+    try {
+        // 1. Fetch ALL users once (still needed for labels, but only once)
+        const allUsers = await getAllUsers();
+        const users = allUsers.filter(u => !ADMIN_EMAILS.includes(u.email));
+        const userMap = new Map(users.map(u => [u.uid, u]));
 
-    const allUsers = await getAllUsers();
-    const filteredUsers = allUsers.filter(u => u.examCategory === examCategory);
-    const userMap = new Map(filteredUsers.map(u => [u.uid, u]));
+        // 2. Fetch history since reset date
+        const historyRef = collection(db, 'mcqHistory');
+        const historyQuery = query(
+            historyRef, 
+            where('takenAt', '>=', Timestamp.fromDate(LEADERBOARD_RESET_DATE))
+        );
+        const historySnapshot = await getDocs(historyQuery);
+        const histories = historySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MCQHistory));
 
-    const userPerformance = new Map<string, { totalScore: number; totalQuestions: number; totalExams: number }>();
-    histories.forEach(h => {
-        const user = userMap.get(h.userId);
-        if (user && !ADMIN_EMAILS.includes(user.email)) {
-            const current = userPerformance.get(h.userId) || { totalScore: 0, totalQuestions: 0, totalExams: 0 };
-            current.totalScore += h.score;
-            current.totalQuestions += h.totalQuestions;
+        // 3. Process Topic and Mock Leaderboards
+        const categories: UserData['examCategory'][] = ['MTS', 'POSTMAN', 'PA', 'IP'];
+        const topicCalculations = new Map<string, { totalScore: number; totalQuestions: number; totalExams: number }>();
+        const mockCalculations = new Map<string, { totalScore: number; totalQuestions: number; totalExams: number }>();
+
+        histories.forEach(h => {
+            if (!userMap.has(h.userId)) return;
+            const target = h.isMockTest ? mockCalculations : topicCalculations;
+            const current = target.get(h.userId) || { totalScore: 0, totalQuestions: 0, totalExams: 0 };
+            current.totalScore += (h.score || 0);
+            current.totalQuestions += (h.totalQuestions || 0);
             current.totalExams += 1;
-            userPerformance.set(h.userId, current);
-        }
-    });
+            target.set(h.userId, current);
+        });
 
-    const leaderboard: Omit<LeaderboardEntry, 'rank'>[] = [];
-    userPerformance.forEach((perf, userId) => {
-        const user = userMap.get(userId);
-        const hasTakenEnoughExams = user?.examCategory === 'IP' ? perf.totalExams > 0 : (user?.totalExamsTaken || 0) > 6;
-
-        if (user && hasTakenEnoughExams) {
-            leaderboard.push({
-                userId,
-                userName: user.name,
-                examCategory: user.examCategory,
-                averageScore: (perf.totalQuestions > 0) ? (perf.totalScore / perf.totalQuestions) * 100 : 0,
-                totalExams: perf.totalExams,
+        const generateLeaderboard = (calcMap: Map<string, any>, cat: UserData['examCategory']) => {
+            const entries: LeaderboardEntry[] = [];
+            calcMap.forEach((perf, userId) => {
+                const user = userMap.get(userId);
+                if (user && user.examCategory === cat) {
+                    const hasTakenEnoughExams = user.examCategory === 'IP' ? perf.totalExams > 0 : (user.totalExamsTaken || 0) > 6;
+                    if (hasTakenEnoughExams) {
+                        entries.push({
+                            userId,
+                            userName: user.name,
+                            examCategory: user.examCategory,
+                            averageScore: (perf.totalQuestions > 0) ? (perf.totalScore / perf.totalQuestions) * 100 : 0,
+                            totalExams: perf.totalExams,
+                            rank: 0
+                        });
+                    }
+                }
             });
-        }
-    });
+            return entries
+                .sort((a, b) => b.averageScore - a.averageScore)
+                .slice(0, 50)
+                .map((e, i) => ({ ...e, rank: i + 1 }));
+        };
 
-    return leaderboard
-        .sort((a, b) => b.averageScore - a.averageScore)
-        .slice(0, 100)
-        .map((entry, index) => ({ ...entry, rank: index + 1 }));
+        const topicsResult = {} as any;
+        const mocksResult = {} as any;
+        categories.forEach(cat => {
+            topicsResult[cat] = generateLeaderboard(topicCalculations, cat);
+            mocksResult[cat] = generateLeaderboard(mockCalculations, cat);
+        });
+
+        // 4. Fetch Live Tests list
+        const liveTests = await getLiveTestsForLeaderboard();
+
+        return { topics: topicsResult, mocks: mocksResult, pastLiveTests: liveTests };
+    } catch (error) {
+        console.error("Unified leaderboard error:", error);
+        return { topics: {} as any, mocks: {} as any, pastLiveTests: [] };
+    }
+};
+
+export const getLeaderboardData = async (examType: 'topic' | 'mock', examCategory: UserData['examCategory']): Promise<LeaderboardEntry[]> => {
+    const unified = await getUnifiedLeaderboards();
+    return examType === 'topic' ? unified.topics[examCategory] || [] : unified.mocks[examCategory] || [];
 };
 
 export const getLiveTestLeaderboardData = async (testId: string): Promise<LeaderboardEntry[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
     
-    const historyRef = collection(db, 'mcqHistory');
-    const qLive = query(historyRef, where('liveTestId', '==', testId));
-    const qWeekly = query(historyRef, where('weeklyTestId', '==', testId));
-    
-    const [snapLive, snapWeekly] = await Promise.all([getDocs(qLive), getDocs(qWeekly)]);
-    
-    let histories = [
-        ...snapLive.docs.map(doc => doc.data() as MCQHistory),
-        ...snapWeekly.docs.map(doc => doc.data() as MCQHistory)
-    ];
+    try {
+        const historyRef = collection(db, 'mcqHistory');
+        const qLive = query(historyRef, where('liveTestId', '==', testId));
+        const qWeekly = query(historyRef, where('weeklyTestId', '==', testId));
+        
+        const [snapLive, snapWeekly] = await Promise.all([getDocs(qLive), getDocs(qWeekly)]);
+        
+        let histories = [
+            ...snapLive.docs.map(doc => doc.data() as MCQHistory),
+            ...snapWeekly.docs.map(doc => doc.data() as MCQHistory)
+        ];
 
-    histories = histories.filter(h => {
-        const takenAt = normalizeDate(h.takenAt);
-        return takenAt && takenAt >= LEADERBOARD_RESET_DATE;
-    });
+        const userBest = new Map<string, any>();
+        const allUsers = await getAllUsers();
+        const userMap = new Map(allUsers.map(u => [u.uid, u]));
 
-    const allUsers = await getAllUsers();
-    const userMap = new Map(allUsers.map(u => [u.uid, u]));
-    
-    // Deduplicate per user, keeping their BEST attempt
-    const bestAttempts = new Map<string, any>();
+        histories.forEach(h => {
+            const user = userMap.get(h.userId);
+            if (!user || ADMIN_EMAILS.includes(user.email)) return;
 
-    histories.forEach(h => {
-        const user = userMap.get(h.userId);
-        if (user && !ADMIN_EMAILS.includes(user.email)) {
-            const percentage = (h.totalQuestions > 0) ? (h.score / h.totalQuestions) * 100 : 0;
-            const existing = bestAttempts.get(h.userId);
-            
-            if (!existing || percentage > existing.averageScore || (percentage === existing.averageScore && (h.durationInSeconds || Infinity) < (existing.durationInSeconds || Infinity))) {
-                bestAttempts.set(h.userId, {
+            const scorePercent = (h.totalQuestions > 0) ? (h.score / h.totalQuestions) * 100 : 0;
+            const existing = userBest.get(h.userId);
+
+            if (!existing || scorePercent > existing.averageScore || (scorePercent === existing.averageScore && (h.durationInSeconds || 99999) < (existing.durationInSeconds || 99999))) {
+                userBest.set(h.userId, {
                     userId: h.userId,
                     userName: user.name,
                     examCategory: user.examCategory,
                     score: h.score,
                     totalQuestions: h.totalQuestions,
-                    averageScore: percentage,
+                    averageScore: scorePercent,
                     durationInSeconds: h.durationInSeconds,
+                    rank: 0
                 });
             }
-        }
-    });
-    
-    const sortedLeaderboard = Array.from(bestAttempts.values())
-        .sort((a, b) => {
-            // Sort primarily by percentage (averageScore) descending
-            if (b.averageScore !== a.averageScore) return b.averageScore - a.averageScore;
-            // Then by duration ascending
-            return (a.durationInSeconds || Infinity) - (b.durationInSeconds || Infinity);
-        })
-        .map((entry, index) => ({ ...entry, rank: index + 1 }));
+        });
 
-    return sortedLeaderboard;
+        return Array.from(userBest.values())
+            .sort((a, b) => {
+                if (b.averageScore !== a.averageScore) return b.averageScore - a.averageScore;
+                return (a.durationInSeconds || 99999) - (b.durationInSeconds || 99999);
+            })
+            .slice(0, 100)
+            .map((e, i) => ({ ...e, rank: i + 1 }));
+    } catch (e) {
+        return [];
+    }
 };
 
 // NOTIFICATION MANAGEMENT

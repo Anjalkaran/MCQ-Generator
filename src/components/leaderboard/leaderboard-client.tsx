@@ -5,10 +5,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { LeaderboardEntry, UserData, LiveTest } from '@/lib/types';
-import { Trophy, Clock, Loader2 } from 'lucide-react';
+import { Trophy, Clock, Loader2, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { getLiveTestLeaderboardData } from '@/lib/firestore';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { normalizeDate } from '@/lib/utils';
@@ -27,6 +28,66 @@ interface LeaderboardClientProps {
 type ExamCategory = UserData['examCategory'];
 
 
+function TopThreeHighlights({ data, type = 'general' }: { data: LeaderboardEntry[], type?: 'general' | 'live' }) {
+    const topThree = data.slice(0, 3);
+    if (topThree.length === 0) return null;
+
+    // Reorder to 2, 1, 3 for podium effect
+    const podium = [
+        topThree[1] || null,
+        topThree[0],
+        topThree[2] || null
+    ].filter(Boolean) as (LeaderboardEntry | null)[];
+
+    return (
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-8 items-end">
+            {podium.map((entry, idx) => {
+                if (!entry) return <div key={`empty-${idx}`} />;
+                const isFirst = entry.rank === 1;
+                const isSecond = entry.rank === 2;
+                const isThird = entry.rank === 3;
+
+                return (
+                    <div key={entry.userId} className={cn(
+                        "flex flex-col items-center p-3 sm:p-6 rounded-2xl transition-all duration-300",
+                        isFirst ? "bg-gradient-to-b from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 border-2 border-yellow-400 scale-105 z-10 shadow-lg" : 
+                        isSecond ? "bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700" :
+                        "bg-amber-50/50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800"
+                    )}>
+                        <div className="relative mb-2">
+                            <div className={cn(
+                                "w-10 h-10 sm:w-16 sm:h-16 rounded-full flex items-center justify-center font-bold text-xl sm:text-2xl shadow-inner",
+                                isFirst ? "bg-yellow-400 text-yellow-900" :
+                                isSecond ? "bg-slate-300 text-slate-700" :
+                                "bg-amber-600/80 text-white"
+                            )}>
+                                {entry.userName.charAt(0)}
+                            </div>
+                            <div className="absolute -top-2 -right-2">
+                                <Trophy className={cn(
+                                    "h-5 w-5 sm:h-8 sm:w-8",
+                                    isFirst ? "text-yellow-500" : isSecond ? "text-slate-400" : "text-amber-700"
+                                )} />
+                            </div>
+                        </div>
+                        <p className="font-bold text-center text-xs sm:text-sm line-clamp-1 truncate w-full">{entry.userName}</p>
+                        <p className={cn(
+                            "text-lg sm:text-2xl font-black mt-1",
+                            isFirst ? "text-yellow-600" : "text-muted-foreground"
+                        )}>
+                            {type === 'general' ? `${entry.averageScore.toFixed(1)}%` : `${entry.score}/${entry.totalQuestions}`}
+                        </p>
+                        <Badge variant="outline" className={cn(
+                            "mt-2 text-[10px] uppercase tracking-wider",
+                            isFirst ? "bg-yellow-400/20 border-yellow-500/50" : ""
+                        )}>Rank {entry.rank}</Badge>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
 function LeaderboardTable({ data, type = 'general' }: { data: LeaderboardEntry[], type?: 'general' | 'live' }) {
   if (data.length === 0) {
     return (
@@ -36,10 +97,10 @@ function LeaderboardTable({ data, type = 'general' }: { data: LeaderboardEntry[]
     );
   }
 
-  const getRankClass = (rank: number) => {
-    if (rank === 1) return "text-yellow-500";
-    if (rank === 2) return "text-gray-400";
-    if (rank === 3) return "text-yellow-700";
+  const getRankStyle = (rank: number) => {
+    if (rank === 1) return "bg-yellow-400/10 text-yellow-700 dark:bg-yellow-400/5 dark:text-yellow-500 font-bold";
+    if (rank === 2) return "bg-slate-100 text-slate-600 dark:bg-slate-800/50 dark:text-slate-400 font-semibold";
+    if (rank === 3) return "bg-amber-50 text-amber-700 dark:bg-amber-900/10 dark:text-amber-600 font-semibold";
     return "";
   }
   
@@ -51,53 +112,62 @@ function LeaderboardTable({ data, type = 'general' }: { data: LeaderboardEntry[]
   }
 
   return (
-    <div className="border rounded-md">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-16 text-center">Rank</TableHead>
-            <TableHead>User</TableHead>
-            {type === 'general' ? (
-                 <>
-                    <TableHead className="text-center">Exams Taken</TableHead>
-                    <TableHead className="text-right">Avg. Percentage</TableHead>
-                </>
-            ) : (
-                <>
-                    <TableHead className="text-center">Score</TableHead>
-                    <TableHead className="text-right">Time Taken</TableHead>
-                </>
-            )}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((entry) => (
-            <TableRow key={entry.userId}>
-              <TableCell className="font-bold text-center text-lg">
-                <div className="flex items-center justify-center gap-2">
-                  <span className={cn(getRankClass(entry.rank))}>{entry.rank}</span>
-                  {entry.rank <= 3 && <Trophy className={cn("h-5 w-5", getRankClass(entry.rank))} />}
-                </div>
-              </TableCell>
-              <TableCell className="font-medium">{entry.userName}</TableCell>
-              {type === 'general' ? (
-                <>
-                    <TableCell className="text-center">{entry.totalExams}</TableCell>
-                    <TableCell className="text-right font-semibold">{entry.averageScore.toFixed(2)}%</TableCell>
-                </>
-              ) : (
-                <>
-                    <TableCell className="text-center font-semibold">{entry.score}/{entry.totalQuestions}</TableCell>
-                    <TableCell className="text-right flex items-center justify-end gap-1">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        {formatDuration(entry.durationInSeconds)}
-                    </TableCell>
-                </>
-              )}
+    <div className="space-y-4">
+        {data.length >= 3 && <TopThreeHighlights data={data} type={type} />}
+        <div className="border rounded-xl overflow-hidden bg-background">
+        <Table>
+            <TableHeader className="bg-muted/50">
+            <TableRow>
+                <TableHead className="w-20 text-center font-bold">Rank</TableHead>
+                <TableHead>User Name</TableHead>
+                {type === 'general' ? (
+                    <>
+                        <TableHead className="text-center">Tests</TableHead>
+                        <TableHead className="text-right">Avg Score</TableHead>
+                    </>
+                ) : (
+                    <>
+                        <TableHead className="text-center">Correct</TableHead>
+                        <TableHead className="text-right">Completion Time</TableHead>
+                    </>
+                )}
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+            </TableHeader>
+            <TableBody>
+            {data.map((entry) => (
+                <TableRow key={entry.userId} className={cn("transition-colors hover:bg-muted/30", getRankStyle(entry.rank))}>
+                <TableCell className="text-center py-4">
+                    <span className="text-lg font-mono">#{entry.rank}</span>
+                </TableCell>
+                <TableCell>
+                   <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                            {entry.userName.charAt(0)}
+                        </div>
+                        <span className="font-semibold">{entry.userName}</span>
+                   </div>
+                </TableCell>
+                {type === 'general' ? (
+                    <>
+                        <TableCell className="text-center text-muted-foreground">{entry.totalExams}</TableCell>
+                        <TableCell className="text-right font-black text-primary">{entry.averageScore.toFixed(2)}%</TableCell>
+                    </>
+                ) : (
+                    <>
+                        <TableCell className="text-center font-bold text-green-600 dark:text-green-400">{entry.score}/{entry.totalQuestions}</TableCell>
+                        <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground">
+                                <Clock className="h-3.5 w-3.5" />
+                                {formatDuration(entry.durationInSeconds)}
+                            </div>
+                        </TableCell>
+                    </>
+                )}
+                </TableRow>
+            ))}
+            </TableBody>
+        </Table>
+        </div>
     </div>
   );
 }

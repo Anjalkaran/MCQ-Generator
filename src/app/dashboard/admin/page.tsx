@@ -16,7 +16,7 @@ import { FeedbackManagement } from '@/components/admin/feedback-management';
 import { VideoClassManagement } from '@/components/admin/video-class-management';
 import { DownloadHistoryManagement } from '@/components/admin/download-history-management';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Calendar, FileQuestion, MessageSquare, Video, Library, History, CalendarCheck } from "lucide-react";
+import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Calendar, FileQuestion, MessageSquare, Video, Library, History, CalendarCheck, Trophy, ExternalLink } from "lucide-react";
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
 import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback, getStudyMaterials, getCategories, getTopics, getTopicMCQs, getQuestionBankDocuments, getVideoClasses, getWeeklyTests } from "@/lib/firestore";
 import type { UserData, QnAUsage, LiveTest, WeeklyTest, ReasoningQuestion, Feedback, StudyMaterial, Category, Topic, TopicMCQ, BankedQuestion, VideoClass } from "@/lib/types";
@@ -59,6 +59,7 @@ function AnalyticsTab({ qnaUsage }: { qnaUsage: QnAUsage[] }) {
 
 const adminSections = [
     { value: 'users', label: 'User Management', icon: Shield },
+    { value: 'leaderboard', label: 'Leaderboard', icon: Trophy },
     { value: 'weekly-tests', label: 'Weekly Test', icon: CalendarCheck },
     { value: 'topics', label: 'Topic Management', icon: BookCopy },
     { value: 'study-material', label: 'Study Material', icon: Library },
@@ -71,7 +72,7 @@ const adminSections = [
     { value: 'analytics', label: 'Analytics', icon: BarChart3 },
     { value: 'feedback', label: 'Feedback', icon: MessageSquare },
     { value: 'reports', label: 'Reports', icon: Download },
-] as const;
+];
 
 type AdminSection = typeof adminSections[number]['value'];
 
@@ -149,6 +150,19 @@ export default function AdminPage() {
   const renderContent = () => {
     switch(activeSection) {
         case 'users': return <UserManagement initialUsers={users} />;
+        case 'leaderboard': return (
+            <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                    <h2 className="text-xl font-bold">Competition Leaderboard</h2>
+                    <a href="/dashboard/leaderboard" target="_blank" className="text-primary hover:underline flex items-center gap-1 text-sm font-medium">
+                        View in Full Page <ExternalLink className="h-4 w-4" />
+                    </a>
+                </div>
+                <div className="border rounded-xl h-[800px] w-full overflow-hidden bg-muted/20 relative shadow-inner">
+                    <iframe src="/dashboard/leaderboard" className="absolute inset-0 w-full h-full border-none scale-90 sm:scale-100 origin-top" title="Leaderboard Preview" />
+                </div>
+            </div>
+        );
         case 'weekly-tests': return <WeeklyTestManagement initialWeeklyTests={weeklyTests} initialBankedQuestions={bankedQuestions} />;
         case 'topics': return <TopicManagement initialCategories={categories} initialTopics={topics} />;
         case 'study-material': return <StudyMaterialManagement initialTopics={topics} initialMaterials={studyMaterials} />;
