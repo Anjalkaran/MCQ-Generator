@@ -3,20 +3,18 @@
 
 import { useDashboard } from "@/app/dashboard/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, PenSquare, Video, History, FileWarning, BrainCircuit, Library, CalendarCheck, Shield } from 'lucide-react';
-import Link from "next/link";
+import { Loader2, PenSquare, Video, BrainCircuit, Library, Shield } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { ADMIN_EMAILS } from "@/lib/constants";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { updateDoc, doc } from "firebase/firestore";
 import { getFirebaseDb } from "@/lib/firebase";
-import { FadeIn } from '@/components/animations/motion-wrapper';
+import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-
 
 export default function DashboardPage() {
   const { user, userData, isLoading, setUserData } = useDashboard();
   const { toast } = useToast();
+  const router = useRouter();
 
   if (isLoading) {
     return (
@@ -44,6 +42,12 @@ export default function DashboardPage() {
   const handleCourseSelect = async (category: string) => {
     if (!userData?.uid) return;
     
+    // If it's already the active course, just enter
+    if (userData.examCategory === category) {
+      router.push(`/dashboard/courses/${category}`);
+      return;
+    }
+
     // Update local state first for immediate UI feedback
     setUserData(prev => prev ? ({ ...prev, examCategory: category as any }) : null);
 
@@ -57,6 +61,8 @@ export default function DashboardPage() {
           title: "Course Selected",
           description: `You are now viewing ${category} content.`,
         });
+        // Redirect to course page
+        router.push(`/dashboard/courses/${category}`);
       }
     } catch (error: any) {
       toast({
@@ -79,7 +85,7 @@ export default function DashboardPage() {
       icon: <BrainCircuit className="h-10 w-10" />,
       color: 'from-blue-500/20 to-cyan-500/20',
       textColor: 'text-blue-600',
-      allowed: true // Everyone can see MTS
+      allowed: true 
     },
     { 
       id: 'POSTMAN', 
@@ -173,45 +179,6 @@ export default function DashboardPage() {
           </Card>
         ))}
       </div>
-
-      {userData.examCategory && (
-        <FadeIn>
-          <div className="mt-12 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex items-center gap-3 border-b border-slate-200 pb-4">
-              <h2 className="text-2xl font-bold text-slate-900">
-                Current Course: <span className="text-red-600">{userData.examCategory}</span> Quick Access
-              </h2>
-            </div>
-            
-            <div className="grid gap-4 md:grid-cols-4">
-              <Button asChild variant="outline" className="h-20 flex flex-col gap-2 hover:bg-red-50 hover:border-red-200 transition-all">
-                <Link href="/dashboard/weekly-test">
-                  <CalendarCheck className="h-6 w-6 text-red-600" />
-                  <span>Weekly Test</span>
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="h-20 flex flex-col gap-2 hover:bg-red-50 hover:border-red-200 transition-all">
-                <Link href="/dashboard/online-test">
-                  <PenSquare className="h-6 w-6 text-red-600" />
-                  <span>Practice Exams</span>
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="h-20 flex flex-col gap-2 hover:bg-red-50 hover:border-red-200 transition-all">
-                <Link href="/dashboard/video-classes">
-                  <Video className="h-6 w-6 text-red-600" />
-                  <span>Video Classes</span>
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="h-20 flex flex-col gap-2 hover:bg-red-50 hover:border-red-200 transition-all">
-                <Link href="/dashboard/study-material">
-                  <Library className="h-6 w-6 text-red-600" />
-                  <span>Study Material</span>
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </FadeIn>
-      )}
     </div>
   );
 }
