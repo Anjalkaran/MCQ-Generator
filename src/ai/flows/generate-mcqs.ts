@@ -282,6 +282,8 @@ const generateMCQsFlow = ai.defineFlow(
             categoryId: input.category || "uncategorized",
         },
         mcqs: finalMCQs.map(m => ({
+            questionId: m.questionId,
+            topicId: m.topicId || input.topicId,
             question: m.question,
             options: m.options,
             correctAnswer: m.correctAnswer,
@@ -290,6 +292,7 @@ const generateMCQsFlow = ai.defineFlow(
         })),
         timeLimit,
         language: input.language,
+        topicId: input.topicId 
     };
 
     const db = getFirebaseDb();

@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { 
   Flag, 
-  Trash2, 
   User, 
   Calendar, 
   CheckCircle,
@@ -16,14 +15,9 @@ import type { MCQReport } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Accordion, 
-  AccordionContent, 
-  AccordionItem, 
-  AccordionTrigger 
-} from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { MCQEditDialog } from "@/components/dashboard/mcq-edit-dialog";
 
 export default function AdminReportsPage() {
   const [reports, setReports] = useState<MCQReport[]>([]);
@@ -137,15 +131,26 @@ export default function AdminReportsPage() {
                       )}
                     </div>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="shrink-0 border-destructive hover:bg-destructive hover:text-destructive-foreground"
-                    onClick={() => handleResolve(report.id)}
-                  >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Mark Resolved
-                  </Button>
+                  <div className="flex gap-2">
+                    {report.topicId && report.question.questionId && (
+                      <MCQEditDialog
+                        reportId={report.id}
+                        mcq={report.question}
+                        topicId={report.topicId}
+                        onUpdateSuccess={() => setReports(prev => prev.filter(r => r.id !== report.id))}
+                        className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                      />
+                    )}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="shrink-0 border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      onClick={() => handleResolve(report.id)}
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Ignore / Resolve
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="pt-6">
@@ -157,6 +162,12 @@ export default function AdminReportsPage() {
                       <p className="text-sm font-medium">"{report.comment}"</p>
                     </div>
                   </div>
+                  {(!report.topicId || !report.question.questionId) && (
+                    <div className="mt-2 flex items-center gap-1.5 text-[10px] text-destructive-foreground bg-destructive rounded px-2 py-0.5 w-fit font-bold">
+                      <AlertCircle className="h-3 w-3" />
+                      EDIT NOT SUPPORTED: MISSING QUESTION/TOPIC METADATA
+                    </div>
+                  )}
                 </div>
 
                 <div className="border border-muted rounded-md p-4 bg-muted/20">

@@ -132,6 +132,8 @@ const generateMockTestFlow = ai.defineFlow(
             if (allReasoningQuestions.length >= totalQuestionsNeeded) {
                 const shuffledReasoning = shuffleArray(allReasoningQuestions).slice(0, totalQuestionsNeeded);
                 const formatted: any[] = shuffledReasoning.map(q => ({
+                    questionId: q.id,
+                    topicId: 'reasoningBank',
                     question: `${q.questionText} <img src="${q.questionImage}" alt="Question Image" class="mt-2 rounded-md max-h-60 mx-auto" />`,
                     options: q.options,
                     correctAnswer: q.correctAnswer,
@@ -195,9 +197,10 @@ const generateMockTestFlow = ai.defineFlow(
                 if (chunkIdx < chunk.length) {
                     const original = chunk[chunkIdx];
                     finalProcessedQuestions[original.index] = {
+                        ...original.mcq,
                         ...translated,
-                        topic: original.mcq.topic || "",
-                        solution: translated.solution || ""
+                        topic: translated.topic || original.mcq.topic || "",
+                        solution: translated.solution || original.mcq.solution || ""
                     };
                 }
             });
@@ -213,6 +216,8 @@ const generateMockTestFlow = ai.defineFlow(
 
     const quizData = {
         mcqs: shuffleArray(finalProcessedQuestions.filter(Boolean)).map(m => ({
+            questionId: m.questionId,
+            topicId: m.topicId,
             question: m.question,
             options: m.options,
             correctAnswer: m.correctAnswer,
