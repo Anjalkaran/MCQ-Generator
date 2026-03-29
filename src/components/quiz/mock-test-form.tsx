@@ -61,17 +61,13 @@ export function MockTestForm() {
   const availableExams = useMemo(() => {
     if (!userData) return [];
     if (userData.email && ADMIN_EMAILS.includes(userData.email)) return examCategories;
-    switch (userData.examCategory) {
-        case 'IP':
-            return ['IP'];
-        case 'PA':
-            return ['PA', 'POSTMAN', 'MTS'];
-        case 'POSTMAN':
-            return ['POSTMAN', 'MTS'];
-        case 'MTS':
-            return ['MTS'];
-        default:
-            return [];
+    
+    if (userData.examCategory === 'IP') {
+        // IP users see everything
+        return ["MTS", "POSTMAN", "PA", "IP"];
+    } else {
+        // Everyone else sees everything EXCEPT IP
+        return ["MTS", "POSTMAN", "PA"];
     }
   }, [userData]);
 

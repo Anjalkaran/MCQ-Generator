@@ -77,15 +77,13 @@ export function ReasoningTestForm() {
   const availableExams = useMemo(() => {
     if (!userData) return [];
     if (userData.email && ADMIN_EMAILS.includes(userData.email)) return ["POSTMAN", "PA", "IP"];
-    switch (userData.examCategory) {
-        case 'IP':
-            return ['IP'];
-        case 'PA':
-            return ['PA', 'POSTMAN'];
-        case 'POSTMAN':
-            return ['POSTMAN'];
-        default:
-            return [];
+    
+    if (userData.examCategory === 'IP') {
+        // IP users see everything
+        return ["POSTMAN", "PA", "IP"];
+    } else {
+        // Everyone else (MTS, Postman, PA) sees everything EXCEPT IP
+        return ["POSTMAN", "PA"];
     }
   }, [userData]);
   

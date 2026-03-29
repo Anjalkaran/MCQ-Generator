@@ -46,7 +46,7 @@ function OnlineTestContent() {
 
   const isAdmin = userData.email ? ADMIN_EMAILS.includes(userData.email) : false;
   const isIPUser = userData.examCategory === 'IP';
-  const canSeeReasoning = isAdmin || userData.examCategory === 'PA' || userData.examCategory === 'POSTMAN' || isIPUser;
+  const canSeeReasoning = true;
 
 
   const testTypes = [

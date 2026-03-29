@@ -95,7 +95,7 @@ export default function DashboardPage() {
       icon: <PenSquare className="h-10 w-10" />,
       color: 'from-orange-500/20 to-red-500/20',
       textColor: 'text-orange-600',
-      allowed: ['POSTMAN', 'PA', 'IP'].includes(subCat)
+      allowed: true // Enable for all
     },
     { 
       id: 'PA', 
@@ -105,7 +105,7 @@ export default function DashboardPage() {
       icon: <Library className="h-10 w-10" />,
       color: 'from-purple-500/20 to-indigo-500/20',
       textColor: 'text-purple-600',
-      allowed: ['PA', 'IP'].includes(subCat)
+      allowed: true // Enable for all
     },
     { 
       id: 'IP', 
@@ -115,7 +115,7 @@ export default function DashboardPage() {
       icon: <Shield className="h-10 w-10" />,
       color: 'from-red-600/20 to-rose-600/20',
       textColor: 'text-red-700',
-      allowed: subCat === 'IP'
+      allowed: subCat === 'IP' // Keep IP restricted
     }
   ].filter(course => course.allowed || isAdmin);
 

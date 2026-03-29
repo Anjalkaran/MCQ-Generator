@@ -131,12 +131,24 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const filteredContent = useMemo(() => {
     if (!userData) return { categories: [], topics: [], videoClasses: [], studyMaterials: [], weeklyTests: [] };
     
-    const cat = userData.examCategory;
+    const userCat = userData.examCategory;
     
-    const categories = rawCategories.filter(c => c.examCategories?.includes(cat) || c.examCategories?.includes('All'));
-    const topics = rawTopics.filter(t => t.examCategories?.includes(cat) || t.examCategories?.includes('All'));
-    const videoClasses = rawVideoClasses.filter(v => v.examCategories?.includes(cat) || v.examCategories?.includes('All'));
-    const weeklyTests = rawWeeklyTests.filter(t => t.examCategories?.includes(cat) || t.examCategories?.includes('All'));
+    const filterFn = (item: any) => {
+      const itemCats = item.examCategories || [];
+      const hasIP = itemCats.includes('IP');
+      
+      if (hasIP) {
+        // IP content is only for IP users
+        return userCat === 'IP';
+      }
+      // Non-IP content is for everyone ("enable all courses for all")
+      return true;
+    };
+
+    const categories = rawCategories.filter(filterFn);
+    const topics = rawTopics.filter(filterFn);
+    const videoClasses = rawVideoClasses.filter(filterFn);
+    const weeklyTests = rawWeeklyTests.filter(filterFn);
     
     const activeTopicIds = new Set(topics.map(t => t.id));
     const studyMaterials = rawStudyMaterials.filter(m => activeTopicIds.has(m.topicId));
