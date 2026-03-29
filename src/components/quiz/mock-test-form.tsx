@@ -95,20 +95,20 @@ export function MockTestForm() {
     }
     
     try {
-      const { quizId } = await generateMockTest({
+      const res: any = await generateMockTest({
           examCategory: values.examType,
           userId: user.uid,
           language: values.language,
           paper: values.examType === 'IP' ? values.paper : undefined,
       });
 
-      if (!quizId) {
-        toast({ title: 'Generation Failed', description: 'The AI could not generate a mock test.', variant: 'destructive' });
+      if (!res || !res.quizId) {
+        toast({ title: 'Generation Failed', description: res?.error || 'The AI could not generate a mock test.', variant: 'destructive' });
         setIsGenerating(false);
         return;
       }
       
-      router.push(`/quiz/${quizId}`);
+      router.push(`/quiz/${res.quizId}`);
 
     } catch (error: any) {
       console.error('Error generating mock test:', error);

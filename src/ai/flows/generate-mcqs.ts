@@ -8,7 +8,7 @@
  */
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { getTopicMCQs, getExamHistoryForUser } from '@/lib/firestore';
+import { getTopicMCQsAdmin, getExamHistoryForUserAdmin } from '@/lib/firestore-admin';
 import type { MCQ } from '@/lib/types';
 import { getFirebaseDb } from '@/lib/firebase-admin';
 
@@ -104,8 +104,13 @@ function shuffleArray<T>(array: T[]): T[] {
   return array;
 }
 
-export async function generateMCQs(input: GenerateMCQsInput): Promise<GenerateMCQsOutput> {
-  return generateMCQsFlow(input);
+export async function generateMCQs(input: GenerateMCQsInput) {
+  try {
+    return await generateMCQsFlow(input);
+  } catch (error: any) {
+    console.error("MCQ Generation Error:", error);
+    return { quizId: null, error: error.message || "An unexpected error occurred on the server." };
+  }
 }
 
 const languageMap: Record<string, string> = {
@@ -128,12 +133,12 @@ const generateMCQsFlow = ai.defineFlow(
     
     let finalMCQs: MCQ[] = [];
     
-    const userHistory = await getExamHistoryForUser(input.userId);
+    const userHistory = await getExamHistoryForUserAdmin(input.userId);
     const topicHistory = userHistory.filter(h => h.topicId === input.topicId);
     const answeredQuestionTexts = new Set(topicHistory.flatMap(h => h.questions));
 
     // **PRIORITY 1: Check for uploaded JSON files in the MCQ Bank**
-    const uploadedMCQDocs = await getTopicMCQs(input.topicId);
+    const uploadedMCQDocs = await getTopicMCQsAdmin(input.topicId);
     let canonicalQuestions: MCQ[] = [];
     if (uploadedMCQDocs && uploadedMCQDocs.length > 0) {
         uploadedMCQDocs.forEach(doc => {

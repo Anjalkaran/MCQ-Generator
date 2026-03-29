@@ -8,7 +8,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT, IP_BLUEPRINT } from '@/lib/exam-blueprints';
 import type { MCQ, Topic } from '@/lib/types';
-import { getTopics, getTopicMCQs, getReasoningQuestions } from '@/lib/firestore';
+import { getTopicsAdmin, getTopicMCQsAdmin, getReasoningQuestionsAdmin } from '@/lib/firestore-admin';
 import { gemini15Flash } from '@genkit-ai/googleai';
 import { getFirebaseDb, admin } from '@/lib/firebase-admin';
 
@@ -72,8 +72,13 @@ function shuffleArray<T>(array: T[]): T[] {
   return array;
 }
 
-export async function generateMockTest(input: GenerateMockTestInput): Promise<GenerateMockTestOutput> {
-  return generateMockTestFlow(input);
+export async function generateMockTest(input: GenerateMockTestInput) {
+  try {
+    return await generateMockTestFlow(input);
+  } catch (error: any) {
+    console.error("Mock Test Generation Error:", error);
+    return { quizId: null, error: error.message || "An unexpected error occurred on the server." };
+  }
 }
 
 const generateMockTestFlow = ai.defineFlow(
@@ -91,14 +96,14 @@ const generateMockTestFlow = ai.defineFlow(
     else throw new Error(`No blueprint found for exam category: ${input.examCategory}`);
 
     let allQuestions: (MCQ & { sourceDocId?: string; topicId?: string })[] = [];
-    const allFirestoreTopics = await getTopics();
+    const allFirestoreTopics = await getTopicsAdmin();
     const topicMapByName: Map<string, Topic> = new Map(allFirestoreTopics.map(t => [t.title.toLowerCase(), t]));
     
     const targetLang = input.language?.toLowerCase();
     const languageMap: Record<string, string> = { 'english': 'en', 'tamil': 'ta', 'hindi': 'hi', 'telugu': 'te', 'kannada': 'kn' };
     const targetLangKey = targetLang ? languageMap[targetLang] : 'en';
 
-    const allMcqDocsForCategory = await getTopicMCQs();
+    const allMcqDocsForCategory = await getTopicMCQsAdmin();
     const allMcqsForCategory: (MCQ & { sourceDocId: string; topicId: string })[] = [];
     
     const categoryTopicIds = new Set(allFirestoreTopics.filter(t => t.examCategories.includes(input.examCategory as any)).map(t => t.id));
@@ -121,9 +126,9 @@ const generateMockTestFlow = ai.defineFlow(
         continue;
       }
       for (const section of part.sections) {
-        if (section.nonVerbalTopics) {
-            const allReasoningQuestions = await getReasoningQuestions();
-            const totalQuestionsNeeded = section.nonVerbalTopics.reduce((sum, t) => sum + t.questions, 0);
+        if ((part as any).nonVerbalTopics) {
+            const allReasoningQuestions = await getReasoningQuestionsAdmin();
+            const totalQuestionsNeeded = (part as any).nonVerbalTopics.reduce((sum: number, t: any) => sum + t.questions, 0);
             if (allReasoningQuestions.length >= totalQuestionsNeeded) {
                 const shuffledReasoning = shuffleArray(allReasoningQuestions).slice(0, totalQuestionsNeeded);
                 const formatted: any[] = shuffledReasoning.map(q => ({
@@ -141,18 +146,18 @@ const generateMockTestFlow = ai.defineFlow(
         const topicRequests = new Map<string, number>();
         let randomFromRequest: { topics: string[], questions: number } | null = null;
         
-        if (section.topics) {
-            section.topics.forEach(topicDef => {
+        if ((section as any).topics) {
+            (section as any).topics.forEach((topicDef: any) => {
                 const topicInfo = topicMapByName.get(topicDef.name.toLowerCase());
                 if (topicInfo) topicRequests.set(topicInfo.id, topicDef.questions);
             });
         }
         
-        if (section.randomFrom) {
-            const topicIds = section.randomFrom.topics
-                .map(name => topicMapByName.get(name.toLowerCase())?.id)
+        if ((section as any).randomFrom) {
+            const topicIds = (section as any).randomFrom.topics
+                .map((name: string) => topicMapByName.get(name.toLowerCase())?.id)
                 .filter(Boolean) as string[];
-            randomFromRequest = { topics: topicIds, questions: section.randomFrom.questions };
+            randomFromRequest = { topics: topicIds, questions: (section as any).randomFrom.questions };
         }
         
         const filteredForSection = allMcqsForCategory.filter(m => {
@@ -161,7 +166,7 @@ const generateMockTestFlow = ai.defineFlow(
             return false;
         });
         
-        allQuestions.push(...shuffleArray(filteredForSection).slice(0, section.topics ? section.topics.length : (randomFromRequest?.questions || 0)));
+        allQuestions.push(...shuffleArray(filteredForSection).slice(0, (section as any).topics ? (section as any).topics.length : (randomFromRequest?.questions || 0)));
       }
     }
     

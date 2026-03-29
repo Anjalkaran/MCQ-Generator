@@ -96,7 +96,7 @@ export function TopicQuizForm({ topic }: TopicQuizFormProps) {
     }
 
     try {
-      const { quizId } = await generateMCQs({
+      const res: any = await generateMCQs({
           topic: topic.title,
           category: topic.categoryName,
           numberOfQuestions: values.numberOfQuestions,
@@ -108,10 +108,10 @@ export function TopicQuizForm({ topic }: TopicQuizFormProps) {
           language: values.language,
       });
 
-      if (!quizId) {
+      if (!res || !res.quizId) {
         toast({
           title: 'Exam Generation Failed',
-          description: 'The AI could not generate an exam for this topic. This may be because no question file (.json or .docx) has been uploaded for it yet.',
+          description: res?.error || 'The AI could not generate an exam for this topic. This may be because no question file (.json or .docx) has been uploaded for it yet.',
           variant: 'destructive',
           duration: 7000,
         });
@@ -119,7 +119,7 @@ export function TopicQuizForm({ topic }: TopicQuizFormProps) {
         return;
       }
 
-      router.push(`/quiz/${quizId}`);
+      router.push(`/quiz/${res.quizId}`);
 
     } catch (error: any) {
       console.error('Error generating exam:', error);
