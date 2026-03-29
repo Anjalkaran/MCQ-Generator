@@ -677,8 +677,13 @@ export const getUnifiedLeaderboards = async (): Promise<{
             if (!userMap.has(h.userId)) return;
             const target = h.isMockTest ? mockCalculations : topicCalculations;
             const current = target.get(h.userId) || { totalScore: 0, totalQuestions: 0, totalExams: 0 };
-            current.totalScore += (h.score || 0);
-            current.totalQuestions += (h.totalQuestions || 0);
+            
+            // Ensure numbers to prevent string concatenation or NaN
+            const score = Number(h.score || 0);
+            const questionCount = Number(h.totalQuestions || 0);
+            
+            current.totalScore += score;
+            current.totalQuestions += questionCount;
             current.totalExams += 1;
             target.set(h.userId, current);
         });
@@ -688,7 +693,7 @@ export const getUnifiedLeaderboards = async (): Promise<{
             calcMap.forEach((perf, userId) => {
                 const user = userMap.get(userId);
                 if (user && user.examCategory === cat) {
-                    const hasTakenEnoughExams = user.examCategory === 'IP' ? perf.totalExams > 0 : (user.totalExamsTaken || 0) > 6;
+                    const hasTakenEnoughExams = perf.totalExams > 0;
                     if (hasTakenEnoughExams) {
                         entries.push({
                             userId,
