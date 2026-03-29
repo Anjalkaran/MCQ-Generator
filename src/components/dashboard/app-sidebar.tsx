@@ -103,7 +103,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b p-4">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
-            <Logo height={32} width={96} />
+            <Logo height={40} width={120} />
           </div>
           
         </div>

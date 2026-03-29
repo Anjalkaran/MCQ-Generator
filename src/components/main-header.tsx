@@ -17,7 +17,7 @@ export function MainHeader() {
   return (
     <header className="px-6 lg:px-10 h-20 flex items-center bg-card/80 backdrop-blur-md border-b sticky top-0 z-50">
       <Link href="/" className="flex items-center justify-center transition-transform hover:scale-105">
-        <Logo className="h-10 w-auto" height={48} />
+        <Logo className="h-12 w-auto" height={60} />
       </Link>
       
       {/* Desktop Navigation */}
@@ -49,7 +49,7 @@ export function MainHeader() {
             </SheetHeader>
             <div className="flex flex-col h-full bg-background">
               <div className="p-6 border-b">
-                <Logo height={40} />
+                <Logo height={48} />
               </div>
               <div className="flex flex-col gap-4 p-6 mt-4">
                 <Button variant="outline" className="justify-start text-base" asChild>
