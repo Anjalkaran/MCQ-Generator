@@ -71,7 +71,7 @@ export function MCQCommentDialog({
           description: "Thank you! The admin will review this question.",
         });
       } else {
-        await updateBookmarkComment(auth.currentUser.uid, questionId, comment);
+        await updateBookmarkComment(auth.currentUser.uid, questionId, comment, mcq, topicId);
         toast({
           title: "Comment Saved",
           description: "Your note has been added to this bookmark.",

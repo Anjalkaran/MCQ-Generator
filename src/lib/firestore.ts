@@ -140,13 +140,27 @@ export const toggleBookmark = async (userId: string, mcq: MCQ, topicId?: string)
     }
 };
 
-export const updateBookmarkComment = async (userId: string, questionId: string, comment: string): Promise<void> => {
+export const updateBookmarkComment = async (userId: string, questionId: string, comment: string, mcq?: MCQ, topicId?: string): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) return;
 
     const bookmarkRef = doc(db, 'users', userId, 'bookmarks', questionId);
     try {
-        await updateDoc(bookmarkRef, { comment });
+        const updateData: any = { comment, updatedAt: serverTimestamp() };
+        
+        // If mcq is provided, make sure we have the full data in case this is a new bookmark
+        if (mcq) {
+            updateData.id = questionId;
+            updateData.userId = userId;
+            updateData.question = mcq;
+            if (topicId) updateData.topicId = topicId;
+            if (!updateData.createdAt) {
+                // Only set createdAt if we don't know if it exists (setDoc merge handles this)
+                // Actually, best to just merge.
+            }
+        }
+
+        await setDoc(bookmarkRef, updateData, { merge: true });
     } catch (error) {
         console.error("Error updating bookmark comment:", error);
         throw error;
