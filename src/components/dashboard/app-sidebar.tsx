@@ -110,11 +110,6 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          <div className="p-2 group-data-[collapsible=icon]:hidden text-center">
-            <CardDescription className="text-sm font-medium">
-              {userData ? `Welcome, ${userData.name}!` : ''}
-            </CardDescription>
-          </div>
           
           <SidebarGroup>
             <SidebarGroupLabel>Main</SidebarGroupLabel>
