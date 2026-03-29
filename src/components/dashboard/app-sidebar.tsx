@@ -35,8 +35,7 @@ import {
   Flag,
   LineChart
 } from 'lucide-react';
-import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { getFirebaseAuth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -63,7 +62,6 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
-import { Label } from '@/components/ui/label';
 import { 
   Select, 
   SelectContent, 
@@ -91,31 +89,6 @@ export function AppSidebar() {
     }
   }, [router, toast]);
 
-  const handleCategoryChange = useCallback(async (newCategory: string) => {
-    if (!userData?.uid) return;
-    
-    // Update local state first for immediate UI feedback
-    setUserData(prev => prev ? ({ ...prev, examCategory: newCategory as any }) : null);
-
-    try {
-      const db = getFirebaseDb();
-      if (db) {
-        await updateDoc(doc(db, 'users', userData.uid), {
-          examCategory: newCategory
-        });
-        toast({
-          title: "Category Switched",
-          description: `You are now viewing ${newCategory} content.`,
-        });
-      }
-    } catch (error: any) {
-      toast({
-        title: "Update Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  }, [userData?.uid, setUserData, toast]);
 
   const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
   
@@ -133,35 +106,6 @@ export function AppSidebar() {
             <Logo height={32} width={96} />
           </div>
           
-          {/* Category Switcher for Students */}
-          {!isAdmin && userData && (
-            <div className="flex flex-col gap-1.5 px-0.5">
-              <Label className="text-[10px] font-bold uppercase text-muted-foreground/70 tracking-tight ml-1">
-                Active Course
-              </Label>
-              {userData.examCategory === 'IP' ? (
-                <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-md border text-sm font-medium text-muted-foreground select-none">
-                  <Shield className="h-4 w-4 text-orange-500" />
-                  Inspector Posts (IP)
-                </div>
-              ) : (
-                <Select value={userData.examCategory} onValueChange={handleCategoryChange}>
-                  <SelectTrigger className="h-9 text-sm font-medium bg-background border-muted-foreground/20 hover:bg-accent transition-colors">
-                    <SelectValue placeholder="Select Course" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border-slate-200">
-                    <SelectItem value="MTS" className="text-slate-900 focus:bg-red-50">MTS (Multi Tasking Staff)</SelectItem>
-                    {['POSTMAN', 'PA', 'IP'].includes(userData.subscribedCategory || userData.examCategory || 'MTS') && (
-                      <SelectItem value="POSTMAN" className="text-slate-900 focus:bg-red-50">POSTMAN / Mail Guard</SelectItem>
-                    )}
-                    {['PA', 'IP'].includes(userData.subscribedCategory || userData.examCategory || 'MTS') && (
-                      <SelectItem value="PA" className="text-slate-900 focus:bg-red-50">PA / SA (Postal Assistant)</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-          )}
         </div>
       </SidebarHeader>
       <SidebarContent>
