@@ -20,7 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import type { MCQData, MCQHistory, MCQ } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Clock, PlusCircle, Loader2, CheckCircle, XCircle, Lightbulb } from "lucide-react";
+import { Clock, PlusCircle, Loader2, CheckCircle, XCircle, Lightbulb, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getGeneratedQuiz, saveMCQHistory } from "@/lib/firestore";
 import { getFirebaseAuth } from "@/lib/firebase";
@@ -30,6 +30,17 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge";
 import { BookmarkButton } from "@/components/dashboard/bookmark-button";
 import { MCQCommentDialog } from "@/components/dashboard/mcq-comment-dialog";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
+
 
 interface MCQClientProps {
   topicId: string;
@@ -61,8 +72,12 @@ export function MCQClient({ topicId }: MCQClientProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeExtensionsUsed, setTimeExtensionsUsed] = useState(0);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [showResumeDialog, setShowResumeDialog] = useState(false);
+  const [savedSession, setSavedSession] = useState<any>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const quizStartTimeRef = useRef<number | null>(null);
+
+  const SESSION_KEY = `quiz-session-${topicId}`;
 
   useEffect(() => {
     const auth = getFirebaseAuth();
@@ -87,6 +102,7 @@ export function MCQClient({ topicId }: MCQClientProps) {
     setIsSubmitting(true);
     
     try {
+        localStorage.removeItem(SESSION_KEY);
         const durationInSeconds = Math.round((Date.now() - quizStartTimeRef.current) / 1000);
 
         const score = quizData.mcqs.reduce((acc, mcq, index) => {
@@ -133,14 +149,27 @@ export function MCQClient({ topicId }: MCQClientProps) {
         const firestoreQuiz = await getGeneratedQuiz(topicId);
         if (firestoreQuiz) {
             setQuizData(firestoreQuiz);
-            if (firestoreQuiz.timeLimit) {
-                setTimeLeft(firestoreQuiz.timeLimit);
+            
+            // Check for saved session
+            const localSession = localStorage.getItem(SESSION_KEY);
+            if (localSession) {
+                try {
+                    const parsed = JSON.parse(localSession);
+                    setSavedSession(parsed);
+                    setShowResumeDialog(true);
+                } catch (e) {
+                    console.error("Error parsing saved session:", e);
+                }
+            } else {
+                if (firestoreQuiz.timeLimit) {
+                    setTimeLeft(firestoreQuiz.timeLimit);
+                }
+                quizStartTimeRef.current = Date.now();
             }
         } else {
             toast({ title: "Error", description: "Quiz not found. It may have expired.", variant: "destructive" });
             router.push('/dashboard');
         }
-        quizStartTimeRef.current = Date.now();
     };
 
     fetchQuizData();
@@ -148,6 +177,7 @@ export function MCQClient({ topicId }: MCQClientProps) {
   
   useEffect(() => {
     if (timeLeft === 0) {
+      localStorage.removeItem(SESSION_KEY);
       toast({
         title: "Time's Up!",
         description: "Your exam has been automatically submitted.",
@@ -156,7 +186,7 @@ export function MCQClient({ topicId }: MCQClientProps) {
       return;
     }
 
-    if (timeLeft === null || timeLeft < 0) {
+    if (timeLeft === null || timeLeft < 0 || showResumeDialog) {
       return;
     }
 
@@ -180,6 +210,47 @@ export function MCQClient({ topicId }: MCQClientProps) {
         description: `You've been given an extra ${TIME_EXTENSION_SECONDS} seconds.`,
       });
     }
+  };
+
+  const handleSaveAndExit = () => {
+    const sessionData = {
+        currentQuestionIndex,
+        selectedAnswers,
+        timeLeft,
+        timeExtensionsUsed,
+        startTime: quizStartTimeRef.current,
+        timestamp: Date.now()
+    };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+    toast({
+        title: "Progress Saved",
+        description: "Your exam session has been saved. You can resume later.",
+    });
+    router.push('/dashboard');
+  };
+
+  const resumeSession = () => {
+    if (savedSession) {
+        setCurrentQuestionIndex(savedSession.currentQuestionIndex);
+        setSelectedAnswers(savedSession.selectedAnswers);
+        setTimeLeft(savedSession.timeLeft);
+        setTimeExtensionsUsed(savedSession.timeExtensionsUsed);
+        
+        // Adjust start time to account for elapsed time if needed
+        // For simplicity, we'll just set it to now, which might reset the total duration slightly
+        // but keeps the countdown accurate.
+        quizStartTimeRef.current = Date.now(); 
+    }
+    setShowResumeDialog(false);
+  };
+
+  const startNewSession = () => {
+    localStorage.removeItem(SESSION_KEY);
+    if (quizData?.timeLimit) {
+        setTimeLeft(quizData.timeLimit);
+    }
+    quizStartTimeRef.current = Date.now();
+    setShowResumeDialog(false);
   };
 
 
@@ -274,12 +345,36 @@ export function MCQClient({ topicId }: MCQClientProps) {
                          >
                             <PlusCircle className="h-5 w-5" />
                         </Button>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="ml-2 gap-2"
+                            onClick={handleSaveAndExit}
+                        >
+                            <Save className="h-4 w-4" />
+                            <span className="hidden sm:inline">Save & Exit</span>
+                        </Button>
                     </div>
                 )}
             </div>
         </div>
         <Progress value={progress} className="mt-4" />
       </CardHeader>
+
+      <AlertDialog open={showResumeDialog} onOpenChange={setShowResumeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Resume Previous Session?</AlertDialogTitle>
+            <AlertDialogDescription>
+              We found a saved progress for this exam. Would you like to resume where you left off or start a new attempt?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={startNewSession}>Start New</AlertDialogCancel>
+            <AlertDialogAction onClick={resumeSession}>Resume Progress</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <CardContent>
         <div className="font-semibold text-lg mb-4" dangerouslySetInnerHTML={{ __html: currentQuestion.question }} />
         {quizData.isMockTest && currentQuestion.topic && (

@@ -1,12 +1,8 @@
 import { getFirebaseDb, getFirebaseAuth } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion } from 'firebase/firestore';
 import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, QnAUsage, Notification, LiveTest, WeeklyTest, TopicMCQ, ReasoningQuestion, Feedback, VideoClass, StudyMaterial, AptiSolveLaunch, MaterialDownload, MCQData, MCQ, Bookmark, MCQReport } from './types';
-import { ADMIN_EMAILS } from './constants';
+import { ADMIN_EMAILS, LEADERBOARD_RESET_DATE } from './constants';
 import { normalizeDate } from './utils';
-
-// LEADERBOARD RESET CONFIGURATION
-// Any history or tests before this date will be hidden from leaderboards.
-const LEADERBOARD_RESET_DATE = new Date('2025-08-20T00:00:00Z');
 
 // USER MANAGEMENT
 export const getUserData = async (userId: string): Promise<UserData | null> => {

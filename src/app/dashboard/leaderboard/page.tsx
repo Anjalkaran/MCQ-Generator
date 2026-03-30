@@ -1,5 +1,5 @@
 
-import { getUnifiedLeaderboards } from '@/lib/firestore';
+import { getUnifiedLeaderboardsAdmin } from '@/lib/firestore-admin';
 import { LeaderboardClient } from '@/components/leaderboard/leaderboard-client';
 
 export const dynamic = 'force-dynamic';
@@ -9,7 +9,7 @@ export default async function LeaderboardPage() {
     topics,
     mocks,
     pastLiveTests
-  } = await getUnifiedLeaderboards();
+  } = await getUnifiedLeaderboardsAdmin();
 
   return (
     <div className="space-y-6">

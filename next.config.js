@@ -78,6 +78,14 @@ const nextConfig = {
     });
     return config;
   },
+  async rewrites() {
+    return [
+      {
+        source: '/__/auth/:path*',
+        destination: 'https://quizwiz-be479.firebaseapp.com/__/auth/:path*',
+      },
+    ];
+  },
 };
 
 module.exports = withPWA(nextConfig);

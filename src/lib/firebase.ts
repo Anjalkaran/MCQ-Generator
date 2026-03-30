@@ -6,7 +6,7 @@ import { getStorage, type FirebaseStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCgHVZAjOL5p2i_CJNY4MOvj6h8RjSg-Bc",
-  authDomain: "quizwiz-be479.firebaseapp.com",
+  authDomain: "anjalkaran.in",
   projectId: "quizwiz-be479",
   storageBucket: "quizwiz-be479.firebasestorage.app",
   messagingSenderId: "750766638065",
