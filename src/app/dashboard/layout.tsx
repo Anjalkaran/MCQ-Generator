@@ -10,8 +10,10 @@ import { ADMIN_EMAILS } from '@/lib/constants';
 import { normalizeDate } from '@/lib/utils';
 import { AdminNotifications } from '@/components/dashboard/admin-notifications';
 import { DashboardProvider, useDashboard } from '@/context/dashboard-context';
+
 import { AppSidebar } from '@/components/dashboard/app-sidebar';
 import { ProfileUpdateDialog, NewContentPopup } from '@/components/dashboard/layout-modals';
+import { GovernmentDisclaimer } from '@/components/government-disclaimer';
 import type { VideoClass, StudyMaterial } from '@/lib/types';
 import { doc, updateDoc } from 'firebase/firestore';
 import { getFirebaseDb } from '@/lib/firebase';
@@ -106,6 +108,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             </div>
             {isAdmin && <AdminNotifications initialNotifications={notifications} />}
           </header>
+
           <div className="p-4 md:p-6 flex-1 overflow-auto min-h-0">
             {showProfileUpdateModal && (
               <ProfileUpdateDialog 
@@ -125,6 +128,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               />
             )}
             {children}
+            <div className="mt-auto">
+              <GovernmentDisclaimer />
+            </div>
           </div>
         </main>
       </SidebarProvider>

@@ -1,4 +1,5 @@
-import React from 'react';
+
+import { GovernmentDisclaimer } from "@/components/government-disclaimer";
 
 export default function PrivacyPolicyPage() {
   return (
@@ -77,6 +78,8 @@ export default function PrivacyPolicyPage() {
         </p>
       </section>
 
+      <GovernmentDisclaimer />
+
       <footer className="mt-20 pt-10 border-t border-gray-100 text-center">
         <p className="text-gray-400 text-sm">&copy; 2026 Anjalkaran Learning Platform. All rights reserved.</p>
         <div className="mt-4 flex justify-center gap-6 text-xs text-gray-400">
@@ -88,3 +91,5 @@ export default function PrivacyPolicyPage() {
     </div>
   );
 }
+
+

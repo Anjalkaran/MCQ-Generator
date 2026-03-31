@@ -1,8 +1,10 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, MessageCircle, Send, Users } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { MainHeader } from "@/components/main-header";
+import { GovernmentDisclaimer } from "@/components/government-disclaimer";
 
 export default function SupportPage() {
   return (
@@ -70,11 +72,18 @@ export default function SupportPage() {
           </div>
         </div>
       </main>
-      <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t bg-background">
-        <p className="text-xs text-muted-foreground">
-          &copy; 2025 Anjalkaran. All rights reserved.
-        </p>
+      <footer className="py-12 w-full border-t bg-background">
+        <div className="container px-4 md:px-6">
+          <div className="flex flex-col gap-8">
+            <p className="text-xs text-muted-foreground text-center sm:text-left">
+              &copy; 2025 Anjalkaran. All rights reserved.
+            </p>
+            <GovernmentDisclaimer />
+          </div>
+        </div>
       </footer>
     </div>
   );
 }
+
+

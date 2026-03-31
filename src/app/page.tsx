@@ -7,8 +7,9 @@ import { PricingCards } from "@/components/home/pricing-cards";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { SlideUp, FadeIn } from "@/components/animations/motion-wrapper";
 
+import { SlideUp, FadeIn } from "@/components/animations/motion-wrapper";
+import { GovernmentDisclaimer } from "@/components/government-disclaimer";
 
 export default function Home() {
   return (
@@ -68,11 +69,24 @@ export default function Home() {
           </div>
         </section>
       </main>
-      <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t bg-background">
-        <p className="text-xs text-muted-foreground">
-          © 2024 Anjalkaran. All rights reserved.
-        </p>
+      <footer className="py-12 w-full border-t bg-background">
+        <div className="container px-4 md:px-6">
+          <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-2 sm:flex-row items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                © 2024 Anjalkaran. All rights reserved.
+              </p>
+              <div className="flex gap-4">
+                <Link href="#" className="text-xs text-muted-foreground hover:underline">Terms of Service</Link>
+                <Link href="#" className="text-xs text-muted-foreground hover:underline">Privacy Policy</Link>
+              </div>
+            </div>
+            <GovernmentDisclaimer />
+          </div>
+        </div>
       </footer>
     </div>
   );
 }
+
+

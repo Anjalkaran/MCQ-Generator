@@ -1,11 +1,13 @@
 
+import { GovernmentDisclaimer } from "@/components/government-disclaimer";
+
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative flex items-center justify-center min-h-screen overflow-hidden bg-slate-50">
+    <div className="relative flex flex-col items-center justify-center min-h-screen overflow-hidden bg-slate-50">
       {/* Mesh Gradient Background (Brand Colors) */}
       <div className="absolute inset-0 -z-10 animate-fade-in opacity-40">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-red-600/15 blur-[120px]" />
@@ -17,11 +19,15 @@ export default function AuthLayout({
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-500/[0.03] rounded-full mix-blend-multiply filter blur-3xl animate-blob" />
       <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-orange-500/[0.03] rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000" />
 
-      <main className="relative z-10 w-full max-w-[1440px] px-4 py-8 flex items-center justify-center">
+      <main className="relative z-10 w-full max-w-[1440px] px-4 py-8 flex items-center justify-center flex-1">
         <div className="w-full flex flex-col items-center">
           {children}
         </div>
       </main>
+      <div className="relative z-10 w-full max-w-2xl px-4 pb-8">
+        <GovernmentDisclaimer />
+      </div>
     </div>
   );
 }
+
