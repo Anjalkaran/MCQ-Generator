@@ -3,9 +3,9 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.anjalkaran.app",
+      "package_name": "in.anjalkaran",
       "sha256_cert_fingerprints": [
-        "00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00"
+        "39:B9:D4:74:6F:99:5D:49:12:1E:51:13:71:75:B7:80:DB:56:E1:68:64:1B:E8:B9:AF:13:BC:1A:17:F8:E5:B9"
       ]
     }
   }
