@@ -64,7 +64,7 @@ export default function PrivacyPolicyPage() {
           To do so, please send an email from your registered account to:
         </p>
         <div className="text-xl font-mono font-bold decoration-white underline cursor-pointer hover:text-red-100 transition-colors">
-          tsm.shan@gmail.com
+          anjalkaranss@gmail.com
         </div>
         <p className="mt-4 text-sm opacity-80 italic">Once we receive your request, your data will be permanently purged from our Firebase servers within 48 hours.</p>
       </section>
@@ -82,7 +82,7 @@ export default function PrivacyPolicyPage() {
         <div className="mt-4 flex justify-center gap-6 text-xs text-gray-400">
           <a href="/" className="hover:text-red-700">Home</a>
           <a href="/dashboard" className="hover:text-red-700">Dashboard</a>
-          <a href="mailto:tsm.shan@gmail.com" className="hover:text-red-700">Contact Support</a>
+          <a href="mailto:anjalkaranss@gmail.com" className="hover:text-red-700">Contact Support</a>
         </div>
       </footer>
     </div>
