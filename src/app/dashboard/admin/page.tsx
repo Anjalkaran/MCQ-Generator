@@ -10,16 +10,17 @@ import { QuestionBankManagement } from '@/components/admin/question-bank-managem
 import { TopicMCQManagement } from '@/components/admin/topic-mcq-management';
 import { LiveTestManagement } from '@/components/admin/live-test-management';
 import { WeeklyTestManagement } from '@/components/admin/weekly-test-management';
+import { DailyTestManagement } from '@/components/admin/daily-test-management';
 import { ReportsManagement } from '@/components/admin/reports-management';
 import { ReasoningBankManagement } from '@/components/admin/reasoning-bank-management';
 import { FeedbackManagement } from '@/components/admin/feedback-management';
 import { VideoClassManagement } from '@/components/admin/video-class-management';
 import { DownloadHistoryManagement } from '@/components/admin/download-history-management';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Calendar, FileQuestion, MessageSquare, Video, Library, History, CalendarCheck, Trophy, ExternalLink } from "lucide-react";
+import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Calendar, FileQuestion, MessageSquare, Video, Library, History, CalendarCheck, Clock, Trophy, ExternalLink } from "lucide-react";
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
-import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback, getStudyMaterials, getCategories, getTopics, getTopicMCQs, getQuestionBankDocuments, getVideoClasses, getWeeklyTests } from "@/lib/firestore";
-import type { UserData, QnAUsage, LiveTest, WeeklyTest, ReasoningQuestion, Feedback, StudyMaterial, Category, Topic, TopicMCQ, BankedQuestion, VideoClass } from "@/lib/types";
+import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback, getStudyMaterials, getCategories, getTopics, getTopicMCQs, getQuestionBankDocuments, getVideoClasses, getWeeklyTests, getDailyTests } from "@/lib/firestore";
+import type { UserData, QnAUsage, LiveTest, WeeklyTest, DailyTest, ReasoningQuestion, Feedback, StudyMaterial, Category, Topic, TopicMCQ, BankedQuestion, VideoClass } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { ADMIN_EMAILS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -61,6 +62,7 @@ const adminSections = [
     { value: 'users', label: 'User Management', icon: Shield },
     { value: 'leaderboard', label: 'Leaderboard', icon: Trophy },
     { value: 'weekly-tests', label: 'Weekly Test', icon: CalendarCheck },
+    { value: 'daily-tests', label: 'Daily Test', icon: Clock },
     { value: 'topics', label: 'Topic Management', icon: BookCopy },
     { value: 'study-material', label: 'Study Material', icon: Library },
     { value: 'video-classes', label: 'Video Classes', icon: Video },
@@ -93,6 +95,7 @@ export default function AdminPage() {
   const [reasoningQuestions, setReasoningQuestions] = useState<ReasoningQuestion[]>([]);
   const [scheduledTests, setScheduledTests] = useState<LiveTest[]>([]);
   const [weeklyTests, setWeeklyTests] = useState<WeeklyTest[]>([]);
+  const [dailyTests, setDailyTests] = useState<DailyTest[]>([]);
   const [feedback, setFeedback] = useState<Feedback[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
 
@@ -105,11 +108,11 @@ export default function AdminPage() {
         const [
             fetchedUsers, fetchedCategories, fetchedTopics, fetchedMaterials, 
             fetchedVideos, fetchedMCQs, fetchedBank, fetchedReasoning, 
-            fetchedScheduled, fetchedWeekly, fetchedFeedback, fetchedQnA
+            fetchedScheduled, fetchedWeekly, fetchedDaily, fetchedFeedback, fetchedQnA
         ] = await Promise.all([
             getAllUsers(), getCategories(), getTopics(), getStudyMaterials(),
             getVideoClasses(), getTopicMCQs(), getQuestionBankDocuments(), getReasoningQuestions(),
-            getLiveTests(true), getWeeklyTests(), getAllFeedback(), getQnAUsage()
+            getLiveTests(true), getWeeklyTests(), getDailyTests(), getAllFeedback(), getQnAUsage()
         ]);
         
         // Filter out admin emails from the user list for statistics
@@ -124,6 +127,7 @@ export default function AdminPage() {
         setReasoningQuestions(fetchedReasoning);
         setScheduledTests(fetchedScheduled);
         setWeeklyTests(fetchedWeekly);
+        setDailyTests(fetchedDaily);
         setFeedback(fetchedFeedback);
         setQnaUsage(fetchedQnA);
 
@@ -164,6 +168,7 @@ export default function AdminPage() {
             </div>
         );
         case 'weekly-tests': return <WeeklyTestManagement initialWeeklyTests={weeklyTests} initialBankedQuestions={bankedQuestions} />;
+        case 'daily-tests': return <DailyTestManagement initialDailyTests={dailyTests} initialBankedQuestions={bankedQuestions} />;
         case 'topics': return <TopicManagement initialCategories={categories} initialTopics={topics} />;
         case 'study-material': return <StudyMaterialManagement initialTopics={topics} initialMaterials={studyMaterials} />;
         case 'video-classes': return <VideoClassManagement initialVideos={videoClasses} />;

@@ -79,6 +79,7 @@ export interface MCQData {
   isMockTest?: boolean;
   liveTestId?: string; 
   weeklyTestId?: string;
+  dailyTestId?: string;
   questionPaperId?: string; 
   examCategory?: UserData['examCategory'];
   language?: string;
@@ -98,6 +99,7 @@ export interface MCQHistory {
     isMockTest?: boolean;
     liveTestId?: string;
     weeklyTestId?: string;
+    dailyTestId?: string;
     questionPaperId?: string; 
     language?: string;
 }
@@ -137,6 +139,7 @@ export interface LeaderboardEntry {
     durationInSeconds?: number;
     liveTestId?: string;
     weeklyTestId?: string;
+    dailyTestId?: string;
 }
 
 export interface QnAUsage {
@@ -166,6 +169,14 @@ export interface LiveTest {
 }
 
 export interface WeeklyTest {
+    id: string;
+    title: string;
+    examCategories: string[];
+    questionPaperId: string;
+    createdAt: Date;
+}
+
+export interface DailyTest {
     id: string;
     title: string;
     examCategories: string[];

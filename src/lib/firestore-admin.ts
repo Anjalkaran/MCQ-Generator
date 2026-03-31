@@ -27,17 +27,34 @@ export const getLiveTestsForLeaderboardAdmin = async (): Promise<any[]> => {
     if (!db) return [];
     
     try {
-        const snapshot = await db.collection('weeklyTests').orderBy('createdAt', 'desc').get();
-        return snapshot.docs.map(doc => {
+        const [weeklySnap, dailySnap] = await Promise.all([
+            db.collection('weeklyTests').orderBy('createdAt', 'desc').get(),
+            db.collection('dailyTests').orderBy('createdAt', 'desc').get()
+        ]);
+
+        const weekly = weeklySnap.docs.map(doc => {
             const data = doc.data();
             return { 
                 id: doc.id, 
-                title: data.title,
+                title: data.title + " (Weekly)",
                 examCategories: data.examCategories || [],
                 startTime: normalizeDate(data.createdAt),
                 createdAt: normalizeDate(data.createdAt)
             };
         });
+
+        const daily = dailySnap.docs.map(doc => {
+            const data = doc.data();
+            return { 
+                id: doc.id, 
+                title: data.title + " (Daily)",
+                examCategories: data.examCategories || [],
+                startTime: normalizeDate(data.createdAt),
+                createdAt: normalizeDate(data.createdAt)
+            };
+        });
+
+        return [...weekly, ...daily].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
     } catch (error) {
         console.error("Error fetching live tests (admin):", error);
         return [];

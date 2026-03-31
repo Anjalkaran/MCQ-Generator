@@ -3,7 +3,7 @@
 
 import { useDashboard } from "@/app/dashboard/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, PenSquare, Video, BrainCircuit, Library, CalendarCheck, ArrowLeft } from 'lucide-react';
+import { Loader2, PenSquare, Video, BrainCircuit, Library, CalendarCheck, ArrowLeft, Clock } from 'lucide-react';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useParams, useRouter } from "next/navigation";
@@ -62,7 +62,19 @@ export default function CourseDetailPage() {
             </h2>
           </div>
           
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <Card className="hover:shadow-lg transition-shadow border-slate-200">
+              <Link href="/dashboard/daily-test" className="block p-6 text-center space-y-4">
+                <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto">
+                  <Clock className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Daily Test</h3>
+                  <p className="text-sm text-slate-500">Daily practice quiz to maintain consistency</p>
+                </div>
+              </Link>
+            </Card>
+
             <Card className="hover:shadow-lg transition-shadow border-slate-200">
               <Link href="/dashboard/weekly-test" className="block p-6 text-center space-y-4">
                 <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto">
@@ -81,16 +93,16 @@ export default function CourseDetailPage() {
                   <PenSquare className="h-6 w-6 text-orange-600" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg">Practice Exams</h3>
-                  <p className="text-sm text-slate-500">Unlimited mock tests for thorough practice</p>
+                  <h3 className="font-bold text-lg">Topic Wise MCQ Test</h3>
+                  <p className="text-sm text-slate-500">Subject-focused tests for thorough practice</p>
                 </div>
               </Link>
             </Card>
 
             <Card className="hover:shadow-lg transition-shadow border-slate-200">
               <Link href="/dashboard/video-classes" className="block p-6 text-center space-y-4">
-                <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto">
-                  <Video className="h-6 w-6 text-blue-600" />
+                <div className="w-12 h-12 bg-cyan-50 rounded-full flex items-center justify-center mx-auto">
+                  <Video className="h-6 w-6 text-cyan-600" />
                 </div>
                 <div>
                   <h3 className="font-bold text-lg">Video Classes</h3>

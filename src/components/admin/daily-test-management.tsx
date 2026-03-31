@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,19 +10,18 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Trash2, Search, Upload, FilePlus, List, Edit, Save, FileCode, ClipboardPaste } from 'lucide-react';
-import { deleteWeeklyTest, getLiveTestQuestionPaper, updateLiveTestBankDocument } from '@/lib/firestore';
+import { Loader2, PlusCircle, Trash2, Search, Upload, FilePlus, List, Edit, FileCode, ClipboardPaste } from 'lucide-react';
+import { deleteDailyTest, getLiveTestQuestionPaper, updateLiveTestBankDocument } from '@/lib/firestore';
 import { getFirebaseAuth } from '@/lib/firebase';
-import type { BankedQuestion, WeeklyTest, MCQ } from '@/lib/types';
+import type { BankedQuestion, DailyTest, MCQ } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const categoriesList = ["MTS", "POSTMAN", "PA", "IP"] as const;
@@ -55,19 +54,19 @@ const mcqSchema = z.object({
     })).optional(),
 });
 
-interface WeeklyTestManagementProps {
-    initialWeeklyTests: WeeklyTest[];
+interface DailyTestManagementProps {
+    initialDailyTests: DailyTest[];
     initialBankedQuestions: BankedQuestion[];
 }
 
-export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestions }: WeeklyTestManagementProps) {
-  const [weeklyTests, setWeeklyTests] = useState<WeeklyTest[]>(initialWeeklyTests);
+export function DailyTestManagement({ initialDailyTests, initialBankedQuestions }: DailyTestManagementProps) {
+  const [dailyTests, setDailyTests] = useState<DailyTest[]>(initialDailyTests);
   const [isLoading, setIsLoading] = useState(false);
   const [isAppending, setIsAppending] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedTestToAppend, setSelectedTestToAppend] = useState<WeeklyTest | null>(null);
+  const [selectedTestToAppend, setSelectedTestToAppend] = useState<DailyTest | null>(null);
   
-  const [managingTest, setManagingTest] = useState<WeeklyTest | null>(null);
+  const [managingTest, setManagingTest] = useState<DailyTest | null>(null);
   const [testQuestions, setQuestions] = useState<MCQ[]>([]);
   const [isQuestionsLoading, setIsQuestionsLoading] = useState(false);
   const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
@@ -123,7 +122,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
         const auth = getFirebaseAuth();
         const idToken = auth?.currentUser ? await auth.currentUser.getIdToken() : null;
 
-        const response = await fetch('/api/weekly-test/upload', {
+        const response = await fetch('/api/daily-test/upload', {
             method: 'POST',
             body: formData,
             headers: idToken ? { 'Authorization': `Bearer ${idToken}` } : {},
@@ -131,12 +130,12 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to create weekly test.');
+            throw new Error(errorData.error || 'Failed to create daily test.');
         }
 
         const { newTest } = await response.json();
-        setWeeklyTests(prev => [newTest, ...prev]);
-        toast({ title: "Success", description: "Weekly test created successfully." });
+        setDailyTests(prev => [newTest, ...prev]);
+        toast({ title: "Success", description: "Daily test created successfully." });
         form.reset();
     } catch (error: any) {
         toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -150,7 +149,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
     setIsAppending(true);
 
     const formData = new FormData();
-    formData.append('weeklyTestId', selectedTestToAppend.id);
+    formData.append('dailyTestId', selectedTestToAppend.id);
     
     if (values.method === 'file') {
         if (!values.file || values.file.length === 0) {
@@ -182,7 +181,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
         const auth = getFirebaseAuth();
         const idToken = auth?.currentUser ? await auth.currentUser.getIdToken() : null;
 
-        const response = await fetch('/api/weekly-test/append', {
+        const response = await fetch('/api/daily-test/append', {
             method: 'POST',
             body: formData,
             headers: idToken ? { 'Authorization': `Bearer ${idToken}` } : {},
@@ -206,15 +205,15 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
 
   const handleDelete = async (id: string) => {
     try {
-        await deleteWeeklyTest(id);
-        setWeeklyTests(prev => prev.filter(t => t.id !== id));
-        toast({ title: "Deleted", description: "Weekly test removed." });
+        await deleteDailyTest(id);
+        setDailyTests(prev => prev.filter(t => t.id !== id));
+        toast({ title: "Deleted", description: "Daily test removed." });
     } catch (error) {
         toast({ title: "Error", description: "Failed to delete test.", variant: "destructive" });
     }
   };
 
-  const handleManageQuestions = async (test: WeeklyTest) => {
+  const handleManageQuestions = async (test: DailyTest) => {
     setManagingTest(test);
     setIsQuestionsLoading(true);
     try {
@@ -255,11 +254,11 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
   };
 
   const filteredTests = useMemo(() => 
-    weeklyTests.filter(t => 
+    dailyTests.filter(t => 
         t.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
         t.examCategories?.some(cat => cat.toLowerCase().includes(searchTerm.toLowerCase()))
     ),
-    [weeklyTests, searchTerm]
+    [dailyTests, searchTerm]
   );
 
   return (
@@ -267,7 +266,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card className="lg:col-span-2">
                 <CardHeader>
-                    <CardTitle>Add New Weekly Test</CardTitle>
+                    <CardTitle>Add New Daily Test</CardTitle>
                     <CardDescription>Upload a JSON file or paste content directly.</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -280,7 +279,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Test Title</FormLabel>
-                                            <FormControl><Input placeholder="e.g. Week 1 MTS Challenge" {...field} /></FormControl>
+                                            <FormControl><Input placeholder="e.g. Day 1 Postman Quiz" {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -355,7 +354,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
 
                             <Button type="submit" disabled={isLoading}>
                                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                                Add Weekly Test
+                                Add Daily Test
                             </Button>
                         </form>
                     </Form>
@@ -393,7 +392,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
         <Card>
             <CardHeader>
                 <div className="flex justify-between items-center">
-                    <div><CardTitle>Existing Weekly Tests</CardTitle><CardDescription>Permanent tests for selected courses.</CardDescription></div>
+                    <div><CardTitle>Existing Daily Tests</CardTitle><CardDescription>Daily quick tests for students.</CardDescription></div>
                     <div className="relative w-64"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input placeholder="Search..." className="pl-8" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} /></div>
                 </div>
             </CardHeader>
@@ -413,7 +412,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger>
                                             <AlertDialogContent>
-                                                <AlertDialogHeader><AlertDialogTitle>Delete Weekly Test?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
+                                                <AlertDialogHeader><AlertDialogTitle>Delete Daily Test?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
                                                 <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(t.id)}>Delete</AlertDialogAction></AlertDialogFooter>
                                             </AlertDialogContent>
                                         </AlertDialog>

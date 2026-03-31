@@ -31,6 +31,7 @@ import {
   Library, 
   MessageCircle as MessageCircleIcon, 
   CalendarCheck,
+  Clock,
   Bookmark,
   Flag,
   LineChart
@@ -166,6 +167,15 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/daily-test')} tooltip="Daily Test">
+                    <Link href="/dashboard/daily-test" onClick={onLinkClick}>
+                      <Clock />
+                      <span>Daily Test</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/weekly-test')} tooltip="Weekly Test">
                     <Link href="/dashboard/weekly-test" onClick={onLinkClick}>
                       <CalendarCheck />
@@ -175,10 +185,10 @@ export function AppSidebar() {
                 </SidebarMenuItem>
 
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/online-test')} tooltip="Practice Exams">
+                  <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/online-test')} tooltip="Topic Wise MCQ Test">
                     <Link href="/dashboard/online-test" onClick={onLinkClick}>
                       <PenSquare />
-                      <span>Practice Exams</span>
+                      <span>Topic Wise MCQ Test</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

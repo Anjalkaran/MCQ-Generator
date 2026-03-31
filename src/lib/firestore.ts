@@ -1,6 +1,6 @@
 import { getFirebaseDb, getFirebaseAuth } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, QnAUsage, Notification, LiveTest, WeeklyTest, TopicMCQ, ReasoningQuestion, Feedback, VideoClass, StudyMaterial, AptiSolveLaunch, MaterialDownload, MCQData, MCQ, Bookmark, MCQReport } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, QnAUsage, Notification, LiveTest, WeeklyTest, DailyTest, TopicMCQ, ReasoningQuestion, Feedback, VideoClass, StudyMaterial, AptiSolveLaunch, MaterialDownload, MCQData, MCQ, Bookmark, MCQReport } from './types';
 import { ADMIN_EMAILS, LEADERBOARD_RESET_DATE } from './constants';
 import { normalizeDate } from './utils';
 
@@ -619,6 +619,28 @@ export const deleteWeeklyTest = async (testId: string): Promise<void> => {
     await deleteDoc(doc(db, 'weeklyTests', testId));
 };
 
+// DAILY TEST (ALWAYS AVAILABLE) MANAGEMENT
+export const getDailyTests = async (): Promise<DailyTest[]> => {
+    const db = getFirebaseDb();
+    if (!db) return [];
+    const dailyCollection = collection(db, 'dailyTests');
+    const q = query(dailyCollection, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: normalizeDate(doc.data().createdAt) } as DailyTest));
+};
+
+export const addDailyTest = async (testData: Omit<DailyTest, 'id'>): Promise<DocumentReference> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore not initialized");
+    return await addDoc(collection(db, 'dailyTests'), { ...testData, createdAt: serverTimestamp() });
+};
+
+export const deleteDailyTest = async (testId: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    await deleteDoc(doc(db, 'dailyTests', testId));
+};
+
 export const getLiveTestsForLeaderboard = async (): Promise<any[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
@@ -738,12 +760,14 @@ export const getLiveTestLeaderboardData = async (testId: string): Promise<Leader
         const historyRef = collection(db, 'mcqHistory');
         const qLive = query(historyRef, where('liveTestId', '==', testId));
         const qWeekly = query(historyRef, where('weeklyTestId', '==', testId));
+        const qDaily = query(historyRef, where('dailyTestId', '==', testId));
         
-        const [snapLive, snapWeekly] = await Promise.all([getDocs(qLive), getDocs(qWeekly)]);
+        const [snapLive, snapWeekly, snapDaily] = await Promise.all([getDocs(qLive), getDocs(qWeekly), getDocs(qDaily)]);
         
         let histories = [
             ...snapLive.docs.map(doc => doc.data() as MCQHistory),
-            ...snapWeekly.docs.map(doc => doc.data() as MCQHistory)
+            ...snapWeekly.docs.map(doc => doc.data() as MCQHistory),
+            ...snapDaily.docs.map(doc => doc.data() as MCQHistory)
         ];
 
         const userBest = new Map<string, any>();
@@ -961,23 +985,24 @@ export const getFreeClassRegistrations = async (): Promise<any[]> => {
 // CONSOLIDATED DASHBOARD DATA FETCHING
 export const getDashboardData = async (userId: string) => {
     const db = getFirebaseDb();
-    if (!db) return { userData: null, categories: [], topics: [], videoClasses: [], studyMaterials: [], notifications: [], weeklyTests: [] };
+    if (!db) return { userData: null, categories: [], topics: [], videoClasses: [], studyMaterials: [], notifications: [], weeklyTests: [], dailyTests: [] };
 
     const userData = await getUserData(userId);
     if (!userData) {
-        return { userData: null, categories: [], topics: [], videoClasses: [], studyMaterials: [], notifications: [], weeklyTests: [] };
+        return { userData: null, categories: [], topics: [], videoClasses: [], studyMaterials: [], notifications: [], weeklyTests: [], dailyTests: [] };
     }
 
     const isAdmin = ADMIN_EMAILS.includes(userData.email);
     const notificationsPromise = isAdmin ? getAdminNotifications() : Promise.resolve([]);
 
-    const [categories, topics, videoClasses, studyMaterials, notifications, weeklyTests] = await Promise.all([
+    const [categories, topics, videoClasses, studyMaterials, notifications, weeklyTests, dailyTests] = await Promise.all([
         getCategories(), 
         getTopics(), 
         getVideoClasses(), 
         getStudyMaterials(),
         notificationsPromise,
-        getWeeklyTests()
+        getWeeklyTests(),
+        getDailyTests()
     ]);
 
     // Return ALL data. Filtering will happen in the DashboardLayout context provider
@@ -989,7 +1014,8 @@ export const getDashboardData = async (userId: string) => {
         videoClasses, 
         studyMaterials, 
         notifications, 
-        weeklyTests 
+        weeklyTests,
+        dailyTests
     };
 };
 

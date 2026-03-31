@@ -10,7 +10,7 @@ import {
   hasUserSubmittedFeedback, 
   getOnlineUsers as fetchOnlineUsers 
 } from '@/lib/firestore';
-import type { UserData, Category, Topic, VideoClass, StudyMaterial, WeeklyTest, Notification } from '@/lib/types';
+import type { UserData, Category, Topic, VideoClass, StudyMaterial, WeeklyTest, DailyTest, Notification } from '@/lib/types';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -22,6 +22,7 @@ interface DashboardContextType {
   videoClasses: VideoClass[];
   studyMaterials: StudyMaterial[];
   weeklyTests: WeeklyTest[];
+  dailyTests: DailyTest[];
   notifications: Notification[];
   onlineUsers: any[];
   isLoading: boolean;
@@ -47,6 +48,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [rawVideoClasses, setRawVideoClasses] = useState<VideoClass[]>([]);
   const [rawStudyMaterials, setRawStudyMaterials] = useState<StudyMaterial[]>([]);
   const [rawWeeklyTests, setRawWeeklyTests] = useState<WeeklyTest[]>([]);
+  const [rawDailyTests, setRawDailyTests] = useState<DailyTest[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -82,6 +84,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
           setRawVideoClasses(data.videoClasses || []);
           setRawStudyMaterials(data.studyMaterials || []);
           setRawWeeklyTests(data.weeklyTests || []);
+          setRawDailyTests(data.dailyTests || []);
           setNotifications(data.notifications || []);
           setHasGivenFeedback(feedbackStatus);
         } catch (error) { 
@@ -129,7 +132,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   }, [userData?.email]);
 
   const filteredContent = useMemo(() => {
-    if (!userData) return { categories: [], topics: [], videoClasses: [], studyMaterials: [], weeklyTests: [] };
+    if (!userData) return { categories: [], topics: [], videoClasses: [], studyMaterials: [], weeklyTests: [], dailyTests: [] };
     
     const userCat = userData.examCategory;
     
@@ -149,12 +152,13 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     const topics = rawTopics.filter(filterFn);
     const videoClasses = rawVideoClasses.filter(filterFn);
     const weeklyTests = rawWeeklyTests.filter(filterFn);
+    const dailyTests = rawDailyTests.filter(filterFn);
     
     const activeTopicIds = new Set(topics.map(t => t.id));
     const studyMaterials = rawStudyMaterials.filter(m => activeTopicIds.has(m.topicId));
 
-    return { categories, topics, videoClasses, studyMaterials, weeklyTests };
-  }, [userData?.examCategory, rawCategories, rawTopics, rawVideoClasses, rawStudyMaterials, rawWeeklyTests]);
+    return { categories, topics, videoClasses, studyMaterials, weeklyTests, dailyTests };
+  }, [userData?.examCategory, rawCategories, rawTopics, rawVideoClasses, rawStudyMaterials, rawWeeklyTests, rawDailyTests]);
 
   const contextValue = useMemo(() => ({ 
     user, 

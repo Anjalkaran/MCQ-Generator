@@ -21,6 +21,7 @@ const blueprintMap = {
 const GenerateLiveMockTestInputSchema = z.object({
   liveTestId: z.string().optional().describe('ID of scheduled test.'),
   weeklyTestId: z.string().optional().describe('ID of permanent weekly test.'),
+  dailyTestId: z.string().optional().describe('ID of permanent daily test.'),
   questionPaperId: z.string().describe('ID of the paper in liveTestBank.'),
   examCategory: z.enum(["MTS", "POSTMAN", "PA", "IP"]).describe('Target course.'),
   language: z.string().optional().default('English').describe('Selected language.'),
@@ -117,6 +118,7 @@ const generateLiveMockTestFlow = ai.defineFlow(
 
     if (input.liveTestId) quizData.liveTestId = input.liveTestId;
     if (input.weeklyTestId) quizData.weeklyTestId = input.weeklyTestId;
+    if (input.dailyTestId) quizData.dailyTestId = input.dailyTestId;
 
     const docRef = await db.collection("generatedQuizzes").add(quizData);
     return { quizId: docRef.id };
