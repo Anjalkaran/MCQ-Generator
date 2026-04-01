@@ -17,7 +17,7 @@ import { updateBookmarkComment, submitMCQReport } from "@/lib/firestore";
 import { getFirebaseAuth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import type { MCQ } from "@/lib/types";
+import type { MCQ, MCQReport } from "@/lib/types";
 
 interface MCQCommentDialogProps {
   questionId: string;
@@ -28,6 +28,14 @@ interface MCQCommentDialogProps {
   mode?: 'personal' | 'admin';
 }
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 export function MCQCommentDialog({ 
   questionId, 
   mcq,
@@ -37,6 +45,8 @@ export function MCQCommentDialog({
   mode = 'personal'
 }: MCQCommentDialogProps) {
   const [comment, setComment] = useState(initialComment);
+  const [issueType, setIssueType] = useState<MCQReport['issueType']>('other');
+  const [severity, setSeverity] = useState<MCQReport['severity']>('medium');
   const [isSaving, setIsSaving] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
@@ -65,7 +75,7 @@ export function MCQCommentDialog({
     try {
       if (mode === 'admin') {
         if (!mcq) throw new Error("MCQ data missing for report");
-        await submitMCQReport(auth.currentUser.uid, mcq, comment, topicId);
+        await submitMCQReport(auth.currentUser.uid, mcq, comment, topicId, issueType, severity);
         toast({
           title: "Report Sent",
           description: "Thank you! The admin will review this question.",
@@ -98,39 +108,86 @@ export function MCQCommentDialog({
         <Button
           variant="ghost"
           size="icon"
-          className={cn("h-8 w-8 text-muted-foreground hover:text-primary", className)}
+          className={cn("h-8 w-8 text-muted-foreground hover:text-primary transition-colors", className)}
           title={isPersonal ? "Add Personal Note" : "Report Question to Admin"}
         >
           {isPersonal ? <MessageSquare className="h-5 w-5" /> : <Flag className="h-5 w-5" />}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md border-primary/20 shadow-2xl">
         <DialogHeader>
-          <DialogTitle>{isPersonal ? "Add Personal Note" : "Report Question to Admin"}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+            {isPersonal ? <MessageSquare className="h-5 w-5 text-primary" /> : <Flag className="h-5 w-5 text-destructive" />}
+            {isPersonal ? "Add Personal Note" : "Report Question"}
+          </DialogTitle>
+          <DialogDescription className="text-sm">
             {isPersonal 
               ? "Keep private notes or explanations for this question." 
-              : "Let us know if there is an error in the question, options, or solution."}
+              : "Help us improve by identifying errors in this question."}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <Textarea
-            placeholder={isPersonal 
-              ? "Add your own notes, shortcuts, or explanations here..." 
-              : "Describe the issue or correction for the admin..."}
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            rows={5}
-            className="resize-none"
-          />
+        <div className="grid gap-6 py-4">
+          {!isPersonal && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Issue Category</label>
+                <Select value={issueType} onValueChange={(v: any) => setIssueType(v)}>
+                  <SelectTrigger className="h-10 bg-muted/50 border-none">
+                    <SelectValue placeholder="What's wrong?" />
+                  </SelectTrigger>
+                  <SelectContent className="border-none shadow-xl">
+                    <SelectItem value="incorrect_answer">Incorrect Answer</SelectItem>
+                    <SelectItem value="wrong_question">Wrong Question</SelectItem>
+                    <SelectItem value="typo">Spelling/Typo</SelectItem>
+                    <SelectItem value="missing_info">Missing Info</SelectItem>
+                    <SelectItem value="other">Other Issue</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Priority</label>
+                <Select value={severity} onValueChange={(v: any) => setSeverity(v)}>
+                  <SelectTrigger className="h-10 bg-muted/50 border-none">
+                    <SelectValue placeholder="How urgent?" />
+                  </SelectTrigger>
+                  <SelectContent className="border-none shadow-xl">
+                    <SelectItem value="low">Low (Typo)</SelectItem>
+                    <SelectItem value="medium" className="text-orange-600 font-medium">Medium (Incorrect Opt)</SelectItem>
+                    <SelectItem value="high" className="text-red-600 font-bold">High (Critical Error)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <div className="space-y-2">
+             <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                {isPersonal ? "Your Note" : "Detailed Feedback"}
+             </label>
+             <Textarea
+                placeholder={isPersonal 
+                ? "Add your private notes here..." 
+                : "Briefly explain the issue to help us fix it faster..."}
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={5}
+                className="resize-none bg-muted/50 border-none focus-visible:ring-primary shadow-inner"
+            />
+          </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isSaving}>
+        <DialogFooter className="flex gap-2">
+          <Button variant="ghost" onClick={() => setIsOpen(false)} disabled={isSaving} className="font-semibold">
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
+          <Button 
+            onClick={handleSave} 
+            disabled={isSaving} 
+            className={cn(
+                "font-bold transition-all active:scale-95",
+                isPersonal ? "bg-primary hover:bg-primary/90" : "bg-destructive hover:bg-destructive/90"
+            )}
+          >
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (isPersonal ? <Save className="mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />)}
-            {isPersonal ? "Save Note" : "Send Report"}
+            {isPersonal ? "Save Note" : "Submit Report"}
           </Button>
         </DialogFooter>
       </DialogContent>

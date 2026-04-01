@@ -54,7 +54,9 @@ export async function submitMCQReport(
   userId: string, 
   mcq: MCQ, 
   comment: string, 
-  topicId?: string
+  topicId?: string,
+  issueType?: MCQReport['issueType'],
+  severity: MCQReport['severity'] = 'medium'
 ) {
   const db = getFirebaseDb();
   if (!db) return;
@@ -69,6 +71,8 @@ export async function submitMCQReport(
     userEmail,
     question: mcq,
     comment,
+    issueType,
+    severity,
     topicId,
     createdAt: serverTimestamp(),
     status: 'pending'
@@ -464,7 +468,7 @@ export const getAllExamHistory = async (): Promise<MCQHistory[]> => {
         return { 
             id: doc.id, 
             ...data, 
-            userName: userMap.get(data.userId) || 'Unknown User',
+            userName: userMap.get(data.userId)?.name || 'Unknown User',
             takenAt: normalizeDate(data.takenAt) 
         } as any;
     });
@@ -934,6 +938,13 @@ export const getStudyMaterials = async (topicId?: string): Promise<StudyMaterial
         : query(collection(db, 'studyMaterials'), orderBy('uploadedAt', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: normalizeDate(doc.data().uploadedAt) || new Date() } as StudyMaterial));
+};
+
+export const updateStudyMaterial = async (docId: string, data: Partial<StudyMaterial>): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    const docRef = doc(db, 'studyMaterials', docId);
+    await updateDoc(docRef, data);
 };
 
 export const deleteStudyMaterial = async (docId: string): Promise<void> => {

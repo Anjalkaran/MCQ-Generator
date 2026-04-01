@@ -138,10 +138,13 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     
     const filterFn = (item: any) => {
       const itemCats = item.examCategories || [];
-      const hasIP = itemCats.includes('IP');
       
+      // If user's specific category is explicitly tagged, always show it
+      if (itemCats.includes(userCat)) return true;
+      
+      const hasIP = itemCats.includes('IP');
       if (hasIP) {
-        // IP content is only for IP users
+        // Otherwise, IP content is only for IP users
         return userCat === 'IP';
       }
       // Non-IP content is for everyone ("enable all courses for all")

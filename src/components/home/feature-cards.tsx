@@ -89,31 +89,31 @@ export function FeatureCards({ language }: { language: Language }) {
 
   const features = [
     {
-      icon: <BrainCircuit className="h-10 w-10 text-red-600" />,
+      icon: <BrainCircuit className="h-10 w-10" />,
       title: t.mcqs.title,
       description: t.mcqs.description,
       href: "/dashboard"
     },
     {
-      icon: <FileText className="h-10 w-10 text-red-600" />,
+      icon: <FileText className="h-10 w-10" />,
       title: t.mockTests.title,
       description: t.mockTests.description,
       href: "/dashboard/mock-test"
     },
     {
-      icon: <BookCopy className="h-10 w-10 text-red-600" />,
+      icon: <BookCopy className="h-10 w-10" />,
       title: t.practice.title,
       description: t.practice.description,
       href: "/dashboard/topic-wise-mcq"
     },
     {
-      icon: <TrendingUp className="h-10 w-10 text-red-600" />,
+      icon: <TrendingUp className="h-10 w-10" />,
       title: t.analysis.title,
       description: t.analysis.description,
       href: "/dashboard/performance"
     },
     {
-      icon: <Trophy className="h-10 w-10 text-red-600" />,
+      icon: <Trophy className="h-10 w-10" />,
       title: t.leaderboard.title,
       description: t.leaderboard.description,
       href: "/dashboard/leaderboard"
@@ -150,7 +150,7 @@ export function FeatureCards({ language }: { language: Language }) {
             <HoverScale className="w-full">
               <Card className="flex flex-col h-full text-center items-center p-8 bg-white/50 backdrop-blur-sm border border-slate-100 hover:border-red-100 hover:shadow-2xl hover:shadow-red-500/10 transition-all duration-300 rounded-3xl group">
                 <div className="mb-6 p-4 bg-red-50 rounded-2xl group-hover:bg-red-600 group-hover:scale-110 transition-all duration-300">
-                  <div className="group-hover:text-white transition-colors">
+                  <div className="text-red-600 group-hover:text-white transition-all duration-300">
                     {feature.icon}
                   </div>
                 </div>

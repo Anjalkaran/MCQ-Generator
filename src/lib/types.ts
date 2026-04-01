@@ -39,7 +39,7 @@ export interface Topic {
   icon: string; 
   categoryId: string;
   categoryName?: string; 
-  part: 'Part A' | 'Part B' | 'Paper-I' | 'Paper-III';
+  part: 'Part A' | 'Part B' | 'Paper I' | 'Paper II' | 'Paper III' | 'Paper-I' | 'Paper-III';
   examCategories: ('MTS' | 'POSTMAN' | 'PA' | 'IP')[];
   source?: 'reasoningBank'; 
   material?: string;
@@ -242,7 +242,9 @@ export interface MCQReport {
   userEmail?: string;
   question: MCQ;
   comment: string;
+  issueType?: 'incorrect_answer' | 'wrong_question' | 'typo' | 'missing_info' | 'other';
+  severity?: 'low' | 'medium' | 'high';
   topicId?: string;
   createdAt: any;
-  status: 'pending' | 'resolved';
+  status: 'pending' | 'in_review' | 'resolved';
 }

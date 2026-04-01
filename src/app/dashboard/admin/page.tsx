@@ -59,6 +59,7 @@ function AnalyticsTab({ qnaUsage }: { qnaUsage: QnAUsage[] }) {
 }
 
 const adminSections = [
+    { value: 'overview', label: 'Overview', icon: BarChart3 },
     { value: 'users', label: 'User Management', icon: Shield },
     { value: 'leaderboard', label: 'Leaderboard', icon: Trophy },
     { value: 'weekly-tests', label: 'Weekly Test', icon: CalendarCheck },
@@ -76,11 +77,14 @@ const adminSections = [
     { value: 'reports', label: 'Reports', icon: Download },
 ];
 
+// Grouping logic for the sidebar/tabs in Overview
+import { AdminOverview } from "@/components/admin/admin-overview";
+
 type AdminSection = typeof adminSections[number]['value'];
 
 export default function AdminPage() {
   const { userData, isLoading: isDashboardLoading } = useDashboard();
-  const [activeSection, setActiveSection] = useState<AdminSection>('users');
+  const [activeSection, setActiveSection] = useState<AdminSection>('overview');
   const [isLoadingAdminData, setIsLoadingAdminData] = useState(true);
   const { toast } = useToast();
 
@@ -115,7 +119,6 @@ export default function AdminPage() {
             getLiveTests(true), getWeeklyTests(), getDailyTests(), getAllFeedback(), getQnAUsage()
         ]);
         
-        // Filter out admin emails from the user list for statistics
         const regularUsers = fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email));
         setUsers(regularUsers);
         setCategories(fetchedCategories);
@@ -153,6 +156,17 @@ export default function AdminPage() {
 
   const renderContent = () => {
     switch(activeSection) {
+        case 'overview': return (
+            <AdminOverview 
+                users={users}
+                qnaUsage={qnaUsage}
+                topics={topics}
+                videos={videoClasses}
+                materials={studyMaterials}
+                bankedQuestions={bankedQuestions}
+                onNavigate={(v) => setActiveSection(v as AdminSection)}
+            />
+        );
         case 'users': return <UserManagement initialUsers={users} />;
         case 'leaderboard': return (
             <div className="space-y-6">
@@ -170,7 +184,7 @@ export default function AdminPage() {
         case 'weekly-tests': return <WeeklyTestManagement initialWeeklyTests={weeklyTests} initialBankedQuestions={bankedQuestions} />;
         case 'daily-tests': return <DailyTestManagement initialDailyTests={dailyTests} initialBankedQuestions={bankedQuestions} />;
         case 'topics': return <TopicManagement initialCategories={categories} initialTopics={topics} />;
-        case 'study-material': return <StudyMaterialManagement initialTopics={topics} initialMaterials={studyMaterials} />;
+        case 'study-material': return <StudyMaterialManagement initialTopics={topics} initialMaterials={studyMaterials} initialCategories={categories} />;
         case 'video-classes': return <VideoClassManagement initialVideos={videoClasses} />;
         case 'topic-mcq': return <TopicMCQManagement initialTopics={topics} initialTopicMCQs={topicMCQs} />;
         case 'question-bank': return <QuestionBankManagement initialBankedQuestions={bankedQuestions} />;
@@ -179,49 +193,61 @@ export default function AdminPage() {
         case 'downloads': return <DownloadHistoryManagement />;
         case 'analytics': return <AnalyticsTab qnaUsage={qnaUsage} />;
         case 'feedback': return <FeedbackManagement initialFeedback={feedback} />;
-        case 'reports': return <ReportsManagement allUsers={users} />;
+        case 'reports': return <ReportsManagement allUsers={users} allTopics={topics} />;
         default: return null;
     }
   }
 
+  const currentSection = adminSections.find(s => s.value === activeSection);
+
   return (
-    <div className="space-y-6">
-       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-0.5">
-            <h1 className="text-2xl font-bold tracking-tight">Admin Panel</h1>
-            <p className="text-muted-foreground">System-wide monitoring and content management.</p>
+    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
+       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-slate-100">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 mb-1">
+               {activeSection !== 'overview' && (
+                 <button 
+                  onClick={() => setActiveSection('overview')}
+                  className="p-1 px-2 rounded-md bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-500 transition-colors uppercase"
+                 >
+                   &larr; Back to hub
+                 </button>
+               )}
+               <div className="h-1.5 w-1.5 rounded-full bg-red-600 animate-pulse" />
+               <span className="text-[10px] font-bold text-red-600 uppercase tracking-widest">Admin Console</span>
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+              {currentSection?.label || 'Admin Panel'}
+            </h1>
+            <p className="text-sm text-slate-500">
+              {activeSection === 'overview' 
+                ? 'High-level insights and system management modules.' 
+                : `Managing ${currentSection?.label} data and configurations.`}
+            </p>
           </div>
-          <div className="flex gap-4">
-             <div className="bg-primary/5 px-4 py-2 rounded-lg border border-primary/10 text-center">
-                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Total Students</p>
-                <p className="text-xl font-bold text-primary">{users.length}</p>
-             </div>
-             <div className="bg-green-500/5 px-4 py-2 rounded-lg border border-green-500/10 text-center">
-                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Active Pro</p>
-                <p className="text-xl font-bold text-green-600">{users.filter(u => u.isPro).length}</p>
-             </div>
-          </div>
+          
+          {activeSection === 'overview' && (
+            <div className="flex items-center gap-3 bg-white p-2 px-4 rounded-2xl border border-slate-100 shadow-sm">
+                <div className="text-right">
+                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">System Health</p>
+                   <p className="text-sm font-bold text-emerald-600">Operational</p>
+                </div>
+                <div className="h-8 w-[1px] bg-slate-100" />
+                <div className="flex -space-x-2">
+                   {users.filter(u => u.isPro).slice(0, 3).map((u, i) => (
+                     <div key={i} className="h-8 w-8 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[10px] font-bold">
+                        {u.name[0]}
+                     </div>
+                   ))}
+                </div>
+            </div>
+          )}
         </div>
         
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-12">
-          {adminSections.map((section) => (
-            <Card
-              key={section.value}
-              onClick={() => setActiveSection(section.value)}
-              className={cn(
-                "cursor-pointer transition-all hover:shadow-md flex flex-col items-center justify-center h-28",
-                activeSection === section.value && "border-primary ring-2 ring-primary bg-primary/5"
-              )}
-            >
-              <CardHeader className="items-center text-center p-4">
-                {React.createElement(section.icon, { className: cn("h-6 w-6 mb-2", activeSection === section.value ? "text-primary" : "text-muted-foreground") })}
-                <CardTitle className="text-sm font-medium">{section.label}</CardTitle>
-              </CardHeader>
-            </Card>
-          ))}
+        {/* Render the unified content hub */}
+        <div className="min-h-[600px]">
+          {renderContent()}
         </div>
-
-        <div className="mt-6">{renderContent()}</div>
     </div>
   );
 }

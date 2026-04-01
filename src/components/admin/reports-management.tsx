@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Download, Loader2, Users, History, Database, HelpCircle } from 'lucide-react';
-import type { UserData, MCQHistory, FreeClassRegistration, QnAUsage } from '@/lib/types';
+import type { UserData, MCQHistory, QnAUsage, Topic } from '@/lib/types';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { getAllExamHistory, getFreeClassRegistrations, getQnAUsage } from '@/lib/firestore';
@@ -20,6 +20,7 @@ type ProStatus = 'all' | 'pro' | 'free';
 
 interface ReportsManagementProps {
     allUsers: UserData[];
+    allTopics: Topic[];
 }
 
 function EngagementLogCard() {
@@ -137,10 +138,11 @@ function EngagementLogCard() {
     );
 }
 
-function GlobalExamLogCard() {
+function GlobalExamLogCard({ allTopics }: { allTopics: Topic[] }) {
     const [history, setHistory] = useState<MCQHistory[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [partFilter, setPartFilter] = useState<string>('all');
     const { toast } = useToast();
 
     useEffect(() => {
@@ -158,23 +160,43 @@ function GlobalExamLogCard() {
         fetchHistory();
     }, [toast]);
 
+    const topicMap = useMemo(() => {
+        const map: Record<string, Topic> = {};
+        allTopics.forEach(t => map[t.id] = t);
+        return map;
+    }, [allTopics]);
+
     const filteredHistory = useMemo(() => {
-        return history.filter(h => 
-            (h.userName || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-            (h.topicTitle || '').toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [history, searchTerm]);
+        return history.filter(h => {
+            const matchesSearch = ((h as any).userName || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                (h.topicTitle || '').toLowerCase().includes(searchTerm.toLowerCase());
+            
+            if (partFilter === 'all') return matchesSearch;
+            
+            const topic = topicMap[h.topicId];
+            const topicPart = topic?.part;
+            
+            let matchesPart = false;
+            if (partFilter === 'Paper I') matchesPart = (topicPart === 'Paper I' || topicPart === 'Paper-I');
+            else if (partFilter === 'Paper III') matchesPart = (topicPart === 'Paper III' || topicPart === 'Paper-III');
+            else matchesPart = topicPart === partFilter;
+
+            return matchesSearch && matchesPart;
+        });
+    }, [history, searchTerm, partFilter, topicMap]);
 
     const handleDownload = () => {
         if (filteredHistory.length === 0) return;
-        const headers = ["User", "Topic", "Score", "Total", "Date"];
+        const headers = ["User", "Topic", "Section", "Score", "Total", "Date"];
         const csvContent = [
             headers.join(','),
             ...filteredHistory.map(h => {
                 const takenAt = normalizeDate(h.takenAt);
+                const section = topicMap[h.topicId]?.part || 'N/A';
                 return [
-                    `"${h.userName}"`,
+                    `"${(h as any).userName}"`,
                     `"${h.topicTitle}"`,
+                    `"${section}"`,
                     h.score,
                     h.totalQuestions,
                     `"${takenAt ? format(takenAt, 'dd/MM/yyyy p') : 'N/A'}"`
@@ -204,8 +226,23 @@ function GlobalExamLogCard() {
                         <Download className="mr-2 h-4 w-4" /> Export CSV
                     </Button>
                 </div>
-                <div className="pt-4">
-                    <Input placeholder="Search by user or topic..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                <div className="pt-4 flex items-center gap-4">
+                    <div className="flex-1">
+                        <Input placeholder="Search by user or topic..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                    </div>
+                    <Select value={partFilter} onValueChange={setPartFilter}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="All Sections" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Sections</SelectItem>
+                            <SelectItem value="Part A">Part A</SelectItem>
+                            <SelectItem value="Part B">Part B</SelectItem>
+                            <SelectItem value="Paper I">Paper I</SelectItem>
+                            <SelectItem value="Paper II">Paper II</SelectItem>
+                            <SelectItem value="Paper III">Paper III</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
             </CardHeader>
             <CardContent>
@@ -225,10 +262,18 @@ function GlobalExamLogCard() {
                             <TableBody>
                                 {filteredHistory.map(h => {
                                     const takenAt = normalizeDate(h.takenAt);
+                                    const section = topicMap[h.topicId]?.part;
                                     return (
                                         <TableRow key={h.id}>
-                                            <TableCell className="font-medium">{h.userName}</TableCell>
-                                            <TableCell>{h.topicTitle}</TableCell>
+                                            <TableCell className="font-medium">{(h as any).userName}</TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col">
+                                                    <span>{h.topicTitle}</span>
+                                                    {section && (
+                                                        <span className="text-[10px] text-muted-foreground font-bold">{section}</span>
+                                                    )}
+                                                </div>
+                                            </TableCell>
                                             <TableCell className="text-center">{h.score}/{h.totalQuestions}</TableCell>
                                             <TableCell className="text-right text-xs text-muted-foreground">
                                                 {takenAt ? format(takenAt, 'dd/MM/yy p') : 'N/A'}
@@ -246,7 +291,7 @@ function GlobalExamLogCard() {
 }
 
 function LegacyDataCard() {
-    const [registrations, setRegistrations] = useState<FreeClassRegistration[]>([]);
+    const [registrations, setRegistrations] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
 
@@ -335,7 +380,7 @@ function LegacyDataCard() {
     );
 }
 
-export function ReportsManagement({ allUsers }: ReportsManagementProps) {
+export function ReportsManagement({ allUsers, allTopics }: ReportsManagementProps) {
     const [activeTab, setActiveTab] = useState('user-reports');
     const [examCategoryFilter, setExamCategoryFilter] = useState<ExamCategory>('all');
     const [proStatusFilter, setProStatusFilter] = useState<ProStatus>('all');
@@ -424,7 +469,7 @@ export function ReportsManagement({ allUsers }: ReportsManagementProps) {
                         </div>
                     )}
 
-                    {activeTab === 'exam-log' && <GlobalExamLogCard />}
+                    {activeTab === 'exam-log' && <GlobalExamLogCard allTopics={allTopics} />}
                     {activeTab === 'engagement' && <EngagementLogCard />}
                     {activeTab === 'legacy-data' && <LegacyDataCard />}
                 </CardContent>

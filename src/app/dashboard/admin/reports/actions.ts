@@ -106,17 +106,17 @@ export async function updateReportedMCQAction(
 }
 
 /**
- * Marks a report as resolved without making MCQ changes.
+ * Updates the status of a report (e.g. to 'in_review').
  */
-export async function resolveReportAction(reportId: string) {
+export async function updateReportStatusAction(reportId: string, status: MCQReport['status']) {
   const db = getFirebaseDb();
   if (!db) throw new Error("Firebase Admin DB not available");
 
   try {
     const reportRef = db.collection('mcq_reports').doc(reportId);
     await reportRef.update({
-      status: 'resolved',
-      resolvedAt: new Date()
+      status,
+      updatedAt: new Date()
     });
     
     revalidatePath('/dashboard/admin/reports');
