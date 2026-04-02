@@ -33,7 +33,6 @@ import {
   CalendarCheck,
   Clock,
   Bookmark,
-  Flag,
   LineChart
 } from 'lucide-react';
 import { getFirebaseAuth } from '@/lib/firebase';
@@ -63,13 +62,6 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -268,21 +260,6 @@ export function AppSidebar() {
             <SidebarGroup>
                 <SidebarSeparator className="my-2" />
                 <SidebarGroupLabel>Admin Control</SidebarGroupLabel>
-                <SidebarGroupContent>
-                    <div className="px-2 pb-4 group-data-[collapsible=icon]:hidden">
-                    <Select value={userData?.examCategory} onValueChange={(v) => setUserData(prev => prev ? ({ ...prev, examCategory: v as any }) : null)}>
-                        <SelectTrigger id="admin-view-select" className="h-9 mt-1 bg-primary/5 border-primary/20">
-                        <SelectValue placeholder="Select Course" />
-                        </SelectTrigger>
-                        <SelectContent>
-                        <SelectItem value="MTS">View as MTS</SelectItem>
-                        <SelectItem value="POSTMAN">View as Postman</SelectItem>
-                        <SelectItem value="PA">View as PA</SelectItem>
-                        <SelectItem value="IP">View as IP (Inspector)</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    </div>
-                </SidebarGroupContent>
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/admin')} tooltip="Admin Panel">
@@ -292,28 +269,7 @@ export function AppSidebar() {
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
-
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={pathname === '/dashboard/admin/mcq-bank'} tooltip="MCQ Bank">
-                            <a href="/dashboard/admin?section=topic-mcq" onClick={(e) => {
-                                e.preventDefault();
-                                window.dispatchEvent(new CustomEvent('switch-admin-section', { detail: { section: 'topic-mcq' } }));
-                                onLinkClick();
-                            }}>
-                                <PenSquare className="h-4 w-4" />
-                                <span>MCQ Bank</span>
-                            </a>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={pathname === '/dashboard/admin/reports'} tooltip="Question Reports">
-                            <Link href="/dashboard/admin/reports" onClick={onLinkClick}>
-                                <Flag />
-                                <span>Question Reports</span>
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    
                     
                     <SidebarMenuItem>
                         <Dialog>
