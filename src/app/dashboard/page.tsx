@@ -103,8 +103,8 @@ export default function DashboardPage() {
       subtitle: 'Postal Assistant',
       description: 'Advanced materials for Postal and Sorting Assistant exams.',
       icon: <Library className="h-10 w-10" />,
-      color: 'from-purple-500/20 to-indigo-500/20',
-      textColor: 'text-purple-600',
+      color: 'from-red-500/20 to-rose-500/20',
+      textColor: 'text-red-600',
       allowed: true // Enable for all
     },
     { 
@@ -113,8 +113,8 @@ export default function DashboardPage() {
       subtitle: 'Inspector Post',
       description: 'Elite preparation track for the Inspector Post examination.',
       icon: <Shield className="h-10 w-10" />,
-      color: 'from-red-600/20 to-rose-600/20',
-      textColor: 'text-red-700',
+      color: 'from-red-700/20 to-rose-700/20',
+      textColor: 'text-red-800',
       allowed: subCat === 'IP' // Keep IP restricted
     }
   ].filter(course => course.allowed || isAdmin);

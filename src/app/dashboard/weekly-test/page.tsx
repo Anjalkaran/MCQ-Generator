@@ -2,7 +2,7 @@
 
 import { useDashboard } from "@/app/dashboard/layout";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlayCircle, CalendarCheck, Share2, Calendar, ChevronRight, Award, Trophy } from "lucide-react";
+import { Loader2, PlayCircle, CalendarCheck, Share2, Calendar, ChevronRight, Award, Trophy, Sparkles, HelpCircle, ClipboardCheck, Clock } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -175,6 +175,8 @@ function WeeklyTestTimelineItem({ test, index, isLast, history }: { test: Weekly
     );
 }
 
+import { Badge } from "@/components/ui/badge";
+
 export default function WeeklyTestPage() {
     const { user, weeklyTests, isLoading, userData } = useDashboard();
     const [history, setHistory] = useState<MCQHistory[]>([]);
@@ -191,84 +193,113 @@ export default function WeeklyTestPage() {
 
     if (isLoading || isHistoryLoading) {
         return (
-            <div className="flex h-[70vh] flex-col items-center justify-center gap-4">
-                <Loader2 className="h-12 w-12 animate-spin text-red-600" />
-                <p className="text-slate-400 font-medium animate-pulse">Designing your roadmap...</p>
+            <div className="flex flex-col h-[70vh] items-center justify-center space-y-4">
+                <div className="relative">
+                    <Loader2 className="h-12 w-12 animate-spin text-red-600 opacity-20" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="h-2 w-2 bg-red-600 rounded-full animate-ping" />
+                    </div>
+                </div>
+                <p className="text-sm font-medium text-muted-foreground animate-pulse tracking-wide">Loading weekly curriculum...</p>
             </div>
         );
     }
 
-    const filteredTests = weeklyTests || [];
+    const userCategory = userData?.examCategory || 'MTS';
+
+    const filteredTests = (weeklyTests || []).filter(test => {
+        const cats = (test.examCategories || []).map(c => c.toUpperCase());
+        const userCatUpper = userCategory.toUpperCase();
+        const singularCat = (test as any).examCategory?.toUpperCase();
+        
+        return cats.includes(userCatUpper) || singularCat === userCatUpper;
+    });
 
     return (
-        <div className="max-w-5xl mx-auto space-y-12 py-6 px-4">
-            <FadeIn>
-                <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-8 py-12 text-white shadow-2xl">
-                    {/* Background Pattern */}
-                    <div className="absolute top-0 right-0 p-8 opacity-10">
-                        <CalendarCheck className="h-40 w-40 transform rotate-12" />
+        <div className="space-y-10 pb-12">
+            {/* Premium Hero Section */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-red-500/10 via-transparent to-red-500/10 p-8 border border-white/20 shadow-xl backdrop-blur-sm">
+                <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 h-64 w-64 bg-red-500/10 rounded-full blur-[100px]" />
+                <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/4 h-64 w-64 bg-red-500/10 rounded-full blur-[100px]" />
+                
+                <div className="relative flex flex-col md:flex-row items-center justify-between gap-8">
+                    <div className="space-y-4 text-center md:text-left flex-1">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 text-red-600 text-[11px] font-bold uppercase tracking-wider border border-red-500/20">
+                            <Sparkles className="h-3 w-3" />
+                            Elite Weekly Assessment
+                        </div>
+                        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">
+                            Weekly Live Tests
+                        </h1>
+                        <p className="text-muted-foreground max-w-lg text-lg leading-relaxed">
+                            Challenge yourself with comprehensive full-length mock tests for <span className="text-red-600 font-bold">{userCategory}</span> course. Simulated exam environment to track your growth.
+                        </p>
                     </div>
                     
-                    <div className="relative z-10 space-y-6 max-w-2xl text-center sm:text-left">
-                        <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1 text-sm font-medium backdrop-blur-md">
-                            <Trophy className="h-4 w-4 text-yellow-400" />
-                            <span>Academic Roadmap</span>
-                        </div>
-                        <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight leading-tight">
-                            Weekly <span className="text-red-500">Test</span> Series
-                        </h1>
-                        <p className="text-lg text-slate-300 leading-relaxed">
-                            Master your syllabus with our curated weekly modules. Each test is designed by experts to reflect real exam patterns for <span className="text-white font-bold">{userData?.examCategory}</span> category.
-                        </p>
-                        
-                        <div className="flex flex-wrap gap-8 pt-4 justify-center sm:justify-start">
-                            <div className="space-y-1 text-center sm:text-left">
-                                <div className="text-3xl font-bold">{filteredTests.length}</div>
-                                <div className="text-xs uppercase tracking-widest text-slate-400 font-bold">Total Tests</div>
+                    <div className="hidden lg:grid grid-cols-2 gap-4 w-full max-w-md">
+                        {[
+                            { label: "Full Length", icon: ClipboardCheck, color: "text-red-500", bg: "bg-red-50" },
+                            { label: "Rank Analysis", icon: Trophy, color: "text-amber-500", bg: "bg-amber-50" },
+                            { label: "Real Timer", icon: Clock, color: "text-red-500", bg: "bg-red-50" },
+                            { label: "Detailed Solutions", icon: HelpCircle, color: "text-emerald-500", bg: "bg-emerald-50" },
+                        ].map((stat, i) => (
+                            <div key={i} className="flex items-center gap-3 p-4 rounded-2xl bg-white/40 backdrop-blur-md border border-white/60 shadow-sm transition-transform hover:scale-[1.02]">
+                                <div className={cn("p-2 rounded-lg", stat.bg)}>
+                                    <stat.icon className={cn("h-4 w-4", stat.color)} />
+                                </div>
+                                <span className="text-xs font-bold text-foreground/80">{stat.label}</span>
                             </div>
-                            <div className="w-px h-12 bg-white/10 hidden sm:block" />
-                            <div className="space-y-1 text-center sm:text-left">
-                                <div className="text-3xl font-bold">120m</div>
-                                <div className="text-xs uppercase tracking-widest text-slate-400 font-bold">Avg Duration</div>
-                            </div>
-                            <div className="w-px h-12 bg-white/10 hidden sm:block" />
-                            <div className="space-y-1 text-center sm:text-left">
-                                <div className="text-3xl font-bold">100%</div>
-                                <div className="text-xs uppercase tracking-widest text-slate-400 font-bold">Accuracy Goal</div>
-                            </div>
-                        </div>
+                        ))}
                     </div>
                 </div>
-            </FadeIn>
+            </div>
 
-            {filteredTests.length > 0 ? (
-                <StaggerContainer className="py-8 pl-4 lg:pl-12">
-                    {filteredTests.map((test, index) => (
-                        <WeeklyTestTimelineItem 
-                            key={test.id} 
-                            test={test} 
-                            index={index} 
-                            isLast={index === filteredTests.length - 1} 
-                            history={history}
-                        />
-                    ))}
-                </StaggerContainer>
-            ) : (
-                <FadeIn className="text-center py-24 border-2 border-dashed border-slate-200 rounded-[3rem] bg-slate-50/50">
-                    <CalendarCheck className="mx-auto h-20 w-20 text-slate-200 mb-6" />
-                    <h3 className="text-2xl font-bold text-slate-900 mb-2">No Modules Released Yet</h3>
-                    <p className="text-slate-500 font-medium max-w-sm mx-auto">
-                        Our content creators are preparing the next big test for your category. Stay tuned!
-                    </p>
-                    <Button 
-                        variant="link" 
-                        onClick={() => router.push('/dashboard')}
-                        className="mt-6 text-red-600 font-bold flex items-center gap-2 mx-auto"
-                    >
-                        Explore Other Materials <ChevronRight className="h-4 w-4" />
-                    </Button>
-                </FadeIn>
-            )}
+            <div className="space-y-8">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-b border-white/20 pb-6">
+                    <div className="space-y-1">
+                        <h2 className="text-2xl font-bold tracking-tight">Available Test Papers</h2>
+                        <p className="text-sm text-muted-foreground">Recent assessments specialized for your curriculum</p>
+                    </div>
+                    <Badge variant="outline" className="px-4 py-1.5 rounded-lg bg-red-50 text-red-600 border-red-100 font-bold">
+                        {userCategory} COURSE
+                    </Badge>
+                </div>
+
+                {filteredTests.length > 0 ? (
+                    <StaggerContainer className="py-8 pl-4 lg:pl-12">
+                        {filteredTests.map((test, index) => (
+                            <WeeklyTestTimelineItem 
+                                key={test.id} 
+                                test={test} 
+                                index={index} 
+                                isLast={index === filteredTests.length - 1} 
+                                history={history}
+                            />
+                        ))}
+                    </StaggerContainer>
+                ) : (
+                    <div className="relative overflow-hidden rounded-[2rem] border-2 border-dashed border-red-500/20 bg-red-500/5 py-24 text-center">
+                        <div className="absolute inset-0 bg-gradient-to-t from-red-500/5 via-transparent to-transparent opacity-50" />
+                        <div className="relative flex flex-col items-center gap-4">
+                            <div className="p-6 rounded-full bg-white shadow-xl text-red-200 scale-125 mb-4 border border-red-100">
+                                <Trophy className="h-12 w-12" />
+                            </div>
+                            <h3 className="text-2xl font-bold">New Tests Coming Soon</h3>
+                            <p className="text-muted-foreground font-medium max-w-sm mx-auto leading-relaxed">
+                                We are preparing high-quality assessment papers for the <span className="text-red-600 font-bold">{userCategory}</span> course. <br/>Check back every Sunday!
+                            </p>
+                            <Button 
+                                variant="outline" 
+                                onClick={() => router.refresh()} 
+                                className="mt-4 gap-2 px-8 py-6 rounded-xl border-red-500/20 hover:bg-white transition-all shadow-sm"
+                            >
+                                <Loader2 className="h-4 w-4" />
+                                Refresh Assessments
+                            </Button>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

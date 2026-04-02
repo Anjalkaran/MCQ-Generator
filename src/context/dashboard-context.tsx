@@ -154,8 +154,8 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     const categories = rawCategories.filter(filterFn);
     const topics = rawTopics.filter(filterFn);
     const videoClasses = rawVideoClasses.filter(filterFn);
-    const weeklyTests = rawWeeklyTests.filter(filterFn);
-    const dailyTests = rawDailyTests.filter(filterFn);
+    const weeklyTests = rawWeeklyTests; // Allow all weekly tests, tabs will filter them
+    const dailyTests = rawDailyTests;   // Allow all daily tests, tabs will filter them
     
     const activeTopicIds = new Set(topics.map(t => t.id));
     const studyMaterials = rawStudyMaterials.filter(m => activeTopicIds.has(m.topicId));

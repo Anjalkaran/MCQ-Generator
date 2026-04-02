@@ -256,7 +256,8 @@ export function DailyTestManagement({ initialDailyTests, initialBankedQuestions 
   const filteredTests = useMemo(() => 
     dailyTests.filter(t => 
         t.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        t.examCategories?.some(cat => cat.toLowerCase().includes(searchTerm.toLowerCase()))
+        t.examCategories?.some(cat => cat.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (t as any).examCategory?.toLowerCase().includes(searchTerm.toLowerCase())
     ),
     [dailyTests, searchTerm]
   );
@@ -404,7 +405,16 @@ export function DailyTestManagement({ initialDailyTests, initialBankedQuestions 
                             {filteredTests.length > 0 ? filteredTests.map(t => (
                                 <TableRow key={t.id}>
                                     <TableCell className="font-medium">{t.title}</TableCell>
-                                    <TableCell><div className="flex flex-wrap gap-1">{t.examCategories?.map(cat => <Badge key={cat} variant="secondary" className="text-[10px]">{cat}</Badge>)}</div></TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-wrap gap-1">
+                                            {t.examCategories?.map(cat => <Badge key={cat} variant="secondary" className="text-[10px]">{cat}</Badge>)}
+                                            {!t.examCategories?.length && (t as any).examCategory && (
+                                                <Badge variant="outline" className="text-[10px] border-amber-200 bg-amber-50 text-amber-700">
+                                                    Legacy: {(t as any).examCategory}
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </TableCell>
                                     <TableCell className="text-xs text-muted-foreground">{t.createdAt ? format(t.createdAt, 'dd/MM/yyyy') : 'N/A'}</TableCell>
                                     <TableCell className="text-right space-x-2">
                                         <Button variant="ghost" size="icon" onClick={() => handleManageQuestions(t)} title="Edit Questions"><List className="h-4 w-4 text-primary" /></Button>

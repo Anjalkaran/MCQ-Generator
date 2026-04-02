@@ -617,6 +617,12 @@ export const addWeeklyTest = async (testData: Omit<WeeklyTest, 'id'>): Promise<D
     return await addDoc(collection(db, 'weeklyTests'), { ...testData, createdAt: serverTimestamp() });
 };
 
+export const updateWeeklyTest = async (testId: string, testData: Partial<WeeklyTest>): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    await updateDoc(doc(db, 'weeklyTests', testId), testData);
+};
+
 export const deleteWeeklyTest = async (testId: string): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) return;

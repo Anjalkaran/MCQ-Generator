@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, PlusCircle, Trash2, Search, Upload, FilePlus, List, Edit, Save, FileCode, ClipboardPaste } from 'lucide-react';
-import { deleteWeeklyTest, getLiveTestQuestionPaper, updateLiveTestBankDocument } from '@/lib/firestore';
+import { deleteWeeklyTest, getLiveTestQuestionPaper, updateLiveTestBankDocument, updateWeeklyTest } from '@/lib/firestore';
 import { getFirebaseAuth } from '@/lib/firebase';
 import type { BankedQuestion, WeeklyTest, MCQ } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -39,6 +39,11 @@ const appendSchema = z.object({
   method: z.enum(["file", "paste"]).default("file"),
   file: z.any().optional(),
   pastedJson: z.string().optional()
+});
+
+const editInfoSchema = z.object({
+  title: z.string().min(3, "Title is required."),
+  examCategories: z.array(z.string()).min(1, "Select at least one category."),
 });
 
 const mcqSchema = z.object({
@@ -72,6 +77,8 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
   const [isQuestionsLoading, setIsQuestionsLoading] = useState(false);
   const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
   const [isSavingQuestions, setIsSavingQuestions] = useState(false);
+  const [editingTestInfo, setEditingTestInfo] = useState<WeeklyTest | null>(null);
+  const [isUpdatingInfo, setIsUpdatingInfo] = useState(false);
   
   const { toast } = useToast();
 
@@ -86,6 +93,11 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
   });
 
   const editQuestionForm = useForm<z.infer<typeof mcqSchema>>();
+
+  const editInfoForm = useForm<z.infer<typeof editInfoSchema>>({
+    resolver: zodResolver(editInfoSchema),
+    defaultValues: { title: '', examCategories: [] }
+  });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
@@ -254,10 +266,26 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
     }
   };
 
+  const handleUpdateTestInfo = async (values: z.infer<typeof editInfoSchema>) => {
+    if (!editingTestInfo) return;
+    setIsUpdatingInfo(true);
+    try {
+        await updateWeeklyTest(editingTestInfo.id, values);
+        setWeeklyTests(prev => prev.map(t => t.id === editingTestInfo.id ? { ...t, ...values } : t));
+        toast({ title: "Updated", description: "Weekly test information updated successfully." });
+        setEditingTestInfo(null);
+    } catch (error) {
+        toast({ title: "Error", description: "Failed to update test info.", variant: "destructive" });
+    } finally {
+        setIsUpdatingInfo(false);
+    }
+  };
+
   const filteredTests = useMemo(() => 
     weeklyTests.filter(t => 
         t.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        t.examCategories?.some(cat => cat.toLowerCase().includes(searchTerm.toLowerCase()))
+        t.examCategories?.some(cat => cat.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (t as any).examCategory?.toLowerCase().includes(searchTerm.toLowerCase())
     ),
     [weeklyTests, searchTerm]
   );
@@ -405,10 +433,26 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                             {filteredTests.length > 0 ? filteredTests.map(t => (
                                 <TableRow key={t.id}>
                                     <TableCell className="font-medium">{t.title}</TableCell>
-                                    <TableCell><div className="flex flex-wrap gap-1">{t.examCategories?.map(cat => <Badge key={cat} variant="secondary" className="text-[10px]">{cat}</Badge>)}</div></TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-wrap gap-1">
+                                            {t.examCategories?.map(cat => <Badge key={cat} variant="secondary" className="text-[10px]">{cat}</Badge>)}
+                                            {!t.examCategories?.length && (t as any).examCategory && (
+                                                <Badge variant="outline" className="text-[10px] border-amber-200 bg-amber-50 text-amber-700">
+                                                    Legacy: {(t as any).examCategory}
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </TableCell>
                                     <TableCell className="text-xs text-muted-foreground">{t.createdAt ? format(t.createdAt, 'dd/MM/yyyy') : 'N/A'}</TableCell>
                                     <TableCell className="text-right space-x-2">
                                         <Button variant="ghost" size="icon" onClick={() => handleManageQuestions(t)} title="Edit Questions"><List className="h-4 w-4 text-primary" /></Button>
+                                        <Button variant="ghost" size="icon" onClick={() => { 
+                                            setEditingTestInfo(t); 
+                                            editInfoForm.reset({ 
+                                                title: t.title, 
+                                                examCategories: t.examCategories || ((t as any).examCategory ? [(t as any).examCategory] : []) 
+                                            }); 
+                                        }} title="Edit Info"><Edit className="h-4 w-4 text-amber-600" /></Button>
                                         <Button variant="ghost" size="icon" onClick={() => setSelectedTestToAppend(t)} title="Append"><FilePlus className="h-4 w-4 text-blue-600" /></Button>
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger>
@@ -488,6 +532,42 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                         <Button type="submit" className="w-full">Update locally</Button>
                     </form></Form>
                 </ScrollArea>
+                </DialogContent>
+            </Dialog>
+
+        {/* EDIT TEST INFO DIALOG */}
+        <Dialog open={!!editingTestInfo} onOpenChange={(open) => !open && setEditingTestInfo(null)}>
+            <DialogContent className="max-w-md">
+                <DialogHeader><DialogTitle>Edit Test Information</DialogTitle></DialogHeader>
+                <Form {...editInfoForm}>
+                    <form onSubmit={editInfoForm.handleSubmit(handleUpdateTestInfo)} className="space-y-4">
+                        <FormField control={editInfoForm.control} name="title" render={({ field }) => (
+                            <FormItem><FormLabel>Test Title</FormLabel><FormControl><Input placeholder="e.g. MCQ on Postal History" {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        
+                        <FormField control={editInfoForm.control} name="examCategories" render={() => (
+                            <FormItem>
+                                <FormLabel>Exam Categories</FormLabel>
+                                <div className="grid grid-cols-2 gap-2 p-3 border rounded-md">
+                                    {categoriesList.map((category) => (
+                                        <FormField key={category} control={editInfoForm.control} name="examCategories" render={({ field }) => (
+                                            <FormItem key={category} className="flex flex-row items-start space-x-3 space-y-0">
+                                                <FormControl><Checkbox checked={field.value?.includes(category)} onCheckedChange={(checked) => checked ? field.onChange([...field.value, category]) : field.onChange(field.value?.filter((value) => value !== category))} /></FormControl>
+                                                <FormLabel className="text-sm font-normal cursor-pointer">{category}</FormLabel>
+                                            </FormItem>
+                                        )} />
+                                    ))}
+                                </div>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        
+                        <DialogFooter>
+                            <Button variant="outline" type="button" onClick={() => setEditingTestInfo(null)}>Cancel</Button>
+                            <Button type="submit" disabled={isUpdatingInfo}>{isUpdatingInfo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save Changes</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
             </DialogContent>
         </Dialog>
     </div>
