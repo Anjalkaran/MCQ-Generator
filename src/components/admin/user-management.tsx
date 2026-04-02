@@ -89,12 +89,19 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
   }, [users, categoryFilter]);
 
   const filteredUsers = useMemo(() => {
-    return users.filter(u => {
-        const matchesSearch = (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (u.email || '').toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = categoryFilter === 'all' || u.examCategory === categoryFilter;
-        const matchesStatus = statusFilter === 'all' || (statusFilter === 'pro' ? u.isPro : !u.isPro);
-        return matchesSearch && matchesCategory && matchesStatus;
-    });
+    return users
+      .filter(u => {
+          const matchesSearch = (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (u.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+          const matchesCategory = categoryFilter === 'all' || u.examCategory === categoryFilter;
+          const matchesStatus = statusFilter === 'all' || (statusFilter === 'pro' ? u.isPro : !u.isPro);
+          return matchesSearch && matchesCategory && matchesStatus;
+      })
+      .sort((a, b) => {
+          // Sort by registration date in descending order (most recent first)
+          const dateA = normalizeDate(a.createdAt)?.getTime() || 0;
+          const dateB = normalizeDate(b.createdAt)?.getTime() || 0;
+          return dateB - dateA;
+      });
   }, [users, searchTerm, categoryFilter, statusFilter]);
 
   const updateUserForm = useForm<z.infer<typeof userUpdateSchema>>({ 
@@ -239,9 +246,14 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                             filteredUsers.map(u => (
                                 <TableRow key={u.uid}>
                                     <TableCell className="font-medium">
-                                        {u.name}
-                                        <br/>
-                                        <span className="text-xs text-muted-foreground">{u.email}</span>
+                                        <div className="flex flex-col">
+                                            <span>{u.name}</span>
+                                            <span className="text-xs text-muted-foreground">{u.email}</span>
+                                            <span className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+                                                <CalendarIcon className="h-2.5 w-2.5" />
+                                                Joined: {normalizeDate(u.createdAt) ? format(normalizeDate(u.createdAt)!, 'dd MMM yyyy') : 'Pre-audit'}
+                                            </span>
+                                        </div>
                                     </TableCell>
                                     <TableCell>
                                         <Badge variant="outline">{u.examCategory}</Badge>
