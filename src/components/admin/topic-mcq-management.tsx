@@ -48,8 +48,12 @@ interface TopicMCQManagementProps {
 export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQManagementProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [topics] = useState<Topic[]>(initialTopics);
+  const [topics, setTopics] = useState<Topic[]>(initialTopics);
   const [topicMCQs, setTopicMCQs] = useState<TopicMCQ[]>(initialTopicMCQs || []);
+  
+  // Sync with props
+  useEffect(() => { setTopics(initialTopics); }, [initialTopics]);
+  useEffect(() => { setTopicMCQs(initialTopicMCQs || []); }, [initialTopicMCQs]);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingMCQ, setEditingMCQ] = useState<TopicMCQ | null>(null);

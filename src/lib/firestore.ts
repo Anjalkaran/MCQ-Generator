@@ -834,7 +834,7 @@ export const markNotificationsAsRead = async (notificationIds: string[]): Promis
 export const getTopicMCQs = async (topicId?: string): Promise<TopicMCQ[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
-    const q = topicId ? query(collection(db, 'topicMCQs'), where('topicId', '==', topicId)) : query(collection(db, 'topicMCQs'), orderBy('uploadedAt', 'desc'));
+    const q = topicId ? query(collection(db, 'topicMCQs'), where('topicId', '==', topicId)) : query(collection(db, 'topicMCQs'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: normalizeDate(doc.data().uploadedAt) || new Date() } as TopicMCQ));
 };

@@ -117,6 +117,11 @@ export function TopicManagement({ initialCategories, initialTopics, initialTopic
         topicForm.reset({ title: '', description: '', categoryId: '', part: undefined, examCategories: [], file: undefined });
     }
   }, [editingTopic, topicForm]);
+  
+  // Sync with props
+  useEffect(() => { setCategories(initialCategories); }, [initialCategories]);
+  useEffect(() => { setTopics(initialTopics); }, [initialTopics]);
+  useEffect(() => { setTopicMCQs(initialTopicMCQs); }, [initialTopicMCQs]);
 
   const onCategorySubmit = async (values: z.infer<typeof categorySchema>) => {
     setIsLoadingCategory(true);
