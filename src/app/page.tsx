@@ -10,11 +10,13 @@ import Link from "next/link";
 
 import { SlideUp, FadeIn } from "@/components/animations/motion-wrapper";
 import { GovernmentDisclaimer } from "@/components/government-disclaimer";
+import { SocialLinksSidebar } from "@/components/social-links-sidebar";
 
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-muted/40 overflow-x-hidden">
       <MainHeader />
+      <SocialLinksSidebar />
       <main className="flex-1">
         <section className="w-full py-12 md:py-24 lg:py-32 relative overflow-hidden">
           {/* Background Decorative Elements */}

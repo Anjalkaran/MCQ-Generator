@@ -17,6 +17,7 @@ import { GovernmentDisclaimer } from '@/components/government-disclaimer';
 import type { VideoClass, StudyMaterial } from '@/lib/types';
 import { doc, updateDoc } from 'firebase/firestore';
 import { getFirebaseDb } from '@/lib/firebase';
+import { SocialLinksSidebar } from '@/components/social-links-sidebar';
 
 // Re-export useDashboard for backward compatibility
 export { useDashboard } from '@/context/dashboard-context';
@@ -101,6 +102,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           <AppSidebar />
         </div>
         <main className="flex-1 bg-muted/40 flex flex-col min-h-0 relative">
+          <SocialLinksSidebar />
           <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
             <SidebarTrigger className="sm:hidden" />
             <div className="relative flex-1 flex items-center gap-2">
