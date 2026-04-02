@@ -63,9 +63,44 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased h-full`} suppressHydrationWarning>
+      <body className={`${inter.variable} font-sans antialiased h-full select-none`} suppressHydrationWarning>
         {children}
         <Toaster />
+        <script dangerouslySetInnerHTML={{ __html: `
+          document.addEventListener('contextmenu', e => e.preventDefault());
+          document.addEventListener('keydown', e => {
+            // Disable Ctrl+C, Ctrl+V, Ctrl+U, Ctrl+S, Ctrl+Shift+I/J/C
+            const key = e.key.toLowerCase();
+            const cmdOrCtrl = e.ctrlKey || e.metaKey;
+            
+            if (cmdOrCtrl && (key === 'c' || key === 'v' || key === 'u' || key === 's' || key === 'p')) {
+              e.preventDefault();
+            }
+            if (cmdOrCtrl && e.shiftKey && (key === 'i' || key === 'j' || key === 'c')) {
+              e.preventDefault();
+            }
+            if (e.key === 'F12') {
+              e.preventDefault();
+            }
+          });
+        ` }} />
+        <style dangerouslySetInnerHTML={{ __html: `
+          @media print {
+            body { display: none !important; }
+          }
+          * {
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+            user-select: none !important;
+          }
+          input, textarea {
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+            user-select: text !important;
+          }
+        ` }} />
       </body>
     </html>
   );
