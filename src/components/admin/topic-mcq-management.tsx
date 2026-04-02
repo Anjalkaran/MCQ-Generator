@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -63,6 +63,20 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
         files: [],
     }
   });
+
+  // Auto-focus topic if coming from Topic Management
+  useEffect(() => {
+    const highlightId = sessionStorage.getItem('highlight_topic_id');
+    if (highlightId) {
+      const topic = topics.find(t => t.id === highlightId);
+      if (topic) {
+        setSearchTerm(topic.title); // For the table search
+        form.setValue('topicId', highlightId);
+        toast({ title: "Topic Focused", description: `Managing MCQs for: ${topic.title}` });
+      }
+      sessionStorage.removeItem('highlight_topic_id');
+    }
+  }, [topics, form, toast]);
 
   const onSubmit = async (values: z.infer<typeof uploadSchema>) => {
     setIsUploading(true);

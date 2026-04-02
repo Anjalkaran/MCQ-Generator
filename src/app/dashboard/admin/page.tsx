@@ -145,6 +145,18 @@ export default function AdminPage() {
     fetchAdminData();
   }, [userData, toast]);
 
+  useEffect(() => {
+    const handleSwitchSection = (e: CustomEvent<{ section: AdminSection; topicId?: string }>) => {
+      setActiveSection(e.detail.section);
+      if (e.detail.topicId) {
+        // Maybe store topicId in session or window to highlight it in the next view
+        sessionStorage.setItem('highlight_topic_id', e.detail.topicId);
+      }
+    };
+    window.addEventListener('switch-admin-section' as any, handleSwitchSection);
+    return () => window.removeEventListener('switch-admin-section' as any, handleSwitchSection);
+  }, []);
+
   if (isDashboardLoading || isLoadingAdminData) {
     return (
        <div className="flex h-[50vh] w-full items-center justify-center flex-col gap-4">
@@ -183,7 +195,7 @@ export default function AdminPage() {
         );
         case 'weekly-tests': return <WeeklyTestManagement initialWeeklyTests={weeklyTests} initialBankedQuestions={bankedQuestions} />;
         case 'daily-tests': return <DailyTestManagement initialDailyTests={dailyTests} initialBankedQuestions={bankedQuestions} />;
-        case 'topics': return <TopicManagement initialCategories={categories} initialTopics={topics} />;
+        case 'topics': return <TopicManagement initialCategories={categories} initialTopics={topics} initialTopicMCQs={topicMCQs} />;
         case 'study-material': return <StudyMaterialManagement initialTopics={topics} initialMaterials={studyMaterials} initialCategories={categories} />;
         case 'video-classes': return <VideoClassManagement initialVideos={videoClasses} />;
         case 'topic-mcq': return <TopicMCQManagement initialTopics={topics} initialTopicMCQs={topicMCQs} />;

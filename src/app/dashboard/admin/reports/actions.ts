@@ -56,7 +56,12 @@ export async function updateReportedMCQAction(
 
         if (!content.mcqs || !Array.isArray(content.mcqs)) continue;
 
-        const mcqIndex = content.mcqs.findIndex((m: MCQ) => m.questionId === questionId);
+        const mcqIndex = content.mcqs.findIndex((m: MCQ) => {
+          if (questionId && m.questionId === questionId) return true;
+          // Fallback: match by question text if ID is missing or not found
+          return m.question.trim() === updatedMCQ.question.trim() || 
+                 m.question.trim() === updatedMCQ.question.trim().replace(/['"“”‘’]/g, ''); // Basic handle for quotes
+        });
 
         if (mcqIndex !== -1) {
           // Found it! Update the MCQ
@@ -80,7 +85,7 @@ export async function updateReportedMCQAction(
       }
 
       if (updatedCount === 0) {
-        throw new Error(`MCQ with questionId ${questionId} not found in topic ${topicId}`);
+        throw new Error(`Could not find this question in topic ${topicId}. Content mapping failed.`);
       }
     }
 

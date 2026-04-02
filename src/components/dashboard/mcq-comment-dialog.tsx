@@ -75,7 +75,13 @@ export function MCQCommentDialog({
     try {
       if (mode === 'admin') {
         if (!mcq) throw new Error("MCQ data missing for report");
-        await submitMCQReport(auth.currentUser.uid, mcq, comment, topicId, issueType, severity);
+        // Ensure the MCQ object has the questionId for live editing tracking
+        const mcqWithMetadata = { 
+          ...mcq, 
+          questionId: mcq.questionId || questionId,
+          topicId: mcq.topicId || topicId 
+        };
+        await submitMCQReport(auth.currentUser.uid, mcqWithMetadata, comment, topicId, issueType, severity);
         toast({
           title: "Report Sent",
           description: "Thank you! The admin will review this question.",

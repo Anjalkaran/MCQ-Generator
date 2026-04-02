@@ -160,13 +160,16 @@ export default function AdminReportsPage() {
                                 </div>
                             </div>
                                 <div className="flex gap-2">
-                                    {report.topicId && report.question.questionId && (
+                                    {report.topicId && (
                                     <MCQEditDialog
                                         reportId={report.id}
                                         mcq={report.question}
                                         topicId={report.topicId}
                                         onUpdateSuccess={() => setReports(prev => prev.filter(r => r.id !== report.id))}
-                                        className="bg-green-600 text-white hover:bg-green-700 h-10 px-6 font-bold rounded-xl border-none"
+                                        className={cn(
+                                            "h-10 px-6 font-bold rounded-xl border-none shadow-md transition-all active:scale-95",
+                                            !report.question.questionId ? "bg-amber-600 hover:bg-amber-700" : "bg-green-600 hover:bg-green-700 text-white"
+                                        )}
                                     />
                                     )}
                                     
@@ -206,9 +209,19 @@ export default function AdminReportsPage() {
                                     </p>
                                     
                                     {(!report.topicId || !report.question.questionId) && (
-                                        <div className="mt-4 flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-xl text-xs font-bold ring-1 ring-red-100 italic">
-                                            <AlertCircle className="h-4 w-4" />
-                                            Question metadata missing. Live editing is disabled.
+                                        <div className={cn(
+                                            "mt-4 flex flex-col gap-2 p-4 rounded-2xl text-xs font-bold ring-1 italic shadow-inner",
+                                            !report.topicId ? "bg-red-50 text-red-700 ring-red-100" : "bg-amber-50 text-amber-700 ring-amber-100"
+                                        )}>
+                                            <div className="flex items-center gap-2">
+                                                {!report.topicId ? <AlertCircle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+                                                {!report.topicId ? "Fatal metadata error. Source unknown." : "Partial metadata. Fallback content matching will be used."}
+                                            </div>
+                                            {!report.question.questionId && report.topicId && (
+                                                <p className="font-normal opacity-75 ml-6">
+                                                    We'll try to find this question by its text content instead of its ID.
+                                                </p>
+                                            )}
                                         </div>
                                     )}
                                 </div>

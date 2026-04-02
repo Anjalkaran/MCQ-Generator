@@ -12,8 +12,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { addCategory, addTopic, deleteTopic, deleteCategory, updateCategory, updateTopic } from '@/lib/firestore';
-import type { Topic, Category } from '@/lib/types';
-import { Loader2, PlusCircle, Trash2, Edit, Search, BookOpen, Layers, Filter, MoreVertical, FileText, CheckCircle2, AlertCircle, Upload } from 'lucide-react';
+import type { Topic, Category, TopicMCQ } from '@/lib/types';
+import { Loader2, PlusCircle, Trash2, Edit, Search, BookOpen, Layers, Filter, MoreVertical, FileText, CheckCircle2, AlertCircle, Upload, HelpCircle, FileQuestion } from 'lucide-react';
 import { getFirebaseStorage, getFirebaseAuth } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -67,11 +67,13 @@ const topicSchema = z.object({
 interface TopicManagementProps {
     initialCategories: Category[];
     initialTopics: Topic[];
+    initialTopicMCQs: TopicMCQ[];
 }
 
-export function TopicManagement({ initialCategories, initialTopics }: TopicManagementProps) {
+export function TopicManagement({ initialCategories, initialTopics, initialTopicMCQs }: TopicManagementProps) {
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [topics, setTopics] = useState<Topic[]>(initialTopics);
+  const [topicMCQs, setTopicMCQs] = useState<TopicMCQ[]>(initialTopicMCQs);
   const [isLoadingCategory, setIsLoadingCategory] = useState(false);
   const [isLoadingTopic, setIsLoadingTopic] = useState(false);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
@@ -255,6 +257,21 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
     return categories.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [searchTerm, categories]);
 
+  const getMCQCount = (topicId: string) => {
+    const mcqDocs = topicMCQs.filter(m => m.topicId === topicId);
+    if (mcqDocs.length === 0) return 0;
+    
+    return mcqDocs.reduce((total, mcqObj) => {
+      try {
+        const parsed = typeof mcqObj.content === 'string' ? JSON.parse(mcqObj.content) : mcqObj.content;
+        const questions = Array.isArray(parsed) ? parsed : (parsed.questions || parsed.mcqs || []);
+        return total + (Array.isArray(questions) ? questions.length : 0);
+      } catch (e) {
+        return total;
+      }
+    }, 0);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Stats Bar */}
@@ -274,6 +291,15 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
             <div>
               <p className="text-[10px] font-bold text-orange-400 uppercase tracking-tight">Total Topics</p>
               <h4 className="text-xl font-bold text-orange-900">{topics.length}</h4>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-none shadow-sm bg-red-50/50">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-2 bg-red-100 rounded-lg text-red-600"><FileText className="h-5 w-5" /></div>
+            <div>
+              <p className="text-[10px] font-bold text-red-400 uppercase tracking-tight">MCQ Coverage</p>
+              <h4 className="text-xl font-bold text-red-900">{topicMCQs.length} <small className="text-[10px] text-slate-400 font-normal ml-1">topics loaded</small></h4>
             </div>
           </CardContent>
         </Card>
@@ -330,6 +356,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                   <TableHead className="w-[300px]">Topic Details</TableHead>
                   <TableHead>Course Level</TableHead>
                   <TableHead>Materials</TableHead>
+                  <TableHead>MCQ Status</TableHead>
                   <TableHead className="text-right pr-6">Manage</TableHead>
                 </TableRow>
               </TableHeader>
@@ -366,8 +393,41 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                           </div>
                         )}
                       </TableCell>
+                      <TableCell>
+                        {getMCQCount(topic.id) > 0 ? (
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-1.5 text-red-600 font-bold text-[10px]">
+                              <CheckCircle2 className="h-3 w-3" /> {getMCQCount(topic.id)} Questions
+                            </div>
+                            <span className="text-[9px] text-slate-400 font-medium ml-4.5">Ready for test</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-slate-300 font-bold text-[10px]">
+                            <HelpCircle className="h-3 w-3" /> No MCQs
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right pr-6 space-x-1">
-                         <div className="flex justify-end gap-1">
+                          <div className="flex justify-end gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" 
+                              title="Manage MCQs"
+                              asChild
+                            >
+                              <a href={`/dashboard/admin?section=topic-mcq#${topic.id}`} onClick={(e) => {
+                                e.preventDefault();
+                                // We need to reach the parent's setActiveSection. 
+                                // Since we are in a sub-component, we might need a prop or just use window location if it reacts.
+                                // For now, since it's a SPA-ish dashboard, let's assume the user can click it.
+                                // Actually, better to just edit the topic or add a button that the parent can handle.
+                                // But since we don't have a callback for "switch section", let's just trigger a custom event or check if we can pass it.
+                                window.dispatchEvent(new CustomEvent('switch-admin-section', { detail: { section: 'topic-mcq', topicId: topic.id } }));
+                              }}>
+                                <FileQuestion className="h-4 w-4" />
+                              </a>
+                            </Button>
                             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100" onClick={() => { setEditingTopic(topic); setIsTopicDialogOpen(true); }}>
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -393,7 +453,7 @@ export function TopicManagement({ initialCategories, initialTopics }: TopicManag
                     </TableRow>
                   ))
                 ) : (
-                  <TableRow><TableCell colSpan={4} className="h-48 text-center text-slate-400 italic">No topics found matching your search.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={5} className="h-48 text-center text-slate-400 italic">No topics found matching your search.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>

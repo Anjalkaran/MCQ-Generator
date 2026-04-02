@@ -75,12 +75,13 @@ export function AdminOverview({
        desc: 'Add and organize topics, videos, and study notes.', 
        icon: Video,
        color: 'orange',
-       items: [
-         { label: 'Topic Repository', value: 'topics' },
-         { label: 'Video Lecture Bank', value: 'video-classes' },
-         { label: 'Study Portfolios', value: 'study-material' },
-         { label: 'Review Reports', value: 'reports' }
-       ]
+        items: [
+          { label: 'Topic Repository', value: 'topics' },
+          { label: 'MCQ Bank', value: 'topic-mcq' },
+          { label: 'Video Lecture Bank', value: 'video-classes' },
+          { label: 'Study Portfolios', value: 'study-material' },
+          { label: 'Review Reports', value: 'reports' }
+        ]
     },
     { 
        id: 'weekly-tests',
