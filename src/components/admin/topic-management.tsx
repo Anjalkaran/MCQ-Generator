@@ -121,7 +121,7 @@ export function TopicManagement({ initialCategories, initialTopics, initialTopic
   // Sync with props
   useEffect(() => { setCategories(initialCategories); }, [initialCategories]);
   useEffect(() => { setTopics(initialTopics); }, [initialTopics]);
-  useEffect(() => { setTopicMCQs(initialTopicMCQs); }, [initialTopicMCQs]);
+  useEffect(() => { setTopicMCQs(initialTopicMCQs || []); }, [initialTopicMCQs]);
 
   const onCategorySubmit = async (values: z.infer<typeof categorySchema>) => {
     setIsLoadingCategory(true);
@@ -263,15 +263,21 @@ export function TopicManagement({ initialCategories, initialTopics, initialTopic
   }, [searchTerm, categories]);
 
   const getMCQCount = (topicId: string) => {
+    if (!topicMCQs || !Array.isArray(topicMCQs)) return 0;
+    
+    // Some docs might have topicId at top level, others might have it inside content
     const mcqDocs = topicMCQs.filter(m => m.topicId === topicId);
+    
     if (mcqDocs.length === 0) return 0;
     
     return mcqDocs.reduce((total, mcqObj) => {
       try {
         const parsed = typeof mcqObj.content === 'string' ? JSON.parse(mcqObj.content) : mcqObj.content;
+        // The parser looks for .questions, .mcqs, or the array itself
         const questions = Array.isArray(parsed) ? parsed : (parsed.questions || parsed.mcqs || []);
         return total + (Array.isArray(questions) ? questions.length : 0);
       } catch (e) {
+        console.error("Error parsing MCQ content for count:", e);
         return total;
       }
     }, 0);

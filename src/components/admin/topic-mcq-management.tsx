@@ -43,9 +43,10 @@ const uploadSchema = z.object({
 interface TopicMCQManagementProps {
     initialTopics: Topic[];
     initialTopicMCQs: TopicMCQ[];
+    onUpdate?: () => void;
 }
 
-export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQManagementProps) {
+export function TopicMCQManagement({ initialTopics, initialTopicMCQs, onUpdate }: TopicMCQManagementProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [topics, setTopics] = useState<Topic[]>(initialTopics);
@@ -110,6 +111,10 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs }: TopicMCQ
       }
 
       const { newDocument } = await response.json();
+      
+      // Trigger global refresh for parent dashboard
+      if (onUpdate) onUpdate();
+      
       setTopicMCQs(prev => {
         const existingDocIndex = prev.findIndex(doc => doc.topicId === newDocument.topicId);
         if (existingDocIndex > -1) {

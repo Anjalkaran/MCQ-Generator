@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useDashboard } from "@/app/dashboard/layout";
 import { UserManagement } from '@/components/admin/user-management';
 import { TopicManagement } from '@/components/admin/topic-management';
@@ -103,47 +103,47 @@ export default function AdminPage() {
   const [feedback, setFeedback] = useState<Feedback[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
 
-  useEffect(() => {
-    const fetchAdminData = async () => {
-      if (!userData || !ADMIN_EMAILS.includes(userData.email)) return;
+  const fetchAdminData = useCallback(async () => {
+    if (!userData || !ADMIN_EMAILS.includes(userData.email)) return;
+    
+    setIsLoadingAdminData(true);
+    try {
+      const [
+          fetchedUsers, fetchedCategories, fetchedTopics, fetchedMaterials, 
+          fetchedVideos, fetchedMCQs, fetchedBank, fetchedReasoning, 
+          fetchedScheduled, fetchedWeekly, fetchedDaily, fetchedFeedback, fetchedQnA
+      ] = await Promise.all([
+          getAllUsers(), getCategories(), getTopics(), getStudyMaterials(),
+          getVideoClasses(), getTopicMCQs(), getQuestionBankDocuments(), getReasoningQuestions(),
+          getLiveTests(true), getWeeklyTests(), getDailyTests(), getAllFeedback(), getQnAUsage()
+      ]);
       
-      setIsLoadingAdminData(true);
-      try {
-        const [
-            fetchedUsers, fetchedCategories, fetchedTopics, fetchedMaterials, 
-            fetchedVideos, fetchedMCQs, fetchedBank, fetchedReasoning, 
-            fetchedScheduled, fetchedWeekly, fetchedDaily, fetchedFeedback, fetchedQnA
-        ] = await Promise.all([
-            getAllUsers(), getCategories(), getTopics(), getStudyMaterials(),
-            getVideoClasses(), getTopicMCQs(), getQuestionBankDocuments(), getReasoningQuestions(),
-            getLiveTests(true), getWeeklyTests(), getDailyTests(), getAllFeedback(), getQnAUsage()
-        ]);
-        
-        const regularUsers = fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email));
-        setUsers(regularUsers);
-        setCategories(fetchedCategories);
-        setTopics(fetchedTopics);
-        setStudyMaterials(fetchedMaterials);
-        setVideoClasses(fetchedVideos);
-        setTopicMCQs(fetchedMCQs);
-        setBankedQuestions(fetchedBank);
-        setReasoningQuestions(fetchedReasoning);
-        setScheduledTests(fetchedScheduled);
-        setWeeklyTests(fetchedWeekly);
-        setDailyTests(fetchedDaily);
-        setFeedback(fetchedFeedback);
-        setQnaUsage(fetchedQnA);
+      const regularUsers = fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email));
+      setUsers(regularUsers);
+      setCategories(fetchedCategories);
+      setTopics(fetchedTopics);
+      setStudyMaterials(fetchedMaterials);
+      setVideoClasses(fetchedVideos);
+      setTopicMCQs(fetchedMCQs);
+      setBankedQuestions(fetchedBank);
+      setReasoningQuestions(fetchedReasoning);
+      setScheduledTests(fetchedScheduled);
+      setWeeklyTests(fetchedWeekly);
+      setDailyTests(fetchedDaily);
+      setFeedback(fetchedFeedback);
+      setQnaUsage(fetchedQnA);
 
-      } catch (error) {
-        console.error("Failed to fetch admin data:", error);
-        toast({ title: "Error", description: "Could not fetch admin data.", variant: "destructive" });
-      } finally {
-        setIsLoadingAdminData(false);
-      }
-    };
-
-    fetchAdminData();
+    } catch (error) {
+      console.error("Failed to fetch admin data:", error);
+      toast({ title: "Error", description: "Could not fetch admin data.", variant: "destructive" });
+    } finally {
+      setIsLoadingAdminData(false);
+    }
   }, [userData, toast]);
+
+  useEffect(() => {
+    fetchAdminData();
+  }, [fetchAdminData]);
 
   useEffect(() => {
     const handleSwitchSection = (e: CustomEvent<{ section: AdminSection; topicId?: string }>) => {
@@ -198,7 +198,7 @@ export default function AdminPage() {
         case 'topics': return <TopicManagement initialCategories={categories} initialTopics={topics} initialTopicMCQs={topicMCQs} />;
         case 'study-material': return <StudyMaterialManagement initialTopics={topics} initialMaterials={studyMaterials} initialCategories={categories} />;
         case 'video-classes': return <VideoClassManagement initialVideos={videoClasses} />;
-        case 'topic-mcq': return <TopicMCQManagement initialTopics={topics} initialTopicMCQs={topicMCQs} />;
+        case 'topic-mcq': return <TopicMCQManagement initialTopics={topics} initialTopicMCQs={topicMCQs} onUpdate={fetchAdminData} />;
         case 'question-bank': return <QuestionBankManagement initialBankedQuestions={bankedQuestions} />;
         case 'reasoning-bank': return <ReasoningBankManagement initialQuestions={reasoningQuestions} />;
         case 'scheduled-tests': return <LiveTestManagement initialLiveTestBank={bankedQuestions} initialLiveTests={scheduledTests} />;

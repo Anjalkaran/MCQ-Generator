@@ -294,6 +294,19 @@ export function AppSidebar() {
                     </SidebarMenuItem>
 
                     <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === '/dashboard/admin/mcq-bank'} tooltip="MCQ Bank">
+                            <a href="/dashboard/admin?section=topic-mcq" onClick={(e) => {
+                                e.preventDefault();
+                                window.dispatchEvent(new CustomEvent('switch-admin-section', { detail: { section: 'topic-mcq' } }));
+                                onLinkClick();
+                            }}>
+                                <PenSquare className="h-4 w-4" />
+                                <span>MCQ Bank</span>
+                            </a>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+
+                    <SidebarMenuItem>
                         <SidebarMenuButton asChild isActive={pathname === '/dashboard/admin/reports'} tooltip="Question Reports">
                             <Link href="/dashboard/admin/reports" onClick={onLinkClick}>
                                 <Flag />
