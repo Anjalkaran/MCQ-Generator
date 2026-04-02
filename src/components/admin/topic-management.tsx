@@ -150,14 +150,15 @@ export function TopicManagement({ initialCategories, initialTopics, initialTopic
   const onTopicSubmit = async (values: z.infer<typeof topicSchema>) => {
     try {
         let topicId = editingTopic?.id;
-        let finalTopicData = { ...values, description: values.description || '' };
+        const { file: _, ...topicDataWithoutFile } = values;
+        let finalTopicData = { ...topicDataWithoutFile, description: values.description || '' };
         
         if (editingTopic) {
             await updateTopic(editingTopic.id, finalTopicData as any);
             setTopics(prev => prev.map(t => t.id === editingTopic.id ? { ...t, ...finalTopicData } : t).sort((a,b) => a.title.localeCompare(b.title)) as any);
             toast({ title: 'Success', description: 'Topic basic info updated.' });
         } else {
-            const topicData = { ...values, description: values.description || '', icon: 'default' };
+            const topicData = { ...topicDataWithoutFile, description: values.description || '', icon: 'default' };
             const newTopicDoc = await addTopic(topicData as any);
             topicId = newTopicDoc.id;
             const newTopic = { id: topicId, ...topicData };
@@ -205,8 +206,13 @@ export function TopicManagement({ initialCategories, initialTopics, initialTopic
         setEditingTopic(null);
         setIsTopicDialogOpen(false);
         topicForm.reset({ title: '', description: '', categoryId: '', part: undefined, examCategories: [], file: undefined });
-    } catch (error) {
-      toast({ title: 'Error', description: 'Operation failed. Check your connection.', variant: 'destructive' });
+    } catch (error: any) {
+      console.error("Topic management error:", error);
+      toast({ 
+        title: 'Operation Failed', 
+        description: error.message || 'Operation failed. Check your connection.', 
+        variant: 'destructive' 
+      });
     } finally {
         setIsLoadingTopic(false);
     }
@@ -490,7 +496,21 @@ export function TopicManagement({ initialCategories, initialTopics, initialTopic
                       <TableRow key={cat.id} className="hover:bg-slate-50/50 transition-colors group">
                         <TableCell className="font-bold text-slate-900">{cat.name}</TableCell>
                         <TableCell>
-                          <Badge variant="secondary" className="bg-slate-100 text-slate-600 font-bold">{count} Topics</Badge>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="bg-slate-100/50 hover:bg-blue-100 hover:text-blue-600 text-slate-600 font-bold h-7 rounded-full transition-all group-hover:bg-blue-50"
+                            onClick={() => {
+                              setSearchTerm(cat.name);
+                              setActiveTab('topics');
+                              toast({ 
+                                title: "Drill Down", 
+                                description: `Showing all topics in ${cat.name}`
+                              });
+                            }}
+                          >
+                            {count} Topics
+                          </Button>
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">

@@ -5,24 +5,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { LeaderboardEntry, UserData, LiveTest } from '@/lib/types';
-import { Trophy, Clock, Loader2, Award } from 'lucide-react';
+import { Trophy, Award, Medal, Loader2, Calendar, Target, Hash, UserCircle2, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { getLiveTestLeaderboardData } from '@/lib/firestore';
+import { getLiveTestRankingsAction } from '@/app/dashboard/leaderboard/actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { normalizeDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useSearchParams } from 'next/navigation';
-import { useDashboard } from '@/app/dashboard/layout';
-import { ADMIN_EMAILS } from '@/lib/constants';
+import { useDashboard } from '@/context/dashboard-context';
 
 
 interface LeaderboardClientProps {
   initialTopicLeaderboards: Record<UserData['examCategory'], LeaderboardEntry[]>;
   initialMockTestLeaderboards: Record<UserData['examCategory'], LeaderboardEntry[]>;
-  pastLiveTests: any[];
+  initialDailyTestLeaderboards: Record<UserData['examCategory'], LeaderboardEntry[]>;
+  pastWeeklyTests: any[];
+  pastDailyTests: any[];
 }
 
 type ExamCategory = UserData['examCategory'];
@@ -172,53 +171,34 @@ function LeaderboardTable({ data, type = 'general' }: { data: LeaderboardEntry[]
   );
 }
 
-function CategorySelector({ selectedCategory, setSelectedCategory, availableCategories }: { selectedCategory: ExamCategory | 'All', setSelectedCategory: (category: any) => void, availableCategories: (ExamCategory | 'All')[] }) {
-    return (
-        <RadioGroup
-        value={selectedCategory}
-        onValueChange={(value) => setSelectedCategory(value)}
-        className="flex items-center space-x-4 mb-4"
-        >
-        <Label>Filter By:</Label>
-        {availableCategories.map(cat => (
-            <div key={cat} className="flex items-center space-x-2">
-            <RadioGroupItem value={cat} id={`cat-${cat}`} />
-            <Label htmlFor={`cat-${cat}`}>{cat}</Label>
-            </div>
-        ))}
-        </RadioGroup>
-    );
-}
 
-function WeeklyTestLeaderboard({ pastLiveTests, initialTestId, availableCategories, defaultCategory }: { pastLiveTests: any[], initialTestId?: string, availableCategories: (ExamCategory | 'All')[], defaultCategory: ExamCategory | 'All' }) {
-    const [selectedCategory, setSelectedCategory] = useState<ExamCategory | 'All'>(defaultCategory);
+function LiveTestLeaderboard({ tests, initialTestId, defaultCategory, typeLabel = "weekly" }: { tests: any[], initialTestId?: string, defaultCategory: ExamCategory | 'All', typeLabel?: string }) {
     const [selectedTestId, setSelectedTestId] = useState<string | undefined>(undefined);
     const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    const filteredLiveTests = useMemo(() => {
-        return pastLiveTests
+    const filteredTests = useMemo(() => {
+        return tests
             .filter(test => {
-                if (selectedCategory === 'All') return true;
-                return test.examCategories?.includes(selectedCategory);
+                return test.examCategories?.includes(defaultCategory);
             })
             .sort((a, b) => (normalizeDate(b.createdAt)?.getTime() ?? 0) - (normalizeDate(a.createdAt)?.getTime() ?? 0));
-    }, [pastLiveTests, selectedCategory]);
+    }, [tests, defaultCategory]);
 
     useEffect(() => {
         if (initialTestId) {
-            const initialTest = pastLiveTests.find(t => t.id === initialTestId);
+            const initialTest = tests.find(t => t.id === initialTestId);
             if (initialTest) {
                 setSelectedTestId(initialTestId);
                 return; 
             }
         }
-        setSelectedTestId(filteredLiveTests[0]?.id);
-    }, [initialTestId, pastLiveTests, filteredLiveTests]);
+        setSelectedTestId(filteredTests[0]?.id);
+    }, [initialTestId, tests, filteredTests]);
     
      useEffect(() => {
-        setSelectedTestId(filteredLiveTests[0]?.id);
-    }, [selectedCategory, filteredLiveTests]);
+        setSelectedTestId(filteredTests[0]?.id);
+    }, [defaultCategory, filteredTests]);
 
     useEffect(() => {
         const fetchLeaderboard = async () => {
@@ -228,10 +208,11 @@ function WeeklyTestLeaderboard({ pastLiveTests, initialTestId, availableCategori
             }
             setIsLoading(true);
             try {
-                const data = await getLiveTestLeaderboardData(selectedTestId);
+                const test = filteredTests.find(t => t.id === selectedTestId);
+                const data = await getLiveTestRankingsAction(selectedTestId, test?.questionPaperId);
                 setLeaderboardData(data);
             } catch (error) {
-                console.error("Failed to fetch weekly test leaderboard:", error);
+                console.error(`Failed to fetch ${typeLabel} test leaderboard:`, error);
                 setLeaderboardData([]);
             } finally {
                 setIsLoading(false);
@@ -248,16 +229,13 @@ function WeeklyTestLeaderboard({ pastLiveTests, initialTestId, availableCategori
     return (
         <div className="space-y-4">
              <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
-                <div className="w-full sm:w-auto">
-                    <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} availableCategories={availableCategories} />
-                </div>
                 <div className="flex-grow">
                     <Select value={selectedTestId} onValueChange={setSelectedTestId}>
                         <SelectTrigger className="w-full sm:w-[350px]">
-                            <SelectValue placeholder="Select a weekly test..." />
+                            <SelectValue placeholder={`Select a ${typeLabel} test...`} />
                         </SelectTrigger>
                         <SelectContent>
-                            {filteredLiveTests.map(test => (
+                            {filteredTests.map(test => (
                                 <SelectItem key={test.id} value={test.id}>
                                     {test.title} ({getFormattedDate(test.createdAt)})
                                 </SelectItem>
@@ -271,11 +249,11 @@ function WeeklyTestLeaderboard({ pastLiveTests, initialTestId, availableCategori
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
             ) : (
-                filteredLiveTests.length > 0 && selectedTestId ? (
+                filteredTests.length > 0 && selectedTestId ? (
                     <LeaderboardTable data={leaderboardData} type="live" />
                 ) : (
                     <div className="text-center text-muted-foreground py-10">
-                        No results found for the selected Weekly Test in this category.
+                        No results found for the selected {typeLabel} Test in this category.
                     </div>
                 )
             )}
@@ -284,42 +262,27 @@ function WeeklyTestLeaderboard({ pastLiveTests, initialTestId, availableCategori
 }
 
 
-export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLeaderboards, pastLiveTests }: LeaderboardClientProps) {
+export function LeaderboardClient({ 
+    initialTopicLeaderboards, 
+    initialMockTestLeaderboards, 
+    initialDailyTestLeaderboards,
+    pastWeeklyTests,
+    pastDailyTests
+}: LeaderboardClientProps) {
   const { userData } = useDashboard();
   const searchParams = useSearchParams();
   const liveTestIdFromUrl = searchParams.get('liveTestId');
-  const initialTab = liveTestIdFromUrl ? "live" : "topic";
+  const dailyTestIdFromUrl = searchParams.get('dailyTestId');
+  const initialTab = liveTestIdFromUrl ? "live" : dailyTestIdFromUrl ? "daily" : "topic";
 
-  const availableCategories = useMemo(() => {
-    if (!userData) return [];
-    if (userData.email && ADMIN_EMAILS.includes(userData.email)) return ['MTS', 'POSTMAN', 'PA', 'IP'] as ExamCategory[];
-    switch (userData.examCategory) {
-        case 'IP':
-            return ['IP'] as ExamCategory[];
-        case 'PA':
-            return ['PA', 'POSTMAN', 'MTS'] as ExamCategory[];
-        case 'POSTMAN':
-            return ['POSTMAN', 'MTS'] as ExamCategory[];
-        case 'MTS':
-            return ['MTS'] as ExamCategory[];
-        default:
-            return [];
-    }
-  }, [userData]);
   
-  const [selectedCategory, setSelectedCategory] = useState<ExamCategory>(userData?.examCategory || 'MTS');
-  
-  useEffect(() => {
-    if (userData?.examCategory) {
-        setSelectedCategory(userData.examCategory);
-    }
-  }, [userData]);
 
 
   return (
     <Tabs defaultValue={initialTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
+      <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="topic">Topic-wise</TabsTrigger>
+        <TabsTrigger value="daily">Daily Test</TabsTrigger>
         <TabsTrigger value="mock">Syllabus Mock</TabsTrigger>
         <TabsTrigger value="live">Weekly Test</TabsTrigger>
       </TabsList>
@@ -330,8 +293,37 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
             <CardDescription>Ranking based on average scores from all topic-wise quizzes. Only users who have completed more than six exams are included.</CardDescription>
           </CardHeader>
           <CardContent>
-            <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} availableCategories={availableCategories} />
-            <LeaderboardTable data={initialTopicLeaderboards[selectedCategory] || []} />
+            <LeaderboardTable data={initialTopicLeaderboards[userData?.examCategory || 'MTS'] || []} />
+          </CardContent>
+        </Card>
+      </TabsContent>
+      <TabsContent value="daily">
+        <Card>
+          <CardHeader>
+            <CardTitle>Daily Test Consistency Leaderboard</CardTitle>
+            <CardDescription>Ranking based on average scores from all daily tests. Stay consistent to climb the ranks!</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-8">
+            <div>
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                    <Target className="h-5 w-5 text-primary" />
+                    Top Performance (Aggregate)
+                </h3>
+                <LeaderboardTable data={initialDailyTestLeaderboards[userData?.examCategory || 'MTS'] || []} />
+            </div>
+
+            <div className="pt-6 border-t">
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-primary" />
+                    Individual Daily Test Ranking
+                </h3>
+                <LiveTestLeaderboard 
+                    tests={pastDailyTests} 
+                    initialTestId={dailyTestIdFromUrl ?? undefined}
+                    defaultCategory={userData?.examCategory || 'MTS'}
+                    typeLabel="daily"
+                />
+            </div>
           </CardContent>
         </Card>
       </TabsContent>
@@ -342,8 +334,7 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
             <CardDescription>Ranking based on average scores from all syllabus-wise mock tests. Only users who have completed more than six exams are included.</CardDescription>
           </CardHeader>
           <CardContent>
-             <CategorySelector selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} availableCategories={availableCategories} />
-            <LeaderboardTable data={initialMockTestLeaderboards[selectedCategory] || []} />
+            <LeaderboardTable data={initialMockTestLeaderboards[userData?.examCategory || 'MTS'] || []} />
           </CardContent>
         </Card>
       </TabsContent>
@@ -354,12 +345,12 @@ export function LeaderboardClient({ initialTopicLeaderboards, initialMockTestLea
             <CardDescription>View rankings for our permanent weekly challenges. Ranks are determined by percentage score, then by time taken.</CardDescription>
           </CardHeader>
           <CardContent>
-             {pastLiveTests.length > 0 ? (
-                <WeeklyTestLeaderboard 
-                    pastLiveTests={pastLiveTests} 
+             {pastWeeklyTests.length > 0 ? (
+                <LiveTestLeaderboard 
+                    tests={pastWeeklyTests} 
                     initialTestId={liveTestIdFromUrl ?? undefined}
-                    availableCategories={['All', ...availableCategories]}
                     defaultCategory={userData?.examCategory || 'MTS'}
+                    typeLabel="weekly"
                 />
              ) : (
                 <div className="text-center text-muted-foreground py-10">

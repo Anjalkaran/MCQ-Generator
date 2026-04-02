@@ -137,18 +137,13 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     const userCat = userData.examCategory;
     
     const filterFn = (item: any) => {
+      // Admins see everything
+      if (userData?.email && ADMIN_EMAILS.includes(userData.email)) return true;
+
       const itemCats = item.examCategories || [];
       
-      // If user's specific category is explicitly tagged, always show it
-      if (itemCats.includes(userCat)) return true;
-      
-      const hasIP = itemCats.includes('IP');
-      if (hasIP) {
-        // Otherwise, IP content is only for IP users
-        return userCat === 'IP';
-      }
-      // Non-IP content is for everyone ("enable all courses for all")
-      return true;
+      // Strict filtering: User must have the category tagged on the item
+      return itemCats.includes(userCat);
     };
 
     const categories = rawCategories.filter(filterFn);

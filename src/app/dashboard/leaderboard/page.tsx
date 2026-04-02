@@ -8,7 +8,9 @@ export default async function LeaderboardPage() {
   const {
     topics,
     mocks,
-    pastLiveTests
+    daily,
+    pastWeeklyTests,
+    pastDailyTests
   } = await getUnifiedLeaderboardsAdmin();
 
   return (
@@ -22,7 +24,9 @@ export default async function LeaderboardPage() {
       <LeaderboardClient
         initialTopicLeaderboards={topics}
         initialMockTestLeaderboards={mocks}
-        pastLiveTests={pastLiveTests}
+        initialDailyTestLeaderboards={daily}
+        pastWeeklyTests={pastWeeklyTests}
+        pastDailyTests={pastDailyTests}
       />
     </div>
   );

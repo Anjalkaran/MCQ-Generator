@@ -75,11 +75,18 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
   const [statusFilter, setStatusFilter] = useState('all');
   const { toast } = useToast();
 
-  const grandTotals = useMemo(() => ({
-    all: users.length,
-    pro: users.filter(u => u.isPro).length,
-    free: users.filter(u => !u.isPro).length,
-  }), [users]);
+  const grandTotals = useMemo(() => {
+    const baseUsers = categoryFilter === 'all' 
+        ? users 
+        : users.filter(u => u.examCategory === categoryFilter);
+        
+    return {
+        all: users.length,
+        pro: baseUsers.filter(u => u.isPro).length,
+        free: baseUsers.filter(u => !u.isPro).length,
+        filtered: baseUsers.length,
+    };
+  }, [users, categoryFilter]);
 
   const filteredUsers = useMemo(() => {
     return users.filter(u => {
@@ -162,17 +169,23 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                     </Button>
                 </div>
             </div>
-            <div className="grid grid-cols-3 gap-4 mt-6">
+            <div className={cn("grid gap-4 mt-6", categoryFilter === 'all' ? "grid-cols-3" : "grid-cols-4")}>
                 <div className="bg-primary/5 p-3 rounded-lg border border-primary/10 text-center">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Users</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{categoryFilter === 'all' ? "Global Pool" : "Total Users"}</p>
                     <p className="text-2xl font-bold text-primary">{grandTotals.all}</p>
                 </div>
+                {categoryFilter !== 'all' && (
+                  <div className="bg-blue-500/5 p-3 rounded-lg border border-blue-500/10 text-center animate-in fade-in zoom-in duration-300">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{categoryFilter} Selected</p>
+                      <p className="text-2xl font-bold text-blue-600">{grandTotals.filtered}</p>
+                  </div>
+                )}
                 <div className="bg-green-500/5 p-3 rounded-lg border border-green-500/10 text-center">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Pro Users</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{categoryFilter === 'all' ? "Pro Users" : `${categoryFilter} Pro`}</p>
                     <p className="text-2xl font-bold text-green-600">{grandTotals.pro}</p>
                 </div>
                 <div className="bg-orange-500/5 p-3 rounded-lg border border-orange-500/10 text-center">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Free Users</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{categoryFilter === 'all' ? "Free Users" : `${categoryFilter} Free`}</p>
                     <p className="text-2xl font-bold text-orange-600">{grandTotals.free}</p>
                 </div>
             </div>
