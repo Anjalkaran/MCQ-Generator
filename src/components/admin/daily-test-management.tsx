@@ -27,7 +27,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 
-const categoriesList = ["MTS", "POSTMAN", "PA", "IP"] as const;
+const categoriesList = ["MTS", "POSTMAN", "PA", "IP", "GROUP B"] as const;
 
 const formSchema = z.object({
   title: z.string().min(3, "Title is required."),

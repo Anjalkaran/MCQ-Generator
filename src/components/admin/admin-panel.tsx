@@ -12,8 +12,9 @@ import { ReportsManagement } from '@/components/admin/reports-management';
 import { ReasoningBankManagement } from '@/components/admin/reasoning-bank-management';
 import { FeedbackManagement } from '@/components/admin/feedback-management';
 import { VideoClassManagement } from '@/components/admin/video-class-management';
+import { SyllabusManagement } from '@/components/admin/syllabus-management';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, MessageSquare, Video } from "lucide-react";
+import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Trophy, FileQuestion, MessageSquare, Video, Layers } from "lucide-react";
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
 import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback, getStudyMaterials } from "@/lib/firestore";
 import type { UserData, QnAUsage, LiveTest, ReasoningQuestion, Feedback, StudyMaterial } from "@/lib/types";
@@ -62,6 +63,7 @@ const adminSections = [
     { value: 'question-bank', label: 'Question Bank', icon: FileText },
     { value: 'reasoning-bank', label: 'Reasoning Bank', icon: NewLogoIcon },
     { value: 'live-test', label: 'Live Test', icon: Trophy },
+    { value: 'syllabus', label: 'Syllabus', icon: Layers },
     { value: 'analytics', label: 'Analytics', icon: BarChart3 },
     { value: 'feedback', label: 'Feedback', icon: MessageSquare },
     { value: 'reports', label: 'Reports', icon: Download },
@@ -143,7 +145,7 @@ export default function AdminPage() {
         case 'users':
             return <UserManagement initialUsers={users} />;
         case 'topics':
-            return <TopicManagement initialCategories={categories} initialTopics={topics} />;
+            return <TopicManagement initialCategories={categories} initialTopics={topics} initialTopicMCQs={[]} />;
         case 'video-classes':
             return <VideoClassManagement initialVideos={videoClasses} />;
         case 'topic-mcq':
@@ -154,12 +156,14 @@ export default function AdminPage() {
             return <ReasoningBankManagement initialQuestions={reasoningQuestions} />;
         case 'live-test':
             return <LiveTestManagement initialLiveTestBank={[]} initialLiveTests={allLiveTests} />;
+        case 'syllabus':
+            return <SyllabusManagement />;
         case 'analytics':
             return <AnalyticsTab qnaUsage={qnaUsage} />;
         case 'feedback':
             return <FeedbackManagement initialFeedback={feedback} />;
         case 'reports':
-            return <ReportsManagement allUsers={users} />;
+            return <ReportsManagement allUsers={users} allTopics={topics} />;
         default:
             return null;
     }

@@ -270,4 +270,101 @@ export const PA_BLUEPRINT = {
 };
 
 
+export const GROUPB_BLUEPRINT = {
+  examName: 'P.S. Group B Exam',
+  totalDurationMinutes: 180,
+  parts: [
+    {
+      partName: 'Paper-I: Postal Operations and Rules',
+      totalQuestions: 125,
+      sections: [
+        {
+          sectionName: 'Acts and Statutory Rules',
+          topics: [
+            { name: 'Consumer Protection Act, 2019', questions: 5 },
+            { name: 'Prevention of Money Laundering Act, 2002', questions: 5 },
+            { name: 'Indian Post Office Rules, 1933', questions: 10 }
+          ]
+        },
+        {
+          sectionName: 'Post Office Guides & Foreign Post',
+          topics: [
+            { name: 'Post Office Guide Part I', questions: 10 },
+            { name: 'Post Office Guide Part II', questions: 10 },
+            { name: 'Domestic and Foreign Post Guidelines', questions: 10 },
+            { name: 'Book of BO (Branch Office) Rules', questions: 5 }
+          ]
+        },
+        {
+          sectionName: 'Mail Operations & Business Development',
+          topics: [
+            { name: 'Postal Manual Volume V', questions: 15 },
+            { name: 'MNOP (Mail Network Optimization Project)', questions: 5 },
+            { name: 'Business Development Guidelines', questions: 5 }
+          ]
+        },
+        {
+          sectionName: 'Money Remittance & Remittance Services',
+          topics: [
+            { name: 'eMO, iMO, IMTS, and IFS MO Guidelines', questions: 15 }
+          ]
+        },
+        {
+          sectionName: 'Savings Bank Schemes & Rules',
+          topics: [
+            { name: 'POSB General Rules, 1981', questions: 5 },
+            { name: 'Post Office Saving Account Rules, 1981', questions: 5 },
+            { name: 'Recurring Deposit & Time Deposit Rules', questions: 5 },
+            { name: 'MIS, Senior Citizen, and Certificate Rules', questions: 10 },
+            { name: 'SB Orders issued by Directorate', questions: 5 }
+          ]
+        }
+      ]
+    },
+    {
+      partName: 'Paper-II: Service Rules and Financial Regulations',
+      totalQuestions: 150,
+      sections: [
+        {
+          sectionName: 'Service and Conduct Rules',
+          topics: [
+            { name: 'CCS (CCA) Rules, 1965', questions: 15 },
+            { name: 'CCS (Temporary Service) Rules, 1965', questions: 5 },
+            { name: 'CCS (Pension) Rules, 1972', questions: 15 },
+            { name: 'CCS (Leave) Rules, 1972', questions: 15 },
+            { name: 'Fundamental and Supplementary Rules (FR & SR)', questions: 10 }
+          ]
+        },
+        {
+          sectionName: 'Financial Handbooks & GFR',
+          topics: [
+            { name: 'Postal Financial Handbook (Volume I & II)', questions: 20 },
+            { name: 'General Financial Rules (GFR)', questions: 10 },
+            { name: 'Schedule of Financial Powers of Divisional Heads', questions: 10 }
+          ]
+        },
+        {
+          sectionName: 'Administrative Procedures & Manuals',
+          topics: [
+            { name: 'Manual of Office Procedure', questions: 10 },
+            { name: 'Maintenance of APAR and Recruitment Rules', questions: 10 },
+            { name: 'Postal Manual Volume II (Org & Misc Rules)', questions: 10 },
+            { name: 'GPF (Central Services) Rules, 1960', questions: 5 },
+            { name: 'GDS (Conduct and Engagement) Rules, 2011', questions: 5 }
+          ]
+        },
+        {
+          sectionName: 'Anti-Corruption & Grievance Redressal',
+          topics: [
+            { name: 'Prevention of Corruption Act, 1988', questions: 5 },
+            { name: 'Central Administrative Tribunal Act, 1985', questions: 5 },
+            { name: 'Citizen Charter of the Department of Posts', questions: 5 },
+            { name: 'Complaint and Grievance Handling Guidelines', questions: 5 }
+          ]
+        }
+      ]
+    }
+  ]
+};
+
 export { IP_BLUEPRINT };

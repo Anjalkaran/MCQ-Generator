@@ -16,24 +16,67 @@ import {
   MTS_BLUEPRINT, 
   POSTMAN_BLUEPRINT, 
   PA_BLUEPRINT, 
-  IP_BLUEPRINT
+  IP_BLUEPRINT,
+  GROUPB_BLUEPRINT
 } from '@/lib/exam-blueprints';
 import { cn } from '@/lib/utils';
 import { StaggerContainer, StaggerItem, HoverScale } from '@/components/animations/motion-wrapper';
+import { getSyllabi } from '@/lib/firestore';
+import { RefreshCw } from 'lucide-react';
+import { TopicHubModal } from './topic-hub-modal';
+import { useDashboard } from '@/context/dashboard-context';
 
 const blueprintMap: Record<string, any> = {
   'MTS': MTS_BLUEPRINT,
   'POSTMAN': POSTMAN_BLUEPRINT,
   'PA': PA_BLUEPRINT,
-  'IP': IP_BLUEPRINT
+  'IP': IP_BLUEPRINT,
+  'GROUP B': GROUPB_BLUEPRINT
 };
 
 interface SyllabusExplorerProps {
   examCategory: string;
+  isAdmin?: boolean;
 }
 
-export function SyllabusExplorer({ examCategory }: SyllabusExplorerProps) {
-  const blueprint = useMemo(() => blueprintMap[examCategory], [examCategory]);
+export function SyllabusExplorer({ examCategory, isAdmin }: SyllabusExplorerProps) {
+  const [dynamicBlueprints, setDynamicBlueprints] = React.useState<Record<string, any>>({});
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [selectedTopic, setSelectedTopic] = React.useState<string | null>(null);
+  
+  const { topics, studyMaterials } = useDashboard();
+
+  React.useEffect(() => {
+    async function loadSyllabi() {
+      try {
+        const data = await getSyllabi();
+        const map: Record<string, any> = {};
+        data.forEach(item => {
+          map[item.id] = item;
+        });
+        setDynamicBlueprints(map);
+      } catch (error) {
+        console.error("Failed to load syllabi:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadSyllabi();
+  }, []);
+
+  const blueprint = useMemo(() => {
+    return dynamicBlueprints[examCategory] || blueprintMap[examCategory];
+  }, [examCategory, dynamicBlueprints]);
+
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-24 text-center">
+        <RefreshCw className="h-12 w-12 text-red-500 animate-spin opacity-20" />
+        <p className="mt-4 text-slate-400 font-medium font-inter">Loading detailed syllabus...</p>
+      </div>
+    );
+  }
 
   if (!blueprint) {
     return (
@@ -53,9 +96,20 @@ export function SyllabusExplorer({ examCategory }: SyllabusExplorerProps) {
     <div className="space-y-8 pb-12">
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-red-600 to-red-900 p-8 text-white shadow-2xl">
         <div className="relative z-10">
-          <Badge className="mb-4 bg-white/20 text-white hover:bg-white/30 border-none backdrop-blur-md">
-            OFFICIAL BLUEPRINT
-          </Badge>
+          <div className="flex items-center justify-between mb-4">
+            <Badge className="bg-white/20 text-white hover:bg-white/30 border-none backdrop-blur-md">
+              BLUEPRINT
+            </Badge>
+            {isAdmin && (
+              <button 
+                onClick={() => window.location.href = '/dashboard/admin?section=syllabi'}
+                className="text-xs bg-white text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2"
+              >
+                EDIT SYLLABUS
+                <ChevronRight className="h-3 w-3" />
+              </button>
+            )}
+          </div>
           <h1 className="text-4xl font-extrabold tracking-tight mb-2 flex items-center gap-3">
             <GraduationCap className="h-10 w-10" />
             {blueprint.examName} Syllabus
@@ -114,16 +168,61 @@ export function SyllabusExplorer({ examCategory }: SyllabusExplorerProps) {
                             {section.sectionName}
                           </h4>
                           
-                          {/* Sub-topics list */}
+                          {/* Sub-topics cards */}
                           {(section.topics || section.randomFrom?.topics) && (
-                            <div className="mt-2 pl-11 space-y-2">
+                            <div className="mt-4 pl-11 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                               {(section.topics || section.randomFrom?.topics).map((topic: any, idx: number) => (
-                                <div key={idx} className="flex items-start gap-2 text-slate-600">
-                                  <div className="h-1.5 w-1.5 rounded-full bg-slate-300 mt-2 shrink-0" />
-                                  <span className="text-sm">
-                                    {typeof topic === 'string' ? topic : topic.name}
-                                  </span>
-                                </div>
+                                  <div 
+                                    key={idx} 
+                                    onClick={() => !isAdmin && setSelectedTopic(typeof topic === 'string' ? topic : topic.name)}
+                                    className={cn(
+                                      "group/topic relative flex flex-col justify-between p-4 rounded-2xl border border-slate-100 bg-white/50 hover:bg-white hover:shadow-xl hover:border-red-200 transition-all duration-500 transform hover:-translate-y-1",
+                                      !isAdmin && "cursor-pointer"
+                                    )}
+                                  >
+                                    <div className="flex flex-col gap-3">
+                                      <div className="flex items-start gap-2.5">
+                                        <div className="h-2 w-2 rounded-full bg-red-500 mt-1.5 shrink-0 shadow-[0_0_8px_rgba(239,68,68,0.5)] group-hover/topic:scale-125 transition-transform" />
+                                        <div className="flex flex-col gap-0.5">
+                                          <span className="text-[15px] font-bold text-slate-900 leading-tight">
+                                            {typeof topic === 'string' ? topic : topic.name}
+                                          </span>
+                                          {!isAdmin && (
+                                            <span className="text-[10px] text-red-500 font-bold opacity-0 group-hover/topic:opacity-100 transition-opacity">
+                                              CLICK TO START LEARNING
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      
+                                      {/* Sub-topics list */}
+                                      {typeof topic !== 'string' && topic.subTopics && topic.subTopics.length > 0 && (
+                                        <div className="ml-4 space-y-1.5 border-l-2 border-red-50 pl-3">
+                                          {topic.subTopics.map((sub: string, sIdx: number) => (
+                                            <div key={sIdx} className="flex items-start gap-2 text-slate-500 group/sub">
+                                              <ChevronRight className="h-3 w-3 mt-0.5 text-red-300 shrink-0" />
+                                              <span className="text-[11px] font-medium leading-normal">{sub}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    {isAdmin && (
+                                      <div className="mt-4 flex justify-end">
+                                        <button 
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedTopic(typeof topic === 'string' ? topic : topic.name);
+                                          }}
+                                          className="text-[10px] bg-red-50 hover:bg-red-600 hover:text-white text-red-600 px-3 py-1.5 rounded-xl transition-all duration-300 flex items-center gap-1.5 font-black shadow-sm ring-1 ring-red-100"
+                                        >
+                                          MANAGE TOPIC
+                                          <ChevronRight className="h-3 w-3" />
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
                               ))}
                             </div>
                           )}
@@ -144,6 +243,14 @@ export function SyllabusExplorer({ examCategory }: SyllabusExplorerProps) {
           </StaggerItem>
         ))}
       </StaggerContainer>
+
+      <TopicHubModal 
+        isOpen={!!selectedTopic}
+        onClose={() => setSelectedTopic(null)}
+        topicName={selectedTopic || ''}
+        examCategory={examCategory}
+        isAdmin={isAdmin}
+      />
     </div>
   );
 }

@@ -27,7 +27,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
+const examCategories = ["MTS", "POSTMAN", "PA", "IP", "GROUP B"] as const;
 
 const formSchema = z.object({
   topicName: z.string().min(1, 'Display Title is required.'),

@@ -32,7 +32,7 @@ import { addVideoClass, updateVideoClass, deleteVideoClass } from '@/lib/firesto
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 
-const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
+const examCategories = ["MTS", "POSTMAN", "PA", "IP", "GROUP B"] as const;
 
 const videoSchema = z.object({
   title: z.string().min(3, 'Title is required.'),

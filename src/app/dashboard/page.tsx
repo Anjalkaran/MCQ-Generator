@@ -76,6 +76,8 @@ export default function DashboardPage() {
   // Define available courses based on subscription
   const subCat = userData.subscribedCategory || userData.examCategory || 'MTS';
   
+  const isEliteUser = subCat === 'IP' || subCat === 'GROUP B';
+  
   const availableCourses = [
     { 
       id: 'MTS', 
@@ -95,7 +97,7 @@ export default function DashboardPage() {
       icon: <PenSquare className="h-10 w-10" />,
       color: 'from-orange-500/20 to-red-500/20',
       textColor: 'text-orange-600',
-      allowed: true // Enable for all
+      allowed: true 
     },
     { 
       id: 'PA', 
@@ -105,7 +107,7 @@ export default function DashboardPage() {
       icon: <Library className="h-10 w-10" />,
       color: 'from-red-500/20 to-rose-500/20',
       textColor: 'text-red-600',
-      allowed: true // Enable for all
+      allowed: true 
     },
     { 
       id: 'IP', 
@@ -115,7 +117,17 @@ export default function DashboardPage() {
       icon: <Shield className="h-10 w-10" />,
       color: 'from-red-700/20 to-rose-700/20',
       textColor: 'text-red-800',
-      allowed: subCat === 'IP' // Keep IP restricted
+      allowed: isEliteUser
+    },
+    { 
+      id: 'GROUP B', 
+      title: 'PS Group B', 
+      subtitle: 'Postal Service Group B',
+      description: 'Comprehensive preparation for the Gazetted Group B competitive examination.',
+      icon: <GraduationCap className="h-10 w-10" />,
+      color: 'from-purple-500/20 to-indigo-500/20',
+      textColor: 'text-purple-700',
+      allowed: isEliteUser
     },
   ].filter(course => course.allowed || isAdmin);
 
@@ -183,11 +195,11 @@ export default function DashboardPage() {
       <div className="space-y-6 pt-12 pb-24 border-t border-slate-100">
         <div className="text-center space-y-2">
             <h2 className="text-3xl font-extrabold text-slate-800">Syllabus & Blueprint</h2>
-            <p className="text-slate-500">Official syllabus breakdown for all active exam categories.</p>
+            <p className="text-slate-500">Syllabus breakdown for all active exam categories.</p>
         </div>
         
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {["MTS", "POSTMAN", "PA", "IP"].map((cat) => (
+          {["MTS", "POSTMAN", "PA", "IP", "GROUP B"].map((cat) => (
             <Card 
               key={cat}
               onClick={() => router.push(`/dashboard/syllabus?category=${cat}`)}
@@ -199,7 +211,7 @@ export default function DashboardPage() {
                  </div>
                  <div>
                     <h3 className="font-bold text-lg text-slate-900">{cat}</h3>
-                    <p className="text-xs text-slate-500">View Official Blueprint</p>
+                    <p className="text-xs text-slate-500">View Blueprint</p>
                  </div>
                  <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
                     <ChevronRight className="h-5 w-5 text-slate-400" />

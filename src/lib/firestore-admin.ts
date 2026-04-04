@@ -372,3 +372,18 @@ export const getQuestionBankDocumentsByCategoryAdmin = async (examCategory: stri
     }
 };
 
+/**
+ * Server-side version of getSyllabi using Firebase Admin SDK.
+ */
+export const getSyllabiAdmin = async (): Promise<any[]> => {
+    const db = getFirebaseDb();
+    if (!db) return [];
+    try {
+        const snapshot = await db.collection('syllabi').get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        console.error("Error fetching syllabi (admin):", error);
+        return [];
+    }
+};
+

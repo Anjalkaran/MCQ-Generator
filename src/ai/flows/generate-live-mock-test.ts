@@ -8,7 +8,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import type { MCQ } from '@/lib/types';
 import { getLiveTestQuestionPaper } from '@/lib/firestore';
-import { MTS_BLUEPRINT, PA_BLUEPRINT, POSTMAN_BLUEPRINT, IP_BLUEPRINT } from '@/lib/exam-blueprints';
+import { MTS_BLUEPRINT, PA_BLUEPRINT, POSTMAN_BLUEPRINT, IP_BLUEPRINT, GROUPB_BLUEPRINT } from '@/lib/exam-blueprints';
 import { getFirebaseDb, admin } from '@/lib/firebase-admin';
 
 const blueprintMap = {
@@ -16,6 +16,7 @@ const blueprintMap = {
     POSTMAN: POSTMAN_BLUEPRINT,
     PA: PA_BLUEPRINT,
     IP: IP_BLUEPRINT,
+    "GROUP B": GROUPB_BLUEPRINT,
 };
 
 const GenerateLiveMockTestInputSchema = z.object({
@@ -23,7 +24,7 @@ const GenerateLiveMockTestInputSchema = z.object({
   weeklyTestId: z.string().optional().describe('ID of permanent weekly test.'),
   dailyTestId: z.string().optional().describe('ID of permanent daily test.'),
   questionPaperId: z.string().describe('ID of the paper in liveTestBank.'),
-  examCategory: z.enum(["MTS", "POSTMAN", "PA", "IP"]).describe('Target course.'),
+  examCategory: z.enum(["MTS", "POSTMAN", "PA", "IP", "GROUP B"]).describe('Target course.'),
   language: z.string().optional().default('English').describe('Selected language.'),
   testTitle: z.string().describe('Display title.'),
   duration: z.number().optional().describe('Custom duration in minutes.'),

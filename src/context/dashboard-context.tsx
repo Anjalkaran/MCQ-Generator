@@ -142,7 +142,12 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
       const itemCats = item.examCategories || [];
       
-      // Strict filtering: User must have the category tagged on the item
+      // If user is IP or Group B, they see both categories
+      if (userCat === 'IP' || userCat === 'GROUP B') {
+        return itemCats.includes('IP') || itemCats.includes('GROUP B');
+      }
+      
+      // Otherwise strict filtering
       return itemCats.includes(userCat);
     };
 

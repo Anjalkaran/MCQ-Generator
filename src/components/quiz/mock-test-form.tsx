@@ -15,13 +15,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useDashboard } from '@/app/dashboard/layout';
 import { generateMockTest } from '@/ai/flows/generate-mock-test';
-import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT, IP_BLUEPRINT } from '@/lib/exam-blueprints';
+import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT, IP_BLUEPRINT, GROUPB_BLUEPRINT } from '@/lib/exam-blueprints';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { Input } from '@/components/ui/input';
 import { normalizeDate } from '@/lib/utils';
 import Link from 'next/link';
 
-const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
+import { getSyllabi } from '@/lib/firestore';
+import type { SyllabusBlueprint } from '@/lib/types';
+
+const examCategories = ["MTS", "POSTMAN", "PA", "IP", "GROUP B"] as const;
 const allLanguages = ["English", "Tamil"] as const;
 const ipLanguages = ["English", "Hindi"] as const;
 
@@ -41,13 +44,16 @@ const blueprintMap = {
     POSTMAN: POSTMAN_BLUEPRINT,
     PA: PA_BLUEPRINT,
     IP: IP_BLUEPRINT,
+    "GROUP B": GROUPB_BLUEPRINT,
 };
 
 export function MockTestForm() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user, userData, isLoading } = useDashboard();
+  const { user, userData, isLoading: userLoading } = useDashboard();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [syllabi, setSyllabi] = useState<SyllabusBlueprint[]>([]);
+  const [isLoadingSyllabi, setIsLoadingSyllabi] = useState(true);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -58,15 +64,29 @@ export function MockTestForm() {
     },
   });
 
+  useEffect(() => {
+    async function loadSyllabi() {
+      try {
+        const data = await getSyllabi();
+        setSyllabi(data);
+      } catch (error) {
+        console.error("Failed to load syllabi:", error);
+      } finally {
+        setIsLoadingSyllabi(false);
+      }
+    }
+    loadSyllabi();
+  }, []);
+
   const availableExams = useMemo(() => {
     if (!userData) return [];
     if (userData.email && ADMIN_EMAILS.includes(userData.email)) return examCategories;
     
-    if (userData.examCategory === 'IP') {
-        // IP users see everything
-        return ["MTS", "POSTMAN", "PA", "IP"];
+    if (userData.examCategory === 'IP' || userData.examCategory === 'GROUP B') {
+        // Elite users see everything
+        return ["MTS", "POSTMAN", "PA", "IP", "GROUP B"];
     } else {
-        // Everyone else sees everything EXCEPT IP
+        // Everyone else sees standard exams
         return ["MTS", "POSTMAN", "PA"];
     }
   }, [userData]);
@@ -81,6 +101,12 @@ export function MockTestForm() {
   const selectedExamType = form.watch('examType');
   const isIPUser = userData?.examCategory === 'IP';
   const availableLanguages = isIPUser ? ipLanguages : allLanguages;
+
+  const blueprint = useMemo(() => {
+    if (!selectedExamType) return null;
+    const dynamic = syllabi.find(s => s.id === selectedExamType);
+    return dynamic || (blueprintMap as any)[selectedExamType];
+  }, [selectedExamType, syllabi]);
 
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
@@ -122,7 +148,7 @@ export function MockTestForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CardContent>
-                <fieldset disabled={isGenerating || isLoading} className="space-y-6">
+                <fieldset disabled={isGenerating || userLoading || isLoadingSyllabi} className="space-y-6">
                     <FormField
                     control={form.control}
                     name="examType"
@@ -169,23 +195,23 @@ export function MockTestForm() {
                         />
                     )}
                     
-                    {selectedExamType && (
+                    {selectedExamType && blueprint && (
                         <Alert className="border-red-100 bg-red-50/50">
                             <Gem className="h-4 w-4 text-red-600" />
                             <AlertTitle className="text-red-900">
-                                {blueprintMap[selectedExamType].examName} 
+                                {blueprint.examName} 
                                 {selectedExamType === 'IP' && ` (${form.watch('paper')})`}
                             </AlertTitle>
                             <AlertDescription className="text-red-700">
                                 {selectedExamType === 'IP' ? (
                                     <>
                                         This {form.watch('paper')} test will have {
-                                            blueprintMap.IP.parts.find(p => p.partName === form.watch('paper'))?.totalQuestions
+                                            blueprint.parts.find(p => p.partName === form.watch('paper'))?.totalQuestions
                                         } questions and a specialized time limit.
                                     </>
                                 ) : (
                                     <>
-                                        This test will have {blueprintMap[selectedExamType].parts.reduce((sum, p) => sum + p.totalQuestions, 0)} questions and a time limit of {blueprintMap[selectedExamType].totalDurationMinutes} minutes.
+                                        This test will have {blueprint.parts.reduce((sum, p) => sum + p.totalQuestions, 0)} questions and a time limit of {blueprint.totalDurationMinutes} minutes.
                                     </>
                                 )}
                             </AlertDescription>
@@ -194,7 +220,7 @@ export function MockTestForm() {
                 </fieldset>
              </CardContent>
              <CardFooter>
-                <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading} className="w-full">
+                <Button type="submit" disabled={isGenerating || !form.formState.isValid || userLoading || isLoadingSyllabi} className="w-full">
                     {isGenerating ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

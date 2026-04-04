@@ -1,6 +1,6 @@
 import { getFirebaseDb, getFirebaseAuth } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, QnAUsage, Notification, LiveTest, WeeklyTest, DailyTest, TopicMCQ, ReasoningQuestion, Feedback, VideoClass, StudyMaterial, AptiSolveLaunch, MaterialDownload, MCQData, MCQ, Bookmark, MCQReport } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, QnAUsage, Notification, LiveTest, WeeklyTest, DailyTest, TopicMCQ, ReasoningQuestion, Feedback, VideoClass, StudyMaterial, AptiSolveLaunch, MaterialDownload, MCQData, MCQ, Bookmark, MCQReport, SyllabusBlueprint } from './types';
 import { ADMIN_EMAILS, LEADERBOARD_RESET_DATE } from './constants';
 import { normalizeDate } from './utils';
 
@@ -353,21 +353,68 @@ export const getTopics = async (): Promise<Topic[]> => {
 export const getTopicsByPartAndExam = async (part: string, examCategory: string): Promise<Topic[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
-    const topicsCollection = collection(db, 'topics');
-    const q = query(
-        topicsCollection, 
-        where('part', '==', part), 
-        where('examCategories', 'array-contains', examCategory)
-    );
-    const topicSnapshot = await getDocs(q);
-    const topics = topicSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Topic));
+    
+    try {
+        // 1. Try to fetch dynamic syllabus first
+        const syllabusRef = doc(db, 'syllabi', examCategory);
+        const syllabusSnap = await getDoc(syllabusRef);
+        
+        let targetTopicNames: string[] = [];
+        let hasSyllabus = false;
 
-    const categories = await getCategories();
-    const categoryMap = new Map(categories.map(c => [c.id, c.name]));
-     return topics.map(topic => ({
-        ...topic,
-        categoryName: categoryMap.get(topic.categoryId) || 'N/A'
-    }));
+        if (syllabusSnap.exists()) {
+            hasSyllabus = true;
+            const syllabus = syllabusSnap.data() as SyllabusBlueprint;
+            const syllabusPart = syllabus.parts.find(p => p.partName === part);
+            
+            if (syllabusPart) {
+                syllabusPart.sections.forEach(section => {
+                    if (section.topics) {
+                        section.topics.forEach(topic => {
+                             if (typeof topic === 'string') targetTopicNames.push(topic.toLowerCase());
+                             else targetTopicNames.push(topic.name.toLowerCase());
+                        });
+                    }
+                    if (section.randomFrom?.topics) {
+                        section.randomFrom.topics.forEach(topicName => {
+                            targetTopicNames.push(topicName.toLowerCase());
+                        });
+                    }
+                });
+            }
+        }
+
+        // 2. Fetch all topics for this exam category
+        const topicsCollection = collection(db, 'topics');
+        const q = query(
+            topicsCollection, 
+            where('examCategories', 'array-contains', examCategory)
+        );
+        const topicSnapshot = await getDocs(q);
+        const allTopicsForCategory = topicSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Topic));
+
+        // 3. Filter topics: use blueprint if available, otherwise fallback to topic.part field
+        let filteredTopics: Topic[] = [];
+        if (hasSyllabus) {
+            // Only include topics explicitly listed in the syllabus for this part
+            filteredTopics = allTopicsForCategory.filter(t => targetTopicNames.includes(t.title.toLowerCase()));
+        } else {
+            // Legacy fallback
+            filteredTopics = allTopicsForCategory.filter(t => t.part === part);
+        }
+
+        const categories = await getCategories();
+        const categoryMap = new Map(categories.map(c => [c.id, c.name]));
+        
+        return filteredTopics.map(topic => ({
+            ...topic,
+            categoryName: categoryMap.get(topic.categoryId) || 'N/A'
+        })).sort((a,b) => a.title.localeCompare(b.title));
+
+    } catch (error) {
+        console.error("Error in getTopicsByPartAndExam:", error);
+        return [];
+    }
 };
 
 export const addTopic = async (topic: Omit<Topic, 'id'>): Promise<DocumentReference> => {
@@ -1179,4 +1226,67 @@ export const markLiveTestAsTaken = async (userId: string, testId: string): Promi
     await updateDoc(userRef, {
         liveTestsTaken: arrayUnion(testId)
     });
+};
+
+// SYLLABUS MANAGEMENT
+export const getSyllabi = async (): Promise<SyllabusBlueprint[]> => {
+    const db = getFirebaseDb();
+    if (!db) return [];
+    
+    try {
+        const syllabiCollection = collection(db, 'syllabi');
+        const snapshot = await getDocs(syllabiCollection);
+        return snapshot.docs.map(doc => ({ 
+            ...doc.data(),
+            id: doc.id 
+        } as SyllabusBlueprint));
+    } catch (error) {
+        console.error("Error fetching syllabi:", error);
+        return [];
+    }
+};
+
+export const saveSyllabus = async (id: string, syllabus: Omit<SyllabusBlueprint, 'id'>): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    const docRef = doc(db, 'syllabi', id);
+    await setDoc(docRef, { ...syllabus, updatedAt: serverTimestamp() });
+};
+
+export const deleteSyllabus = async (id: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    await deleteDoc(doc(db, 'syllabi', id));
+};
+
+export const updateTopicMCQWithTranslation = async (docId: string, questionText: string, langKey: string, translatedMcq: any): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    
+    const docRef = doc(db, 'topicMCQs', docId);
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+        const data = docSnap.data();
+        let content;
+        try {
+            content = JSON.parse(data.content);
+            const mcqs = content.mcqs || [];
+            const mcqIndex = mcqs.findIndex((m: any) => m.question === questionText);
+            
+            if (mcqIndex !== -1) {
+                if (!mcqs[mcqIndex].translations) {
+                    mcqs[mcqIndex].translations = {};
+                }
+                mcqs[mcqIndex].translations[langKey] = translatedMcq;
+                
+                await updateDoc(docRef, {
+                    content: JSON.stringify(content),
+                    updatedAt: serverTimestamp()
+                });
+            }
+        } catch (e) {
+            console.error("Error updating translation in MCQ doc:", e);
+        }
+    }
 };

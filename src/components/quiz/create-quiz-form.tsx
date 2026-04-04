@@ -33,7 +33,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 const parts = ["Part A", "Part B", "Paper-I", "Paper-III"] as const;
-const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
+const examCategories = ["MTS", "POSTMAN", "PA", "IP", "GROUP B"] as const;
 
 export function CreateQuizForm() {
   const router = useRouter();
@@ -53,24 +53,24 @@ export function CreateQuizForm() {
     },
   });
   
+  const isEliteUser = userData?.examCategory === 'IP' || userData?.examCategory === 'GROUP B';
   const isIPUser = userData?.examCategory === 'IP';
 
   useEffect(() => {
-    if (isIPUser) {
-        form.setValue('examType', 'IP');
-    } else if (userData?.examCategory) {
+    if (isEliteUser && !form.getValues('examType')) {
+        form.setValue('examType', userData?.examCategory || '');
+    } else if (userData?.examCategory && !form.getValues('examType')) {
         form.setValue('examType', userData.examCategory);
-    } else {
-        form.setValue('examType', '');
     }
-  }, [userData?.examCategory, isIPUser, form]);
+  }, [userData?.examCategory, isEliteUser, form]);
 
   const availableExams = useMemo(() => {
     if (!userData) return [];
     if (userData.email && ADMIN_EMAILS.includes(userData.email)) return examCategories;
     switch (userData.examCategory) {
         case 'IP':
-            return ['IP'];
+        case 'GROUP B':
+            return ['IP', 'GROUP B'];
         case 'PA':
             return ['PA', 'POSTMAN', 'MTS'];
         case 'POSTMAN':
@@ -85,8 +85,14 @@ export function CreateQuizForm() {
   const selectedExamType = form.watch('examType');
   const selectedPart = form.watch('part');
   const selectedCategoryId = form.watch('categoryId');
-  const availableParts = isIPUser ? ["Paper-I", "Paper-III"] : ["Part A", "Part B"];
-  const availableLanguages = isIPUser ? ipLanguages : allLanguages;
+  
+  const availableParts = useMemo(() => {
+    if (selectedExamType === 'IP') return ["Paper-I", "Paper-III"];
+    if (selectedExamType === 'GROUP B') return ["Paper-I", "Paper-II"];
+    return ["Part A", "Part B"];
+  }, [selectedExamType]);
+
+  const availableLanguages = (selectedExamType === 'IP' || selectedExamType === 'GROUP B') ? ipLanguages : allLanguages;
 
 
   // Effect to reset dependent fields when a parent selection changes
@@ -211,7 +217,7 @@ export function CreateQuizForm() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CardContent className="pt-6">
                 <fieldset disabled={isGenerating || isLoading} className="space-y-6">
-                    {!isIPUser && (
+                    {!isEliteUser && (
                         <FormField
                             control={form.control}
                             name="examType"
@@ -268,11 +274,11 @@ export function CreateQuizForm() {
                     name="part"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>{isIPUser ? 'Paper' : 'Part'}</FormLabel>
+                        <FormLabel>{(selectedExamType === 'IP' || selectedExamType === 'GROUP B') ? 'Paper' : 'Part'}</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value} disabled={!selectedExamType}>
                             <FormControl>
                             <SelectTrigger>
-                                <SelectValue placeholder={!selectedExamType ? "Select an exam first" : (isIPUser ? "Select a paper" : "Select a part")} />
+                                <SelectValue placeholder={!selectedExamType ? "Select an exam first" : ((selectedExamType === 'IP' || selectedExamType === 'GROUP B') ? "Select a paper" : "Select a part")} />
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>

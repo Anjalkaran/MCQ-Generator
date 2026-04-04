@@ -13,16 +13,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { addCategory, addTopic, deleteTopic, deleteCategory, updateCategory, updateTopic } from '@/lib/firestore';
 import type { Topic, Category, TopicMCQ } from '@/lib/types';
-import { Loader2, PlusCircle, Trash2, Edit, Search, BookOpen, Layers, Filter, MoreVertical, FileText, CheckCircle2, AlertCircle, Upload, HelpCircle, FileQuestion } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Edit, Search, BookOpen, Layers, Filter, MoreVertical, FileText, CheckCircle2, AlertCircle, Upload, HelpCircle, FileQuestion, GraduationCap } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { getFirebaseStorage, getFirebaseAuth } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
@@ -42,8 +48,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from '@/lib/utils';
+import { 
+  MTS_BLUEPRINT, 
+  POSTMAN_BLUEPRINT, 
+  PA_BLUEPRINT, 
+  IP_BLUEPRINT 
+} from '@/lib/exam-blueprints';
 
-const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
+const examCategories = ["MTS", "POSTMAN", "PA", "IP", "GROUP B"] as const;
 const parts = ["Part A", "Part B", "Paper I", "Paper II", "Paper III", "Paper-I", "Paper-III"] as const;
 
 const categorySchema = z.object({
@@ -118,6 +130,16 @@ export function TopicManagement({ initialCategories, initialTopics, initialTopic
     }
   }, [editingTopic, topicForm]);
   
+  const searchParams = useSearchParams();
+  
+  // Handle URL search params for interlinking
+  useEffect(() => {
+    const search = searchParams.get('search');
+    if (search) {
+      setSearchTerm(search);
+    }
+  }, [searchParams]);
+
   // Sync with props
   useEffect(() => { setCategories(initialCategories); }, [initialCategories]);
   useEffect(() => { setTopics(initialTopics); }, [initialTopics]);
@@ -264,6 +286,41 @@ export function TopicManagement({ initialCategories, initialTopics, initialTopic
     return result;
   }, [searchTerm, partFilter, topics, categories]);
 
+  const groupedTopics = useMemo(() => {
+    const groups: Record<string, Topic[]> = {};
+    
+    // Map topics to categories
+    filteredTopics.forEach(topic => {
+      const catId = topic.categoryId || 'general';
+      const categoryExists = categories.some(c => c.id === catId);
+      const finalCatId = categoryExists ? catId : 'general';
+      
+      if (!groups[finalCatId]) groups[finalCatId] = [];
+      groups[finalCatId].push(topic);
+    });
+    
+    return groups;
+  }, [filteredTopics, categories]);
+
+  const isOfficialTopic = (title: string) => {
+    const allBlueprints = [MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT, IP_BLUEPRINT];
+    for (const bp of allBlueprints) {
+      if (!bp || !bp.parts) continue;
+      for (const part of bp.parts) {
+        for (const section of part.sections) {
+          const checkMatch = (t: any) => {
+            const name = typeof t === 'string' ? t : t.name;
+            return name?.toLowerCase() === title.toLowerCase();
+          };
+
+          if (section.topics?.some(checkMatch)) return true;
+          if (section.randomFrom?.topics?.some(checkMatch)) return true;
+        }
+      }
+    }
+    return false;
+  };
+
   const filteredCategories = useMemo(() => {
     if (!searchTerm) return categories;
     return categories.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -369,115 +426,115 @@ export function TopicManagement({ initialCategories, initialTopics, initialTopic
         </div>
 
         <TabsContent value="topics" className="mt-0 space-y-4">
-          <Card className="border-none shadow-sm overflow-hidden">
-            <Table>
-              <TableHeader className="bg-slate-50/50">
-                <TableRow>
-                  <TableHead className="w-[300px]">Topic Details</TableHead>
-                  <TableHead>Course Level</TableHead>
-                  <TableHead>Materials</TableHead>
-                  <TableHead>MCQ Status</TableHead>
-                  <TableHead className="text-right pr-6">Manage</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTopics.length > 0 ? (
-                  filteredTopics.map((topic) => (
-                    <TableRow key={topic.id} className="hover:bg-slate-50/50 transition-colors">
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-bold text-slate-900">{topic.title}</span>
-                          <span className="text-xs text-slate-400 font-medium">{getCategoryName(topic.categoryId)}</span>
+          <Accordion type="multiple" defaultValue={categories.map(c => c.id).concat(['general'])} className="space-y-4">
+            {categories.map((category) => {
+              const categoryTopics = groupedTopics[category.id] || [];
+              if (categoryTopics.length === 0 && !searchTerm) return null;
+              
+              return (
+                <AccordionItem key={category.id} value={category.id} className="border-none">
+                  <Card className="border-none shadow-sm overflow-hidden bg-white/80 backdrop-blur-sm">
+                    <AccordionTrigger className="hover:no-underline px-6 py-4 transition-all data-[state=open]:bg-slate-50/80">
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-lg bg-red-100 flex items-center justify-center text-red-600">
+                          <Layers className="h-4 w-4" />
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          <Badge variant="outline" className="bg-slate-50 text-[10px] font-bold border-slate-200">{topic.part}</Badge>
-                          {topic.examCategories?.map(ec => (
-                            <Badge key={ec} className={cn("text-[9px] px-1.5 h-4 font-black border-none", 
-                              ec === 'MTS' ? 'bg-blue-100 text-blue-600' : 
-                              ec === 'POSTMAN' ? 'bg-orange-100 text-orange-600' :
-                              ec === 'PA' ? 'bg-purple-100 text-purple-600' : 'bg-red-100 text-red-600'
-                            )}>{ec}</Badge>
+                        <div className="text-left">
+                          <h3 className="font-bold text-slate-800 text-lg">{category.name}</h3>
+                          <div className="flex items-center gap-2">
+                             <p className="text-xs text-slate-400 font-medium">{categoryTopics.length} Topics total</p>
+                             <div className="h-1 w-1 rounded-full bg-slate-300" />
+                             <Badge variant="outline" className="text-[9px] px-1.5 h-4 border-slate-200">
+                               Blueprint Category
+                             </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-0">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader className="bg-slate-50/30 text-xs text-slate-500 uppercase tracking-wider">
+                            <TableRow>
+                              <TableHead className="w-[300px]">Topic Details</TableHead>
+                              <TableHead>Course Level</TableHead>
+                              <TableHead>Materials</TableHead>
+                              <TableHead>MCQ Status</TableHead>
+                              <TableHead className="text-right pr-6">Manage</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {categoryTopics.map((topic) => (
+                              <TopicRowComponent 
+                                key={topic.id} 
+                                topic={topic} 
+                                getMCQCount={getMCQCount} 
+                                isOfficial={isOfficialTopic(topic.title)}
+                                onEdit={() => { setEditingTopic(topic); setIsTopicDialogOpen(true); }}
+                                onDelete={() => handleDeleteTopic(topic.id)}
+                              />
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </AccordionContent>
+                  </Card>
+                </AccordionItem>
+              );
+            })}
+            
+            {/* General/Orphan Topics */}
+            {groupedTopics['general'] && groupedTopics['general'].length > 0 && (
+              <AccordionItem value="general" className="border-none">
+                <Card className="border-none shadow-sm overflow-hidden bg-slate-50/50 backdrop-blur-sm border-2 border-dashed border-slate-200">
+                  <AccordionTrigger className="hover:no-underline px-6 py-4 transition-all data-[state=open]:bg-slate-100/50">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-slate-200 flex items-center justify-center text-slate-500">
+                        <HelpCircle className="h-4 w-4" />
+                      </div>
+                      <div className="text-left">
+                        <h3 className="font-bold text-slate-600 text-lg">General Topics</h3>
+                        <p className="text-xs text-slate-400 font-medium">{groupedTopics['general'].length} Uncategorized topics</p>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-0">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader className="bg-slate-100/30">
+                          <TableRow>
+                            <TableHead className="w-[300px]">Topic Details</TableHead>
+                            <TableHead>Course Level</TableHead>
+                            <TableHead>Materials</TableHead>
+                            <TableHead>MCQ Status</TableHead>
+                            <TableHead className="text-right pr-6">Manage</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {groupedTopics['general'].map((topic) => (
+                            <TopicRowComponent 
+                              key={topic.id} 
+                              topic={topic} 
+                              getMCQCount={getMCQCount} 
+                              isOfficial={isOfficialTopic(topic.title)}
+                              onEdit={() => { setEditingTopic(topic); setIsTopicDialogOpen(true); }}
+                              onDelete={() => handleDeleteTopic(topic.id)}
+                            />
                           ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {topic.material ? (
-                          <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-[10px]">
-                            <CheckCircle2 className="h-3 w-3" /> PDF Loaded
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5 text-slate-300 font-bold text-[10px]">
-                            <AlertCircle className="h-3 w-3" /> Missing PDF
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {getMCQCount(topic.id) > 0 ? (
-                          <div className="flex flex-col gap-0.5">
-                            <div className="flex items-center gap-1.5 text-red-600 font-bold text-[10px]">
-                              <CheckCircle2 className="h-3 w-3" /> {getMCQCount(topic.id)} Questions
-                            </div>
-                            <span className="text-[9px] text-slate-400 font-medium ml-4.5">Ready for test</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5 text-slate-300 font-bold text-[10px]">
-                            <HelpCircle className="h-3 w-3" /> No MCQs
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right pr-6 space-x-1">
-                          <div className="flex justify-end gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" 
-                              title="Manage MCQs"
-                              asChild
-                            >
-                              <a href={`/dashboard/admin?section=topic-mcq#${topic.id}`} onClick={(e) => {
-                                e.preventDefault();
-                                // We need to reach the parent's setActiveSection. 
-                                // Since we are in a sub-component, we might need a prop or just use window location if it reacts.
-                                // For now, since it's a SPA-ish dashboard, let's assume the user can click it.
-                                // Actually, better to just edit the topic or add a button that the parent can handle.
-                                // But since we don't have a callback for "switch section", let's just trigger a custom event or check if we can pass it.
-                                window.dispatchEvent(new CustomEvent('switch-admin-section', { detail: { section: 'topic-mcq', topicId: topic.id } }));
-                              }}>
-                                <FileQuestion className="h-4 w-4" />
-                              </a>
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100" onClick={() => { setEditingTopic(topic); setIsTopicDialogOpen(true); }}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50">
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent className="rounded-3xl">
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Topic?</AlertDialogTitle>
-                                  <AlertDialogDescription>Are you sure you want to delete <strong className="text-slate-900">{topic.title}</strong>? This will remove all associated study materials and MCQ links.</AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteTopic(topic.id)} className="bg-red-600 hover:bg-red-700 rounded-xl">Delete Forever</AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow><TableCell colSpan={5} className="h-48 text-center text-slate-400 italic">No topics found matching your search.</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </Card>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </AccordionContent>
+                </Card>
+              </AccordionItem>
+            )}
+            
+            {filteredTopics.length === 0 && (
+              <div className="h-48 flex items-center justify-center text-slate-400 italic">
+                No topics found matching your search.
+              </div>
+            )}
+          </Accordion>
         </TabsContent>
 
         <TabsContent value="categories" className="mt-0">
@@ -783,5 +840,100 @@ export function TopicManagement({ initialCategories, initialTopics, initialTopic
           </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function TopicRowComponent({ topic, getMCQCount, isOfficial, onEdit, onDelete }: any) {
+  return (
+    <TableRow className="hover:bg-slate-50/50 transition-colors">
+      <TableCell>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-slate-900">{topic.title}</span>
+            {isOfficial && (
+              <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 text-[10px] h-5" variant="outline">
+                Official
+              </Badge>
+            )}
+          </div>
+          {topic.description && <span className="text-[10px] text-slate-400 line-clamp-1">{topic.description}</span>}
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="flex flex-wrap gap-1">
+          <Badge variant="outline" className="bg-slate-50 text-[10px] font-bold border-slate-200">{topic.part}</Badge>
+          {topic.examCategories?.map((ec: string) => (
+            <Badge key={ec} className={cn("text-[9px] px-1.5 h-4 font-black border-none", 
+              ec === 'MTS' ? 'bg-blue-100 text-blue-600' : 
+              ec === 'POSTMAN' ? 'bg-orange-100 text-orange-600' :
+              ec === 'PA' ? 'bg-purple-100 text-purple-600' : 'bg-red-100 text-red-600'
+            )}>{ec}</Badge>
+          ))}
+        </div>
+      </TableCell>
+      <TableCell>
+        {topic.material ? (
+          <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-[10px]">
+            <CheckCircle2 className="h-3 w-3" /> PDF Loaded
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-slate-300 font-bold text-[10px]">
+            <AlertCircle className="h-3 w-3" /> Missing PDF
+          </div>
+        )}
+      </TableCell>
+      <TableCell>
+        {getMCQCount(topic.id) > 0 ? (
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-1.5 text-red-600 font-bold text-[10px]">
+              <CheckCircle2 className="h-3 w-3" /> {getMCQCount(topic.id)} Questions
+            </div>
+            <span className="text-[9px] text-slate-400 font-medium ml-4.5">Ready for test</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-slate-300 font-bold text-[10px]">
+            <HelpCircle className="h-3 w-3" /> No MCQs
+          </div>
+        )}
+      </TableCell>
+      <TableCell className="text-right pr-6">
+          <div className="flex justify-end gap-1">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" 
+              title="Manage MCQs"
+              asChild
+            >
+              <a href={`/dashboard/admin?section=topic-mcq#${topic.id}`} onClick={(e) => {
+                e.preventDefault();
+                window.dispatchEvent(new CustomEvent('switch-admin-section', { detail: { section: 'topic-mcq', topicId: topic.id } }));
+              }}>
+                <FileQuestion className="h-4 w-4" />
+              </a>
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100" onClick={onEdit}>
+              <Edit className="h-4 w-4" />
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="rounded-3xl">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Topic?</AlertDialogTitle>
+                  <AlertDialogDescription>Are you sure you want to delete <strong className="text-slate-900">{topic.title}</strong>? This will remove all associated study materials and MCQ links.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={onDelete} className="bg-red-600 hover:bg-red-700 rounded-xl">Delete Forever</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+         </div>
+      </TableCell>
+    </TableRow>
   );
 }

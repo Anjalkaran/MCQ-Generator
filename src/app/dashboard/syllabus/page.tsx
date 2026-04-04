@@ -6,6 +6,8 @@ import { useDashboard } from '@/context/dashboard-context';
 import { BookOpen } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 
+import { ADMIN_EMAILS } from '@/lib/constants';
+
 export default function SyllabusPage() {
   const { userData, isLoading } = useDashboard();
   const searchParams = useSearchParams();
@@ -23,6 +25,7 @@ export default function SyllabusPage() {
 
   const queryCategory = searchParams.get('category');
   const examCategory = queryCategory || userData?.examCategory || 'MTS';
+  const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -37,7 +40,7 @@ export default function SyllabusPage() {
         </div>
       </div>
 
-      <SyllabusExplorer examCategory={examCategory} />
+      <SyllabusExplorer examCategory={examCategory} isAdmin={isAdmin} />
     </div>
   );
 }

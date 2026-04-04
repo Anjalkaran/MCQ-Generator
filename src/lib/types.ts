@@ -28,7 +28,7 @@ export interface VideoClass {
   title: string;
   description: string;
   youtubeVideoId: string;
-  examCategories: ('MTS' | 'POSTMAN' | 'PA' | 'IP')[];
+  examCategories: ('MTS' | 'POSTMAN' | 'PA' | 'IP' | 'GROUP B')[];
   uploadedAt: Date;
 }
 
@@ -40,7 +40,7 @@ export interface Topic {
   categoryId: string;
   categoryName?: string; 
   part: 'Part A' | 'Part B' | 'Paper I' | 'Paper II' | 'Paper III' | 'Paper-I' | 'Paper-III';
-  examCategories: ('MTS' | 'POSTMAN' | 'PA' | 'IP')[];
+  examCategories: ('MTS' | 'POSTMAN' | 'PA' | 'IP' | 'GROUP B')[];
   source?: 'reasoningBank'; 
   material?: string;
 }
@@ -48,7 +48,7 @@ export interface Topic {
 export interface Category {
     id: string;
     name: string;
-    examCategories: ('MTS' | 'POSTMAN' | 'PA' | 'IP')[];
+    examCategories: ('MTS' | 'POSTMAN' | 'PA' | 'IP' | 'GROUP B')[];
 }
 
 export interface UserData {
@@ -59,8 +59,8 @@ export interface UserData {
     employeeId?: string;
     city?: string;
     division?: string;
-    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP';
-    subscribedCategory?: 'MTS' | 'POSTMAN' | 'PA' | 'IP';
+    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP' | 'GROUP B';
+    subscribedCategory?: 'MTS' | 'POSTMAN' | 'PA' | 'IP' | 'GROUP B';
     totalExamsTaken: number;
     liveTestsTaken?: string[]; 
     completedMockBankTests?: string[]; 
@@ -115,7 +115,7 @@ export interface TopicPerformance {
 
 export interface BankedQuestion {
     id: string;
-    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP';
+    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP' | 'GROUP B';
     fileName: string;
     content: string;
     uploadedAt: Date;
@@ -134,7 +134,7 @@ export interface LeaderboardEntry {
     rank: number;
     userId: string;
     userName: string;
-    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP' | 'All';
+    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP' | 'GROUP B' | 'All';
     averageScore: number;
     totalExams?: number;
     score?: number;
@@ -164,7 +164,7 @@ export interface Notification {
 export interface LiveTest {
     id: string;
     title: string;
-    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP' | 'All';
+    examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP' | 'GROUP B' | 'All';
     startTime: Timestamp | Date;
     endTime: Timestamp | Date;
     questionPaperId: string; 
@@ -255,4 +255,33 @@ export interface MCQReport {
   topicId?: string;
   createdAt: any;
   status: 'pending' | 'in_review' | 'resolved';
+}
+
+export interface SyllabusTopic {
+  name: string;
+  questions: number;
+  subTopics?: string[];
+}
+
+export interface SyllabusSection {
+  sectionName: string;
+  topics: (string | SyllabusTopic)[];
+  randomFrom?: {
+    topics: string[];
+    questions: number;
+  };
+}
+
+export interface SyllabusPart {
+  partName: string;
+  totalQuestions: number;
+  sections: SyllabusSection[];
+}
+
+export interface SyllabusBlueprint {
+  id: string; // The category name e.g. 'MTS'
+  examName: string;
+  totalDurationMinutes: number;
+  parts: SyllabusPart[];
+  updatedAt?: any;
 }

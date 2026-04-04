@@ -24,7 +24,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { JsonFormatGuide } from './json-format-guide';
 
-const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
+const examCategories = ["MTS", "POSTMAN", "PA", "IP", "GROUP B"] as const;
 
 const questionBankSchema = z.object({
   examCategory: z.enum(examCategories, {

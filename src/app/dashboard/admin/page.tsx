@@ -16,14 +16,16 @@ import { ReasoningBankManagement } from '@/components/admin/reasoning-bank-manag
 import { FeedbackManagement } from '@/components/admin/feedback-management';
 import { VideoClassManagement } from '@/components/admin/video-class-management';
 import { DownloadHistoryManagement } from '@/components/admin/download-history-management';
+import { SyllabusManagement } from '@/components/admin/syllabus-management';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Calendar, FileQuestion, MessageSquare, Video, Library, History, CalendarCheck, Clock, Trophy, ExternalLink } from "lucide-react";
+import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Calendar, FileQuestion, MessageSquare, Video, Library, History, CalendarCheck, Clock, Trophy, ExternalLink, GraduationCap } from "lucide-react";
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
-import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback, getStudyMaterials, getCategories, getTopics, getTopicMCQs, getQuestionBankDocuments, getVideoClasses, getWeeklyTests, getDailyTests } from "@/lib/firestore";
-import type { UserData, QnAUsage, LiveTest, WeeklyTest, DailyTest, ReasoningQuestion, Feedback, StudyMaterial, Category, Topic, TopicMCQ, BankedQuestion, VideoClass } from "@/lib/types";
+import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback, getStudyMaterials, getCategories, getTopics, getTopicMCQs, getQuestionBankDocuments, getVideoClasses, getWeeklyTests, getDailyTests, getSyllabi } from "@/lib/firestore";
+import type { UserData, QnAUsage, LiveTest, WeeklyTest, DailyTest, ReasoningQuestion, Feedback, StudyMaterial, Category, Topic, TopicMCQ, BankedQuestion, VideoClass, SyllabusBlueprint } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { ADMIN_EMAILS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { useSearchParams } from "next/navigation";
 import React from "react";
 
 function AnalyticsTab({ qnaUsage }: { qnaUsage: QnAUsage[] }) {
@@ -67,6 +69,7 @@ const adminSections = [
     { value: 'topics', label: 'Topic Management', icon: BookCopy },
     { value: 'study-material', label: 'Study Material', icon: Library },
     { value: 'video-classes', label: 'Video Classes', icon: Video },
+    { value: 'syllabi', label: 'Syllabus Explorer', icon: GraduationCap },
     { value: 'topic-mcq', label: 'MCQ Bank', icon: FileQuestion },
     { value: 'question-bank', label: 'Question Bank', icon: FileText },
     { value: 'reasoning-bank', label: 'Reasoning Bank', icon: NewLogoIcon },
@@ -102,6 +105,16 @@ export default function AdminPage() {
   const [dailyTests, setDailyTests] = useState<DailyTest[]>([]);
   const [feedback, setFeedback] = useState<Feedback[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
+  const [syllabi, setSyllabi] = useState<SyllabusBlueprint[]>([]);
+
+  const searchParams = useSearchParams();
+  const initialSection = searchParams.get('section') as AdminSection | null;
+
+  useEffect(() => {
+    if (initialSection) {
+      setActiveSection(initialSection);
+    }
+  }, [initialSection]);
 
   const fetchAdminData = useCallback(async () => {
     if (!userData || !ADMIN_EMAILS.includes(userData.email)) return;
@@ -111,11 +124,11 @@ export default function AdminPage() {
       const [
           fetchedUsers, fetchedCategories, fetchedTopics, fetchedMaterials, 
           fetchedVideos, fetchedMCQs, fetchedBank, fetchedReasoning, 
-          fetchedScheduled, fetchedWeekly, fetchedDaily, fetchedFeedback, fetchedQnA
+          fetchedScheduled, fetchedWeekly, fetchedDaily, fetchedFeedback, fetchedQnA, fetchedSyllabi
       ] = await Promise.all([
           getAllUsers(), getCategories(), getTopics(), getStudyMaterials(),
           getVideoClasses(), getTopicMCQs(), getQuestionBankDocuments(), getReasoningQuestions(),
-          getLiveTests(true), getWeeklyTests(), getDailyTests(), getAllFeedback(), getQnAUsage()
+          getLiveTests(true), getWeeklyTests(), getDailyTests(), getAllFeedback(), getQnAUsage(), getSyllabi()
       ]);
       
       const regularUsers = fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email));
@@ -132,6 +145,7 @@ export default function AdminPage() {
       setDailyTests(fetchedDaily);
       setFeedback(fetchedFeedback);
       setQnaUsage(fetchedQnA);
+      setSyllabi(fetchedSyllabi);
 
     } catch (error) {
       console.error("Failed to fetch admin data:", error);
@@ -199,6 +213,7 @@ export default function AdminPage() {
         case 'study-material': return <StudyMaterialManagement initialTopics={topics} initialMaterials={studyMaterials} initialCategories={categories} />;
         case 'video-classes': return <VideoClassManagement initialVideos={videoClasses} />;
         case 'topic-mcq': return <TopicMCQManagement initialTopics={topics} initialTopicMCQs={topicMCQs} onUpdate={fetchAdminData} />;
+        case 'syllabi': return <SyllabusManagement />;
         case 'question-bank': return <QuestionBankManagement initialBankedQuestions={bankedQuestions} />;
         case 'reasoning-bank': return <ReasoningBankManagement initialQuestions={reasoningQuestions} />;
         case 'scheduled-tests': return <LiveTestManagement initialLiveTestBank={bankedQuestions} initialLiveTests={scheduledTests} />;

@@ -76,6 +76,7 @@ export function AdminOverview({
        icon: Video,
        color: 'orange',
         items: [
+          { label: 'Syllabus Explorer', value: 'syllabi' },
           { label: 'Topic Repository', value: 'topics' },
           { label: 'MCQ Bank', value: 'topic-mcq' },
           { label: 'Video Lecture Bank', value: 'video-classes' },

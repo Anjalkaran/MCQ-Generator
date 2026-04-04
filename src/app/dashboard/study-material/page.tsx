@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Search, Loader2, Library, BookOpen, Layers, LayoutGrid, FileText, ChevronRight } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import type { StudyMaterial, Topic, Category } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -146,12 +147,26 @@ function MaterialCard({ material, topic }: { material: StudyMaterial, topic?: To
 }
 
 export default function StudyMaterialPage() {
+    const searchParams = useSearchParams();
+    const topicIdParam = searchParams.get('topicId');
+    
     const { studyMaterials, topics, categories, isLoading, userData } = useDashboard();
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState<string>('category');
     const [selectedExam, setSelectedExam] = useState<string>(userData?.examCategory || 'MTS');
     
     const isAdmin = userData?.email && ADMIN_EMAILS.includes(userData.email);
+
+    // Initial search term from topicId
+    useMemo(() => {
+        if (topicIdParam && topics && !searchTerm) {
+            const topic = topics.find(t => t.id === topicIdParam);
+            if (topic) {
+                setSearchTerm(topic.title);
+                setActiveTab('all');
+            }
+        }
+    }, [topicIdParam, topics]);
 
     const processedData = useMemo(() => {
         if (isLoading || !studyMaterials || !topics) return { categorized: {}, byPaper: {}, all: [] };
@@ -198,7 +213,7 @@ export default function StudyMaterialPage() {
             all: searchFiltered.map(m => ({ material: m, topic: topics.find(t => t.id === m.topicId) })) 
         };
 
-    }, [studyMaterials, topics, categories, searchTerm, isLoading, selectedExam, userData?.role]);
+    }, [studyMaterials, topics, categories, searchTerm, isLoading, selectedExam]);
 
     if (isLoading) {
         return (
@@ -294,7 +309,7 @@ export default function StudyMaterialPage() {
                                                     <MaterialCard material={material} topic={topic} />
                                                 </button>
                                             </DialogTrigger>
-                                            <PdfViewer fileUrl={material.content} fileName={material.fileName} isAdmin={isAdmin} />
+                                            <PdfViewer fileUrl={material.content} fileName={material.fileName} isAdmin={!!isAdmin} />
                                         </Dialog>
                                     ))}
                                 </div>
@@ -322,7 +337,7 @@ export default function StudyMaterialPage() {
                                                     <MaterialCard material={material} topic={topic} />
                                                 </button>
                                             </DialogTrigger>
-                                            <PdfViewer fileUrl={material.content} fileName={material.fileName} isAdmin={isAdmin} />
+                                            <PdfViewer fileUrl={material.content} fileName={material.fileName} isAdmin={!!isAdmin} />
                                         </Dialog>
                                     ))}
                                 </div>
@@ -341,7 +356,7 @@ export default function StudyMaterialPage() {
                                             <MaterialCard material={material} topic={topic} />
                                         </button>
                                     </DialogTrigger>
-                                    <PdfViewer fileUrl={material.content} fileName={material.fileName} isAdmin={isAdmin} />
+                                    <PdfViewer fileUrl={material.content} fileName={material.fileName} isAdmin={!!isAdmin} />
                                 </Dialog>
                             ))}
                         </div>

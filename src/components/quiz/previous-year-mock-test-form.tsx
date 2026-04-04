@@ -21,7 +21,7 @@ import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-bluep
 import { ADMIN_EMAILS } from '@/lib/constants';
 import type { BankedQuestion } from '@/lib/types';
 
-const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
+const examCategories = ["MTS", "POSTMAN", "PA", "IP", "GROUP B"] as const;
 const languages = ["English", "Tamil"] as const;
 
 
@@ -88,6 +88,9 @@ export function PreviousYearMockTestForm() {
     if (!userData) return [];
     if (userData.email && ADMIN_EMAILS.includes(userData.email)) return examCategories;
     switch (userData.examCategory) {
+        case 'IP':
+        case 'GROUP B':
+            return ['IP', 'GROUP B'];
         case 'PA':
             return ['PA', 'POSTMAN', 'MTS'];
         case 'POSTMAN':

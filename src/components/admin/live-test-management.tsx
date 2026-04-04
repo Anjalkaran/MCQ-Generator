@@ -25,7 +25,7 @@ import { Timestamp } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
+const examCategories = ["MTS", "POSTMAN", "PA", "IP", "GROUP B"] as const;
 
 const uploadSchema = z.object({
   examCategory: z.enum(examCategories),

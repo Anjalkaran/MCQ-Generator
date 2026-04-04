@@ -19,6 +19,9 @@ import { useDashboard } from '@/app/dashboard/layout';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { generatePartwiseMCQs } from '@/ai/flows/generate-partwise-mcqs';
 
+import { getSyllabi } from '@/lib/firestore';
+import type { SyllabusBlueprint } from '@/lib/types';
+
 const languages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
 
 const formSchema = z.object({
@@ -29,14 +32,15 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
-const parts = ["Part A", "Part B", "Paper-I", "Paper-III"] as const;
-const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
+const examCategories = ["MTS", "POSTMAN", "PA", "IP", "GROUP B"] as const;
 
 export function PartwiseQuizForm() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user, userData, isLoading } = useDashboard();
+  const { user, userData, isLoading: userLoading } = useDashboard();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [syllabi, setSyllabi] = useState<SyllabusBlueprint[]>([]);
+  const [syllabiLoading, setSyllabiLoading] = useState(true);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -47,13 +51,28 @@ export function PartwiseQuizForm() {
       language: 'English',
     },
   });
+
+  useEffect(() => {
+    async function loadSyllabi() {
+      try {
+        const data = await getSyllabi();
+        setSyllabi(data);
+      } catch (error) {
+        console.error("Failed to load syllabi:", error);
+      } finally {
+        setSyllabiLoading(false);
+      }
+    }
+    loadSyllabi();
+  }, []);
   
   const availableExams = useMemo(() => {
     if (!userData) return [];
     if (userData.email && ADMIN_EMAILS.includes(userData.email)) return examCategories;
     switch (userData.examCategory) {
         case 'IP':
-            return ['IP'];
+        case 'GROUP B':
+            return ['IP', 'GROUP B', 'PA', 'POSTMAN', 'MTS'];
         case 'PA':
             return ['PA', 'POSTMAN', 'MTS'];
         case 'POSTMAN':
@@ -74,8 +93,22 @@ export function PartwiseQuizForm() {
   }, [userData?.examCategory, form]);
 
   const selectedExamType = form.watch('examType');
-  const isIPUser = selectedExamType === 'IP';
-  const availableParts = isIPUser ? ["Paper-I", "Paper-III"] : ["Part A", "Part B"];
+  const isEliteExam = selectedExamType === 'IP' || selectedExamType === 'GROUP B';
+
+  const availableParts = useMemo(() => {
+    if (!selectedExamType) return [];
+    
+    // Find dynamic blueprint first
+    const blueprint = syllabi.find(s => s.id === selectedExamType);
+    if (blueprint) {
+      return blueprint.parts.map(p => p.partName);
+    }
+
+    // Legacy fallback
+    if (selectedExamType === 'IP') return ["Paper-I", "Paper-III"];
+    if (selectedExamType === 'GROUP B') return ["Paper-I", "Paper-II"];
+    return ["Part A", "Part B"];
+  }, [selectedExamType, syllabi]);
 
   const onSubmit = async (values: FormValues) => {
     setIsGenerating(true);
@@ -140,7 +173,7 @@ export function PartwiseQuizForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CardContent className="pt-6">
-                <fieldset disabled={isGenerating || isLoading} className="space-y-6">
+                <fieldset disabled={isGenerating || userLoading || syllabiLoading} className="space-y-6">
                     <FormField
                       control={form.control}
                       name="examType"
@@ -196,11 +229,11 @@ export function PartwiseQuizForm() {
                     name="part"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>{isIPUser ? 'Paper' : 'Part'}</FormLabel>
+                        <FormLabel>{isEliteExam ? 'Paper' : 'Part'}</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value} disabled={!selectedExamType}>
                             <FormControl>
                             <SelectTrigger>
-                                <SelectValue placeholder={!selectedExamType ? "Select an exam first" : (isIPUser ? "Select a paper" : "Select a part")} />
+                                <SelectValue placeholder={!selectedExamType ? "Select an exam first" : (isEliteExam ? "Select a paper" : "Select a part")} />
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -231,7 +264,7 @@ export function PartwiseQuizForm() {
                 </fieldset>
              </CardContent>
             <CardFooter>
-                <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading} className="w-full">
+                <Button type="submit" disabled={isGenerating || !form.formState.isValid || userLoading || syllabiLoading} className="w-full">
                      {isGenerating ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

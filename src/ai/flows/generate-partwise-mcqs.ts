@@ -12,13 +12,13 @@
 import { z } from 'zod';
 import { getTopicsByPartAndExam, getTopicMCQs, updateTopicMCQWithTranslation } from '@/lib/firestore';
 import type { MCQ } from '@/lib/types';
-import { generate } from '@genkit-ai/ai';
+import { ai } from '../genkit';
 import { gemini15Pro } from '@genkit-ai/googleai';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
 const GeneratePartwiseMCQsInputSchema = z.object({
   examCategory: z.string().describe('The exam category (e.g., MTS, POSTMAN, PA).'),
-  part: z.enum(['Part A', 'Part B']).describe('The syllabus part (Part A or Part B).'),
+  part: z.string().describe('The syllabus part (e.g., Part A, Part B, Paper-I, etc.).'),
   numberOfQuestions: z.number().describe('The total number of questions to generate for the part.'),
   userId: z.string().describe('The ID of the user requesting the quiz.'),
   language: z.string().optional().default('English').describe('The language for the generated quiz (e.g., "English", "Tamil", "Hindi").'),
@@ -48,17 +48,16 @@ const translateMCQ = async (mcq: MCQ, targetLanguage: string): Promise<MCQ> => {
       ${JSON.stringify(mcq)}
       `;
 
-    const result = await generate({
+    const result = await ai.generate({
         model: gemini15Pro,
         prompt: prompt,
         output: {
-            format: 'json',
-            schema: zodToJsonSchema(MCQSchema) as any,
+            schema: MCQSchema,
         },
         config: { temperature: 0.2 }
     });
     
-    const translatedMcq = result.json();
+    const translatedMcq = result.output;
 
     if (!translatedMcq) {
         throw new Error(`Failed to translate MCQ for topic: ${mcq.topic}`);
@@ -148,11 +147,19 @@ export async function generatePartwiseMCQs(input: GeneratePartwiseMCQsInput): Pr
       throw new Error(`Could not find or translate enough questions for ${part}. Processed ${processedQuestions.length}, but need ${numberOfQuestions}.`);
   }
 
-  finalMCQs = shuffleArray(processedQuestions).slice(0, numberOfQuestions);
+  const finalResults = shuffleArray(processedQuestions).slice(0, numberOfQuestions);
 
-  if (finalMCQs.length === 0) {
+  if (finalResults.length === 0) {
       throw new Error('Could not find any questions for the selected part. Please check the MCQ bank or contact support.');
   }
   
-  return { mcqs: finalMCQs };
+  return { 
+      mcqs: finalResults.map(q => ({
+          question: q.question,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+          topic: q.topic || "General",
+          solution: q.solution || ""
+      }))
+  };
 }

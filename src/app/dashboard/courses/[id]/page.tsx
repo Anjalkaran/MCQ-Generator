@@ -31,8 +31,8 @@ export default function CourseDetailPage() {
     );
   }
 
-  // Course ID from URL
-  const courseId = id as string;
+  // Course ID from URL - Decode it to handle spaces like %20
+  const courseId = id ? decodeURIComponent(id as string) : "";
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -70,7 +70,7 @@ export default function CourseDetailPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-lg">Syllabus Explorer</h3>
-                  <p className="text-sm text-slate-500">View official blueprints and breakdown</p>
+                  <p className="text-sm text-slate-500">View blueprints and breakdown</p>
                 </div>
               </Link>
             </Card>

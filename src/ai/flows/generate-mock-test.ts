@@ -6,9 +6,9 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT, IP_BLUEPRINT } from '@/lib/exam-blueprints';
+import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT, IP_BLUEPRINT, GROUPB_BLUEPRINT } from '@/lib/exam-blueprints';
 import type { MCQ, Topic } from '@/lib/types';
-import { getTopicsAdmin, getTopicMCQsAdmin, getReasoningQuestionsAdmin } from '@/lib/firestore-admin';
+import { getTopicsAdmin, getTopicMCQsAdmin, getReasoningQuestionsAdmin, getSyllabiAdmin } from '@/lib/firestore-admin';
 import { gemini15Flash } from '@genkit-ai/googleai';
 import { getFirebaseDb, admin } from '@/lib/firebase-admin';
 
@@ -88,12 +88,25 @@ const generateMockTestFlow = ai.defineFlow(
     outputSchema: GenerateMockTestOutputSchema,
   },
   async input => {
+    const syllabi = await getSyllabiAdmin();
+    const dynamicBlueprint = syllabi.find(s => s.id === input.examCategory);
+
     let blueprint;
-    if (input.examCategory === 'MTS') blueprint = MTS_BLUEPRINT;
-    else if (input.examCategory === 'POSTMAN') blueprint = POSTMAN_BLUEPRINT;
-    else if (input.examCategory === 'PA') blueprint = PA_BLUEPRINT;
-    else if (input.examCategory === 'IP') blueprint = IP_BLUEPRINT;
-    else throw new Error(`No blueprint found for exam category: ${input.examCategory}`);
+    if (dynamicBlueprint) {
+        blueprint = dynamicBlueprint;
+    } else if (input.examCategory === 'MTS') {
+        blueprint = MTS_BLUEPRINT;
+    } else if (input.examCategory === 'POSTMAN') {
+        blueprint = POSTMAN_BLUEPRINT;
+    } else if (input.examCategory === 'PA') {
+        blueprint = PA_BLUEPRINT;
+    } else if (input.examCategory === 'IP') {
+        blueprint = IP_BLUEPRINT;
+    } else if (input.examCategory === 'GROUP B') {
+        blueprint = GROUPB_BLUEPRINT;
+    } else {
+        throw new Error(`No blueprint found for exam category: ${input.examCategory}`);
+    }
 
     let allQuestions: (MCQ & { sourceDocId?: string; topicId?: string })[] = [];
     const allFirestoreTopics = await getTopicsAdmin();

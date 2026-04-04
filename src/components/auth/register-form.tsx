@@ -459,10 +459,11 @@ export function RegisterForm() {
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent className="bg-white border-slate-200">
-                                                <SelectItem value="MTS" className="text-slate-900 focus:bg-red-50 focus:text-red-900">MTS (Multi Tasking Staff)</SelectItem>
-                                                <SelectItem value="POSTMAN" className="text-slate-900 focus:bg-red-50 focus:text-red-900">Postman / Mail Guard</SelectItem>
-                                                <SelectItem value="PA" className="text-slate-900 focus:bg-red-50 focus:text-red-900">PA / SA (Postal Assistant)</SelectItem>
-                                                <SelectItem value="IP" className="text-slate-900 focus:bg-red-50 focus:text-red-900">IP (Inspector Post)</SelectItem>
+                                                  <SelectItem value="MTS" className="text-slate-900 focus:bg-red-50 focus:text-red-900">MTS (Multi Tasking Staff)</SelectItem>
+                                                  <SelectItem value="POSTMAN" className="text-slate-900 focus:bg-red-50 focus:text-red-900">Postman / Mail Guard</SelectItem>
+                                                  <SelectItem value="PA" className="text-slate-900 focus:bg-red-50 focus:text-red-900">PA / SA (Postal Assistant)</SelectItem>
+                                                  <SelectItem value="IP" className="text-slate-900 focus:bg-red-50 focus:text-red-900">IP (Inspector Post)</SelectItem>
+                                                  <SelectItem value="GROUP B" className="text-slate-900 focus:bg-red-50 focus:text-red-900">PS Group B</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />

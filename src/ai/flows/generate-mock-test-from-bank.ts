@@ -12,17 +12,18 @@ import { getQuestionBankDocumentsByCategoryAdmin as getQuestionBankDocumentsByCa
 import type { MCQ } from '@/lib/types';
 import { getFirebaseDb } from '@/lib/firebase-admin';
 import * as admin from 'firebase-admin';
-import { MTS_BLUEPRINT, PA_BLUEPRINT, POSTMAN_BLUEPRINT, IP_BLUEPRINT } from '@/lib/exam-blueprints';
+import { MTS_BLUEPRINT, PA_BLUEPRINT, POSTMAN_BLUEPRINT, IP_BLUEPRINT, GROUPB_BLUEPRINT } from '@/lib/exam-blueprints';
 
 const blueprintMap: Record<string, any> = {
     MTS: MTS_BLUEPRINT,
     POSTMAN: POSTMAN_BLUEPRINT,
     PA: PA_BLUEPRINT,
     IP: IP_BLUEPRINT,
+    "GROUP B": GROUPB_BLUEPRINT,
 };
 
 const GenerateMockTestFromBankInputSchema = z.object({
-  examCategory: z.enum(["MTS", "POSTMAN", "PA", "IP"]).describe('The exam category (e.g., MTS, POSTMAN, PA, IP).'),
+  examCategory: z.enum(["MTS", "POSTMAN", "PA", "IP", "GROUP B"]).describe('The exam category (e.g., MTS, POSTMAN, PA, IP).'),
   userId: z.string().describe('The ID of the user requesting the quiz.'),
   language: z.string().optional().default('English').describe('The language for the generated quiz.'),
   paperId: z.string().optional().describe('The ID of a specific paper to generate a test from.'),
