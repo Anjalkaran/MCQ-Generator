@@ -40,6 +40,9 @@ export async function POST(request: Request) {
         const files = formData.getAll('file') as File[];
         const title = formData.get('title') as string;
         const examCategories = formData.getAll('examCategories') as string[];
+        const duration = formData.get('duration') ? parseInt(formData.get('duration') as string) : null;
+        const scheduledAtStr = formData.get('scheduledAt') as string;
+        const scheduledAt = scheduledAtStr ? new Date(scheduledAtStr) : null;
 
         if (files.length === 0 || !title || !examCategories || examCategories.length === 0) {
             return NextResponse.json({ error: 'Missing required fields: title, categories, and at least one file are required.' }, { status: 400 });
@@ -85,6 +88,8 @@ export async function POST(request: Request) {
             title,
             examCategories,
             questionPaperId: bankRef.id,
+            duration,
+            scheduledAt: scheduledAt ? admin.firestore.Timestamp.fromDate(scheduledAt) : null,
             createdAt: admin.firestore.FieldValue.serverTimestamp()
         });
 
@@ -95,6 +100,8 @@ export async function POST(request: Request) {
                 title,
                 examCategories,
                 questionPaperId: bankRef.id,
+                duration,
+                scheduledAt: scheduledAt || undefined,
                 createdAt: new Date()
             }
         });

@@ -8,7 +8,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { getQuestionBankDocumentsByCategory, getUserData } from '@/lib/firestore';
+import { getQuestionBankDocumentsByCategoryAdmin as getQuestionBankDocumentsByCategory, getUserDataAdmin as getUserData } from '@/lib/firestore-admin';
 import type { MCQ } from '@/lib/types';
 import { getFirebaseDb } from '@/lib/firebase-admin';
 import * as admin from 'firebase-admin';
@@ -24,6 +24,7 @@ const GenerateMockTestFromBankInputSchema = z.object({
   examCategory: z.enum(["MTS", "POSTMAN", "PA"]).describe('The exam category (e.g., MTS, POSTMAN, PA).'),
   userId: z.string().describe('The ID of the user requesting the quiz.'),
   language: z.string().optional().default('English').describe('The language for the generated quiz.'),
+  paperId: z.string().optional().describe('The ID of a specific paper to generate a test from.'),
 });
 export type GenerateMockTestFromBankInput = z.infer<typeof GenerateMockTestFromBankInputSchema>;
 
@@ -72,39 +73,86 @@ const generateMockTestFromBankFlow = ai.defineFlow(
         availablePapers = allQuestionPapers;
     }
     
-    // Randomly select one question paper
-    const selectedPaper = availablePapers[Math.floor(Math.random() * availablePapers.length)];
+    
+    // Select the question paper
+    let selectedPaper;
+    if (input.paperId) {
+        selectedPaper = allQuestionPapers.find(paper => paper.id === input.paperId);
+        if (!selectedPaper) {
+            throw new Error(`The selected question paper could not be found.`);
+        }
+    } else {
+        // Randomly select one question paper
+        selectedPaper = availablePapers[Math.floor(Math.random() * availablePapers.length)];
+    }
 
-    let parsedData: { questions: MCQ[] };
+    let questions: MCQ[] = [];
     try {
-        parsedData = JSON.parse(selectedPaper.content);
+        const parsed = JSON.parse(selectedPaper.content);
+        if (Array.isArray(parsed)) {
+            questions = parsed;
+        } else if (parsed.questions && Array.isArray(parsed.questions)) {
+            questions = parsed.questions;
+        } else if (parsed.mcqs && Array.isArray(parsed.mcqs)) {
+            questions = parsed.mcqs;
+        }
     } catch (error) {
         console.error("Failed to parse question paper content as JSON:", error);
         throw new Error(`The question paper format is invalid.`);
     }
 
-    if (!parsedData.questions || !Array.isArray(parsedData.questions) || parsedData.questions.length === 0) {
-        throw new Error(`The question paper is incorrectly formatted.`);
+    if (questions.length === 0) {
+        throw new Error(`The question paper is incorrectly formatted or contains no questions.`);
     }
     
     const blueprint = blueprintMap[input.examCategory];
     const totalQuestions = blueprint.parts.reduce((sum, part) => sum + part.totalQuestions, 0);
 
-    let allAvailableMCQs = parsedData.questions;
-
     // Randomly select the correct number of questions based on the blueprint
-    const finalMCQs = shuffleArray(allAvailableMCQs).slice(0, totalQuestions);
+    const finalMCQs = shuffleArray(questions).slice(0, totalQuestions);
 
     const quizId = `mock-test-bank-${input.examCategory}-${Date.now()}`;
+    const languageMap: Record<string, string> = {
+        'tamil': 'ta',
+        'hindi': 'hi',
+        'telugu': 'te',
+        'kannada': 'kn'
+    };
+
     const quizData = {
-        mcqs: finalMCQs.map(m => ({
-            question: m.question || "",
-            options: m.options || [],
-            correctAnswer: m.correctAnswer || "",
-            topic: m.topic || "",
-            solution: m.solution || ""
-        })),
+        mcqs: finalMCQs.map(m => {
+            // Pick translation if available and requested
+            const lang = input.language || 'English';
+            let finalQ = m.question || "";
+            let finalOptions = m.options || [];
+            let finalSolution = m.solution || "";
+
+            if (lang !== 'English' && m.translations) {
+                // Try full name key (e.g., "Tamil") and code key (e.g., "ta")
+                const langKey = lang.toLowerCase();
+                const langCode = languageMap[langKey];
+                
+                const t = m.translations[lang] || 
+                          (langCode ? m.translations[langCode] : null) ||
+                          m.translations[langKey];
+                
+                if (t) {
+                    if (t.question) finalQ = t.question;
+                    if (t.options && t.options.length > 0) finalOptions = t.options;
+                    if (t.solution) finalSolution = t.solution;
+                }
+            }
+
+            return {
+                question: finalQ,
+                options: finalOptions,
+                correctAnswer: m.correctAnswer || "", // Answer key is same across languages
+                topic: m.topic || "",
+                solution: finalSolution
+            };
+        }),
         timeLimit: Math.floor((blueprint?.totalDurationMinutes || 60) * 60),
+
         isMockTest: true,
         questionPaperId: selectedPaper.id, 
         language: input.language,

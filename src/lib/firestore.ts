@@ -107,8 +107,11 @@ export async function deleteMCQReport(reportId: string) {
 // BOOKMARK MANAGEMENT
 const getSafeId = (text: string) => {
     // Generate a consistent ID from text that is safe for Firestore document IDs
-    // We'll use a simple approach: remove non-alphanumeric and truncate
-    return text.replace(/[^a-z0-9]/gi, '_').substring(0, 100);
+    // We remove non-alphanumeric, collapse consecutive underscores, and trim ends
+    return text.replace(/[^a-z0-9]/gi, '_')
+               .replace(/_+/g, '_')
+               .replace(/^_+|_+$/g, '')
+               .substring(0, 100);
 };
 
 export const toggleBookmark = async (userId: string, mcq: MCQ, topicId?: string): Promise<boolean> => {
@@ -528,11 +531,25 @@ export const deleteQuestionBankDocument = async (docId: string): Promise<void> =
     await deleteDoc(doc(db, 'questionBank', docId));
 };
 
-export const updateQuestionBankDocument = async (docId: string, content: string): Promise<void> => {
+export const updateQuestionBankDocument = async (docId: string, content: string, fileName?: string, examYear?: string): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) return;
     const docRef = doc(db, 'questionBank', docId);
-    await updateDoc(docRef, { content, lastModifiedAt: serverTimestamp() });
+    
+    const updateData: any = { 
+        content, 
+        lastModifiedAt: serverTimestamp() 
+    };
+    
+    if (fileName) {
+        updateData.fileName = fileName;
+    }
+    
+    if (examYear) {
+        updateData.examYear = examYear;
+    }
+    
+    await updateDoc(docRef, updateData);
 };
 
 // LIVE TEST BANK MANAGEMENT
@@ -608,7 +625,15 @@ export const getWeeklyTests = async (): Promise<WeeklyTest[]> => {
     const weeklyCollection = collection(db, 'weeklyTests');
     const q = query(weeklyCollection, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: normalizeDate(doc.data().createdAt) } as WeeklyTest));
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+            id: doc.id, 
+            ...data, 
+            createdAt: normalizeDate(data.createdAt),
+            scheduledAt: data.scheduledAt ? normalizeDate(data.scheduledAt) : undefined
+        } as WeeklyTest;
+    });
 };
 
 export const addWeeklyTest = async (testData: Omit<WeeklyTest, 'id'>): Promise<DocumentReference> => {
@@ -636,13 +661,27 @@ export const getDailyTests = async (): Promise<DailyTest[]> => {
     const dailyCollection = collection(db, 'dailyTests');
     const q = query(dailyCollection, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: normalizeDate(doc.data().createdAt) } as DailyTest));
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+            id: doc.id, 
+            ...data, 
+            createdAt: normalizeDate(data.createdAt),
+            scheduledAt: data.scheduledAt ? normalizeDate(data.scheduledAt) : undefined
+        } as DailyTest;
+    });
 };
 
 export const addDailyTest = async (testData: Omit<DailyTest, 'id'>): Promise<DocumentReference> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore not initialized");
     return await addDoc(collection(db, 'dailyTests'), { ...testData, createdAt: serverTimestamp() });
+};
+
+export const updateDailyTest = async (testId: string, testData: Partial<DailyTest>): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    await updateDoc(doc(db, 'dailyTests', testId), testData);
 };
 
 export const deleteDailyTest = async (testId: string): Promise<void> => {
@@ -899,11 +938,45 @@ export const hasUserSubmittedFeedback = async (userId: string): Promise<boolean>
     return !snapshot.empty;
 };
 
+export const submitFeedback = async (feedbackData: Omit<Feedback, 'id'>): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    const feedbackCollection = collection(db, 'feedback');
+    await addDoc(feedbackCollection, {
+        ...feedbackData,
+        createdAt: serverTimestamp(),
+    });
+};
+
+export const getUserFeedback = async (userId: string): Promise<Feedback[]> => {
+    const db = getFirebaseDb();
+    if (!db) return [];
+    const feedbackCollection = collection(db, 'feedback');
+    const q = query(feedbackCollection, where('userId', '==', userId), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            ...data,
+            createdAt: normalizeDate(data.createdAt) || new Date(),
+            repliedAt: data.repliedAt ? normalizeDate(data.repliedAt) : undefined
+        } as Feedback;
+    });
+};
+
 export const replyToFeedback = async (feedbackId: string, reply: string): Promise<void> => {
     const db = getFirebaseDb();
     if (!db) return;
     const feedbackRef = doc(db, 'feedback', feedbackId);
     await updateDoc(feedbackRef, { reply, repliedAt: new Date() });
+};
+
+export const deleteFeedback = async (feedbackId: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    const feedbackRef = doc(db, 'feedback', feedbackId);
+    await deleteDoc(feedbackRef);
 };
 
 // VIDEO CLASS MANAGEMENT

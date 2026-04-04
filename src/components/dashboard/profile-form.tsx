@@ -27,6 +27,7 @@ const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   employeeId: z.string().length(8, { message: 'Employee ID must be 8 digits.' }),
   phone: z.string().min(10, { message: 'Mobile number must be at least 10 digits.' }),
+  preferredLanguage: z.enum(['English', 'Tamil']).optional().default('English'),
 });
 
 export function ProfileForm({ user, userData }: ProfileFormProps) {
@@ -39,16 +40,18 @@ export function ProfileForm({ user, userData }: ProfileFormProps) {
             name: userData.name || '',
             employeeId: userData.employeeId || '',
             phone: userData.phone || '',
+            preferredLanguage: (userData.preferredLanguage as any) || 'English',
         },
     });
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setIsLoading(true);
         try {
-            const dataToUpdate: { name: string, employeeId: string, phone: string } = {
+            const dataToUpdate: { name: string, employeeId: string, phone: string, preferredLanguage: any } = {
                 name: values.name,
                 employeeId: values.employeeId,
                 phone: values.phone,
+                preferredLanguage: values.preferredLanguage,
             };
 
             await updateUserDocument(user.uid, dataToUpdate);
@@ -110,6 +113,32 @@ export function ProfileForm({ user, userData }: ProfileFormProps) {
                             <FormLabel>Mobile Number</FormLabel>
                             <FormControl>
                                 <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="preferredLanguage"
+
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Preferred Language (for Mock Tests)</FormLabel>
+                            <FormControl>
+                                <div className="flex gap-2">
+                                    {['English', 'Tamil'].map((lang) => (
+                                        <Button
+                                            key={lang}
+                                            type="button"
+                                            variant={field.value === lang ? "default" : "outline"}
+                                            className="px-8"
+                                            onClick={() => field.onChange(lang)}
+                                        >
+                                            {lang}
+                                        </Button>
+                                    ))}
+                                </div>
                             </FormControl>
                             <FormMessage />
                         </FormItem>

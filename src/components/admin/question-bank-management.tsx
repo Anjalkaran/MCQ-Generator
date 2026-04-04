@@ -12,9 +12,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { Label } from '@/components/ui/label';
 import { Loader2, Upload, Eye, Trash2, Edit, Download, Search } from 'lucide-react';
 import { deleteQuestionBankDocument, updateQuestionBankDocument } from '@/lib/firestore';
 import { MCQStructuredEditor } from './mcq-structured-editor';
+import { getFirebaseAuth } from '@/lib/firebase';
 import type { BankedQuestion } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -28,12 +30,14 @@ const questionBankSchema = z.object({
   examCategory: z.enum(examCategories, {
     required_error: 'You must select an exam category.',
   }),
+  examYear: z.string().min(4, 'Please enter a valid year (e.g. 2024)').max(4, 'Year must be 4 digits'),
   files: z
     .array(z.instanceof(File))
+
     .min(1, 'Please upload at least one file.')
     .refine(
-        (files) => files.every((file) => file.size <= 1 * 1024 * 1024),
-        `File size must be less than 1MB.`
+        (files) => files.every((file) => file.size <= 5 * 1024 * 1024),
+        `File size must be less than 5MB.`
     )
     .refine(
         (files) => files.every((file) => file.type === 'application/json'),
@@ -50,6 +54,8 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
   const [bankedQuestions, setBankedQuestions] = useState<BankedQuestion[]>(initialBankedQuestions);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingQuestionBank, setEditingQuestionBank] = useState<BankedQuestion | null>(null);
+  const [editingFileName, setEditingFileName] = useState('');
+  const [editingYear, setEditingYear] = useState('');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
@@ -58,6 +64,7 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
     resolver: zodResolver(questionBankSchema),
     defaultValues: {
         examCategory: undefined,
+        examYear: new Date().getFullYear().toString(),
         files: [],
     }
   });
@@ -70,6 +77,7 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
     return bankedQuestions.filter(question =>
       question.fileName.toLowerCase().includes(lowercasedFilter) ||
       question.examCategory.toLowerCase().includes(lowercasedFilter) ||
+      (question.examYear && question.examYear.toLowerCase().includes(lowercasedFilter)) ||
       question.content.toLowerCase().includes(lowercasedFilter)
     );
   }, [searchTerm, bankedQuestions]);
@@ -78,13 +86,20 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
     setIsUploading(true);
     const formData = new FormData();
     formData.append('examCategory', values.examCategory);
+    formData.append('examYear', values.examYear);
     values.files.forEach(file => {
         formData.append('files', file);
     })
 
     try {
+      const auth = getFirebaseAuth();
+      const idToken = auth?.currentUser ? await auth.currentUser.getIdToken() : null;
+
       const response = await fetch('/api/question-bank/upload', {
         method: 'POST',
+        headers: {
+          'Authorization': idToken ? `Bearer ${idToken}` : '',
+        },
         body: formData,
       });
 
@@ -93,8 +108,8 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
         throw new Error(errorData.error || 'Failed to upload files.');
       }
 
-      const { newDocument } = await response.json();
-      setBankedQuestions(prev => [newDocument, ...prev]);
+      const { newDocuments } = await response.json();
+      setBankedQuestions(prev => [...newDocuments, ...prev]);
 
       toast({ title: 'Success', description: 'Question bank updated successfully.' });
       form.reset();
@@ -122,6 +137,8 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
 
   const handleOpenEditDialog = (bq: BankedQuestion) => {
     setEditingQuestionBank(bq);
+    setEditingFileName(bq.fileName);
+    setEditingYear(bq.examYear || '');
     setIsEditDialogOpen(true);
   };
 
@@ -129,10 +146,12 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
     if (!editingQuestionBank) return;
     setIsSaving(true);
     try {
-        await updateQuestionBankDocument(editingQuestionBank.id, newContent);
-        setBankedQuestions(prev => prev.map(bq => bq.id === editingQuestionBank.id ? { ...bq, content: newContent } : bq));
+        await updateQuestionBankDocument(editingQuestionBank.id, newContent, editingFileName, editingYear);
+        setBankedQuestions(prev => prev.map(bq => bq.id === editingQuestionBank.id ? { ...bq, content: newContent, fileName: editingFileName, examYear: editingYear } : bq));
         setIsEditDialogOpen(false);
         setEditingQuestionBank(null);
+        setEditingFileName('');
+        setEditingYear('');
         toast({ title: "Success", description: "Question bank updated successfully." });
     } catch (error: any) {
         console.error("Failed to update question bank document", error);
@@ -173,26 +192,41 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
         <CardContent>
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                control={form.control}
-                name="examCategory"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Exam Category</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                    control={form.control}
+                    name="examCategory"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Exam Category</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select an exam category" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            {examCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="examYear"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Exam Year</FormLabel>
                         <FormControl>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select an exam category" />
-                        </SelectTrigger>
+                            <Input placeholder="e.g. 2024" {...field} />
                         </FormControl>
-                        <SelectContent>
-                        {examCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                </div>
                 <FormField
                 control={form.control}
                 name="files"
@@ -243,6 +277,7 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                         <TableHeader>
                             <TableRow>
                                 <TableHead>File Name</TableHead>
+                                <TableHead>Year</TableHead>
                                 <TableHead>Exam Category</TableHead>
                                 <TableHead>Uploaded At</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
@@ -252,7 +287,8 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                             {filteredQuestions.length > 0 ? (
                                 filteredQuestions.map((bq) => (
                                     <TableRow key={bq.id}>
-                                        <TableCell className="font-medium">{bq.fileName}</TableCell>
+                                        <TableCell className="font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">{bq.fileName}</TableCell>
+                                        <TableCell>{bq.examYear || '-'}</TableCell>
                                         <TableCell>{bq.examCategory}</TableCell>
                                         <TableCell>{format(new Date(bq.uploadedAt), "dd/MM/yyyy p")}</TableCell>
                                         <TableCell className="text-right space-x-2">
@@ -310,11 +346,34 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
             <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-6">
                 <DialogHeader className="pb-2">
-                    <DialogTitle className="text-2xl font-bold">Edit Question Bank: {editingQuestionBank?.fileName}</DialogTitle>
+                    <DialogTitle className="text-2xl font-bold">Edit Question Bank</DialogTitle>
                     <DialogDescription>
-                        Modify questions for {editingQuestionBank?.examCategory}.
+                        Modify questions and file name for {editingQuestionBank?.examCategory}.
                     </DialogDescription>
                 </DialogHeader>
+                
+                <div className="space-y-4 py-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-1">
+                        <div className="space-y-2">
+                            <Label className="text-sm font-semibold">File Name</Label>
+                            <Input 
+                                value={editingFileName} 
+                                onChange={(e) => setEditingFileName(e.target.value)}
+                                placeholder="Enter file name (e.g., Chennai Circle 2024 PA.json)"
+                                className="bg-slate-50 border-slate-200"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-sm font-semibold">Exam Year</Label>
+                            <Input 
+                                value={editingYear} 
+                                onChange={(e) => setEditingYear(e.target.value)}
+                                placeholder="e.g. 2024"
+                                className="bg-slate-50 border-slate-200"
+                            />
+                        </div>
+                    </div>
+                </div>
                 
                 <div className="flex-1 overflow-hidden pt-4">
                     {editingQuestionBank && (

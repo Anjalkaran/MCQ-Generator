@@ -3,7 +3,7 @@
 
 import { useDashboard } from "@/app/dashboard/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, PenSquare, Video, BrainCircuit, Library, CalendarCheck, ArrowLeft, Clock } from 'lucide-react';
+import { Loader2, PenSquare, Video, BrainCircuit, Library, CalendarCheck, ArrowLeft, Clock, History } from 'lucide-react';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useParams, useRouter } from "next/navigation";
@@ -107,6 +107,18 @@ export default function CourseDetailPage() {
                 <div>
                   <h3 className="font-bold text-lg">Video Classes</h3>
                   <p className="text-sm text-slate-500">Expert-led lessons for all topics</p>
+                </div>
+              </Link>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow border-slate-200">
+              <Link href="/dashboard/mock-test/previous-year" className="block p-6 text-center space-y-4">
+                <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center mx-auto">
+                  <History className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Previous Year Paper</h3>
+                  <p className="text-sm text-slate-500">Practice with actual past exam questions</p>
                 </div>
               </Link>
             </Card>

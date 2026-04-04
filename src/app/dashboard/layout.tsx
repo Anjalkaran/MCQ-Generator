@@ -40,6 +40,80 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const [newContent, setNewContent] = useState<{ videos: VideoClass[], materials: StudyMaterial[] }>({ videos: [], materials: [] });
 
   useEffect(() => {
+    if (isLoading || !userData) return;
+    
+    const adminEmail = userData?.email || user?.email;
+    const isAdmin = adminEmail ? ADMIN_EMAILS.includes(adminEmail) : false;
+    
+    // Protection only for non-admins
+    if (!isAdmin) {
+      const handleContextMenu = (e: MouseEvent) => {
+        e.preventDefault();
+      };
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        // Disable F12
+        if (e.key === 'F12') {
+          e.preventDefault();
+          return false;
+        }
+        // Disable Ctrl+Shift+I, J, C (DevTools)
+        if (e.ctrlKey && e.shiftKey && ['I', 'J', 'C', 'i', 'j', 'c'].includes(e.key)) {
+          e.preventDefault();
+          return false;
+        }
+        // Disable Ctrl+U (View Source)
+        if (e.ctrlKey && (e.key === 'u' || e.key === 'U')) {
+          e.preventDefault();
+          return false;
+        }
+        // Disable Ctrl+S (Save) and Ctrl+P (Print)
+        if (e.ctrlKey && ['s', 'S', 'p', 'P'].includes(e.key)) {
+          e.preventDefault();
+          return false;
+        }
+        // Disable Ctrl+C (Copy)
+        if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) {
+          e.preventDefault();
+          return false;
+        }
+      };
+
+      // Disable text selection via CSS
+      document.body.style.userSelect = 'none';
+      (document.body.style as any).webkitUserSelect = 'none';
+      (document.body.style as any).msUserSelect = 'none';
+      (document.body.style as any).mozUserSelect = 'none';
+
+      document.addEventListener('contextmenu', handleContextMenu);
+      document.addEventListener('keydown', handleKeyDown);
+
+      // Add print protection for students
+      const style = document.createElement('style');
+      style.id = 'student-print-protection';
+      style.innerHTML = '@media print { body { display: none !important; } }';
+      document.head.appendChild(style);
+
+      return () => {
+        document.body.style.userSelect = 'auto';
+        (document.body.style as any).webkitUserSelect = 'auto';
+        (document.body.style as any).msUserSelect = 'auto';
+        (document.body.style as any).mozUserSelect = 'auto';
+        document.removeEventListener('contextmenu', handleContextMenu);
+        document.removeEventListener('keydown', handleKeyDown);
+        const printStyle = document.getElementById('student-print-protection');
+        if (printStyle) printStyle.remove();
+      };
+    } else {
+      // Explicitly restore defaults for admins if they were previously blocked in the same session
+      document.body.style.userSelect = 'auto';
+      (document.body.style as any).webkitUserSelect = 'auto';
+      (document.body.style as any).msUserSelect = 'auto';
+      (document.body.style as any).mozUserSelect = 'auto';
+    }
+  }, [isLoading, userData]);
+
+  useEffect(() => {
     if (!isLoading && userData && user) {
       // Logic for new content popup
       const lastSeen = localStorage.getItem('lastSeenUpdateTimestamp');

@@ -18,7 +18,7 @@ import { normalizeDate } from '@/lib/utils';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { useDashboard } from '@/app/dashboard/layout';
 
-const allLanguages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
+const allLanguages = ["English", "Tamil"] as const;
 const ipLanguages = ["English", "Hindi"] as const;
 
 
@@ -171,7 +171,7 @@ export function CreateQuizForm() {
     // Exclude reasoning and general awareness categories
     return categories.filter(c => 
         c.examCategories && 
-        c.examCategories.includes(selectedExamType) &&
+        c.examCategories.includes(selectedExamType as any) &&
         !c.name.toLowerCase().includes("reasoning") &&
         !c.name.toLowerCase().includes("non-verbal") &&
         !c.name.toLowerCase().includes("non verbal") &&
@@ -185,7 +185,7 @@ export function CreateQuizForm() {
     let partTopics = topics.filter(topic => 
         topic.categoryId === selectedCategoryId && 
         topic.part === selectedPart &&
-        topic.examCategories.includes(selectedExamType)
+        topic.examCategories.includes(selectedExamType as any)
     );
 
     return partTopics;
@@ -196,7 +196,7 @@ export function CreateQuizForm() {
     if (!selectedPart || !selectedExamType) return [];
     
     // Get all topics for the selected exam type and part
-    const relevantTopics = topics.filter(t => t.part === selectedPart && t.examCategories.includes(selectedExamType));
+    const relevantTopics = topics.filter(t => t.part === selectedPart && t.examCategories.includes(selectedExamType as any));
     const relevantCategoryIds = new Set(relevantTopics.map(t => t.categoryId));
 
     const finalCategories = filteredCategoriesByExam.filter(c => relevantCategoryIds.has(c.id));

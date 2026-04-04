@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Trash2, Search, Upload, FilePlus, List, Edit, Save, FileCode, ClipboardPaste } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Search, Upload, FilePlus, List, Edit, Save, FileCode, ClipboardPaste, Calendar as CalendarIcon } from 'lucide-react';
 import { deleteWeeklyTest, getLiveTestQuestionPaper, updateLiveTestBankDocument, updateWeeklyTest } from '@/lib/firestore';
 import { getFirebaseAuth } from '@/lib/firebase';
 import type { BankedQuestion, WeeklyTest, MCQ } from '@/lib/types';
@@ -24,15 +24,20 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 const categoriesList = ["MTS", "POSTMAN", "PA", "IP"] as const;
 
 const formSchema = z.object({
   title: z.string().min(3, "Title is required."),
+  duration: z.string().optional(),
   examCategories: z.array(z.string()).min(1, "Select at least one category."),
   method: z.enum(["file", "paste"]).default("file"),
   file: z.any().optional(),
-  pastedJson: z.string().optional()
+  pastedJson: z.string().optional(),
+  scheduledAt: z.date().optional(),
 });
 
 const appendSchema = z.object({
@@ -43,7 +48,9 @@ const appendSchema = z.object({
 
 const editInfoSchema = z.object({
   title: z.string().min(3, "Title is required."),
+  duration: z.string().optional(),
   examCategories: z.array(z.string()).min(1, "Select at least one category."),
+  scheduledAt: z.date().optional(),
 });
 
 const mcqSchema = z.object({
@@ -84,7 +91,7 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { title: '', examCategories: [], method: 'file', pastedJson: '' }
+    defaultValues: { title: '', duration: '', examCategories: [], method: 'file', pastedJson: '' }
   });
 
   const appendForm = useForm<z.infer<typeof appendSchema>>({
@@ -96,13 +103,15 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
 
   const editInfoForm = useForm<z.infer<typeof editInfoSchema>>({
     resolver: zodResolver(editInfoSchema),
-    defaultValues: { title: '', examCategories: [] }
+    defaultValues: { title: '', duration: '', examCategories: [] }
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     const formData = new FormData();
     formData.append('title', values.title);
+    if (values.duration) formData.append('duration', values.duration);
+    if (values.scheduledAt) formData.append('scheduledAt', values.scheduledAt.toISOString());
     values.examCategories.forEach(cat => formData.append('examCategories', cat));
     
     if (values.method === 'file') {
@@ -270,8 +279,13 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
     if (!editingTestInfo) return;
     setIsUpdatingInfo(true);
     try {
-        await updateWeeklyTest(editingTestInfo.id, values);
-        setWeeklyTests(prev => prev.map(t => t.id === editingTestInfo.id ? { ...t, ...values } : t));
+        const updateData = {
+            ...values,
+            duration: values.duration ? parseInt(values.duration) : undefined,
+            scheduledAt: values.scheduledAt
+        };
+        await updateWeeklyTest(editingTestInfo.id, updateData as any);
+        setWeeklyTests(prev => prev.map(t => t.id === editingTestInfo.id ? { ...t, ...updateData } : t));
         toast({ title: "Updated", description: "Weekly test information updated successfully." });
         setEditingTestInfo(null);
     } catch (error) {
@@ -309,6 +323,67 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                         <FormItem>
                                             <FormLabel>Test Title</FormLabel>
                                             <FormControl><Input placeholder="e.g. Week 1 MTS Challenge" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="duration"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Duration (Minutes)</FormLabel>
+                                            <FormControl><Input type="number" placeholder="Leave empty for no limit" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="scheduledAt"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-col">
+                                            <FormLabel>Schedule Release (Optional)</FormLabel>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button
+                                                            variant={"outline"}
+                                                            className={cn(
+                                                                "pl-3 text-left font-normal",
+                                                                !field.value && "text-muted-foreground"
+                                                            )}
+                                                        >
+                                                            {field.value ? (
+                                                                format(field.value, "PPP HH:mm")
+                                                            ) : (
+                                                                <span>Pick release date</span>
+                                                            )}
+                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0" align="start">
+                                                    <Calendar
+                                                        mode="single"
+                                                        selected={field.value}
+                                                        onSelect={field.onChange}
+                                                        disabled={(date) => date < new Date("2024-01-01")}
+                                                        initialFocus
+                                                    />
+                                                    <div className="p-2 border-t border-border">
+                                                        <Input 
+                                                            type="time" 
+                                                            onChange={(e) => {
+                                                                const [hours, minutes] = e.target.value.split(':').map(Number);
+                                                                const newDate = new Date(field.value || new Date());
+                                                                newDate.setHours(hours, minutes);
+                                                                field.onChange(newDate);
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </PopoverContent>
+                                            </Popover>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -428,11 +503,12 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
             <CardContent>
                 <div className="border rounded-md">
                     <Table>
-                        <TableHeader><TableRow><TableHead>Title</TableHead><TableHead>Categories</TableHead><TableHead>Created</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader>
+                        <TableHeader><TableRow><TableHead>Title</TableHead><TableHead>Duration</TableHead><TableHead>Categories</TableHead><TableHead>Created</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader>
                         <TableBody>
                             {filteredTests.length > 0 ? filteredTests.map(t => (
                                 <TableRow key={t.id}>
                                     <TableCell className="font-medium">{t.title}</TableCell>
+                                    <TableCell className="text-xs font-mono">{t.duration ? `${t.duration}m` : 'None'}</TableCell>
                                     <TableCell>
                                         <div className="flex flex-wrap gap-1">
                                             {t.examCategories?.map(cat => <Badge key={cat} variant="secondary" className="text-[10px]">{cat}</Badge>)}
@@ -443,14 +519,23 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                             )}
                                         </div>
                                     </TableCell>
-                                    <TableCell className="text-xs text-muted-foreground">{t.createdAt ? format(t.createdAt, 'dd/MM/yyyy') : 'N/A'}</TableCell>
+                                    <TableCell className="text-xs text-muted-foreground">
+                                        {t.scheduledAt ? (
+                                            <div className="flex flex-col">
+                                                <span className="text-amber-600 font-bold">Scheduled:</span>
+                                                <span>{format(t.scheduledAt, 'dd/MM/yyyy HH:mm')}</span>
+                                            </div>
+                                        ) : t.createdAt ? format(t.createdAt, 'dd/MM/yyyy') : 'N/A'}
+                                    </TableCell>
                                     <TableCell className="text-right space-x-2">
                                         <Button variant="ghost" size="icon" onClick={() => handleManageQuestions(t)} title="Edit Questions"><List className="h-4 w-4 text-primary" /></Button>
                                         <Button variant="ghost" size="icon" onClick={() => { 
                                             setEditingTestInfo(t); 
                                             editInfoForm.reset({ 
                                                 title: t.title, 
-                                                examCategories: t.examCategories || ((t as any).examCategory ? [(t as any).examCategory] : []) 
+                                                duration: t.duration?.toString() || '',
+                                                examCategories: t.examCategories || ((t as any).examCategory ? [(t as any).examCategory] : []),
+                                                scheduledAt: t.scheduledAt ? new Date(t.scheduledAt) : undefined
                                             }); 
                                         }} title="Edit Info"><Edit className="h-4 w-4 text-amber-600" /></Button>
                                         <Button variant="ghost" size="icon" onClick={() => setSelectedTestToAppend(t)} title="Append"><FilePlus className="h-4 w-4 text-blue-600" /></Button>
@@ -544,6 +629,57 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                         <FormField control={editInfoForm.control} name="title" render={({ field }) => (
                             <FormItem><FormLabel>Test Title</FormLabel><FormControl><Input placeholder="e.g. MCQ on Postal History" {...field} /></FormControl><FormMessage /></FormItem>
                         )} />
+
+                        <FormField control={editInfoForm.control} name="duration" render={({ field }) => (
+                            <FormItem><FormLabel>Duration (Minutes)</FormLabel><FormControl><Input type="number" placeholder="Leave empty for no limit" {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+
+                        <FormField
+                            control={editInfoForm.control}
+                            name="scheduledAt"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                    <FormLabel>Scheduled Release</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button
+                                                    variant={"outline"}
+                                                    className={cn(
+                                                        "pl-3 text-left font-normal",
+                                                        !field.value && "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    {field.value ? format(field.value, "PPP HH:mm") : <span>Pick release date</span>}
+                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar
+                                                mode="single"
+                                                selected={field.value}
+                                                onSelect={field.onChange}
+                                                disabled={(date) => date < new Date("2024-01-01")}
+                                            />
+                                            <div className="p-2 border-t border-border">
+                                                <Input 
+                                                    type="time" 
+                                                    value={field.value ? format(field.value, "HH:mm") : ""}
+                                                    onChange={(e) => {
+                                                        const [hours, minutes] = e.target.value.split(':').map(Number);
+                                                        const newDate = new Date(field.value || new Date());
+                                                        newDate.setHours(hours, minutes);
+                                                        field.onChange(newDate);
+                                                    }}
+                                                />
+                                            </div>
+                                        </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                         
                         <FormField control={editInfoForm.control} name="examCategories" render={() => (
                             <FormItem>

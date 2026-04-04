@@ -21,7 +21,7 @@ import { ADMIN_EMAILS } from '@/lib/constants';
 // Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
-function PdfViewer({ fileUrl, fileName }: { fileUrl: string, fileName: string }) {
+function PdfViewer({ fileUrl, fileName, isAdmin }: { fileUrl: string, fileName: string, isAdmin: boolean }) {
     const [numPages, setNumPages] = useState<number | null>(null);
     const [loadError, setLoadError] = useState<boolean>(false);
 
@@ -55,8 +55,11 @@ function PdfViewer({ fileUrl, fileName }: { fileUrl: string, fileName: string })
             <div className="flex-grow overflow-hidden relative group">
                 <ScrollArea className="h-full scrollbar-slate">
                     <div 
-                        className="flex flex-col items-center gap-6 p-8 min-h-full select-none"
-                        onContextMenu={(e) => e.preventDefault()} // Disable right-click
+                        className={cn(
+                            "flex flex-col items-center gap-6 p-8 min-h-full",
+                            !isAdmin && "select-none"
+                        )}
+                        onContextMenu={(e) => !isAdmin && e.preventDefault()} // Disable right-click for non-admins
                     >
                         <Document
                             file={proxiedUrl}
@@ -291,7 +294,7 @@ export default function StudyMaterialPage() {
                                                     <MaterialCard material={material} topic={topic} />
                                                 </button>
                                             </DialogTrigger>
-                                            <PdfViewer fileUrl={material.content} fileName={material.fileName} />
+                                            <PdfViewer fileUrl={material.content} fileName={material.fileName} isAdmin={isAdmin} />
                                         </Dialog>
                                     ))}
                                 </div>
@@ -319,7 +322,7 @@ export default function StudyMaterialPage() {
                                                     <MaterialCard material={material} topic={topic} />
                                                 </button>
                                             </DialogTrigger>
-                                            <PdfViewer fileUrl={material.content} fileName={material.fileName} />
+                                            <PdfViewer fileUrl={material.content} fileName={material.fileName} isAdmin={isAdmin} />
                                         </Dialog>
                                     ))}
                                 </div>
@@ -338,7 +341,7 @@ export default function StudyMaterialPage() {
                                             <MaterialCard material={material} topic={topic} />
                                         </button>
                                     </DialogTrigger>
-                                    <PdfViewer fileUrl={material.content} fileName={material.fileName} />
+                                    <PdfViewer fileUrl={material.content} fileName={material.fileName} isAdmin={isAdmin} />
                                 </Dialog>
                             ))}
                         </div>

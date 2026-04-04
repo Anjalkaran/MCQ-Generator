@@ -25,10 +25,10 @@ export default function PreviousYearMockTestPage() {
                     Back to Dashboard
                 </Link>
             </Button>
-            <div className="space-y-2 text-center">
-                <h1 className="text-3xl font-bold tracking-tight">Previous Year Paper Mock Test</h1>
-                <p className="text-muted-foreground">
-                    Practice with a randomly selected past paper for your exam.
+            <div className="space-y-2 text-center pb-2">
+                <h1 className="text-3xl font-bold tracking-tight text-slate-800 uppercase tracking-widest">Question Bank</h1>
+                <p className="text-muted-foreground font-medium">
+                    Select your exam category to practice with authentic past papers.
                 </p>
             </div>
             

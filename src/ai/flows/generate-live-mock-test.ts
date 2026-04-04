@@ -26,6 +26,7 @@ const GenerateLiveMockTestInputSchema = z.object({
   examCategory: z.enum(["MTS", "POSTMAN", "PA", "IP"]).describe('Target course.'),
   language: z.string().optional().default('English').describe('Selected language.'),
   testTitle: z.string().describe('Display title.'),
+  duration: z.number().optional().describe('Custom duration in minutes.'),
 });
 export type GenerateLiveMockTestInput = z.infer<typeof GenerateLiveMockTestInputSchema>;
 
@@ -81,13 +82,22 @@ const generateLiveMockTestFlow = ai.defineFlow(
                 solution: q.solution || "",
             };
 
-            if (langKey && q.translations?.[langKey]) {
-                const translated = q.translations[langKey];
+            const lang = input.language || 'English';
+            const langKey = lang.toLowerCase();
+            const langCode = languageMap[langKey];
+            
+            const t = q.translations && (
+                q.translations[lang] || 
+                (langCode ? q.translations[langCode] : null) ||
+                q.translations[langKey]
+            );
+
+            if (t) {
                 return {
-                    question: translated.question || base.question,
-                    options: translated.options || base.options,
-                    correctAnswer: translated.correctAnswer || base.correctAnswer,
-                    solution: translated.solution || base.solution || "",
+                    question: t.question || base.question,
+                    options: (t.options && t.options.length > 0) ? t.options : base.options,
+                    correctAnswer: t.correctAnswer || base.correctAnswer,
+                    solution: t.solution || base.solution || "",
                     topic: base.topic,
                 };
             }
@@ -99,9 +109,14 @@ const generateLiveMockTestFlow = ai.defineFlow(
     const blueprint = (blueprintMap as any)[input.examCategory];
     const quizId = `test-${Date.now()}`;
     
+    // Set time limit: Input duration (mins) > Blueprint duration > Default 60 mins
+    const timeLimitInSeconds = input.duration 
+        ? input.duration * 60 
+        : (blueprint?.totalDurationMinutes || 60) * 60;
+
     const quizData: any = {
         mcqs: processedQuestions,
-        timeLimit: Math.floor((blueprint?.totalDurationMinutes || 60) * 60),
+        timeLimit: timeLimitInSeconds,
         isMockTest: true,
         examCategory: input.examCategory,
         language: input.language,

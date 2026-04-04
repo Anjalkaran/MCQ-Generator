@@ -16,7 +16,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { FadeIn, SlideUp, StaggerContainer, StaggerItem, HoverScale } from '@/components/animations/motion-wrapper';
 import type { DailyTest } from "@/lib/types";
 import { format, isToday, isYesterday, startOfMonth } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, normalizeDate } from "@/lib/utils";
+import { CountdownTimer } from "@/components/ui/countdown-timer";
 
 const allLanguages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
 const ipLanguages = ["English", "Hindi"] as const;
@@ -48,6 +49,7 @@ function DailyTestCard({ test, index }: { test: DailyTest; index: number }) {
                 examCategory: userData.examCategory,
                 language: selectedLanguage,
                 testTitle: test.title,
+                duration: test.duration,
             });
 
             if (!quizId) throw new Error("Generation failed.");
@@ -96,9 +98,17 @@ function DailyTestCard({ test, index }: { test: DailyTest; index: number }) {
                         </div>
                     )}
                 </div>
-                <CardTitle className="text-xl font-bold mt-4 leading-tight group-hover:text-primary transition-colors line-clamp-2">
-                    {test.title}
-                </CardTitle>
+                <div className="flex flex-col gap-2 mt-4">
+                    <CardTitle className="text-xl font-bold leading-tight group-hover:text-primary transition-colors line-clamp-2">
+                        {test.title}
+                    </CardTitle>
+                    {test.duration && (
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-amber-600 bg-amber-50 w-fit px-2 py-0.5 rounded-full border border-amber-100">
+                            <Clock className="h-3 w-3" />
+                            {test.duration} Minutes
+                        </div>
+                    )}
+                </div>
             </CardHeader>
 
             <CardContent className="space-y-4 pt-2 flex-grow">
@@ -162,6 +172,7 @@ function DailyTestSpotlight({ test }: { test: DailyTest }) {
                 examCategory: userData?.examCategory || 'MTS',
                 language: selectedLanguage,
                 testTitle: test.title,
+                duration: test.duration,
             });
             if (quizId) router.push(`/quiz/${quizId}`);
         } catch (error: any) {
@@ -180,9 +191,17 @@ function DailyTestSpotlight({ test }: { test: DailyTest }) {
             <div className="grid md:grid-cols-5 gap-0 items-stretch">
                 <div className="md:col-span-3 p-8 sm:p-12 space-y-8">
                     <div className="space-y-4">
-                        <div className="flex items-center gap-3 text-red-600 font-bold tracking-widest text-xs uppercase">
-                            <Clock className="h-4 w-4" />
-                            {test.createdAt ? format(test.createdAt, 'EEEE, dd MMMM yyyy') : 'Live Now'}
+                        <div className="flex items-center gap-6 text-red-600 font-bold tracking-widest text-xs uppercase">
+                            <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                {test.createdAt ? format(test.createdAt, 'EEEE, dd MMMM yyyy') : 'Live Now'}
+                            </div>
+                            {test.duration && (
+                                <div className="flex items-center gap-2 px-3 py-1 bg-red-50 rounded-lg">
+                                    <Clock className="h-4 w-4" />
+                                    {test.duration} MINUTES
+                                </div>
+                            )}
                         </div>
                         <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-tight">
                             {test.title}
@@ -250,6 +269,7 @@ function DailyTestArchiveItem({ test }: { test: DailyTest }) {
                 examCategory: userData?.examCategory || 'MTS',
                 language: 'English',
                 testTitle: test.title,
+                duration: test.duration,
             });
             if (quizId) router.push(`/quiz/${quizId}`);
         } finally {
@@ -305,10 +325,25 @@ export default function DailyTestPage() {
         const cats = (test.examCategories || []).map(c => c.toUpperCase());
         const userCatUpper = userCategory.toUpperCase();
         const singularCat = (test as any).examCategory?.toUpperCase();
+        
+        const isScheduledForFuture = test.scheduledAt && normalizeDate(test.scheduledAt)! > new Date();
+        if (isScheduledForFuture) return false;
+
         const matchesCat = cats.includes(userCatUpper) || singularCat === userCatUpper;
         const matchesSearch = test.title.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesCat && matchesSearch;
     });
+
+    const nextUpcomingTest = (dailyTests || [])
+        .filter(test => {
+            const cats = (test.examCategories || []).map(c => c.toUpperCase());
+            const userCatUpper = userCategory.toUpperCase();
+            const singularCat = (test as any).examCategory?.toUpperCase();
+            const isMatch = cats.includes(userCatUpper) || singularCat === userCatUpper;
+            const isScheduledForFuture = test.scheduledAt && normalizeDate(test.scheduledAt)! > new Date();
+            return isMatch && isScheduledForFuture;
+        })
+        .sort((a,b) => normalizeDate(a.scheduledAt)!.getTime() - normalizeDate(b.scheduledAt)!.getTime())[0];
 
     const sortedTests = [...filteredTests].sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
@@ -351,6 +386,40 @@ export default function DailyTestPage() {
                     </div>
                 </div>
             </div>
+
+            {nextUpcomingTest && (
+                <div className="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-red-600 via-red-500 to-amber-500 p-12 text-white shadow-2xl shadow-red-200/50 mx-2">
+                    <div className="absolute top-0 right-0 -translate-y-1/3 translate-x-1/4 h-80 w-80 bg-white/10 rounded-full blur-[80px]" />
+                    <div className="absolute bottom-0 left-0 translate-y-1/3 -translate-x-1/4 h-80 w-80 bg-black/10 rounded-full blur-[80px]" />
+                    
+                    <div className="relative flex flex-col md:flex-row items-center justify-between gap-12">
+                        <div className="space-y-6 text-center md:text-left flex-1">
+                            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white font-black text-xs uppercase tracking-[0.2em]">
+                                <Sparkles className="h-4 w-4 animate-pulse" />
+                                Premium Release Schedule
+                            </div>
+                            <h2 className="text-4xl md:text-6xl font-black tracking-tighter leading-[0.9]">
+                                Next Practice <br/>
+                                <span className="opacity-50">Is Incoming.</span>
+                            </h2>
+                            <p className="text-white/80 max-w-lg text-lg font-semibold leading-relaxed">
+                                Get ready for <span className="text-white underline decoration-white/40 decoration-4 underline-offset-4">{nextUpcomingTest.title}</span>. Precision crafted for the <span className="underline decoration-white/40">{userCategory}</span> curriculum.
+                            </p>
+                        </div>
+                        
+                        <div className="flex flex-col items-center gap-6 p-10 bg-white rounded-[2.5rem] shadow-2xl shadow-black/20 text-slate-900 border-4 border-red-50/50 scale-105 sm:scale-110">
+                            <div className="text-[11px] font-black text-red-600 uppercase tracking-[0.3em] flex items-center gap-2">
+                                <span className="flex h-3 w-3 rounded-full bg-red-600 animate-ping" />
+                                LIVE IN
+                            </div>
+                            <CountdownTimer 
+                                targetDate={normalizeDate(nextUpcomingTest.scheduledAt)!} 
+                                className="bg-transparent border-none shadow-none p-0" 
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {sortedTests.length > 0 ? (
                 <div className="space-y-16">
@@ -399,7 +468,7 @@ export default function DailyTestPage() {
                     )}
                 </div>
             ) : (
-                <EmptyState userCategory={userCategory} onRefresh={() => router.refresh()} />
+                <EmptyState userCategory={userCategory} onRefresh={() => router.refresh()} nextUpcomingTest={nextUpcomingTest} />
             )}
         </div>
     );
@@ -423,20 +492,36 @@ const Library = ({ className }: any) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M8 7h6"/><path d="M8 11h8"/><path d="M8 15h6"/></svg>
 );
 
-function EmptyState({ userCategory, onRefresh }: any) {
+function EmptyState({ userCategory, onRefresh, nextUpcomingTest }: any) {
     return (
-        <div className="py-24 flex flex-col items-center justify-center text-center space-y-6 bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-200 mx-2">
-            <div className="p-10 rounded-full bg-red-50 text-red-200 scale-125 mb-4 border border-red-100 shadow-inner">
-                <BookOpen className="h-16 w-16 text-red-400" />
-            </div>
-            <div className="space-y-2">
-                <h3 className="text-3xl font-black text-slate-800 tracking-tight">Vault Empty</h3>
+        <div className="py-24 flex flex-col items-center justify-center text-center space-y-8 bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-200 mx-2">
+            {!nextUpcomingTest && (
+                <div className="p-10 rounded-full bg-red-50 text-red-200 scale-125 mb-4 border border-red-100 shadow-inner">
+                    <BookOpen className="h-16 w-16 text-red-400" />
+                </div>
+            )}
+            
+            <div className="space-y-4">
+                <h3 className="text-3xl font-black text-slate-800 tracking-tight">
+                    {nextUpcomingTest ? "More Content Incoming" : "Vault Empty"}
+                </h3>
                 <p className="text-slate-500 max-w-sm mx-auto leading-relaxed font-semibold">
-                    Our curators are currently preparing fresh practice sets for <span className="text-red-600 underline decoration-red-200 decoration-4">{userCategory}</span>.
+                    {nextUpcomingTest 
+                        ? `The scheduled challenge "${nextUpcomingTest.title}" will unlock automatically.`
+                        : `Our curators are currently preparing fresh practice sets for ${userCategory}.`
+                    }
                 </p>
             </div>
+
+            {nextUpcomingTest && (
+                <div className="bg-white p-8 rounded-[2rem] border-2 border-red-50 shadow-xl shadow-red-100/50">
+                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">RELEASING IN</div>
+                    <CountdownTimer targetDate={normalizeDate(nextUpcomingTest.scheduledAt)!} className="bg-transparent border-none shadow-none p-0" />
+                </div>
+            )}
+
             <Button onClick={onRefresh} variant="outline" className="mt-4 h-14 px-10 rounded-2xl border-red-200 text-red-600 hover:bg-white transition-all shadow-sm font-bold">
-                <Loader2 className="h-5 w-5 mr-3" /> Check for Updates
+                <Loader2 className="h-5 w-5 mr-3" /> {nextUpcomingTest ? "Update Dashboard" : "Check for Updates"}
             </Button>
         </div>
     );

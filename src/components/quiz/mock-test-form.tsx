@@ -22,7 +22,7 @@ import { normalizeDate } from '@/lib/utils';
 import Link from 'next/link';
 
 const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
-const allLanguages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
+const allLanguages = ["English", "Tamil"] as const;
 const ipLanguages = ["English", "Hindi"] as const;
 
 

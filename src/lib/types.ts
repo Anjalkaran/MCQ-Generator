@@ -70,7 +70,9 @@ export interface UserData {
     lastSeen?: any;
     hasSeenReasoningUpdate?: boolean; 
     mockTestUpdateSeenCount?: number;
+    preferredLanguage?: 'English' | 'Tamil';
 }
+
 
 export interface MCQData {
   topic: Pick<Topic, 'id' | 'title' | 'description' | 'icon' | 'categoryId'>;
@@ -117,6 +119,7 @@ export interface BankedQuestion {
     fileName: string;
     content: string;
     uploadedAt: Date;
+    examYear?: string;
 }
 
 export interface TopicMCQ {
@@ -173,7 +176,9 @@ export interface WeeklyTest {
     title: string;
     examCategories: string[];
     questionPaperId: string;
+    duration?: number;
     createdAt: Date;
+    scheduledAt?: Date;
 }
 
 export interface DailyTest {
@@ -181,7 +186,9 @@ export interface DailyTest {
     title: string;
     examCategories: string[];
     questionPaperId: string;
+    duration?: number;
     createdAt: Date;
+    scheduledAt?: Date;
 }
 
 export interface ReasoningQuestion {
@@ -201,6 +208,7 @@ export interface Feedback {
   id: string;
   userId: string;
   userName: string;
+  userEmail?: string;
   rating: number;
   comment: string;
   createdAt: Date;

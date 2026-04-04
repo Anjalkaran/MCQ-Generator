@@ -179,18 +179,24 @@ const generateMCQsFlow = ai.defineFlow(
                     solution: mcq.solution || "",
                 };
 
-                if (input.language && input.language !== 'English') {
-                    const langKey = languageMap[input.language.toLowerCase()];
-                    if (langKey && mcq.translations?.[langKey]) {
-                        const translated = mcq.translations[langKey];
-                        return {
-                            ...base,
-                            question: translated.question || base.question,
-                            options: translated.options || base.options,
-                            correctAnswer: translated.correctAnswer || base.correctAnswer,
-                            solution: translated.solution || base.solution,
-                        };
-                    }
+                const lang = input.language || 'English';
+                const langKey = lang.toLowerCase();
+                const langCode = languageMap[langKey];
+                
+                const t = mcq.translations && (
+                    mcq.translations[lang] || 
+                    (langCode ? mcq.translations[langCode] : null) ||
+                    mcq.translations[langKey]
+                );
+
+                if (t) {
+                    return {
+                        ...base,
+                        question: t.question || base.question,
+                        options: (t.options && t.options.length > 0) ? t.options : base.options,
+                        correctAnswer: t.correctAnswer || base.correctAnswer,
+                        solution: t.solution || base.solution,
+                    };
                 }
                 return base;
             });

@@ -10,8 +10,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Trash2, Search, Upload, FilePlus, List, Edit, FileCode, ClipboardPaste } from 'lucide-react';
-import { deleteDailyTest, getLiveTestQuestionPaper, updateLiveTestBankDocument } from '@/lib/firestore';
+import { Loader2, PlusCircle, Trash2, Search, Upload, FilePlus, List, Edit, FileCode, ClipboardPaste, Calendar as CalendarIcon } from 'lucide-react';
+import { deleteDailyTest, getLiveTestQuestionPaper, updateLiveTestBankDocument, updateDailyTest } from '@/lib/firestore';
 import { getFirebaseAuth } from '@/lib/firebase';
 import type { BankedQuestion, DailyTest, MCQ } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -23,15 +23,27 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 const categoriesList = ["MTS", "POSTMAN", "PA", "IP"] as const;
 
 const formSchema = z.object({
   title: z.string().min(3, "Title is required."),
+  duration: z.string().optional(),
   examCategories: z.array(z.string()).min(1, "Select at least one category."),
   method: z.enum(["file", "paste"]).default("file"),
   file: z.any().optional(),
-  pastedJson: z.string().optional()
+  pastedJson: z.string().optional(),
+  scheduledAt: z.date().optional(),
+});
+
+const editInfoSchema = z.object({
+    title: z.string().min(3, "Title is required."),
+    duration: z.string().optional(),
+    examCategories: z.array(z.string()).min(1, "Select at least one category."),
+    scheduledAt: z.date().optional(),
 });
 
 const appendSchema = z.object({
@@ -72,11 +84,14 @@ export function DailyTestManagement({ initialDailyTests, initialBankedQuestions 
   const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
   const [isSavingQuestions, setIsSavingQuestions] = useState(false);
   
+  const [editingTestInfo, setEditingTestInfo] = useState<DailyTest | null>(null);
+  const [isSavingTestInfo, setIsSavingTestInfo] = useState(false);
+  
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { title: '', examCategories: [], method: 'file', pastedJson: '' }
+    defaultValues: { title: '', duration: '', examCategories: [], method: 'file', pastedJson: '' }
   });
 
   const appendForm = useForm<z.infer<typeof appendSchema>>({
@@ -85,11 +100,18 @@ export function DailyTestManagement({ initialDailyTests, initialBankedQuestions 
   });
 
   const editQuestionForm = useForm<z.infer<typeof mcqSchema>>();
+  
+  const editInfoForm = useForm<z.infer<typeof editInfoSchema>>({
+    resolver: zodResolver(editInfoSchema),
+    defaultValues: { title: '', duration: '', examCategories: [] }
+  });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     const formData = new FormData();
     formData.append('title', values.title);
+    if (values.duration) formData.append('duration', values.duration);
+    if (values.scheduledAt) formData.append('scheduledAt', values.scheduledAt.toISOString());
     values.examCategories.forEach(cat => formData.append('examCategories', cat));
     
     if (values.method === 'file') {
@@ -253,6 +275,37 @@ export function DailyTestManagement({ initialDailyTests, initialBankedQuestions 
     }
   };
 
+  const handleEditInfo = (test: DailyTest) => {
+    setEditingTestInfo(test);
+    editInfoForm.reset({
+        title: test.title,
+        duration: test.duration?.toString() || '',
+        examCategories: test.examCategories || [],
+        scheduledAt: test.scheduledAt ? new Date(test.scheduledAt) : undefined
+    });
+  };
+
+  const onEditInfoSubmit = async (values: z.infer<typeof editInfoSchema>) => {
+    if (!editingTestInfo) return;
+    setIsSavingTestInfo(true);
+    try {
+        const updateData: Partial<DailyTest> = {
+            title: values.title,
+            duration: values.duration ? parseInt(values.duration) : undefined,
+            examCategories: values.examCategories,
+            scheduledAt: values.scheduledAt
+        };
+        await updateDailyTest(editingTestInfo.id, updateData);
+        setDailyTests(prev => prev.map(t => t.id === editingTestInfo.id ? { ...t, ...updateData } : t));
+        toast({ title: "Success", description: "Test information updated." });
+        setEditingTestInfo(null);
+    } catch (error) {
+        toast({ title: "Error", description: "Failed to update test info.", variant: "destructive" });
+    } finally {
+        setIsSavingTestInfo(false);
+    }
+  };
+
   const filteredTests = useMemo(() => 
     dailyTests.filter(t => 
         t.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -281,6 +334,67 @@ export function DailyTestManagement({ initialDailyTests, initialBankedQuestions 
                                         <FormItem>
                                             <FormLabel>Test Title</FormLabel>
                                             <FormControl><Input placeholder="e.g. Day 1 Postman Quiz" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="duration"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Duration (Minutes)</FormLabel>
+                                            <FormControl><Input type="number" placeholder="Leave empty for no limit" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="scheduledAt"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-col">
+                                            <FormLabel>Schedule Release (Optional)</FormLabel>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button
+                                                            variant={"outline"}
+                                                            className={cn(
+                                                                "pl-3 text-left font-normal",
+                                                                !field.value && "text-muted-foreground"
+                                                            )}
+                                                        >
+                                                            {field.value ? (
+                                                                format(field.value, "PPP HH:mm")
+                                                            ) : (
+                                                                <span>Pick release date</span>
+                                                            )}
+                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0" align="start">
+                                                    <Calendar
+                                                        mode="single"
+                                                        selected={field.value}
+                                                        onSelect={field.onChange}
+                                                        disabled={(date) => date < new Date("2024-01-01")}
+                                                        initialFocus
+                                                    />
+                                                    <div className="p-2 border-t border-border">
+                                                        <Input 
+                                                            type="time" 
+                                                            onChange={(e) => {
+                                                                const [hours, minutes] = e.target.value.split(':').map(Number);
+                                                                const newDate = new Date(field.value || new Date());
+                                                                newDate.setHours(hours, minutes);
+                                                                field.onChange(newDate);
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </PopoverContent>
+                                            </Popover>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -400,11 +514,12 @@ export function DailyTestManagement({ initialDailyTests, initialBankedQuestions 
             <CardContent>
                 <div className="border rounded-md">
                     <Table>
-                        <TableHeader><TableRow><TableHead>Title</TableHead><TableHead>Categories</TableHead><TableHead>Created</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader>
+                        <TableHeader><TableRow><TableHead>Title</TableHead><TableHead>Duration</TableHead><TableHead>Categories</TableHead><TableHead>Created</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader>
                         <TableBody>
                             {filteredTests.length > 0 ? filteredTests.map(t => (
                                 <TableRow key={t.id}>
                                     <TableCell className="font-medium">{t.title}</TableCell>
+                                    <TableCell className="text-xs font-mono">{t.duration ? `${t.duration}m` : 'None'}</TableCell>
                                     <TableCell>
                                         <div className="flex flex-wrap gap-1">
                                             {t.examCategories?.map(cat => <Badge key={cat} variant="secondary" className="text-[10px]">{cat}</Badge>)}
@@ -415,8 +530,16 @@ export function DailyTestManagement({ initialDailyTests, initialBankedQuestions 
                                             )}
                                         </div>
                                     </TableCell>
-                                    <TableCell className="text-xs text-muted-foreground">{t.createdAt ? format(t.createdAt, 'dd/MM/yyyy') : 'N/A'}</TableCell>
-                                    <TableCell className="text-right space-x-2">
+                                    <TableCell className="text-xs text-muted-foreground">
+                                        {t.scheduledAt ? (
+                                            <div className="flex flex-col">
+                                                <span className="text-amber-600 font-bold">Scheduled:</span>
+                                                <span>{format(t.scheduledAt, 'dd/MM/yyyy HH:mm')}</span>
+                                            </div>
+                                        ) : t.createdAt ? format(t.createdAt, 'dd/MM/yyyy') : 'N/A'}
+                                    </TableCell>
+                                    <TableCell className="text-right space-x-1 flex items-center justify-end">
+                                        <Button variant="ghost" size="icon" onClick={() => handleEditInfo(t)} title="Edit Info"><Edit className="h-4 w-4 text-amber-600" /></Button>
                                         <Button variant="ghost" size="icon" onClick={() => handleManageQuestions(t)} title="Edit Questions"><List className="h-4 w-4 text-primary" /></Button>
                                         <Button variant="ghost" size="icon" onClick={() => setSelectedTestToAppend(t)} title="Append"><FilePlus className="h-4 w-4 text-blue-600" /></Button>
                                         <AlertDialog>
@@ -481,6 +604,98 @@ export function DailyTestManagement({ initialDailyTests, initialBankedQuestions 
                     )}
                 </ScrollArea>
                 <DialogFooter className="pt-4"><Button onClick={saveAllQuestionChanges} disabled={isSavingQuestions}>{isSavingQuestions && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save All Changes</Button></DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        {/* EDIT INFO DIALOG */}
+        <Dialog open={!!editingTestInfo} onOpenChange={(open) => !open && setEditingTestInfo(null)}>
+            <DialogContent className="max-w-md">
+                <DialogHeader><DialogTitle>Edit Test Information</DialogTitle></DialogHeader>
+                <Form {...editInfoForm}>
+                    <form onSubmit={editInfoForm.handleSubmit(onEditInfoSubmit)} className="space-y-4">
+                        <FormField control={editInfoForm.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={editInfoForm.control} name="duration" render={({ field }) => (<FormItem><FormLabel>Duration (Min)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        
+                        <FormField
+                            control={editInfoForm.control}
+                            name="scheduledAt"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                    <FormLabel>Scheduled Release</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button
+                                                    variant={"outline"}
+                                                    className={cn(
+                                                        "pl-3 text-left font-normal",
+                                                        !field.value && "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    {field.value ? format(field.value, "PPP HH:mm") : <span>Pick release date</span>}
+                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar
+                                                mode="single"
+                                                selected={field.value}
+                                                onSelect={field.onChange}
+                                                disabled={(date) => date < new Date("2024-01-01")}
+                                            />
+                                            <div className="p-2 border-t border-border">
+                                                <Input 
+                                                    type="time" 
+                                                    value={field.value ? format(field.value, "HH:mm") : ""}
+                                                    onChange={(e) => {
+                                                        const [hours, minutes] = e.target.value.split(':').map(Number);
+                                                        const newDate = new Date(field.value || new Date());
+                                                        newDate.setHours(hours, minutes);
+                                                        field.onChange(newDate);
+                                                    }}
+                                                />
+                                            </div>
+                                        </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={editInfoForm.control}
+                            name="examCategories"
+                            render={() => (
+                                <FormItem>
+                                    <FormLabel>Categories</FormLabel>
+                                    <div className="flex flex-wrap gap-2 pt-1">
+                                        {categoriesList.map((item) => (
+                                            <FormField
+                                                key={item}
+                                                control={editInfoForm.control}
+                                                name="examCategories"
+                                                render={({ field }) => (
+                                                    <FormItem key={item} className="flex flex-row items-center space-x-2 space-y-0 p-2 border rounded-md">
+                                                        <FormControl>
+                                                            <Checkbox
+                                                                checked={field.value?.includes(item)}
+                                                                onCheckedChange={(checked) => checked ? field.onChange([...(field.value || []), item]) : field.onChange(field.value?.filter((v: string) => v !== item))}
+                                                            />
+                                                        </FormControl>
+                                                        <FormLabel className="font-normal cursor-pointer text-xs">{item}</FormLabel>
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        ))}
+                                    </div>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <DialogFooter><Button type="submit" disabled={isSavingTestInfo}>{isSavingTestInfo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save Changes</Button></DialogFooter>
+                    </form>
+                </Form>
             </DialogContent>
         </Dialog>
 

@@ -14,35 +14,53 @@ export function initializeFirebaseAdmin() {
     }
 
     try {
-        let serviceAccount;
-        try {
-            serviceAccount = require('./serviceAccountKey.json');
-        } catch (e) {
-            // Ignore missing file - will use defaults
+        let serviceAccount: any = null;
+        
+        // 1. Try environment variables first (usually set in staging/prod or .env.local)
+        if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+           try {
+               serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+           } catch(e) {}
+        } else if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
+            serviceAccount = {
+                projectId: process.env.FIREBASE_PROJECT_ID,
+                privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+                clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            };
         }
 
-        if (serviceAccount && Object.keys(serviceAccount).length > 0) {
+        // 2. Fallback to serviceAccountKey.json file if env vars missing
+        if (!serviceAccount) {
+            try {
+                // Using dynamic require with try-catch
+                serviceAccount = require('./serviceAccountKey.json');
+            } catch (e) {
+                // Fallback for different build environments
+                try {
+                    const fs = require('fs');
+                    const path = require('path');
+                    const filePath = path.join(process.cwd(), 'src', 'lib', 'serviceAccountKey.json');
+                    if (fs.existsSync(filePath)) {
+                        serviceAccount = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+                    }
+                } catch (innerE) {}
+            }
+        }
+
+        if (serviceAccount && (serviceAccount.projectId || serviceAccount.project_id)) {
             admin.initializeApp({
-                credential: admin.credential.cert(serviceAccount as any),
-                storageBucket: 'quizwiz-be479.appspot.com'
+                credential: admin.credential.cert(serviceAccount),
+                storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'quizwiz-be479.appspot.com'
             });
         } else {
+            // Default initialization (works automatically if running on GCP/Firebase)
             admin.initializeApp({
                 credential: admin.credential.applicationDefault(),
-                storageBucket: 'quizwiz-be479.appspot.com'
+                storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'quizwiz-be479.appspot.com'
             });
         }
     } catch (e) {
-        // Last-ditch effort: Initialize with empty config if on GCP
-        try {
-            if (admin.apps.length === 0) {
-                admin.initializeApp({
-                    storageBucket: 'quizwiz-be479.appspot.com'
-                });
-            }
-        } catch (innerError) {
-            // Don't rethrow, let the specific service call fail with a better error message if init truly failed
-        }
+        console.error("Firebase Admin initialization failed:", e);
     }
 
     isInitialized = true;

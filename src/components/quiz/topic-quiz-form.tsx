@@ -22,7 +22,7 @@ import { normalizeDate } from '@/lib/utils';
 import type { Topic, MCQ } from '@/lib/types';
 import { getTopicMCQs, getExamHistoryForUser } from '@/lib/firestore';
 
-const allLanguages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
+const allLanguages = ["English", "Tamil"] as const;
 const ipLanguages = ["English", "Hindi"] as const;
 
 const formSchema = z.object({

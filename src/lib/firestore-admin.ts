@@ -19,6 +19,22 @@ export const getAllUsersAdmin = async (): Promise<UserData[]> => {
     }
 };
 
+export const getUserDataAdmin = async (userId: string): Promise<UserData | null> => {
+    const db = getFirebaseDb();
+    if (!db) return null;
+    try {
+        const doc = await db.collection('users').doc(userId).get();
+        if (doc.exists) {
+            return { uid: doc.id, ...doc.data() } as UserData;
+        }
+        return null;
+    } catch (error) {
+        console.error("Error fetching user data (admin):", error);
+        return null;
+    }
+};
+
+
 /**
  * Server-side version of getLiveTestsForLeaderboard using Firebase Admin SDK.
  */
@@ -331,3 +347,28 @@ export const getLiveTestLeaderboardDataAdmin = async (testId: string, questionPa
         return [];
     }
 };
+
+export const getQuestionBankDocumentsByCategoryAdmin = async (examCategory: string): Promise<any[]> => {
+    const db = getFirebaseDb();
+    if (!db) return [];
+    
+    try {
+        const snapshot = await db.collection('questionBank')
+            .where('examCategory', '==', examCategory)
+            .orderBy('uploadedAt', 'desc')
+            .get();
+            
+        return snapshot.docs.map(doc => {
+            const data = doc.data();
+            return { 
+                id: doc.id, 
+                ...data, 
+                uploadedAt: normalizeDate(data.uploadedAt) || new Date() 
+            };
+        });
+    } catch (error) {
+        console.error("Error fetching question bank by category (admin):", error);
+        return [];
+    }
+};
+

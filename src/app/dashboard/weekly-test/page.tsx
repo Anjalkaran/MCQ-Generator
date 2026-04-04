@@ -13,7 +13,8 @@ import type { WeeklyTest, MCQHistory } from "@/lib/types";
 import { format } from "date-fns";
 import { getExamHistoryForUser } from "@/lib/firestore";
 import { FadeIn, SlideUp, StaggerContainer, StaggerItem, HoverScale } from '@/components/animations/motion-wrapper';
-import { cn } from "@/lib/utils";
+import { cn, normalizeDate } from "@/lib/utils";
+import { CountdownTimer } from "@/components/ui/countdown-timer";
 
 const allLanguages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
 const ipLanguages = ["English", "Hindi"] as const;
@@ -50,6 +51,7 @@ function WeeklyTestTimelineItem({ test, index, isLast, history }: { test: Weekly
                 examCategory: userData.examCategory,
                 language: selectedLanguage,
                 testTitle: test.title,
+                duration: test.duration,
             });
 
             if (!quizId) throw new Error("Generation failed.");
@@ -97,6 +99,12 @@ function WeeklyTestTimelineItem({ test, index, isLast, history }: { test: Weekly
                                     <Calendar className="h-3 w-3" />
                                     {test.createdAt ? format(test.createdAt, 'MMM d, yyyy') : 'Recently released'}
                                 </span>
+                                {test.duration && (
+                                    <span className="flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full text-[10px] font-bold border border-amber-100">
+                                        <Clock className="h-2.5 w-2.5" />
+                                        {test.duration} MINS
+                                    </span>
+                                )}
                             </div>
                             <div className="flex items-center justify-between gap-4">
                                 <h3 className="text-xl sm:text-2xl font-bold text-slate-900 group-hover:text-red-600 transition-colors">
@@ -212,8 +220,22 @@ export default function WeeklyTestPage() {
         const userCatUpper = userCategory.toUpperCase();
         const singularCat = (test as any).examCategory?.toUpperCase();
         
+        const isScheduledForFuture = test.scheduledAt && normalizeDate(test.scheduledAt)! > new Date();
+        if (isScheduledForFuture) return false;
+
         return cats.includes(userCatUpper) || singularCat === userCatUpper;
     });
+
+    const nextUpcomingTest = (weeklyTests || [])
+        .filter(test => {
+            const cats = (test.examCategories || []).map(c => c.toUpperCase());
+            const userCatUpper = userCategory.toUpperCase();
+            const singularCat = (test as any).examCategory?.toUpperCase();
+            const isMatch = cats.includes(userCatUpper) || singularCat === userCatUpper;
+            const isScheduledForFuture = test.scheduledAt && normalizeDate(test.scheduledAt)! > new Date();
+            return isMatch && isScheduledForFuture;
+        })
+        .sort((a,b) => normalizeDate(a.scheduledAt)!.getTime() - normalizeDate(b.scheduledAt)!.getTime())[0];
 
     return (
         <div className="space-y-10 pb-12">
@@ -236,21 +258,37 @@ export default function WeeklyTestPage() {
                         </p>
                     </div>
                     
-                    <div className="hidden lg:grid grid-cols-2 gap-4 w-full max-w-md">
-                        {[
-                            { label: "Full Length", icon: ClipboardCheck, color: "text-red-500", bg: "bg-red-50" },
-                            { label: "Rank Analysis", icon: Trophy, color: "text-amber-500", bg: "bg-amber-50" },
-                            { label: "Real Timer", icon: Clock, color: "text-red-500", bg: "bg-red-50" },
-                            { label: "Detailed Solutions", icon: HelpCircle, color: "text-emerald-500", bg: "bg-emerald-50" },
-                        ].map((stat, i) => (
-                            <div key={i} className="flex items-center gap-3 p-4 rounded-2xl bg-white/40 backdrop-blur-md border border-white/60 shadow-sm transition-transform hover:scale-[1.02]">
-                                <div className={cn("p-2 rounded-lg", stat.bg)}>
-                                    <stat.icon className={cn("h-4 w-4", stat.color)} />
-                                </div>
-                                <span className="text-xs font-bold text-foreground/80">{stat.label}</span>
+                    {nextUpcomingTest ? (
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                <span className="flex h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                                NEXT CHALLENGE IN
                             </div>
-                        ))}
-                    </div>
+                            <CountdownTimer 
+                                targetDate={normalizeDate(nextUpcomingTest.scheduledAt)!} 
+                                className="bg-white/80 backdrop-blur-md shadow-2xl border-2 border-red-100 rounded-[2.5rem] px-8 py-6 scale-90 sm:scale-100" 
+                            />
+                            <div className="text-[10px] font-bold text-slate-400 max-w-[200px] text-center leading-tight">
+                                Prepare well for "{nextUpcomingTest.title}"
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="hidden lg:grid grid-cols-2 gap-4 w-full max-w-md">
+                            {[
+                                { label: "Full Length", icon: ClipboardCheck, color: "text-red-500", bg: "bg-red-50" },
+                                { label: "Rank Analysis", icon: Trophy, color: "text-amber-500", bg: "bg-amber-50" },
+                                { label: "Real Timer", icon: Clock, color: "text-red-500", bg: "bg-red-50" },
+                                { label: "Detailed Solutions", icon: HelpCircle, color: "text-emerald-500", bg: "bg-emerald-50" },
+                            ].map((stat, i) => (
+                                <div key={i} className="flex items-center gap-3 p-4 rounded-2xl bg-white/40 backdrop-blur-md border border-white/60 shadow-sm transition-transform hover:scale-[1.02]">
+                                    <div className={cn("p-2 rounded-lg", stat.bg)}>
+                                        <stat.icon className={cn("h-4 w-4", stat.color)} />
+                                    </div>
+                                    <span className="text-xs font-bold text-foreground/80">{stat.label}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 
