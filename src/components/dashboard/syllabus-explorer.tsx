@@ -109,19 +109,35 @@ export function SyllabusExplorer({ examCategory }: SyllabusExplorerProps) {
                           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-xs text-white shrink-0">
                             {sectionIdx + 1}
                           </span>
+                        <div className="flex flex-col gap-2">
                           <h4 className="text-xl font-bold text-slate-800">
                             {section.sectionName}
                           </h4>
+                          
+                          {/* Sub-topics list */}
+                          {(section.topics || section.randomFrom?.topics) && (
+                            <div className="mt-2 pl-11 space-y-2">
+                              {(section.topics || section.randomFrom?.topics).map((topic: any, idx: number) => (
+                                <div key={idx} className="flex items-start gap-2 text-slate-600">
+                                  <div className="h-1.5 w-1.5 rounded-full bg-slate-300 mt-2 shrink-0" />
+                                  <span className="text-sm">
+                                    {typeof topic === 'string' ? topic : topic.name}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        <Badge className="bg-red-50 text-red-600 border-none text-lg px-4 py-2 rounded-xl font-bold">
-                          {section.topics 
-                            ? section.topics.reduce((sum: number, t: any) => sum + t.questions, 0)
-                            : section.randomFrom?.questions || 0
-                          } Questions
-                        </Badge>
                       </div>
+                      <Badge className="bg-red-50 text-red-600 border-none text-lg px-4 py-2 rounded-xl font-bold">
+                        {section.topics 
+                          ? section.topics.reduce((sum: number, t: any) => sum + t.questions, 0)
+                          : section.randomFrom?.questions || 0
+                        } Questions
+                      </Badge>
                     </div>
-                  ))}
+                  </div>
+                ))}
                 </div>
               </CardContent>
             </Card>
