@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Trash2, Edit, Eye, PlusCircle, Gem, Search, Calendar as CalendarIcon, RefreshCcw, Users as UsersIcon } from 'lucide-react';
+import { Loader2, Trash2, Edit, Eye, PlusCircle, Gem, Search, Calendar as CalendarIcon, RefreshCcw, Users as UsersIcon, ArrowUpDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { deleteUserDocument, updateUserDocument, createUserDocument, resetAllUsersToFree } from '@/lib/firestore';
 import { getFirebaseAuth } from '@/lib/firebase';
@@ -73,6 +73,8 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sortOrder, setSortOrder] = useState('recent');
+  const [isSearchingGlobally, setIsSearchingGlobally] = useState(false);
   const { toast } = useToast();
 
   const grandTotals = useMemo(() => {
@@ -97,12 +99,18 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
           return matchesSearch && matchesCategory && matchesStatus;
       })
       .sort((a, b) => {
-          // Sort by registration date in descending order (most recent first)
+          if (sortOrder === 'name-asc') {
+            return (a.name || '').localeCompare(b.name || '');
+          }
+          if (sortOrder === 'name-desc') {
+            return (b.name || '').localeCompare(a.name || '');
+          }
+          // Default: recent (newest first)
           const dateA = normalizeDate(a.createdAt)?.getTime() || 0;
           const dateB = normalizeDate(b.createdAt)?.getTime() || 0;
           return dateB - dateA;
       });
-  }, [users, searchTerm, categoryFilter, statusFilter]);
+  }, [users, searchTerm, categoryFilter, statusFilter, sortOrder]);
 
   const updateUserForm = useForm<z.infer<typeof userUpdateSchema>>({ 
     resolver: zodResolver(userUpdateSchema) 
@@ -125,6 +133,43 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
         toast({ title: 'Error', variant: 'destructive', description: 'Failed to update user.' }); 
     } finally { 
         setIsLoading(false); 
+    }
+  };
+
+  const handleGlobalSearch = async () => {
+    if (!searchTerm.includes('@')) {
+      toast({ 
+        title: 'Email Required', 
+        description: 'Please enter a full email address to search the entire database.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsSearchingGlobally(true);
+    try {
+      const { searchUsersByEmail } = await import('@/lib/firestore');
+      const foundUsers = await searchUsersByEmail(searchTerm.trim());
+      
+      if (foundUsers.length > 0) {
+        // Add the found users to our local state if they aren't already there
+        setUsers(prev => {
+          const newUsers = [...prev];
+          foundUsers.forEach(found => {
+            if (!newUsers.some(u => u.uid === found.uid)) {
+              newUsers.push(found);
+            }
+          });
+          return newUsers;
+        });
+        toast({ title: 'User Found', description: `Added ${foundUsers.length} user(s) to the current view.` });
+      } else {
+        toast({ title: 'Not Found', description: 'No user exists with this email address in the database.', variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Error', variant: 'destructive', description: 'Global search failed.' });
+    } finally {
+      setIsSearchingGlobally(false);
     }
   };
 
@@ -197,14 +242,26 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                 </div>
             </div>
             <div className="flex flex-wrap gap-4 mt-6">
-                <div className="relative flex-1 min-w-[200px]">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                        placeholder="Search name or email..." 
-                        className="pl-8" 
-                        value={searchTerm} 
-                        onChange={e => setSearchTerm(e.target.value)} 
-                    />
+                <div className="relative flex-1 min-w-[300px] flex gap-2">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                            placeholder="Search name or email..." 
+                            className="pl-8" 
+                            value={searchTerm} 
+                            onChange={e => setSearchTerm(e.target.value)} 
+                        />
+                    </div>
+                    {searchTerm.includes('@') && filteredUsers.length === 0 && (
+                        <Button 
+                            variant="secondary" 
+                            size="sm" 
+                            onClick={handleGlobalSearch}
+                            disabled={isSearchingGlobally}
+                        >
+                            {isSearchingGlobally ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify in DB"}
+                        </Button>
+                    )}
                 </div>
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                     <SelectTrigger className="w-[150px]">

@@ -218,6 +218,7 @@ export function TopicManagement({ initialCategories, initialTopics, initialTopic
     }
   };
 
+
   const handleDeleteTopic = async (topicId: string) => {
     try {
         await deleteTopic(topicId);
@@ -353,15 +354,17 @@ export function TopicManagement({ initialCategories, initialTopics, initialTopic
                 className="pl-9 h-10 w-full sm:w-[240px] rounded-xl border-slate-200 bg-white shadow-sm transition-all focus:ring-2 focus:ring-red-500/20"
               />
             </div>
-            {activeTab === 'topics' ? (
-              <Button onClick={() => { setEditingTopic(null); setIsTopicDialogOpen(true); }} className="h-10 rounded-xl bg-red-600 hover:bg-red-700 shadow-md shadow-red-200">
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Topic
-              </Button>
-            ) : (
-              <Button onClick={() => { setEditingCategory(null); setIsCategoryDialogOpen(true); }} className="h-10 rounded-xl bg-slate-900 hover:bg-slate-800 shadow-md">
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Category
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {activeTab === 'topics' ? (
+                <Button onClick={() => { setEditingTopic(null); setIsTopicDialogOpen(true); }} className="h-10 rounded-xl bg-red-600 hover:bg-red-700 shadow-md shadow-red-200">
+                  <PlusCircle className="mr-2 h-4 w-4" /> Add Topic
+                </Button>
+              ) : (
+                <Button onClick={() => { setEditingCategory(null); setIsCategoryDialogOpen(true); }} className="h-10 rounded-xl bg-slate-900 hover:bg-slate-800 shadow-md">
+                  <PlusCircle className="mr-2 h-4 w-4" /> Add Category
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 

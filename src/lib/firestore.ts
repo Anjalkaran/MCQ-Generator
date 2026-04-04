@@ -214,6 +214,15 @@ export const getAllUsers = async (): Promise<UserData[]> => {
   return userSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserData));
 };
 
+export const searchUsersByEmail = async (email: string): Promise<UserData[]> => {
+  const db = getFirebaseDb();
+  if (!db) return [];
+  const usersCollection = collection(db, 'users');
+  const q = query(usersCollection, where('email', '==', email));
+  const userSnapshot = await getDocs(q);
+  return userSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserData));
+};
+
 export const getOnlineUsers = async (): Promise<UserData[]> => {
     const db = getFirebaseDb();
     if (!db) return [];

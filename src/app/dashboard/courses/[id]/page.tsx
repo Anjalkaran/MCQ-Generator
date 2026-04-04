@@ -3,7 +3,7 @@
 
 import { useDashboard } from "@/app/dashboard/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, PenSquare, Video, BrainCircuit, Library, CalendarCheck, ArrowLeft, Clock, History } from 'lucide-react';
+import { Loader2, PenSquare, Video, BrainCircuit, Library, CalendarCheck, ArrowLeft, Clock, History, BookOpen } from 'lucide-react';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useParams, useRouter } from "next/navigation";
@@ -62,7 +62,19 @@ export default function CourseDetailPage() {
             </h2>
           </div>
           
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
+            <Card className="hover:shadow-lg transition-shadow border-slate-200">
+              <Link href={`/dashboard/syllabus?category=${courseId}`} className="block p-6 text-center space-y-4">
+                <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto">
+                  <BookOpen className="h-6 w-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Syllabus Explorer</h3>
+                  <p className="text-sm text-slate-500">View official blueprints and breakdown</p>
+                </div>
+              </Link>
+            </Card>
+
             <Card className="hover:shadow-lg transition-shadow border-slate-200">
               <Link href="/dashboard/daily-test" className="block p-6 text-center space-y-4">
                 <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto">
@@ -134,6 +146,7 @@ export default function CourseDetailPage() {
                 </div>
               </Link>
             </Card>
+
           </div>
         </div>
       </FadeIn>

@@ -1,9 +1,9 @@
 import type {Metadata} from 'next';
-import {Inter} from 'next/font/google';
+import {Outfit} from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
-const inter = Inter({subsets: ['latin'], variable: '--font-sans'});
+const outfit = Outfit({subsets: ['latin'], variable: '--font-sans'});
 
 const siteUrl = "https://anjalkaran.in";
 const siteTitle = "Anjalkaran: Postal Exam Courses for MTS, Postman, PA & IP";
@@ -63,7 +63,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased h-full`} suppressHydrationWarning>
+      <body className={`${outfit.variable} font-sans antialiased h-full`} suppressHydrationWarning>
         {children}
         <Toaster />
       </body>

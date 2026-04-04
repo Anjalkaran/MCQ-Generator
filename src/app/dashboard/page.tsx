@@ -3,7 +3,7 @@
 
 import { useDashboard } from "@/app/dashboard/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, PenSquare, Video, BrainCircuit, Library, Shield } from 'lucide-react';
+import { Loader2, PenSquare, Video, BrainCircuit, Library, Shield, GraduationCap, BookOpen, ChevronRight } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { ADMIN_EMAILS } from "@/lib/constants";
 import { updateDoc, doc } from "firebase/firestore";
@@ -116,7 +116,7 @@ export default function DashboardPage() {
       color: 'from-red-700/20 to-rose-700/20',
       textColor: 'text-red-800',
       allowed: subCat === 'IP' // Keep IP restricted
-    }
+    },
   ].filter(course => course.allowed || isAdmin);
 
   return (
@@ -178,6 +178,36 @@ export default function DashboardPage() {
             </div>
           </Card>
         ))}
+      </div>
+
+      <div className="space-y-6 pt-12 pb-24 border-t border-slate-100">
+        <div className="text-center space-y-2">
+            <h2 className="text-3xl font-extrabold text-slate-800">Syllabus & Blueprint</h2>
+            <p className="text-slate-500">Official syllabus breakdown for all active exam categories.</p>
+        </div>
+        
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {["MTS", "POSTMAN", "PA", "IP"].map((cat) => (
+            <Card 
+              key={cat}
+              onClick={() => router.push(`/dashboard/syllabus?category=${cat}`)}
+              className="group relative overflow-hidden border-slate-200 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-white/50 backdrop-blur-sm"
+            >
+              <div className="p-6 flex items-center gap-4">
+                 <div className="h-12 w-12 rounded-2xl bg-red-100 flex items-center justify-center text-red-600 group-hover:scale-110 transition-transform duration-300">
+                    <BookOpen className="h-6 w-6" />
+                 </div>
+                 <div>
+                    <h3 className="font-bold text-lg text-slate-900">{cat}</h3>
+                    <p className="text-xs text-slate-500">View Official Blueprint</p>
+                 </div>
+                 <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                    <ChevronRight className="h-5 w-5 text-slate-400" />
+                 </div>
+              </div>
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
   );

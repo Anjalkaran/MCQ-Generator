@@ -21,7 +21,7 @@ import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-bluep
 import { ADMIN_EMAILS } from '@/lib/constants';
 import type { BankedQuestion } from '@/lib/types';
 
-const examCategories = ["MTS", "POSTMAN", "PA"] as const;
+const examCategories = ["MTS", "POSTMAN", "PA", "IP"] as const;
 const languages = ["English", "Tamil"] as const;
 
 
@@ -136,7 +136,7 @@ export function PreviousYearMockTestForm() {
     
     try {
       const { quizId } = await generateMockTestFromBank({
-          examCategory: values.examType,
+          examCategory: values.examType as any,
           userId: user.uid,
           language: values.language,
           paperId: paperId

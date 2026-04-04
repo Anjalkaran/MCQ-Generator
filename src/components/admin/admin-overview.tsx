@@ -95,7 +95,8 @@ export function AdminOverview({
          { label: 'Custom Question Bank', value: 'question-bank' },
          { label: 'Reasoning Modules', value: 'reasoning-bank' }
        ]
-    }
+    },
+
   ];
 
   // Dummy data for charts (would be replaced by actual metrics)

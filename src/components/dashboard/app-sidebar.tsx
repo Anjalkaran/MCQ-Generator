@@ -33,7 +33,8 @@ import {
   CalendarCheck,
   Clock,
   Bookmark,
-  LineChart
+  LineChart,
+  Book
 } from 'lucide-react';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -147,6 +148,15 @@ export function AppSidebar() {
                     <Link href="/dashboard/bookmarks" onClick={onLinkClick}>
                       <Bookmark />
                       <span>Bookmarks</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname === '/dashboard/syllabus'} tooltip="Syllabus Explorer">
+                    <Link href="/dashboard/syllabus" onClick={onLinkClick}>
+                      <Book />
+                      <span>Syllabus Explorer</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

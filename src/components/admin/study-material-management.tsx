@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Link as LinkIcon, Trash2, Search, PlusCircle, Globe, FileText, Upload, Edit, ExternalLink, MoreVertical, CheckCircle2, BookOpen, Clock } from 'lucide-react';
 import { deleteStudyMaterial, updateTopic, updateStudyMaterial } from '@/lib/firestore';
