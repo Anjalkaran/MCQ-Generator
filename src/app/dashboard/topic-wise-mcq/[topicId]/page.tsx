@@ -18,7 +18,7 @@ interface TopicParams {
 export default function GenerateTopicQuizPage({ params }: { params: Promise<TopicParams> }) {
     const resolvedParams = use(params);
     const { topics, isLoading, userData } = useDashboard();
-    
+
     if (isLoading) {
         return (
             <div className="flex h-[50vh] w-full items-center justify-center">
@@ -37,13 +37,13 @@ export default function GenerateTopicQuizPage({ params }: { params: Promise<Topi
 
     const backUrl = (topic?.examCategories && topic.examCategories.length > 0)
         ? `/dashboard/syllabus?category=${encodeURIComponent(topic.examCategories[0])}`
-        : userData?.examCategory 
+        : userData?.examCategory
             ? `/dashboard/syllabus?category=${encodeURIComponent(userData.examCategory)}`
             : "/dashboard/topic-wise-mcq";
-    
+
     return (
         <div className="space-y-6 max-w-2xl mx-auto">
-             <Button variant="ghost" asChild>
+            <Button variant="ghost" asChild>
                 <Link href={backUrl}>
                     <ChevronLeft className="mr-2 h-4 w-4" />
                     Back to Topics

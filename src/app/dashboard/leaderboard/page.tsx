@@ -1,6 +1,8 @@
 
 import { getUnifiedLeaderboardsAdmin } from '@/lib/firestore-admin';
 import { LeaderboardClient } from '@/components/leaderboard/leaderboard-client';
+import { Suspense } from 'react';
+import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,13 +23,15 @@ export default async function LeaderboardPage() {
           See how you stack up against other users in topic-wise, mock test, and live test performance.
         </p>
       </div>
-      <LeaderboardClient
-        initialTopicLeaderboards={topics}
-        initialMockTestLeaderboards={mocks}
-        initialDailyTestLeaderboards={daily}
-        pastWeeklyTests={pastWeeklyTests}
-        pastDailyTests={pastDailyTests}
-      />
+      <Suspense fallback={<div className="flex h-[50vh] w-full items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>}>
+        <LeaderboardClient
+          initialTopicLeaderboards={topics}
+          initialMockTestLeaderboards={mocks}
+          initialDailyTestLeaderboards={daily}
+          pastWeeklyTests={pastWeeklyTests}
+          pastDailyTests={pastDailyTests}
+        />
+      </Suspense>
     </div>
   );
 }

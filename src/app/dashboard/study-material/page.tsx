@@ -1,12 +1,12 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
-import { useDashboard } from '@/app/dashboard/layout';
+import { Search, Loader2, Library, BookOpen, Layers, LayoutGrid, FileText, ChevronRight, GraduationCap } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useDashboard } from '@/context/dashboard-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, Library, BookOpen, Layers, LayoutGrid, FileText, ChevronRight } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import type { StudyMaterial, Topic, Category } from '@/lib/types';
 import { Input } from '@/components/ui/input';
@@ -214,52 +214,48 @@ function HtmlReader({ content, fileName, isAdmin }: { content: string, fileName:
     );
 }
 
-export default function StudyMaterialPage() {
+function StudyMaterialContent({ studyMaterials, topics, categories, isLoading, userData, isAdmin }: any) {
     const searchParams = useSearchParams();
     const topicIdParam = searchParams.get('topicId');
     
-    const { studyMaterials, topics, categories, isLoading, userData } = useDashboard();
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState<string>('category');
     const [selectedExam, setSelectedExam] = useState<string>(userData?.examCategory || 'MTS');
     
-    const isAdmin = userData?.email && ADMIN_EMAILS.includes(userData.email);
-
     // Initial search term from topicId
-    useMemo(() => {
+    useEffect(() => {
         if (topicIdParam && topics && !searchTerm) {
-            const topic = topics.find(t => t.id === topicIdParam);
+            const topic = topics.find((t: any) => t.id === topicIdParam);
             if (topic) {
                 setSearchTerm(topic.title);
                 setActiveTab('all');
             }
         }
-    }, [topicIdParam, topics]);
+    }, [topicIdParam, topics, searchTerm]);
 
     const processedData = useMemo(() => {
         if (isLoading || !studyMaterials || !topics) return { categorized: {}, byPaper: {}, all: [] };
         
-        const filteredByExam = studyMaterials.filter(m => {
-            const topic = topics.find(t => t.id === m.topicId);
+        const filteredByExam = studyMaterials.filter((m: any) => {
+            const topic = topics.find((t: any) => t.id === m.topicId);
             if (!topic) return false;
-            // Filter by selected exam (admins can toggle, users are fixed to their category)
             return topic.examCategories?.includes(selectedExam as any);
         });
 
-        const searchFiltered = filteredByExam.filter(material => {
-            const topic = topics.find(t => t.id === material.topicId);
+        const searchFiltered = filteredByExam.filter((material: any) => {
+            const topic = topics.find((t: any) => t.id === material.topicId);
             const lowerFilter = searchTerm.toLowerCase();
             return topic?.title.toLowerCase().includes(lowerFilter) || material.fileName.toLowerCase().includes(lowerFilter);
         });
 
         // Group by Category
         const byCat: Record<string, { category: Category | undefined, materials: { material: StudyMaterial, topic?: Topic }[] }> = {};
-        searchFiltered.forEach(m => {
-            const topic = topics.find(t => t.id === m.topicId);
+        searchFiltered.forEach((m: any) => {
+            const topic = topics.find((t: any) => t.id === m.topicId);
             const catId = topic?.categoryId || 'uncategorized';
             if (!byCat[catId]) {
                 byCat[catId] = { 
-                    category: categories.find(c => c.id === catId), 
+                    category: categories.find((c: any) => c.id === catId), 
                     materials: [] 
                 };
             }
@@ -268,8 +264,8 @@ export default function StudyMaterialPage() {
 
         // Group by Paper/Part
         const byPaper: Record<string, { materials: { material: StudyMaterial, topic?: Topic }[] }> = {};
-        searchFiltered.forEach(m => {
-            const topic = topics.find(t => t.id === m.topicId);
+        searchFiltered.forEach((m: any) => {
+            const topic = topics.find((t: any) => t.id === m.topicId);
             const paper = topic?.part || 'Other';
             if (!byPaper[paper]) byPaper[paper] = { materials: [] };
             byPaper[paper].materials.push({ material: m, topic });
@@ -278,7 +274,7 @@ export default function StudyMaterialPage() {
         return { 
             categorized: byCat, 
             byPaper, 
-            all: searchFiltered.map(m => ({ material: m, topic: topics.find(t => t.id === m.topicId) })) 
+            all: searchFiltered.map((m: any) => ({ material: m, topic: topics.find((t: any) => t.id === m.topicId) })) 
         };
 
     }, [studyMaterials, topics, categories, searchTerm, isLoading, selectedExam]);
@@ -360,7 +356,7 @@ export default function StudyMaterialPage() {
 
                 <TabsContent value="category" className="space-y-12 mt-0 focus-visible:ring-0">
                     {Object.keys(processedData.categorized).length > 0 ? (
-                        Object.entries(processedData.categorized).map(([catId, { category, materials }]) => (
+                        Object.entries(processedData.categorized).map(([catId, { category, materials }]: any) => (
                             <section key={catId} className="space-y-5">
                                 <div className="flex items-center gap-3">
                                     <div className="h-8 w-1 bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary),0.5)]" />
@@ -370,7 +366,7 @@ export default function StudyMaterialPage() {
                                     </h2>
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                                    {materials.map(({ material, topic }) => (
+                                    {materials.map(({ material, topic }: any) => (
                                         <Dialog key={material.id}>
                                             <DialogTrigger asChild>
                                                 <button className="text-left w-full outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl">
@@ -392,7 +388,7 @@ export default function StudyMaterialPage() {
 
                 <TabsContent value="paper" className="space-y-12 mt-0 focus-visible:ring-0">
                     {Object.keys(processedData.byPaper).length > 0 ? (
-                        Object.entries(processedData.byPaper).map(([paper, { materials }]) => (
+                        Object.entries(processedData.byPaper).map(([paper, { materials }]: any) => (
                             <section key={paper} className="space-y-5">
                                 <div className="flex items-center gap-3">
                                     <div className="h-8 w-1 bg-slate-900 rounded-full" />
@@ -402,7 +398,7 @@ export default function StudyMaterialPage() {
                                     </h2>
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                                    {materials.map(({ material, topic }) => (
+                                    {materials.map(({ material, topic }: any) => (
                                         <Dialog key={material.id}>
                                             <DialogTrigger asChild>
                                                 <button className="text-left w-full outline-none">
@@ -425,7 +421,7 @@ export default function StudyMaterialPage() {
                 <TabsContent value="all" className="mt-0 focus-visible:ring-0">
                     {processedData.all.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                            {processedData.all.map(({ material, topic }) => (
+                            {processedData.all.map(({ material, topic }: any) => (
                                 <Dialog key={material.id}>
                                     <DialogTrigger asChild>
                                         <button className="text-left w-full outline-none">
@@ -444,6 +440,24 @@ export default function StudyMaterialPage() {
                 </TabsContent>
             </Tabs>
         </div>
+    );
+}
+
+export default function StudyMaterialPage() {
+    const { studyMaterials, topics, categories, isLoading, userData } = useDashboard();
+    const isAdmin = userData?.email && ADMIN_EMAILS.includes(userData.email);
+
+    return (
+        <React.Suspense fallback={<div className="flex h-[50vh] w-full items-center justify-center flex-col gap-4"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>}>
+            <StudyMaterialContent 
+                studyMaterials={studyMaterials}
+                topics={topics}
+                categories={categories}
+                isLoading={isLoading}
+                userData={userData}
+                isAdmin={isAdmin}
+            />
+        </React.Suspense>
     );
 }
 

@@ -87,30 +87,7 @@ import { AdminOverview } from "@/components/admin/admin-overview";
 
 type AdminSection = typeof adminSections[number]['value'];
 
-export default function AdminPage() {
-  const { userData, isLoading: isDashboardLoading } = useDashboard();
-  const [activeSection, setActiveSection] = useState<AdminSection>('overview');
-  const [isLoadingAdminData, setIsLoadingAdminData] = useState(true);
-  const { toast } = useToast();
-
-  // State for Admin Data
-  const [users, setUsers] = useState<UserData[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [topics, setTopics] = useState<Topic[]>([]);
-  const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
-  const [videoClasses, setVideoClasses] = useState<VideoClass[]>([]);
-  const [topicMCQs, setTopicMCQs] = useState<TopicMCQ[]>([]);
-  const [bankedQuestions, setBankedQuestions] = useState<BankedQuestion[]>([]);
-  const [reasoningQuestions, setReasoningQuestions] = useState<ReasoningQuestion[]>([]);
-  const [scheduledTests, setScheduledTests] = useState<LiveTest[]>([]);
-  const [weeklyTests, setWeeklyTests] = useState<WeeklyTest[]>([]);
-  const [dailyTests, setDailyTests] = useState<DailyTest[]>([]);
-  const [feedback, setFeedback] = useState<Feedback[]>([]);
-  const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
-  const [syllabi, setSyllabi] = useState<SyllabusBlueprint[]>([]);
-  const [syllabusMCQs, setSyllabusMCQs] = useState<TopicMCQ[]>([]);
-  const [syllabusMaterials, setSyllabusMaterials] = useState<StudyMaterial[]>([]);
-
+function AdminContent({ userData, isLoadingAdminData, activeSection, setActiveSection, fetchAdminData, users, categories, topics, studyMaterials, videoClasses, topicMCQs, bankedQuestions, reasoningQuestions, scheduledTests, weeklyTests, dailyTests, feedback, qnaUsage, syllabi, syllabusMCQs, syllabusMaterials }: any) {
   const searchParams = useSearchParams();
   const initialSection = searchParams.get('section') as AdminSection | null;
 
@@ -118,75 +95,7 @@ export default function AdminPage() {
     if (initialSection) {
       setActiveSection(initialSection);
     }
-  }, [initialSection]);
-
-  const fetchAdminData = useCallback(async () => {
-    if (!userData || !ADMIN_EMAILS.includes(userData.email)) return;
-    
-    setIsLoadingAdminData(true);
-    try {
-      const [
-          fetchedUsers, fetchedCategories, fetchedTopics, fetchedMaterials, 
-          fetchedVideos, fetchedMCQs, fetchedBank, fetchedReasoning, 
-          fetchedScheduled, fetchedWeekly, fetchedDaily, fetchedFeedback, fetchedQnA, fetchedSyllabi,
-          fetchedSyllabusMCQs, fetchedSyllabusMaterials
-      ] = await Promise.all([
-          getAllUsers(), getCategories(), getTopics(), getStudyMaterials(),
-          getVideoClasses(), getTopicMCQs(), getQuestionBankDocuments(), getReasoningQuestions(),
-          getLiveTests(true), getWeeklyTests(), getDailyTests(), getAllFeedback(), getQnAUsage(), getSyllabi(),
-          getSyllabusMCQs(), getSyllabusMaterials()
-      ]);
-      
-      const regularUsers = fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email));
-      setUsers(regularUsers);
-      setCategories(fetchedCategories);
-      setTopics(fetchedTopics);
-      setStudyMaterials(fetchedMaterials);
-      setVideoClasses(fetchedVideos);
-      setTopicMCQs(fetchedMCQs);
-      setBankedQuestions(fetchedBank);
-      setReasoningQuestions(fetchedReasoning);
-      setScheduledTests(fetchedScheduled);
-      setWeeklyTests(fetchedWeekly);
-      setDailyTests(fetchedDaily);
-      setFeedback(fetchedFeedback);
-      setQnaUsage(fetchedQnA);
-      setSyllabi(fetchedSyllabi);
-      setSyllabusMCQs(fetchedSyllabusMCQs);
-      setSyllabusMaterials(fetchedSyllabusMaterials);
-
-    } catch (error) {
-      console.error("Failed to fetch admin data:", error);
-      toast({ title: "Error", description: "Could not fetch admin data.", variant: "destructive" });
-    } finally {
-      setIsLoadingAdminData(false);
-    }
-  }, [userData, toast]);
-
-  useEffect(() => {
-    fetchAdminData();
-  }, [fetchAdminData]);
-
-  useEffect(() => {
-    const handleSwitchSection = (e: CustomEvent<{ section: AdminSection; topicId?: string }>) => {
-      setActiveSection(e.detail.section);
-      if (e.detail.topicId) {
-        // Maybe store topicId in session or window to highlight it in the next view
-        sessionStorage.setItem('highlight_topic_id', e.detail.topicId);
-      }
-    };
-    window.addEventListener('switch-admin-section' as any, handleSwitchSection);
-    return () => window.removeEventListener('switch-admin-section' as any, handleSwitchSection);
-  }, []);
-
-  if (isDashboardLoading || isLoadingAdminData) {
-    return (
-       <div className="flex h-[50vh] w-full items-center justify-center flex-col gap-4">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-muted-foreground animate-pulse">Loading Admin Console...</p>
-      </div>
-    );
-  }
+  }, [initialSection, setActiveSection]);
 
   const renderContent = () => {
     switch(activeSection) {
@@ -270,7 +179,7 @@ export default function AdminPage() {
                 </div>
                 <div className="h-8 w-[1px] bg-slate-100" />
                 <div className="flex -space-x-2">
-                   {users.filter(u => u.isPro).slice(0, 3).map((u, i) => (
+                   {users.filter((u: any) => u.isPro).slice(0, 3).map((u: any, i: number) => (
                      <div key={i} className="h-8 w-8 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[10px] font-bold">
                         {u.name[0]}
                      </div>
@@ -280,10 +189,128 @@ export default function AdminPage() {
           )}
         </div>
         
-        {/* Render the unified content hub */}
         <div className="min-h-[600px]">
           {renderContent()}
         </div>
     </div>
+  );
+}
+
+export default function AdminPage() {
+  const { userData, isLoading: isDashboardLoading } = useDashboard();
+  const [activeSection, setActiveSection] = useState<AdminSection>('overview');
+  const [isLoadingAdminData, setIsLoadingAdminData] = useState(true);
+  const { toast } = useToast();
+
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
+  const [videoClasses, setVideoClasses] = useState<VideoClass[]>([]);
+  const [topicMCQs, setTopicMCQs] = useState<TopicMCQ[]>([]);
+  const [bankedQuestions, setBankedQuestions] = useState<BankedQuestion[]>([]);
+  const [reasoningQuestions, setReasoningQuestions] = useState<ReasoningQuestion[]>([]);
+  const [scheduledTests, setScheduledTests] = useState<LiveTest[]>([]);
+  const [weeklyTests, setWeeklyTests] = useState<WeeklyTest[]>([]);
+  const [dailyTests, setDailyTests] = useState<DailyTest[]>([]);
+  const [feedback, setFeedback] = useState<Feedback[]>([]);
+  const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
+  const [syllabi, setSyllabi] = useState<SyllabusBlueprint[]>([]);
+  const [syllabusMCQs, setSyllabusMCQs] = useState<TopicMCQ[]>([]);
+  const [syllabusMaterials, setSyllabusMaterials] = useState<StudyMaterial[]>([]);
+
+  const fetchAdminData = useCallback(async () => {
+    if (!userData || !ADMIN_EMAILS.includes(userData.email)) return;
+    
+    setIsLoadingAdminData(true);
+    try {
+      const [
+          fetchedUsers, fetchedCategories, fetchedTopics, fetchedMaterials, 
+          fetchedVideos, fetchedMCQs, fetchedBank, fetchedReasoning, 
+          fetchedScheduled, fetchedWeekly, fetchedDaily, fetchedFeedback, fetchedQnA, fetchedSyllabi,
+          fetchedSyllabusMCQs, fetchedSyllabusMaterials
+      ] = await Promise.all([
+          getAllUsers(), getCategories(), getTopics(), getStudyMaterials(),
+          getVideoClasses(), getTopicMCQs(), getQuestionBankDocuments(), getReasoningQuestions(),
+          getLiveTests(true), getWeeklyTests(), getDailyTests(), getAllFeedback(), getQnAUsage(), getSyllabi(),
+          getSyllabusMCQs(), getSyllabusMaterials()
+      ]);
+      
+      const regularUsers = fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email));
+      setUsers(regularUsers);
+      setCategories(fetchedCategories);
+      setTopics(fetchedTopics);
+      setStudyMaterials(fetchedMaterials);
+      setVideoClasses(fetchedVideos);
+      setTopicMCQs(fetchedMCQs);
+      setBankedQuestions(fetchedBank);
+      setReasoningQuestions(fetchedReasoning);
+      setScheduledTests(fetchedScheduled);
+      setWeeklyTests(fetchedWeekly);
+      setDailyTests(fetchedDaily);
+      setFeedback(fetchedFeedback);
+      setQnaUsage(fetchedQnA);
+      setSyllabi(fetchedSyllabi);
+      setSyllabusMCQs(fetchedSyllabusMCQs);
+      setSyllabusMaterials(fetchedSyllabusMaterials);
+
+    } catch (error) {
+      console.error("Failed to fetch admin data:", error);
+      toast({ title: "Error", description: "Could not fetch admin data.", variant: "destructive" });
+    } finally {
+      setIsLoadingAdminData(false);
+    }
+  }, [userData, toast]);
+
+  useEffect(() => {
+    fetchAdminData();
+  }, [fetchAdminData]);
+
+  useEffect(() => {
+    const handleSwitchSection = (e: CustomEvent<{ section: AdminSection; topicId?: string }>) => {
+      setActiveSection(e.detail.section);
+      if (e.detail.topicId) {
+        sessionStorage.setItem('highlight_topic_id', e.detail.topicId);
+      }
+    };
+    window.addEventListener('switch-admin-section' as any, handleSwitchSection);
+    return () => window.removeEventListener('switch-admin-section' as any, handleSwitchSection);
+  }, []);
+
+  if (isDashboardLoading || isLoadingAdminData) {
+    return (
+       <div className="flex h-[50vh] w-full items-center justify-center flex-col gap-4">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-muted-foreground animate-pulse">Loading Admin Console...</p>
+      </div>
+    );
+  }
+
+  return (
+    <React.Suspense fallback={<div className="flex h-[50vh] w-full items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>}>
+      <AdminContent 
+        userData={userData}
+        isLoadingAdminData={isLoadingAdminData}
+        activeSection={activeSection}
+        setActiveSection={setActiveSection}
+        fetchAdminData={fetchAdminData}
+        users={users}
+        categories={categories}
+        topics={topics}
+        studyMaterials={studyMaterials}
+        videoClasses={videoClasses}
+        topicMCQs={topicMCQs}
+        bankedQuestions={bankedQuestions}
+        reasoningQuestions={reasoningQuestions}
+        scheduledTests={scheduledTests}
+        weeklyTests={weeklyTests}
+        dailyTests={dailyTests}
+        feedback={feedback}
+        qnaUsage={qnaUsage}
+        syllabi={syllabi}
+        syllabusMCQs={syllabusMCQs}
+        syllabusMaterials={syllabusMaterials}
+      />
+    </React.Suspense>
   );
 }
