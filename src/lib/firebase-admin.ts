@@ -32,18 +32,24 @@ export function initializeFirebaseAdmin() {
         // 2. Fallback to serviceAccountKey.json file if env vars missing
         if (!serviceAccount) {
             try {
-                // Using dynamic require with try-catch
-                serviceAccount = require('./serviceAccountKey.json');
-            } catch (e) {
-                // Fallback for different build environments
-                try {
-                    const fs = require('fs');
-                    const path = require('path');
-                    const filePath = path.join(process.cwd(), 'src', 'lib', 'serviceAccountKey.json');
-                    if (fs.existsSync(filePath)) {
-                        serviceAccount = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+                const fs = require('fs');
+                const path = require('path');
+                // Use multiple possible locations
+                const paths = [
+                    path.join(process.cwd(), 'src', 'lib', 'serviceAccountKey.json'),
+                    path.join(process.cwd(), 'serviceAccountKey.json'),
+                    './serviceAccountKey.json' // relative to this file
+                ];
+
+                for (const p of paths) {
+                    if (fs.existsSync(p)) {
+                        const content = fs.readFileSync(p, 'utf8');
+                        serviceAccount = JSON.parse(content);
+                        break;
                     }
-                } catch (innerE) {}
+                }
+            } catch (e) {
+                // Ignore file errors, we will fallback to applicationDefault()
             }
         }
 

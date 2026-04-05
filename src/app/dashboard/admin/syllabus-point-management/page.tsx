@@ -4,6 +4,8 @@ import { SyllabusPointManagement } from '@/components/admin/syllabus-point-manag
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Layers } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function SyllabusPointManagementPage() {
   const [mcqs, materials] = await Promise.all([
     getSyllabusMCQs(),
