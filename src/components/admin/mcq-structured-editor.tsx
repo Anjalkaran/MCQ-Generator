@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, Layout, Code, Save, AlertCircle, Search, GripVertical, FileDown } from 'lucide-react';
+import { Trash2, Plus, Layout, Code, Save, AlertCircle, Search, GripVertical, FileText, FileJson } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { MCQ } from '@/lib/types';
 import jsPDF from 'jspdf';
@@ -277,8 +277,30 @@ export function MCQStructuredEditor({ initialContent, onSave, onCancel }: MCQStr
                 </div>
                 <div className="flex items-center gap-2">
                     {onCancel && <Button variant="outline" size="sm" onClick={onCancel}>Cancel</Button>}
-                    <Button variant="outline" size="sm" onClick={handleDownloadPdf}>
-                        <FileDown className="h-4 w-4 mr-2" /> Download PDF
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => {
+                            const content = containerKey ? { [containerKey]: mcqs } : mcqs;
+                            const blob = new Blob([JSON.stringify(content, null, 2)], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = `mcq_export_${new Date().getTime()}.json`;
+                            link.click();
+                            URL.revokeObjectURL(url);
+                        }}
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                        <FileJson className="h-4 w-4 mr-2" /> Download JSON
+                    </Button>
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleDownloadPdf}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                        <FileText className="h-4 w-4 mr-2" /> Download English PDF
                     </Button>
                     <Button size="sm" onClick={handleSave} disabled={isSaving}>
                         <Save className="h-4 w-4 mr-2" /> {isSaving ? 'Saving...' : 'Save Changes'}
