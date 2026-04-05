@@ -228,6 +228,7 @@ export function SyllabusExplorer({ examCategory, isAdmin }: SyllabusExplorerProp
         topicId={selectedTopicId || undefined}
         topicName={selectedTopic || ''}
         examCategory={examCategory}
+        isAdmin={isAdmin}
       />
     </div>
   );
