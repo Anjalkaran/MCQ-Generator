@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Trash2, Search, Upload, FilePlus, List, Edit, FileCode, ClipboardPaste, Calendar as CalendarIcon, FileDown } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Search, Upload, FilePlus, List, Edit, FileCode, ClipboardPaste, Calendar as CalendarIcon, FileText, FileJson } from 'lucide-react';
 import { deleteDailyTest, getLiveTestQuestionPaper, updateLiveTestBankDocument, updateDailyTest } from '@/lib/firestore';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -666,13 +666,31 @@ export function DailyTestManagement({ initialDailyTests, initialBankedQuestions 
                     )}
                 </ScrollArea>
                 <DialogFooter className="pt-4 flex items-center justify-between">
-                    <Button 
-                        variant="outline" 
-                        onClick={() => handleDownloadPdf(managingTest?.title || "Daily Test", testQuestions)}
-                        disabled={testQuestions.length === 0}
-                    >
-                        <FileDown className="mr-2 h-4 w-4" /> Download PDF
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button 
+                            variant="outline" 
+                            onClick={() => {
+                                const blob = new Blob([managingTest?.content || '{}'], { type: 'application/json' });
+                                const url = URL.createObjectURL(blob);
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.download = `${managingTest?.title.replace(/\s+/g, '_')}_questions.json`;
+                                link.click();
+                                URL.revokeObjectURL(url);
+                            }}
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        >
+                            <FileJson className="mr-2 h-4 w-4" /> Download JSON
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            onClick={() => handleDownloadPdf(managingTest?.title || "Daily Test", testQuestions)}
+                            disabled={testQuestions.length === 0}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                            <FileText className="mr-2 h-4 w-4" /> Download English PDF
+                        </Button>
+                    </div>
                     <Button onClick={saveAllQuestionChanges} disabled={isSavingQuestions}>
                         {isSavingQuestions && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Save All Changes

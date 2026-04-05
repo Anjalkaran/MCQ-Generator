@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
-import { Loader2, Upload, Eye, Trash2, Edit, Download, Search, FileText } from 'lucide-react';
+import { Loader2, Upload, Eye, Trash2, Edit, FileJson, Search, FileText } from 'lucide-react';
 import { deleteQuestionBankDocument, updateQuestionBankDocument } from '@/lib/firestore';
 import { MCQStructuredEditor } from './mcq-structured-editor';
 import { getFirebaseAuth } from '@/lib/firebase';
@@ -221,7 +221,7 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
             head: [['#', 'Question', 'Options', 'Answer', 'Solution']],
             body: tableData,
             theme: 'grid',
-            headStyles: { fillStyle: 'F', fillColor: [180, 0, 0] },
+            headStyles: { fillColor: [180, 0, 0] },
             columnStyles: {
                 0: { cellWidth: 10 },
                 1: { cellWidth: 60 },
@@ -377,7 +377,7 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                                                 <Edit className="h-4 w-4" />
                                             </Button>
                                             <Button variant="ghost" size="icon" onClick={() => handleDownload(bq)} title="Download JSON">
-                                                <Download className="h-4 w-4" />
+                                                <FileJson className="h-4 w-4" />
                                             </Button>
                                             <Button variant="ghost" size="icon" onClick={() => handleDownloadPdf(bq)} title="Download PDF" className="text-red-600 hover:text-red-700 hover:bg-red-50">
                                                 <FileText className="h-4 w-4" />

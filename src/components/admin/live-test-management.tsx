@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Clock, Trash2, Edit, CalendarIcon, Upload, Eye, FileDown } from 'lucide-react';
+import { Loader2, Clock, Trash2, Edit, CalendarIcon, Upload, Eye, FileText, FileJson } from 'lucide-react';
 import { addLiveTest, updateLiveTest, deleteLiveTest, deleteLiveTestBankDocument, updateQuestionBankDocument } from '@/lib/firestore';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -409,8 +409,19 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
         </ScrollArea>
     </DialogContent>
 </Dialog>
-                                                 <Button variant="ghost" size="icon" onClick={() => handleDownloadPdf(p)} title="Download PDF">
-                                                    <FileDown className="h-4 w-4 text-blue-600" />
+                                                                                                  <Button variant="ghost" size="icon" onClick={() => {
+                                                     const blob = new Blob([p.content], { type: 'application/json' });
+                                                     const url = URL.createObjectURL(blob);
+                                                     const link = document.createElement('a');
+                                                     link.href = url;
+                                                     link.download = `${p.fileName.replace(/\s+/g, '_')}.json`;
+                                                     link.click();
+                                                     URL.revokeObjectURL(url);
+                                                 }} title="Download JSON" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                                                     <FileJson className="h-4 w-4" />
+                                                 </Button>
+                                                 <Button variant="ghost" size="icon" onClick={() => handleDownloadPdf(p)} title="Download English PDF" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                                                     <FileText className="h-4 w-4" />
                                                  </Button>
                                                  <Button variant="ghost" size="icon" onClick={() => handleOpenPaperEditDialog(p)} title="Edit Questions">
                                                     <Edit className="h-4 w-4 text-amber-600" />

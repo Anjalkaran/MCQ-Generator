@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Trash2, PlusCircle, Eye, Edit, FileDown } from 'lucide-react';
+import { Loader2, Upload, Trash2, PlusCircle, Eye, Edit, FileJson, FileText } from 'lucide-react';
 import { deleteReasoningQuestion } from '@/lib/firestore';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -735,7 +735,21 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
                                                     </div>
                                                 </DialogContent>
                                             </Dialog>
-                                            <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(q)}><Edit className="h-4 w-4" /></Button>
+                                                                                         <Button variant="ghost" size="icon" onClick={() => {
+                                                 const blob = new Blob([JSON.stringify(q, null, 2)], { type: 'application/json' });
+                                                 const url = URL.createObjectURL(blob);
+                                                 const link = document.createElement('a');
+                                                 link.href = url;
+                                                 link.download = `reasoning_${q.id.slice(0, 8)}.json`;
+                                                 link.click();
+                                                 URL.revokeObjectURL(url);
+                                             }} title="Download JSON" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                                                 <FileJson className="h-4 w-4" />
+                                             </Button>
+                                             <Button variant="ghost" size="icon" onClick={() => handleDownloadPdf(q.topicId, [q])} title="Download English PDF" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                                                 <FileText className="h-4 w-4" />
+                                             </Button>
+                                             <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(q)}><Edit className="h-4 w-4" /></Button>
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
                                                     <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>

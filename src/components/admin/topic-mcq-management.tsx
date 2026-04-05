@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Eye, Trash2, Search, Edit, Download, FileText } from 'lucide-react';
+import { Loader2, Upload, Eye, Trash2, Search, Edit, FileJson, FileText } from 'lucide-react';
 import { deleteTopicMCQDocument, updateTopicMCQDocument } from '@/lib/firestore';
 import { MCQStructuredEditor } from './mcq-structured-editor';
 import type { Topic, TopicMCQ, MCQ } from '@/lib/types';
@@ -231,7 +231,7 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs, onUpdate }
             head: [['#', 'Question', 'Options', 'Answer', 'Solution']],
             body: tableData,
             theme: 'grid',
-            headStyles: { fillStyle: 'F', fillColor: [180, 0, 0] }, // Anjalkaran Red-ish
+            headStyles: { fillColor: [180, 0, 0] }, // Anjalkaran Red-ish
             columnStyles: {
                 0: { cellWidth: 10 },
                 1: { cellWidth: 60 },
@@ -424,10 +424,10 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs, onUpdate }
                                                     </ScrollArea>
                                                 </DialogContent>
                                             </Dialog>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDownload(tm)} title="Download JSON">
-                                                <Download className="h-4 w-4" />
+                                            <Button variant="ghost" size="icon" onClick={() => handleDownload(tm)} title="Download JSON" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                                                <FileJson className="h-4 w-4" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDownloadPdf(tm)} title="Download PDF" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                                            <Button variant="ghost" size="icon" onClick={() => handleDownloadPdf(tm)} title="Download English PDF" className="text-red-600 hover:text-red-700 hover:bg-red-50">
                                                 <FileText className="h-4 w-4" />
                                             </Button>
                                             <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(tm)} title="Edit Questions">
