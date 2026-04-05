@@ -34,6 +34,7 @@ export interface VideoClass {
 
 export interface Topic {
   id: string;
+  syllabusId?: string;
   title: string;
   description: string;
   icon: string; 
@@ -258,6 +259,7 @@ export interface MCQReport {
 }
 
 export interface SyllabusTopic {
+  id: string;
   name: string;
   questions: number;
   subTopics?: string[];

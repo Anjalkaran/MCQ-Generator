@@ -17,10 +17,11 @@ import { FeedbackManagement } from '@/components/admin/feedback-management';
 import { VideoClassManagement } from '@/components/admin/video-class-management';
 import { DownloadHistoryManagement } from '@/components/admin/download-history-management';
 import { SyllabusManagement } from '@/components/admin/syllabus-management';
+import { SyllabusPointManagement } from '@/components/admin/syllabus-point-management';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Calendar, FileQuestion, MessageSquare, Video, Library, History, CalendarCheck, Clock, Trophy, ExternalLink, GraduationCap } from "lucide-react";
+import { Loader2, Users, Shield, BookCopy, FileText, BarChart3, Download, Calendar, FileQuestion, MessageSquare, Video, Library, History, CalendarCheck, Clock, Trophy, ExternalLink, GraduationCap, Layers } from "lucide-react";
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';
-import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback, getStudyMaterials, getCategories, getTopics, getTopicMCQs, getQuestionBankDocuments, getVideoClasses, getWeeklyTests, getDailyTests, getSyllabi } from "@/lib/firestore";
+import { getAllUsers, getQnAUsage, getLiveTests, getReasoningQuestions, getAllFeedback, getStudyMaterials, getCategories, getTopics, getTopicMCQs, getQuestionBankDocuments, getVideoClasses, getWeeklyTests, getDailyTests, getSyllabi, getSyllabusMCQs, getSyllabusMaterials } from "@/lib/firestore";
 import type { UserData, QnAUsage, LiveTest, WeeklyTest, DailyTest, ReasoningQuestion, Feedback, StudyMaterial, Category, Topic, TopicMCQ, BankedQuestion, VideoClass, SyllabusBlueprint } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { ADMIN_EMAILS } from "@/lib/constants";
@@ -78,6 +79,7 @@ const adminSections = [
     { value: 'analytics', label: 'Analytics', icon: BarChart3 },
     { value: 'feedback', label: 'Feedback', icon: MessageSquare },
     { value: 'reports', label: 'Reports', icon: Download },
+    { value: 'syllabus-points', label: 'Syllabus Points', icon: Layers },
 ];
 
 // Grouping logic for the sidebar/tabs in Overview
@@ -106,6 +108,8 @@ export default function AdminPage() {
   const [feedback, setFeedback] = useState<Feedback[]>([]);
   const [qnaUsage, setQnaUsage] = useState<QnAUsage[]>([]);
   const [syllabi, setSyllabi] = useState<SyllabusBlueprint[]>([]);
+  const [syllabusMCQs, setSyllabusMCQs] = useState<TopicMCQ[]>([]);
+  const [syllabusMaterials, setSyllabusMaterials] = useState<StudyMaterial[]>([]);
 
   const searchParams = useSearchParams();
   const initialSection = searchParams.get('section') as AdminSection | null;
@@ -124,11 +128,13 @@ export default function AdminPage() {
       const [
           fetchedUsers, fetchedCategories, fetchedTopics, fetchedMaterials, 
           fetchedVideos, fetchedMCQs, fetchedBank, fetchedReasoning, 
-          fetchedScheduled, fetchedWeekly, fetchedDaily, fetchedFeedback, fetchedQnA, fetchedSyllabi
+          fetchedScheduled, fetchedWeekly, fetchedDaily, fetchedFeedback, fetchedQnA, fetchedSyllabi,
+          fetchedSyllabusMCQs, fetchedSyllabusMaterials
       ] = await Promise.all([
           getAllUsers(), getCategories(), getTopics(), getStudyMaterials(),
           getVideoClasses(), getTopicMCQs(), getQuestionBankDocuments(), getReasoningQuestions(),
-          getLiveTests(true), getWeeklyTests(), getDailyTests(), getAllFeedback(), getQnAUsage(), getSyllabi()
+          getLiveTests(true), getWeeklyTests(), getDailyTests(), getAllFeedback(), getQnAUsage(), getSyllabi(),
+          getSyllabusMCQs(), getSyllabusMaterials()
       ]);
       
       const regularUsers = fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email));
@@ -146,6 +152,8 @@ export default function AdminPage() {
       setFeedback(fetchedFeedback);
       setQnaUsage(fetchedQnA);
       setSyllabi(fetchedSyllabi);
+      setSyllabusMCQs(fetchedSyllabusMCQs);
+      setSyllabusMaterials(fetchedSyllabusMaterials);
 
     } catch (error) {
       console.error("Failed to fetch admin data:", error);
@@ -221,6 +229,7 @@ export default function AdminPage() {
         case 'analytics': return <AnalyticsTab qnaUsage={qnaUsage} />;
         case 'feedback': return <FeedbackManagement initialFeedback={feedback} />;
         case 'reports': return <ReportsManagement allUsers={users} allTopics={topics} />;
+        case 'syllabus-points': return <SyllabusPointManagement initialMCQs={syllabusMCQs} initialMaterials={syllabusMaterials} />;
         default: return null;
     }
   }

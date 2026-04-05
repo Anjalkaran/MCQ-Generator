@@ -11,9 +11,13 @@ import { ChevronLeft } from "lucide-react";
 import { use } from 'react';
 
 
-export default function GenerateTopicQuizPage({ params }: { params: { topicId: string } }) {
+interface TopicParams {
+    topicId: string;
+}
+
+export default function GenerateTopicQuizPage({ params }: { params: Promise<TopicParams> }) {
     const resolvedParams = use(params);
-    const { topics, isLoading } = useDashboard();
+    const { topics, isLoading, userData } = useDashboard();
     
     if (isLoading) {
         return (
@@ -30,11 +34,17 @@ export default function GenerateTopicQuizPage({ params }: { params: { topicId: s
         // which is good practice.
         notFound();
     }
+
+    const backUrl = (topic?.examCategories && topic.examCategories.length > 0)
+        ? `/dashboard/syllabus?category=${encodeURIComponent(topic.examCategories[0])}`
+        : userData?.examCategory 
+            ? `/dashboard/syllabus?category=${encodeURIComponent(userData.examCategory)}`
+            : "/dashboard/topic-wise-mcq";
     
     return (
         <div className="space-y-6 max-w-2xl mx-auto">
              <Button variant="ghost" asChild>
-                <Link href="/dashboard/topic-wise-mcq">
+                <Link href={backUrl}>
                     <ChevronLeft className="mr-2 h-4 w-4" />
                     Back to Topics
                 </Link>

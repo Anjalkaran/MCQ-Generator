@@ -2,6 +2,7 @@ import { getFirebaseDb, getFirebaseAuth } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion } from 'firebase/firestore';
 import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, QnAUsage, Notification, LiveTest, WeeklyTest, DailyTest, TopicMCQ, ReasoningQuestion, Feedback, VideoClass, StudyMaterial, AptiSolveLaunch, MaterialDownload, MCQData, MCQ, Bookmark, MCQReport, SyllabusBlueprint } from './types';
 import { ADMIN_EMAILS, LEADERBOARD_RESET_DATE } from './constants';
+import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT, GROUPB_BLUEPRINT, IP_BLUEPRINT } from './exam-blueprints';
 import { normalizeDate } from './utils';
 
 // USER MANAGEMENT
@@ -337,17 +338,46 @@ export const deleteCategory = async (categoryId: string, topicsToDelete: Topic[]
 export const getTopics = async (): Promise<Topic[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
-    const topicsCollection = collection(db, 'topics');
-    const topicSnapshot = await getDocs(query(topicsCollection));
-    const topics = topicSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Topic));
     
-    const categories = await getCategories();
+    const [topicsCollectionSnapshot, categories] = await Promise.all([
+        getDocs(query(collection(db, 'topics'))),
+        getCategories()
+    ]);
+    
+    const rawTopics = topicsCollectionSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Topic));
     const categoryMap = new Map(categories.map(c => [c.id, c.name]));
 
-    return topics.map(topic => ({
-        ...topic,
-        categoryName: categoryMap.get(topic.categoryId) || 'N/A'
-    })).sort((a,b) => a.title.localeCompare(b.title));
+    // Flatten all blueprint topics for easier searching
+    const allBlueprintTopics: { id: string, name: string }[] = [];
+    const blueprints = [MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT, GROUPB_BLUEPRINT, IP_BLUEPRINT];
+    
+    blueprints.forEach(bp => {
+        bp.parts.forEach((part: any) => {
+            part.sections.forEach((section: any) => {
+                if (section.topics) {
+                    section.topics.forEach((t: any) => {
+                        if (typeof t !== 'string') {
+                            allBlueprintTopics.push({ id: t.id, name: t.name });
+                        }
+                    });
+                }
+                if (section.randomFrom?.topics) {
+                    // Random topics are just strings, no unique syllabus ID for them
+                }
+            });
+        });
+    });
+
+    return rawTopics.map(topic => {
+        // Find matching blueprint topic by title (case insensitive)
+        const match = allBlueprintTopics.find(bt => bt.name.toLowerCase() === topic.title.toLowerCase());
+        
+        return {
+            ...topic,
+            syllabusId: match?.id,
+            categoryName: categoryMap.get(topic.categoryId) || 'N/A'
+        };
+    }).sort((a,b) => a.title.localeCompare(b.title));
 };
 
 export const getTopicsByPartAndExam = async (part: string, examCategory: string): Promise<Topic[]> => {
@@ -639,6 +669,77 @@ export const updateLiveTestBankDocument = async (docId: string, content: string)
     if (!db) return;
     const docRef = doc(db, 'liveTestBank', docId);
     await updateDoc(docRef, { content, lastModifiedAt: serverTimestamp() });
+};
+
+// SYLLABUS-WISE CONTENT MANAGEMENT (New System)
+export const getSyllabusMCQs = async (): Promise<TopicMCQ[]> => {
+    const db = getFirebaseDb();
+    if (!db) return [];
+    const collectionRef = collection(db, 'syllabusMCQs');
+    const snapshot = await getDocs(query(collectionRef, orderBy('uploadedAt', 'desc')));
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+            id: doc.id, 
+            ...data, 
+            uploadedAt: normalizeDate(data.uploadedAt) || new Date() 
+        } as TopicMCQ;
+    });
+};
+
+export const addSyllabusMCQ = async (mcq: Omit<TopicMCQ, 'id'>): Promise<DocumentReference> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    return await addDoc(collection(db, 'syllabusMCQs'), { 
+        ...mcq, 
+        uploadedAt: serverTimestamp() 
+    });
+};
+
+export const deleteSyllabusMCQ = async (id: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    await deleteDoc(doc(db, 'syllabusMCQs', id));
+};
+
+export const getSyllabusMaterials = async (): Promise<StudyMaterial[]> => {
+    const db = getFirebaseDb();
+    if (!db) return [];
+    const collectionRef = collection(db, 'syllabusMaterials');
+    const snapshot = await getDocs(query(collectionRef, orderBy('uploadedAt', 'desc')));
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+            id: doc.id, 
+            ...data, 
+            uploadedAt: normalizeDate(data.uploadedAt) || new Date() 
+        } as StudyMaterial;
+    });
+};
+
+export const addSyllabusMaterial = async (material: Omit<StudyMaterial, 'id'>): Promise<DocumentReference> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore is not initialized");
+    return await addDoc(collection(db, 'syllabusMaterials'), { 
+        ...material, 
+        uploadedAt: serverTimestamp() 
+    });
+};
+
+export const deleteSyllabusMaterial = async (id: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    await deleteDoc(doc(db, 'syllabusMaterials', id));
+};
+
+export const updateSyllabusMaterial = async (id: string, data: Partial<StudyMaterial>): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    const materialRef = doc(db, 'syllabusMaterials', id);
+    await updateDoc(materialRef, {
+        ...data,
+        lastModifiedAt: serverTimestamp()
+    });
 };
 
 export const addLiveTest = async (testData: Omit<LiveTest, 'id'>): Promise<DocumentReference> => {
@@ -1141,15 +1242,19 @@ export const getDashboardData = async (userId: string) => {
     const isAdmin = ADMIN_EMAILS.includes(userData.email);
     const notificationsPromise = isAdmin ? getAdminNotifications() : Promise.resolve([]);
 
-    const [categories, topics, videoClasses, studyMaterials, notifications, weeklyTests, dailyTests] = await Promise.all([
+    const [categories, topics, videoClasses, studyMaterialsLegacy, syllabusMaterials, notifications, weeklyTests, dailyTests] = await Promise.all([
         getCategories(), 
         getTopics(), 
         getVideoClasses(), 
         getStudyMaterials(),
+        getSyllabusMaterials(),
         notificationsPromise,
         getWeeklyTests(),
         getDailyTests()
     ]);
+
+    // Merge both legacy and new syllabus-style study materials
+    const studyMaterials = [...studyMaterialsLegacy, ...syllabusMaterials];
 
     // Return ALL data. Filtering will happen in the DashboardLayout context provider
     // to support the dynamic "View As" functionality for admins and reactivity.

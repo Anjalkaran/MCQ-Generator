@@ -158,7 +158,10 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     const dailyTests = rawDailyTests;   // Allow all daily tests, tabs will filter them
     
     const activeTopicIds = new Set(topics.map(t => t.id));
-    const studyMaterials = rawStudyMaterials.filter(m => activeTopicIds.has(m.topicId));
+    const activeSyllabusIds = new Set(topics.map(t => t.syllabusId).filter(Boolean) as string[]);
+    const studyMaterials = rawStudyMaterials.filter(m => 
+        activeTopicIds.has(m.topicId) || activeSyllabusIds.has(m.topicId)
+    );
 
     return { categories, topics, videoClasses, studyMaterials, weeklyTests, dailyTests };
   }, [userData?.examCategory, rawCategories, rawTopics, rawVideoClasses, rawStudyMaterials, rawWeeklyTests, rawDailyTests]);

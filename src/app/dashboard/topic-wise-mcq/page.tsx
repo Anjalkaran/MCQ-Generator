@@ -25,14 +25,14 @@ export default function TopicWiseMCQPage() {
     const userExamCategory = userData?.examCategory;
     if (!userExamCategory || !categories || !topics) return {};
 
-    const userCategories = categories.filter(c =>
-      c.examCategories.includes(userExamCategory) &&
+    const userCategories = categories.filter(c => 
+      c.examCategories?.includes(userExamCategory as any) && 
       !c.name.toLowerCase().includes("reasoning") &&
       !c.name.toLowerCase().includes("non-verbal")
     );
 
-    const userTopics = topics.filter(t =>
-      t.examCategories.includes(userExamCategory)
+    const userTopics = topics.filter(t => 
+      t.examCategories?.includes(userExamCategory as any)
     );
 
     return userCategories.reduce((acc, category) => {

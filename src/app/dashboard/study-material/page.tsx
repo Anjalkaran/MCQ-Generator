@@ -107,17 +107,29 @@ function PdfViewer({ fileUrl, fileName, isAdmin }: { fileUrl: string, fileName: 
 }
 
 function MaterialCard({ material, topic }: { material: StudyMaterial, topic?: Topic }) {
+    const isHtml = material.fileType === 'docx' || (material.content && material.content.startsWith('<'));
+    
     return (
         <Card className="group relative overflow-hidden border-slate-200 bg-white hover:border-primary/30 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] h-full flex flex-col">
             <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10 text-[10px] font-bold uppercase tracking-wider">
-                    Ready to Read
+                <Badge variant="secondary" className={cn(
+                    "border-none text-[10px] font-bold uppercase tracking-wider",
+                    isHtml ? "bg-emerald-50 text-emerald-600" : "bg-primary/5 text-primary"
+                )}>
+                    {isHtml ? 'Native Article' : 'Direct PDF'}
                 </Badge>
             </div>
             
             <CardHeader className="pb-3">
-                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center mb-3 group-hover:bg-primary/10 group-hover:scale-110 transition-all duration-500">
-                    <FileText className="h-5 w-5 text-slate-400 group-hover:text-primary transition-colors" />
+                <div className={cn(
+                    "w-10 h-10 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-all duration-500",
+                    isHtml ? "bg-emerald-50 group-hover:bg-emerald-100" : "bg-slate-50 group-hover:bg-primary/10"
+                )}>
+                    {isHtml ? (
+                        <BookOpen className="h-5 w-5 text-emerald-500 transition-colors" />
+                    ) : (
+                        <FileText className="h-5 w-5 text-slate-400 group-hover:text-primary transition-colors" />
+                    )}
                 </div>
                 <CardTitle className="text-sm font-bold leading-snug line-clamp-2 min-h-[2.5rem] group-hover:text-primary transition-colors">
                     {topic?.title || material.fileName}
@@ -132,17 +144,73 @@ function MaterialCard({ material, topic }: { material: StudyMaterial, topic?: To
                     <div className="h-[1px] w-full bg-slate-100" />
                     <Button 
                         variant="ghost" 
-                        className="w-full justify-between text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-primary hover:bg-primary/5 h-9"
+                        className={cn(
+                            "w-full justify-between text-xs font-bold uppercase tracking-widest text-slate-500 h-9 transition-all",
+                            isHtml ? "hover:text-emerald-600 hover:bg-emerald-50" : "hover:text-primary hover:bg-primary/5"
+                        )}
                         asChild
                     >
                         <div>
-                            Read Now
+                            {isHtml ? 'Read Article' : 'Open PDF'}
                             <ChevronRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
                         </div>
                     </Button>
                 </div>
             </CardContent>
         </Card>
+    );
+}
+
+function HtmlReader({ content, fileName, isAdmin }: { content: string, fileName: string, isAdmin: boolean }) {
+    const [progress, setProgress] = useState(0);
+
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const target = e.currentTarget;
+        const totalHeight = target.scrollHeight - target.clientHeight;
+        const currentPosition = target.scrollTop;
+        const scrollPercent = (currentPosition / totalHeight) * 100;
+        setProgress(scrollPercent);
+    };
+
+    return (
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden border-none bg-white">
+            <div className="absolute top-0 left-0 w-full h-1 bg-slate-100 z-50">
+                <div 
+                    className="h-full bg-emerald-500 transition-all duration-150 ease-out" 
+                    style={{ width: `${progress}%` }}
+                />
+            </div>
+
+            <DialogHeader className="p-6 border-b bg-slate-50/50">
+                <div className="flex items-center justify-between gap-4">
+                    <div className="space-y-1">
+                        <DialogTitle className="text-2xl font-black text-slate-900 leading-tight">
+                            {fileName}
+                        </DialogTitle>
+                        <div className="flex items-center gap-3">
+                            <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 border-none font-bold text-[10px]">PREMIUM ARTICLE</Badge>
+                            <p className="text-xs text-slate-400 font-medium flex items-center gap-2">
+                                <BookOpen className="h-3 w-3" /> Enhanced Reading Mode • {Math.round(progress)}% read
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </DialogHeader>
+
+            <ScrollArea className="flex-grow p-8 sm:p-12" onScrollCapture={handleScroll}>
+                <div 
+                    className="max-w-2xl mx-auto prose prose-slate prose-headings:font-black prose-headings:text-slate-900 prose-p:text-slate-600 prose-p:leading-relaxed prose-strong:text-slate-900 prose-img:rounded-3xl prose-img:shadow-2xl"
+                    dangerouslySetInnerHTML={{ __html: content }}
+                />
+                <div className="max-w-2xl mx-auto mt-20 pt-10 border-t border-slate-100 text-center pb-20">
+                    <div className="h-12 w-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <GraduationCap className="h-6 w-6" />
+                    </div>
+                    <h4 className="font-bold text-slate-900 italic">"Success is the sum of small efforts, repeated day in and day out."</h4>
+                    <p className="text-xs text-slate-400 mt-2 uppercase tracking-widest font-bold">End of Chapter</p>
+                </div>
+            </ScrollArea>
+        </DialogContent>
     );
 }
 
@@ -309,7 +377,11 @@ export default function StudyMaterialPage() {
                                                     <MaterialCard material={material} topic={topic} />
                                                 </button>
                                             </DialogTrigger>
-                                            <PdfViewer fileUrl={material.content} fileName={material.fileName} isAdmin={!!isAdmin} />
+                                            {material.fileType === 'docx' || (material.content && material.content.startsWith('<')) ? (
+                                                <HtmlReader content={material.content} fileName={material.fileName} isAdmin={!!isAdmin} />
+                                            ) : (
+                                                <PdfViewer fileUrl={material.content} fileName={material.fileName} isAdmin={!!isAdmin} />
+                                            )}
                                         </Dialog>
                                     ))}
                                 </div>
@@ -337,7 +409,11 @@ export default function StudyMaterialPage() {
                                                     <MaterialCard material={material} topic={topic} />
                                                 </button>
                                             </DialogTrigger>
-                                            <PdfViewer fileUrl={material.content} fileName={material.fileName} isAdmin={!!isAdmin} />
+                                            {material.fileType === 'docx' || (material.content && material.content.startsWith('<')) ? (
+                                                <HtmlReader content={material.content} fileName={material.fileName} isAdmin={!!isAdmin} />
+                                            ) : (
+                                                <PdfViewer fileUrl={material.content} fileName={material.fileName} isAdmin={!!isAdmin} />
+                                            )}
                                         </Dialog>
                                     ))}
                                 </div>
@@ -356,7 +432,11 @@ export default function StudyMaterialPage() {
                                             <MaterialCard material={material} topic={topic} />
                                         </button>
                                     </DialogTrigger>
-                                    <PdfViewer fileUrl={material.content} fileName={material.fileName} isAdmin={!!isAdmin} />
+                                    {material.fileType === 'docx' || (material.content && material.content.startsWith('<')) ? (
+                                        <HtmlReader content={material.content} fileName={material.fileName} isAdmin={!!isAdmin} />
+                                    ) : (
+                                        <PdfViewer fileUrl={material.content} fileName={material.fileName} isAdmin={!!isAdmin} />
+                                    )}
                                 </Dialog>
                             ))}
                         </div>

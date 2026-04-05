@@ -13,32 +13,64 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
-
+import { MaterialViewer } from './material-viewer';
+import type { StudyMaterial } from '@/lib/types';
 interface TopicHubModalProps {
   isOpen: boolean;
   onClose: () => void;
+  topicId?: string;
   topicName: string;
   examCategory: string;
   isAdmin?: boolean;
 }
 
-export function TopicHubModal({ isOpen, onClose, topicName, examCategory, isAdmin }: TopicHubModalProps) {
+export function TopicHubModal({ isOpen, onClose, topicId, topicName, examCategory, isAdmin }: TopicHubModalProps) {
   const { topics, studyMaterials, isLoading } = useDashboard();
+  const [selectedViewerMaterial, setSelectedViewerMaterial] = React.useState<StudyMaterial | null>(null);
 
   const topicData = useMemo(() => {
     if (!topics) return null;
-    // Find matching topic in Firestore
+    
+    // First try matching by ID if provided
+    if (topicId) {
+        const byId = topics.find(t => t.id === topicId);
+        if (byId) return byId;
+    }
+    
+    // Otherwise fall back to matching by title and exam category
     return topics.find(t => 
       t.title.toLowerCase() === topicName.toLowerCase() && 
       t.examCategories.includes(examCategory as any)
     );
-  }, [topics, topicName, examCategory]);
+  }, [topics, topicId, topicName, examCategory]);
 
   const materials = useMemo(() => {
-    if (!topicData || !studyMaterials) return [];
-    return studyMaterials.filter(m => m.topicId === topicData.id);
-  }, [topicData, studyMaterials]);
+    // Check for materials that match either:
+    // 1. The Firestore document ID 
+    // 2. The unique syllabus ID (e.g., IP-P3-S2-T1) stored in the topic document
+    // 3. The topicId prop passed from the caller (the blueprint ID)
+    const list = studyMaterials ? studyMaterials.filter(m => 
+      (topicData && m.topicId === topicData.id) || 
+      (topicData?.syllabusId && m.topicId === topicData.syllabusId) ||
+      (topicId && m.topicId === topicId)
+    ) : [];
+    
+    // Add virtual material if exists
+    if (topicData?.material) {
+        return [{
+            id: `v_${topicData.id}`,
+            topicId: topicData.id,
+            fileName: `${topicData.title} Guide`,
+            fileType: 'docx',
+            content: topicData.material,
+            uploadedAt: new Date()
+        }, ...list];
+    }
+    
+    return list;
+  }, [topicData, studyMaterials, topicId]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -65,7 +97,7 @@ export function TopicHubModal({ isOpen, onClose, topicName, examCategory, isAdmi
             </p>
           </DialogHeader>
 
-          {!topicData && !isLoading ? (
+          {(!topicData && materials.length === 0) && !isLoading ? (
             <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
               <p className="text-slate-500 font-medium">
                 This topic is part of your official syllabus. Study resources for this topic are being updated by our expert faculty.
@@ -117,12 +149,54 @@ export function TopicHubModal({ isOpen, onClose, topicName, examCategory, isAdmi
                       : "Comprehensive PDFs and visual summaries for this topic."
                   }
                 </p>
-                <Button asChild variant="outline" className="w-full border-slate-200 hover:border-red-600 hover:text-red-600 h-12 rounded-xl font-bold transition-all">
-                  <Link href={isAdmin ? `/dashboard/admin?section=study-material&search=${encodeURIComponent(topicName)}` : `/dashboard/study-material?topicId=${topicData?.id}`}>
-                    {isAdmin ? "Manage Materials" : "Open Materials"}
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
+
+                {isAdmin ? (
+                    <Button asChild variant="outline" className="w-full border-slate-200 hover:border-red-600 hover:text-red-600 h-12 rounded-xl font-bold transition-all">
+                        <Link href={`/dashboard/admin?section=study-material&search=${encodeURIComponent(topicName)}`}>
+                            Manage Materials
+                            <ChevronRight className="ml-2 h-4 w-4" />
+                        </Link>
+                    </Button>
+                ) : materials.length === 1 ? (
+                    <Dialog open={!!selectedViewerMaterial} onOpenChange={(open) => !open && setSelectedViewerMaterial(null)}>
+                        <DialogTrigger asChild>
+                            <Button 
+                                variant="outline" 
+                                onClick={() => setSelectedViewerMaterial(materials[0])}
+                                className="w-full border-slate-200 hover:border-red-600 hover:text-red-600 h-12 rounded-xl font-bold transition-all"
+                            >
+                                {materials[0].fileType === 'docx' || (materials[0].content && materials[0].content.startsWith('<')) ? 'Read Article' : 'Open PDF'}
+                                <ChevronRight className="ml-2 h-4 w-4" />
+                            </Button>
+                        </DialogTrigger>
+                        {selectedViewerMaterial && <MaterialViewer material={selectedViewerMaterial} isAdmin={isAdmin} />}
+                    </Dialog>
+                ) : materials.length > 1 ? (
+                    <div className="space-y-2">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Select Material</p>
+                        <div className="grid gap-2">
+                            {materials.map((mat) => (
+                                <Dialog key={mat.id} open={selectedViewerMaterial?.id === mat.id} onOpenChange={(open) => !open && setSelectedViewerMaterial(null)}>
+                                    <DialogTrigger asChild>
+                                        <Button 
+                                            variant="ghost" 
+                                            onClick={() => setSelectedViewerMaterial(mat)}
+                                            className="w-full justify-between h-10 px-4 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-red-600 border border-slate-100"
+                                        >
+                                            <span className="truncate max-w-[180px]">{mat.fileName}</span>
+                                            <ChevronRight className="h-3 w-3" />
+                                        </Button>
+                                    </DialogTrigger>
+                                    {selectedViewerMaterial?.id === mat.id && <MaterialViewer material={mat} isAdmin={isAdmin} />}
+                                </Dialog>
+                            ))}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="p-4 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">No detailed materials yet</p>
+                    </div>
+                )}
               </div>
             </div>
           )}

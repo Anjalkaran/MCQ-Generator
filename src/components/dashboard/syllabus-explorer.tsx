@@ -43,6 +43,7 @@ export function SyllabusExplorer({ examCategory, isAdmin }: SyllabusExplorerProp
   const [dynamicBlueprints, setDynamicBlueprints] = React.useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = React.useState(true);
   const [selectedTopic, setSelectedTopic] = React.useState<string | null>(null);
+  const [selectedTopicId, setSelectedTopicId] = React.useState<string | null>(null);
   
   const { topics, studyMaterials } = useDashboard();
 
@@ -100,15 +101,6 @@ export function SyllabusExplorer({ examCategory, isAdmin }: SyllabusExplorerProp
             <Badge className="bg-white/20 text-white hover:bg-white/30 border-none backdrop-blur-md">
               BLUEPRINT
             </Badge>
-            {isAdmin && (
-              <button 
-                onClick={() => window.location.href = '/dashboard/admin?section=syllabi'}
-                className="text-xs bg-white text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2"
-              >
-                EDIT SYLLABUS
-                <ChevronRight className="h-3 w-3" />
-              </button>
-            )}
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight mb-2 flex items-center gap-3">
             <GraduationCap className="h-10 w-10" />
@@ -174,11 +166,11 @@ export function SyllabusExplorer({ examCategory, isAdmin }: SyllabusExplorerProp
                               {(section.topics || section.randomFrom?.topics).map((topic: any, idx: number) => (
                                   <div 
                                     key={idx} 
-                                    onClick={() => !isAdmin && setSelectedTopic(typeof topic === 'string' ? topic : topic.name)}
-                                    className={cn(
-                                      "group/topic relative flex flex-col justify-between p-4 rounded-2xl border border-slate-100 bg-white/50 hover:bg-white hover:shadow-xl hover:border-red-200 transition-all duration-500 transform hover:-translate-y-1",
-                                      !isAdmin && "cursor-pointer"
-                                    )}
+                                    onClick={() => {
+                                        setSelectedTopic(typeof topic === 'string' ? topic : topic.name);
+                                        setSelectedTopicId(typeof topic === 'string' ? null : topic.id);
+                                    }}
+                                    className="group/topic cursor-pointer relative flex flex-col justify-between p-4 rounded-2xl border border-slate-100 bg-white/50 hover:bg-white hover:shadow-xl hover:border-red-200 transition-all duration-500 transform hover:-translate-y-1"
                                   >
                                     <div className="flex flex-col gap-3">
                                       <div className="flex items-start gap-2.5">
@@ -187,11 +179,9 @@ export function SyllabusExplorer({ examCategory, isAdmin }: SyllabusExplorerProp
                                           <span className="text-[15px] font-bold text-slate-900 leading-tight">
                                             {typeof topic === 'string' ? topic : topic.name}
                                           </span>
-                                          {!isAdmin && (
-                                            <span className="text-[10px] text-red-500 font-bold opacity-0 group-hover/topic:opacity-100 transition-opacity">
-                                              CLICK TO START LEARNING
-                                            </span>
-                                          )}
+                                          <span className="text-[10px] text-red-500 font-bold opacity-0 group-hover/topic:opacity-100 transition-opacity uppercase">
+                                            CLICK TO START LEARNING
+                                          </span>
                                         </div>
                                       </div>
                                       
@@ -207,21 +197,6 @@ export function SyllabusExplorer({ examCategory, isAdmin }: SyllabusExplorerProp
                                         </div>
                                       )}
                                     </div>
-                                    
-                                    {isAdmin && (
-                                      <div className="mt-4 flex justify-end">
-                                        <button 
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedTopic(typeof topic === 'string' ? topic : topic.name);
-                                          }}
-                                          className="text-[10px] bg-red-50 hover:bg-red-600 hover:text-white text-red-600 px-3 py-1.5 rounded-xl transition-all duration-300 flex items-center gap-1.5 font-black shadow-sm ring-1 ring-red-100"
-                                        >
-                                          MANAGE TOPIC
-                                          <ChevronRight className="h-3 w-3" />
-                                        </button>
-                                      </div>
-                                    )}
                                   </div>
                               ))}
                             </div>
@@ -246,10 +221,13 @@ export function SyllabusExplorer({ examCategory, isAdmin }: SyllabusExplorerProp
 
       <TopicHubModal 
         isOpen={!!selectedTopic}
-        onClose={() => setSelectedTopic(null)}
+        onClose={() => {
+            setSelectedTopic(null);
+            setSelectedTopicId(null);
+        }}
+        topicId={selectedTopicId || undefined}
         topicName={selectedTopic || ''}
         examCategory={examCategory}
-        isAdmin={isAdmin}
       />
     </div>
   );
