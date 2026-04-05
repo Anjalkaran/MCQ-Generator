@@ -11,8 +11,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Trash2, PlusCircle, Eye, Edit } from 'lucide-react';
+import { Loader2, Upload, Trash2, PlusCircle, Eye, Edit, FileDown } from 'lucide-react';
 import { deleteReasoningQuestion } from '@/lib/firestore';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import type { ReasoningQuestion } from '@/lib/types';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -250,6 +252,59 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
         toast({ title: "Error", description: "Could not delete the question.", variant: "destructive" });
     }
   }
+
+  const handleDownloadPdf = (topicTitle: string, questions: ReasoningQuestion[]) => {
+    const doc = new jsPDF();
+    
+    // Add Header
+    doc.setFontSize(20);
+    doc.setTextColor(44, 62, 80);
+    doc.text("Anjalkaran Reasoning Bank", 105, 15, { align: 'center' });
+    
+    doc.setFontSize(14);
+    doc.setTextColor(127, 140, 141);
+    doc.text(topicTitle, 105, 22, { align: 'center' });
+    
+    doc.setDrawColor(52, 152, 219);
+    doc.setLineWidth(0.5);
+    doc.line(20, 25, 190, 25);
+
+    const toEnglish = (text: string) => {
+      if (!text) return "";
+      // Strip HTML
+      let res = text.replace(/<[^>]*>?/gm, '');
+      // Filter out Tamil characters if present
+      res = res.replace(/[\u0B80-\u0BFF]+/g, '');
+      return res.trim().replace(/\s\s+/g, ' ');
+    };
+
+    const tableData = questions.map((q, index) => [
+      index + 1,
+      toEnglish(q.questionText),
+      q.options.map((opt, i) => `${String.fromCharCode(65 + i)}) ${isDataUri(opt) ? '[Image Option]' : toEnglish(opt)}`).join('\n'),
+      q.correctAnswer && isDataUri(q.correctAnswer) ? '[Image Answer]' : toEnglish(q.correctAnswer),
+      q.solutionText ? toEnglish(q.solutionText) : 'N/A'
+    ]);
+
+    autoTable(doc, {
+      head: [['#', 'Question', 'Options', 'Ans', 'Solution']],
+      body: tableData,
+      startY: 30,
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+      columnStyles: {
+        0: { cellWidth: 10 },
+        1: { cellWidth: 80 },
+        2: { cellWidth: 50 },
+        3: { cellWidth: 15 },
+        4: { cellWidth: 'auto' }
+      },
+      alternateRowStyles: { fillColor: [245, 247, 249] },
+    });
+
+    doc.save(`${topicTitle.replace(/\s+/g, '_')}_Reasoning_MCQs.pdf`);
+    toast({ title: "PDF Generated", description: "Your reasoning bank has been exported." });
+  };
 
   const renderOptionInput = (index: 1 | 2 | 3 | 4) => {
     const fieldName = `option${index}` as const;
@@ -598,8 +653,20 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
         
         <Card>
             <CardHeader>
-                <CardTitle>Uploaded Reasoning Questions</CardTitle>
-                <CardDescription>View and manage previously uploaded questions.</CardDescription>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <CardTitle>Uploaded Reasoning Questions</CardTitle>
+                        <CardDescription>View and manage previously uploaded questions.</CardDescription>
+                    </div>
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleDownloadPdf("Reasoning Question Bank", questions)}
+                        disabled={questions.length === 0}
+                    >
+                        <FileDown className="mr-2 h-4 w-4" /> Download PDF
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent>
                 <div className="border rounded-md">

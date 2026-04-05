@@ -10,8 +10,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Trash2, Search, Upload, FilePlus, List, Edit, Save, FileCode, ClipboardPaste, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Search, Upload, FilePlus, List, Edit, Save, FileCode, ClipboardPaste, Calendar as CalendarIcon, FileDown } from 'lucide-react';
 import { deleteWeeklyTest, getLiveTestQuestionPaper, updateLiveTestBankDocument, updateWeeklyTest } from '@/lib/firestore';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { getFirebaseAuth } from '@/lib/firebase';
 import type { BankedQuestion, WeeklyTest, MCQ } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -273,6 +275,66 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
     } finally {
         setIsSavingQuestions(false);
     }
+  };
+
+  const handleDownloadPdf = (testTitle: string, questions: MCQ[]) => {
+    const doc = new jsPDF();
+    
+    // Add Header
+    doc.setFontSize(20);
+    doc.setTextColor(44, 62, 80);
+    doc.text("Anjalkaran MCQ Bank", 105, 15, { align: 'center' });
+    
+    doc.setFontSize(14);
+    doc.setTextColor(127, 140, 141);
+    doc.text(testTitle, 105, 22, { align: 'center' });
+    
+    doc.setDrawColor(52, 152, 219);
+    doc.setLineWidth(0.5);
+    doc.line(20, 25, 190, 25);
+
+    const toEnglish = (text: string) => {
+        if (!text) return "";
+        // Strip HTML
+        let res = text.replace(/<[^>]*>?/gm, '');
+        // Filter out Tamil characters if present
+        res = res.replace(/[\u0B80-\u0BFF]+/g, '');
+        return res.trim().replace(/\s\s+/g, ' ');
+    };
+
+    const tableData = questions.map((q, index) => {
+      const qText = q.translations?.en?.question || q.question;
+      const opts = q.translations?.en?.options || q.options;
+      const ans = q.translations?.en?.correctAnswer || q.correctAnswer;
+      const sol = q.translations?.en?.solution || q.solution;
+
+      return [
+        index + 1,
+        toEnglish(qText),
+        opts.map(o => toEnglish(o)).join('\n'),
+        toEnglish(ans),
+        sol ? toEnglish(sol) : 'N/A'
+      ];
+    });
+
+    autoTable(doc, {
+      head: [['#', 'Question', 'Options', 'Ans', 'Solution']],
+      body: tableData,
+      startY: 30,
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+      columnStyles: {
+        0: { cellWidth: 10 },
+        1: { cellWidth: 80 },
+        2: { cellWidth: 50 },
+        3: { cellWidth: 15 },
+        4: { cellWidth: 'auto' }
+      },
+      alternateRowStyles: { fillColor: [245, 247, 249] },
+    });
+
+    doc.save(`${testTitle.replace(/\s+/g, '_')}_MCQs.pdf`);
+    toast({ title: "PDF Generated", description: "Your MCQ bank has been exported." });
   };
 
   const handleUpdateTestInfo = async (values: z.infer<typeof editInfoSchema>) => {
@@ -600,7 +662,19 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                         </Table>
                     )}
                 </ScrollArea>
-                <DialogFooter className="pt-4"><Button onClick={saveAllQuestionChanges} disabled={isSavingQuestions}>{isSavingQuestions && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save All Changes</Button></DialogFooter>
+                <DialogFooter className="pt-4 flex items-center justify-between">
+                    <Button 
+                        variant="outline" 
+                        onClick={() => handleDownloadPdf(managingTest?.title || "Weekly Test", testQuestions)}
+                        disabled={testQuestions.length === 0}
+                    >
+                        <FileDown className="mr-2 h-4 w-4" /> Download PDF
+                    </Button>
+                    <Button onClick={saveAllQuestionChanges} disabled={isSavingQuestions}>
+                        {isSavingQuestions && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save All Changes
+                    </Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
 

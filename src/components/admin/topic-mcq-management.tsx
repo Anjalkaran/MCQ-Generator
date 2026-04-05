@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Eye, Trash2, Search, Edit, Download } from 'lucide-react';
+import { Loader2, Upload, Eye, Trash2, Search, Edit, Download, FileText } from 'lucide-react';
 import { deleteTopicMCQDocument, updateTopicMCQDocument } from '@/lib/firestore';
 import { MCQStructuredEditor } from './mcq-structured-editor';
 import type { Topic, TopicMCQ, MCQ } from '@/lib/types';
@@ -26,6 +26,8 @@ import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 import { JsonFormatGuide } from './json-format-guide';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const uploadSchema = z.object({
   topicId: z.string({
@@ -182,6 +184,70 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs, onUpdate }
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  }
+
+  const handleDownloadPdf = (mcqDoc: TopicMCQ) => {
+    try {
+        const mcqs: MCQ[] = JSON.parse(mcqDoc.content).mcqs || JSON.parse(mcqDoc.content);
+        if (!Array.isArray(mcqs)) throw new Error("Invalid MCQ format");
+
+        const doc = new jsPDF();
+        const topicTitle = getTopicTitle(mcqDoc.topicId);
+
+        // Header
+        doc.setFontSize(20);
+        doc.text("Anjalkaran Exam Portal", 14, 22);
+        doc.setFontSize(12);
+        doc.setTextColor(100);
+        doc.text(`Topic: ${topicTitle}`, 14, 32);
+        doc.text(`Exported on: ${format(new Date(), "dd/MM/yyyy")}`, 14, 38);
+
+        const toEnglish = (text: string) => {
+            if (!text) return "";
+            // Strip HTML
+            let res = text.replace(/<[^>]*>?/gm, '');
+            // Filter out Tamil characters if present
+            res = res.replace(/[\u0B80-\u0BFF]+/g, '');
+            return res.trim();
+        };
+
+        const tableData = mcqs.map((mcq, idx) => {
+            const q = mcq.translations?.en?.question || mcq.question;
+            const opts = mcq.translations?.en?.options || mcq.options;
+            const ans = mcq.translations?.en?.correctAnswer || mcq.correctAnswer;
+            const sol = mcq.translations?.en?.solution || mcq.solution;
+
+            return [
+                `${idx + 1}`,
+                toEnglish(q),
+                opts.map(o => toEnglish(o)).join("\n"),
+                toEnglish(ans),
+                toEnglish(sol || "-")
+            ];
+        });
+
+        autoTable(doc, {
+            startY: 45,
+            head: [['#', 'Question', 'Options', 'Answer', 'Solution']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillStyle: 'F', fillColor: [180, 0, 0] }, // Anjalkaran Red-ish
+            columnStyles: {
+                0: { cellWidth: 10 },
+                1: { cellWidth: 60 },
+                2: { cellWidth: 40 },
+                3: { cellWidth: 30 },
+                4: { cellWidth: 40 },
+            },
+            styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+        });
+
+        doc.save(`${topicTitle.replace(/\s+/g, '_')}_MCQs.pdf`);
+        toast({ title: "Success", description: "PDF generated and downloading." });
+    } catch (error: any) {
+        console.error("PDF generation error:", error);
+        toast({ title: "Error", description: "Failed to generate PDF. Is the JSON valid?", variant: "destructive" });
+    }
   }
 
   const getTopicTitle = (topicId: string) => {
@@ -358,10 +424,13 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs, onUpdate }
                                                     </ScrollArea>
                                                 </DialogContent>
                                             </Dialog>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDownload(tm)}>
+                                            <Button variant="ghost" size="icon" onClick={() => handleDownload(tm)} title="Download JSON">
                                                 <Download className="h-4 w-4" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(tm)}>
+                                            <Button variant="ghost" size="icon" onClick={() => handleDownloadPdf(tm)} title="Download PDF" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                                                <FileText className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(tm)} title="Edit Questions">
                                                 <Edit className="h-4 w-4" />
                                             </Button>
                                             <AlertDialog>

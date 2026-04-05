@@ -10,6 +10,7 @@ import type { MCQ } from '@/lib/types';
 import { getLiveTestQuestionPaper } from '@/lib/firestore';
 import { MTS_BLUEPRINT, PA_BLUEPRINT, POSTMAN_BLUEPRINT, IP_BLUEPRINT, GROUPB_BLUEPRINT } from '@/lib/exam-blueprints';
 import { getFirebaseDb, admin } from '@/lib/firebase-admin';
+import { shuffleArray } from '@/lib/utils';
 
 const blueprintMap = {
     MTS: MTS_BLUEPRINT,
@@ -115,8 +116,14 @@ const generateLiveMockTestFlow = ai.defineFlow(
         ? input.duration * 60 
         : (blueprint?.totalDurationMinutes || 60) * 60;
 
+    // Shuffle both questions and their options
+    const randomizedQuestions = shuffleArray(processedQuestions.map(q => ({
+        ...q,
+        options: shuffleArray([...q.options])
+    })));
+
     const quizData: any = {
-        mcqs: processedQuestions,
+        mcqs: randomizedQuestions,
         timeLimit: timeLimitInSeconds,
         isMockTest: true,
         examCategory: input.examCategory,

@@ -287,3 +287,34 @@ export interface SyllabusBlueprint {
   parts: SyllabusPart[];
   updatedAt?: any;
 }
+
+export interface PlannerTopic {
+  id: string;
+  name: string;
+  completed: boolean;
+}
+
+export interface PlannerCustomTask {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
+export interface PlannerDay {
+  dayNumber: number;
+  topics: PlannerTopic[];
+  isRestDay: boolean;
+  customTasks?: PlannerCustomTask[];
+}
+
+export interface UserPlanner {
+  uid: string;
+  examCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP' | 'GROUP B';
+  planType: 'Fast Track' | 'Standard Preparation' | 'Comprehensive Mastery';
+  durationDays: number;
+  startDate: any; // Date or Timestamp
+  days: PlannerDay[];
+  currentDay: number;
+  isCompleted: boolean;
+  updatedAt: any;
+}

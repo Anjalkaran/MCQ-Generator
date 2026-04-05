@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
-import { Loader2, Upload, Eye, Trash2, Edit, Download, Search } from 'lucide-react';
+import { Loader2, Upload, Eye, Trash2, Edit, Download, Search, FileText } from 'lucide-react';
 import { deleteQuestionBankDocument, updateQuestionBankDocument } from '@/lib/firestore';
 import { MCQStructuredEditor } from './mcq-structured-editor';
 import { getFirebaseAuth } from '@/lib/firebase';
@@ -23,6 +23,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { JsonFormatGuide } from './json-format-guide';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import type { MCQ } from '@/lib/types';
 
 const examCategories = ["MTS", "POSTMAN", "PA", "IP", "GROUP B"] as const;
 
@@ -172,6 +175,70 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
     link.click();
     document.body.removeChild(link);
   }
+
+  const handleDownloadPdf = (question: BankedQuestion) => {
+    try {
+        const mcqs: MCQ[] = JSON.parse(question.content).mcqs || JSON.parse(question.content);
+        if (!Array.isArray(mcqs)) throw new Error("Invalid MCQ format");
+
+        const doc = new jsPDF();
+        
+        // Header
+        doc.setFontSize(20);
+        doc.text("Anjalkaran Exam Portal", 14, 22);
+        doc.setFontSize(12);
+        doc.setTextColor(100);
+        doc.text(`Question Bank: ${question.examCategory}${question.examYear ? ` (${question.examYear})` : ''}`, 14, 32);
+        doc.text(`File: ${question.fileName}`, 14, 38);
+        doc.text(`Exported on: ${format(new Date(), "dd/MM/yyyy")}`, 14, 44);
+
+        const toEnglish = (text: string) => {
+            if (!text) return "";
+            // Strip HTML
+            let res = text.replace(/<[^>]*>?/gm, '');
+            // Filter out Tamil characters if present
+            res = res.replace(/[\u0B80-\u0BFF]+/g, '');
+            return res.trim().replace(/\s\s+/g, ' ');
+        };
+
+        const tableData = mcqs.map((mcq, idx) => {
+            const q = mcq.translations?.en?.question || mcq.question;
+            const opts = mcq.translations?.en?.options || mcq.options;
+            const ans = mcq.translations?.en?.correctAnswer || mcq.correctAnswer;
+            const sol = mcq.translations?.en?.solution || mcq.solution;
+
+            return [
+                `${idx + 1}`,
+                toEnglish(q),
+                opts.map(o => toEnglish(o)).join("\n"),
+                toEnglish(ans),
+                toEnglish(sol || "-")
+            ];
+        });
+
+        autoTable(doc, {
+            startY: 50,
+            head: [['#', 'Question', 'Options', 'Answer', 'Solution']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillStyle: 'F', fillColor: [180, 0, 0] },
+            columnStyles: {
+                0: { cellWidth: 10 },
+                1: { cellWidth: 60 },
+                2: { cellWidth: 40 },
+                3: { cellWidth: 30 },
+                4: { cellWidth: 40 },
+            },
+            styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+        });
+
+        doc.save(`${question.fileName.replace(/\.[^a-z0-9]/gi, '_')}.pdf`);
+        toast({ title: "Success", description: "PDF generated and downloading." });
+    } catch (error: any) {
+        console.error("PDF generation error:", error);
+        toast({ title: "Error", description: "Failed to generate PDF. Is the JSON valid?", variant: "destructive" });
+    }
+  }
   
   const getFormattedContent = (content: string) => {
     try {
@@ -309,8 +376,11 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                                             <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(bq)}>
                                                 <Edit className="h-4 w-4" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDownload(bq)}>
+                                            <Button variant="ghost" size="icon" onClick={() => handleDownload(bq)} title="Download JSON">
                                                 <Download className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={() => handleDownloadPdf(bq)} title="Download PDF" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                                                <FileText className="h-4 w-4" />
                                             </Button>
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>

@@ -1,6 +1,6 @@
 import { getFirebaseDb, getFirebaseAuth } from './firebase';
 import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion } from 'firebase/firestore';
-import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, QnAUsage, Notification, LiveTest, WeeklyTest, DailyTest, TopicMCQ, ReasoningQuestion, Feedback, VideoClass, StudyMaterial, AptiSolveLaunch, MaterialDownload, MCQData, MCQ, Bookmark, MCQReport, SyllabusBlueprint } from './types';
+import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, QnAUsage, Notification, LiveTest, WeeklyTest, DailyTest, TopicMCQ, ReasoningQuestion, Feedback, VideoClass, StudyMaterial, AptiSolveLaunch, MaterialDownload, MCQData, MCQ, Bookmark, MCQReport, SyllabusBlueprint, UserPlanner, PlannerDay } from './types';
 import { ADMIN_EMAILS, LEADERBOARD_RESET_DATE } from './constants';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT, GROUPB_BLUEPRINT, IP_BLUEPRINT } from './exam-blueprints';
 import { normalizeDate } from './utils';
@@ -1394,4 +1394,68 @@ export const updateTopicMCQWithTranslation = async (docId: string, questionText:
             console.error("Error updating translation in MCQ doc:", e);
         }
     }
+};
+
+// STUDY PLANNER MANAGEMENT
+export const saveUserPlanner = async (uid: string, planner: UserPlanner): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) throw new Error("Firestore not initialized");
+    const plannerRef = doc(db, 'users', uid, 'studyPlanner', 'current');
+    
+    // Convert Dates to Firestore Timestamps
+    const dataToSave = {
+        ...planner,
+        startDate: Timestamp.fromDate(new Date(planner.startDate)),
+        updatedAt: serverTimestamp()
+    };
+    
+    await setDoc(plannerRef, dataToSave);
+};
+
+export const getUserPlanner = async (uid: string): Promise<UserPlanner | null> => {
+    const db = getFirebaseDb();
+    if (!db) return null;
+    const plannerRef = doc(db, 'users', uid, 'studyPlanner', 'current');
+    
+    try {
+        const docSnap = await getDoc(plannerRef);
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            return {
+                ...data,
+                startDate: normalizeDate(data.startDate) || new Date(),
+                updatedAt: normalizeDate(data.updatedAt) || new Date()
+            } as UserPlanner;
+        }
+    } catch (error) {
+        console.error("Error fetching user planner:", error);
+    }
+    return null;
+};
+
+export const updatePlannerDay = async (uid: string, dayNumber: number, dayData: Partial<PlannerDay>): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    const plannerRef = doc(db, 'users', uid, 'studyPlanner', 'current');
+    
+    try {
+        const docSnap = await getDoc(plannerRef);
+        if (!docSnap.exists()) return;
+        
+        const planner = docSnap.data() as UserPlanner;
+        const updatedDays = planner.days.map(day => 
+            day.dayNumber === dayNumber ? { ...day, ...dayData } : day
+        );
+        
+        await updateDoc(plannerRef, { days: updatedDays, updatedAt: serverTimestamp() });
+    } catch (error) {
+        console.error("Error updating planner day:", error);
+    }
+};
+
+export const deleteUserPlanner = async (uid: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    const plannerRef = doc(db, 'users', uid, 'studyPlanner', 'current');
+    await deleteDoc(plannerRef);
 };

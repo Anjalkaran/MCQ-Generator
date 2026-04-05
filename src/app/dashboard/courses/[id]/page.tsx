@@ -7,12 +7,14 @@ import { Loader2, PenSquare, Video, BrainCircuit, Library, CalendarCheck, ArrowL
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useParams, useRouter } from "next/navigation";
+import { ADMIN_EMAILS } from "@/lib/constants";
 import { FadeIn } from '@/components/animations/motion-wrapper';
 
 export default function CourseDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const { user, userData, isLoading } = useDashboard();
+  const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
 
   if (isLoading) {
     return (
@@ -63,6 +65,20 @@ export default function CourseDetailPage() {
           </div>
           
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
+            {isAdmin && (
+              <Card className="hover:shadow-lg transition-shadow border-red-200 bg-red-50/10">
+                <Link href="/dashboard/study-planner" className="block p-6 text-center space-y-4">
+                  <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-red-100">
+                    <CalendarCheck className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg">Study Planner</h3>
+                    <p className="text-sm text-slate-500">Your personalized 30-180 day plan</p>
+                  </div>
+                </Link>
+              </Card>
+            )}
+
             <Card className="hover:shadow-lg transition-shadow border-slate-200">
               <Link href={`/dashboard/syllabus?category=${courseId}`} className="block p-6 text-center space-y-4">
                 <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto">

@@ -12,6 +12,7 @@ import {z} from 'zod';
 import { getFirebaseDb } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getExamHistoryForUser } from '@/lib/firestore';
+import { shuffleArray } from '@/lib/utils';
 
 const GenerateKnowledgeMCQsInputSchema = z.object({
   topicName: z.string().describe('The topic for which MCQs are generated.'),
@@ -127,13 +128,13 @@ const generateKnowledgeMCQsFlow = ai.defineFlow(
         icon: 'globe',
         categoryId: 'general-knowledge',
       },
-      mcqs: output.mcqs.map(m => ({
+      mcqs: shuffleArray(output.mcqs.map(m => ({
           question: m.question,
-          options: m.options,
+          options: shuffleArray([...m.options]),
           correctAnswer: m.correctAnswer,
           topic: m.topic || input.topicName,
           solution: m.solution || ""
-      })),
+      }))),
       timeLimit,
       language: input.language,
       createdAt: serverTimestamp(),

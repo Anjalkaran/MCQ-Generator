@@ -11,8 +11,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Clock, Trash2, Edit, CalendarIcon, Upload, Eye } from 'lucide-react';
+import { Loader2, Clock, Trash2, Edit, CalendarIcon, Upload, Eye, FileDown } from 'lucide-react';
 import { addLiveTest, updateLiveTest, deleteLiveTest, deleteLiveTestBankDocument, updateQuestionBankDocument } from '@/lib/firestore';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import type { MCQ } from '@/lib/types';
 import { MCQStructuredEditor } from './mcq-structured-editor';
 import type { BankedQuestion, LiveTest } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -212,6 +215,78 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
     }
   };
 
+  const handleDownloadPdf = (paper: BankedQuestion) => {
+    try {
+        const data = JSON.parse(paper.content);
+        const questions: MCQ[] = data.questions || [];
+        
+        if (questions.length === 0) {
+            toast({ title: "No Questions", description: "This paper is empty.", variant: "destructive" });
+            return;
+        }
+
+        const doc = new jsPDF();
+        
+        // Add Header
+        doc.setFontSize(20);
+        doc.setTextColor(44, 62, 80);
+        doc.text("Anjalkaran MCQ Bank", 105, 15, { align: 'center' });
+        
+        doc.setFontSize(14);
+        doc.setTextColor(127, 140, 141);
+        doc.text(`${paper.examCategory} Live Test Paper`, 105, 22, { align: 'center' });
+        
+        doc.setDrawColor(52, 152, 219);
+        doc.setLineWidth(0.5);
+        doc.line(20, 25, 190, 25);
+
+        const toEnglish = (text: string) => {
+            if (!text) return "";
+            // Strip HTML
+            let res = text.replace(/<[^>]*>?/gm, '');
+            // Filter out Tamil characters if present
+            res = res.replace(/[\u0B80-\u0BFF]+/g, '');
+            return res.trim().replace(/\s\s+/g, ' ');
+        };
+
+        const tableData = questions.map((q, index) => {
+          const qText = q.translations?.en?.question || q.question;
+          const opts = q.translations?.en?.options || q.options;
+          const ans = q.translations?.en?.correctAnswer || q.correctAnswer;
+          const sol = q.translations?.en?.solution || q.solution;
+
+          return [
+            index + 1,
+            toEnglish(qText),
+            opts.map(o => toEnglish(o)).join('\n'),
+            toEnglish(ans),
+            sol ? toEnglish(sol) : 'N/A'
+          ];
+        });
+
+        autoTable(doc, {
+          head: [['#', 'Question', 'Options', 'Ans', 'Solution']],
+          body: tableData,
+          startY: 30,
+          styles: { fontSize: 9, cellPadding: 3 },
+          headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+          columnStyles: {
+            0: { cellWidth: 10 },
+            1: { cellWidth: 80 },
+            2: { cellWidth: 50 },
+            3: { cellWidth: 15 },
+            4: { cellWidth: 'auto' }
+          },
+          alternateRowStyles: { fillColor: [245, 247, 249] },
+        });
+
+        doc.save(`${paper.examCategory}_LiveTest_${format(new Date(paper.uploadedAt), "dd_MM_yyyy")}.pdf`);
+        toast({ title: "PDF Generated", description: "Your MCQ bank has been exported." });
+    } catch (e) {
+        toast({ title: "Export Failed", description: "There was an error parsing the question paper.", variant: "destructive" });
+    }
+  };
+
   const handleOpenScheduleDialog = (test: LiveTest | null) => {
     setEditingTest(test);
     setIsScheduleDialogOpen(true);
@@ -334,8 +409,11 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
         </ScrollArea>
     </DialogContent>
 </Dialog>
-                                                 <Button variant="ghost" size="icon" onClick={() => handleOpenPaperEditDialog(p)}>
-                                                    <Edit className="h-4 w-4" />
+                                                 <Button variant="ghost" size="icon" onClick={() => handleDownloadPdf(p)} title="Download PDF">
+                                                    <FileDown className="h-4 w-4 text-blue-600" />
+                                                 </Button>
+                                                 <Button variant="ghost" size="icon" onClick={() => handleOpenPaperEditDialog(p)} title="Edit Questions">
+                                                    <Edit className="h-4 w-4 text-amber-600" />
                                                  </Button>
                                                  <AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will delete "{p.fileName}". This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePaper(p.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
                                             </TableCell>

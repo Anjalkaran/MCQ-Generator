@@ -13,6 +13,7 @@ import type { MCQ } from '@/lib/types';
 import { getFirebaseDb } from '@/lib/firebase-admin';
 import * as admin from 'firebase-admin';
 import { MTS_BLUEPRINT, PA_BLUEPRINT, POSTMAN_BLUEPRINT, IP_BLUEPRINT, GROUPB_BLUEPRINT } from '@/lib/exam-blueprints';
+import { shuffleArray } from '@/lib/utils';
 
 const blueprintMap: Record<string, any> = {
     MTS: MTS_BLUEPRINT,
@@ -40,13 +41,6 @@ export async function generateMockTestFromBank(input: GenerateMockTestFromBankIn
   return generateMockTestFromBankFlow(input);
 }
 
-function shuffleArray<T>(array: T[]): T[] {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
 
 
 const generateMockTestFromBankFlow = ai.defineFlow(
@@ -122,7 +116,7 @@ const generateMockTestFromBankFlow = ai.defineFlow(
     };
 
     const quizData = {
-        mcqs: finalMCQs.map(m => {
+        mcqs: shuffleArray(finalMCQs).map(m => {
             // Pick translation if available and requested
             const lang = input.language || 'English';
             let finalQ = m.question || "";
@@ -147,7 +141,7 @@ const generateMockTestFromBankFlow = ai.defineFlow(
 
             return {
                 question: finalQ,
-                options: finalOptions,
+                options: shuffleArray([...finalOptions]),
                 correctAnswer: m.correctAnswer || "", // Answer key is same across languages
                 topic: m.topic || "",
                 solution: finalSolution

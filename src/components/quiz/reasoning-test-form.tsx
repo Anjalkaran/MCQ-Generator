@@ -128,7 +128,10 @@ export function ReasoningTestForm() {
       const timeLimit = values.numberOfQuestions * 60; // 60 seconds per question
 
       const quizData = {
-        mcqs: mcqs,
+        mcqs: shuffleArray(mcqs.map(q => ({
+          ...q,
+          options: shuffleArray([...q.options])
+        }))),
         timeLimit: timeLimit,
         isMockTest: true, 
         createdAt: serverTimestamp(),

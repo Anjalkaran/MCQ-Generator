@@ -117,6 +117,17 @@ export function AppSidebar() {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+
+                {isAdmin && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/study-planner'} tooltip="Study Planner">
+                      <Link href="/dashboard/study-planner" onClick={onLinkClick}>
+                        <CalendarCheck className="text-indigo-500" />
+                        <span>Study Planner</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

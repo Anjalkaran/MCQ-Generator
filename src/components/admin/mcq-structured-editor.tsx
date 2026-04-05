@@ -7,9 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, Layout, Code, Save, AlertCircle, Search, GripVertical } from 'lucide-react';
+import { Trash2, Plus, Layout, Code, Save, AlertCircle, Search, GripVertical, FileDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { MCQ } from '@/lib/types';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from '@/lib/utils';
@@ -116,6 +118,86 @@ export function MCQStructuredEditor({ initialContent, onSave, onCancel }: MCQStr
         setMcqs(newMcqs);
     };
 
+    const handleDownloadPdf = () => {
+        try {
+            let questionsToExport: MCQ[] = [];
+            if (mode === 'ui') {
+                questionsToExport = mcqs;
+            } else {
+                const parsed = JSON.parse(rawContent);
+                if (Array.isArray(parsed)) {
+                    questionsToExport = parsed;
+                } else if (parsed && typeof parsed === 'object') {
+                    if (Array.isArray(parsed.mcqs)) questionsToExport = parsed.mcqs;
+                    else if (Array.isArray(parsed.questions)) questionsToExport = parsed.questions;
+                    else {
+                        const firstArrayKey = Object.keys(parsed).find(key => Array.isArray(parsed[key]));
+                        if (firstArrayKey) questionsToExport = parsed[firstArrayKey];
+                    }
+                }
+            }
+
+            if (questionsToExport.length === 0) {
+                toast({ title: "No Questions", description: "There are no questions to export.", variant: "destructive" });
+                return;
+            }
+
+            const doc = new jsPDF();
+            doc.setFontSize(20);
+            doc.setTextColor(44, 62, 80);
+            doc.text("Anjalkaran MCQ Export", 105, 15, { align: 'center' });
+            
+            doc.setDrawColor(52, 152, 219);
+            doc.setLineWidth(0.5);
+            doc.line(20, 20, 190, 20);
+
+            const toEnglish = (text: string) => {
+                if (!text) return "";
+                // Strip HTML
+                let res = text.replace(/<[^>]*>?/gm, '');
+                // Filter out Tamil characters if present
+                res = res.replace(/[\u0B80-\u0BFF]+/g, '');
+                return res.trim().replace(/\s\s+/g, ' ');
+            };
+
+            const tableData = questionsToExport.map((q, index) => {
+                const qText = q.translations?.en?.question || q.question;
+                const opts = q.translations?.en?.options || q.options;
+                const ans = q.translations?.en?.correctAnswer || q.correctAnswer;
+                const sol = q.translations?.en?.solution || q.solution;
+
+                return [
+                    index + 1,
+                    toEnglish(qText || ''),
+                    (opts || []).map(o => toEnglish(o)).join('\n'),
+                    toEnglish(ans || 'N/A'),
+                    toEnglish(sol || 'N/A')
+                ];
+            });
+
+            autoTable(doc, {
+                head: [['#', 'Question', 'Options', 'Ans', 'Solution']],
+                body: tableData,
+                startY: 25,
+                styles: { fontSize: 9, cellPadding: 3 },
+                headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+                columnStyles: {
+                    0: { cellWidth: 10 },
+                    1: { cellWidth: 85 },
+                    2: { cellWidth: 45 },
+                    3: { cellWidth: 15 },
+                    4: { cellWidth: 'auto' }
+                },
+                alternateRowStyles: { fillColor: [245, 247, 249] },
+            });
+
+            doc.save(`MCQ_Export_${new Date().getTime()}.pdf`);
+            toast({ title: "PDF Generated", description: "Your MCQ paper has been exported." });
+        } catch (e) {
+            toast({ title: "Export Failed", description: "Could not parse questions for export.", variant: "destructive" });
+        }
+    };
+
     const updateOption = (qIndex: number, optIndex: number, value: string) => {
         const newMcqs = [...mcqs];
         const newOptions = [...(newMcqs[qIndex].options || [])];
@@ -195,6 +277,9 @@ export function MCQStructuredEditor({ initialContent, onSave, onCancel }: MCQStr
                 </div>
                 <div className="flex items-center gap-2">
                     {onCancel && <Button variant="outline" size="sm" onClick={onCancel}>Cancel</Button>}
+                    <Button variant="outline" size="sm" onClick={handleDownloadPdf}>
+                        <FileDown className="h-4 w-4 mr-2" /> Download PDF
+                    </Button>
                     <Button size="sm" onClick={handleSave} disabled={isSaving}>
                         <Save className="h-4 w-4 mr-2" /> {isSaving ? 'Saving...' : 'Save Changes'}
                     </Button>

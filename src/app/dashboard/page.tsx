@@ -3,7 +3,7 @@
 
 import { useDashboard } from "@/app/dashboard/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, PenSquare, Video, BrainCircuit, Library, Shield, GraduationCap, BookOpen, ChevronRight } from 'lucide-react';
+import { Loader2, PenSquare, Video, BrainCircuit, Library, Shield, GraduationCap, BookOpen, ChevronRight, CalendarCheck, Clock } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { ADMIN_EMAILS } from "@/lib/constants";
 import { updateDoc, doc } from "firebase/firestore";
@@ -140,6 +140,40 @@ export default function DashboardPage() {
         <p className="text-xl text-slate-500 max-w-2xl mx-auto">
           Choose your course to continue your preparation and access your study materials.
         </p>
+
+        {isAdmin && (
+          <div className="pt-4 pb-2">
+            <Card 
+              onClick={() => router.push('/dashboard/study-planner')}
+              className="bg-indigo-600 border-none overflow-hidden cursor-pointer group shadow-xl hover:shadow-indigo-200 transition-all duration-500 relative"
+            >
+                <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                    <CalendarCheck size={120} className="text-white" />
+                </div>
+                <div className="p-8 flex items-center justify-between relative z-10">
+                    <div className="flex items-center gap-6">
+                        <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-white">
+                             <Clock size={32} />
+                        </div>
+                        <div className="text-left space-y-1">
+                            <h3 className="text-2xl font-black text-white">{userData.examCategory} Study Journey</h3>
+                            <p className="text-indigo-100 font-medium">Your personalized {userData.examCategory} preparation roadmap • 30-180 Days</p>
+                        </div>
+                    </div>
+                    <Button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            router.push('/dashboard/study-planner');
+                        }}
+                        className="bg-white text-indigo-600 hover:bg-indigo-50 font-bold px-8 h-12 rounded-xl z-20"
+                    >
+                        Open {userData.examCategory} Planner
+                        <ChevronRight className="ml-2 h-5 w-5" />
+                    </Button>
+                </div>
+            </Card>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">

@@ -11,6 +11,7 @@ import type { MCQ, Topic } from '@/lib/types';
 import { getTopicsAdmin, getTopicMCQsAdmin, getReasoningQuestionsAdmin, getSyllabiAdmin } from '@/lib/firestore-admin';
 import { gemini15Flash } from '@genkit-ai/googleai';
 import { getFirebaseDb, admin } from '@/lib/firebase-admin';
+import { shuffleArray } from '@/lib/utils';
 
 const GenerateMockTestInputSchema = z.object({
   examCategory: z.string().describe('The exam category (e.g., MTS, POSTMAN, PA).'),
@@ -64,13 +65,6 @@ const translateMCQBatch = async (mcqs: MCQ[], targetLanguage: string): Promise<M
     }
 }
 
-function shuffleArray<T>(array: T[]): T[] {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
 
 export async function generateMockTest(input: GenerateMockTestInput) {
   try {
@@ -230,9 +224,9 @@ const generateMockTestFlow = ai.defineFlow(
     const quizData = {
         mcqs: shuffleArray(finalProcessedQuestions.filter(Boolean)).map(m => ({
             questionId: m.questionId,
-            topicId: m.topicId,
+            topicId: (m as any).topicId,
             question: m.question,
-            options: m.options,
+            options: shuffleArray([...m.options]),
             correctAnswer: m.correctAnswer,
             topic: m.topic || "",
             solution: m.solution || ""

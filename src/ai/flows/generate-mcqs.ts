@@ -11,6 +11,7 @@ import {z} from 'zod';
 import { getTopicMCQsAdmin, getExamHistoryForUserAdmin } from '@/lib/firestore-admin';
 import type { MCQ } from '@/lib/types';
 import { getFirebaseDb } from '@/lib/firebase-admin';
+import { shuffleArray } from '@/lib/utils';
 
 const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
@@ -96,13 +97,6 @@ Your final output must be a single, valid JSON object containing an 'mcqs' array
 
 const MATERIAL_CHUNK_SIZE = 8000;
 
-function shuffleArray<T>(array: T[]): T[] {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
 
 export async function generateMCQs(input: GenerateMCQsInput) {
   try {
@@ -287,15 +281,15 @@ const generateMCQsFlow = ai.defineFlow(
             icon: 'file-text',
             categoryId: input.category || "uncategorized",
         },
-        mcqs: finalMCQs.map(m => ({
+        mcqs: shuffleArray(finalMCQs.map(m => ({
             questionId: m.questionId,
             topicId: m.topicId || input.topicId,
             question: m.question,
-            options: m.options,
+            options: shuffleArray([...m.options]),
             correctAnswer: m.correctAnswer,
             topic: m.topic || input.topic,
             solution: m.solution || ""
-        })),
+        }))),
         timeLimit,
         language: input.language,
         topicId: input.topicId 

@@ -15,6 +15,7 @@ import type { MCQ } from '@/lib/types';
 import { ai } from '../genkit';
 import { gemini15Pro } from '@genkit-ai/googleai';
 import { zodToJsonSchema } from 'zod-to-json-schema';
+import { shuffleArray } from '@/lib/utils';
 
 const GeneratePartwiseMCQsInputSchema = z.object({
   examCategory: z.string().describe('The exam category (e.g., MTS, POSTMAN, PA).'),
@@ -67,13 +68,6 @@ const translateMCQ = async (mcq: MCQ, targetLanguage: string): Promise<MCQ> => {
 }
 
 
-function shuffleArray<T>(array: T[]): T[] {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
 
 
 export async function generatePartwiseMCQs(input: GeneratePartwiseMCQsInput): Promise<GeneratePartwiseMCQsOutput> {
@@ -156,7 +150,7 @@ export async function generatePartwiseMCQs(input: GeneratePartwiseMCQsInput): Pr
   return { 
       mcqs: finalResults.map(q => ({
           question: q.question,
-          options: q.options,
+          options: shuffleArray([...q.options]),
           correctAnswer: q.correctAnswer,
           topic: q.topic || "General",
           solution: q.solution || ""
