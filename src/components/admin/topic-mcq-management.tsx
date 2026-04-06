@@ -20,6 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Check, ChevronsUpDown } from "lucide-react"
@@ -33,13 +34,19 @@ const uploadSchema = z.object({
   topicId: z.string({
     required_error: 'You must select a topic.',
   }),
+  method: z.enum(['file', 'paste']),
   files: z
     .array(z.instanceof(File))
-    .min(1, 'Please upload at least one file.')
-    .refine(
-        (files) => files.every((file) => file.size <= 4 * 1024 * 1024),
-        `Each file size must be less than 4MB.`
-    ),
+    .optional(),
+  pastedJson: z.string().optional(),
+}).refine((data) => {
+  if (data.method === 'file') {
+    return data.files && data.files.length > 0;
+  }
+  return data.pastedJson && data.pastedJson.trim().length > 0;
+}, {
+  message: "Please provide either a JSON file or paste valid JSON content.",
+  path: ["files"],
 });
 
 interface TopicMCQManagementProps {
@@ -67,9 +74,13 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs, onUpdate }
     resolver: zodResolver(uploadSchema),
     defaultValues: {
         topicId: undefined,
+        method: 'file',
         files: [],
+        pastedJson: '',
     }
   });
+
+  const uploadMethod = form.watch('method');
 
   // Auto-focus topic if coming from Topic Management
   useEffect(() => {
@@ -97,9 +108,23 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs, onUpdate }
 
     formData.append('topicId', values.topicId);
     formData.append('topicTitle', selectedTopic.title);
-    values.files.forEach(file => {
-      formData.append('files', file);
-    });
+    
+    if (values.method === 'file' && values.files) {
+        values.files.forEach(file => {
+            formData.append('files', file);
+        });
+    } else if (values.method === 'paste' && values.pastedJson) {
+        try {
+            // Validate JSON before sending
+            JSON.parse(values.pastedJson);
+            const blob = new Blob([values.pastedJson], { type: 'application/json' });
+            formData.append('files', blob, 'pasted_questions.json');
+        } catch (e) {
+            toast({ title: 'Invalid JSON', description: 'The pasted content is not valid JSON.', variant: 'destructive'});
+            setIsUploading(false);
+            return;
+        }
+    }
 
     try {
       const response = await fetch('/api/topic-mcq-bank/upload', {
@@ -349,24 +374,84 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs, onUpdate }
                 />
                 <FormField
                 control={form.control}
-                name="files"
-                render={({ field: { onChange, value, ...rest } }) => (
-                    <FormItem>
-                    <FormLabel>MCQ Documents (.json, .docx)</FormLabel>
-                    <FormControl>
-                        <Input 
-                        type="file" 
-                        accept=".json,.docx,.doc"
-                        multiple
-                        onChange={(e) => onChange(e.target.files ? Array.from(e.target.files) : [])}
-                        {...rest}
-                        />
-                    </FormControl>
-                    <FormMessage />
+                name="method"
+                render={({ field }) => (
+                    <FormItem className="space-y-3">
+                        <FormLabel>Upload Method</FormLabel>
+                        <FormControl>
+                            <RadioGroup
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                                className="flex flex-row space-x-4"
+                            >
+                                <FormItem className="flex items-center space-x-2 space-y-0">
+                                    <FormControl>
+                                        <RadioGroupItem value="file" />
+                                    </FormControl>
+                                    <FormLabel className="font-normal">
+                                        Upload File (.json, .docx)
+                                    </FormLabel>
+                                </FormItem>
+                                <FormItem className="flex items-center space-x-2 space-y-0">
+                                    <FormControl>
+                                        <RadioGroupItem value="paste" />
+                                    </FormControl>
+                                    <FormLabel className="font-normal">
+                                        Paste JSON
+                                    </FormLabel>
+                                </FormItem>
+                            </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
                     </FormItem>
                 )}
                 />
-                <JsonFormatGuide type="topic-mcq" />
+
+                {uploadMethod === 'file' ? (
+                    <FormField
+                    control={form.control}
+                    name="files"
+                    render={({ field: { onChange, value, ...rest } }) => (
+                        <FormItem>
+                        <FormLabel>MCQ Documents (.json, .docx)</FormLabel>
+                        <FormControl>
+                            <Input 
+                            type="file" 
+                            accept=".json,.docx,.doc"
+                            multiple
+                            onChange={(e) => onChange(e.target.files ? Array.from(e.target.files) : [])}
+                            {...rest}
+                            />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                ) : (
+                    <div className="space-y-4">
+                        <FormField
+                        control={form.control}
+                        name="pastedJson"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Paste MCQ JSON Content</FormLabel>
+                                <FormControl>
+                                    <Textarea 
+                                        placeholder="Paste your JSON array of questions here..." 
+                                        className="h-64 font-mono text-xs leading-relaxed"
+                                        {...field}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                    </div>
+                )}
+                
+                <div className="pt-2">
+                    <JsonFormatGuide type="topic-mcq" />
+                </div>
 
                 <Button type="submit" disabled={isUploading}>
                 {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}

@@ -49,7 +49,7 @@ export function TopicQuizForm({ topic }: TopicQuizFormProps) {
         if (!user) return;
         
         // Fetch number of available questions
-        const mcqDocs = await getTopicMCQs(topic.id);
+        const mcqDocs = await getTopicMCQs(topic.id, topic.title);
         let totalMCQs = 0;
         mcqDocs.forEach(doc => {
             try {
@@ -65,7 +65,7 @@ export function TopicQuizForm({ topic }: TopicQuizFormProps) {
         
         // Fetch number of unique attended questions
         const history = await getExamHistoryForUser(user.uid);
-        const topicHistory = history.filter(h => h.topicId === topic.id);
+        const topicHistory = history.filter(h => h.topicId === topic.id || h.topicTitle === topic.title);
         const uniqueQuestions = new Set<string>();
         topicHistory.forEach(item => {
             item.questions.forEach(q => uniqueQuestions.add(q));

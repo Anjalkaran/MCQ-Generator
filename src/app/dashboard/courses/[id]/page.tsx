@@ -36,6 +36,22 @@ export default function CourseDetailPage() {
   // Course ID from URL - Decode it to handle spaces like %20
   const courseId = id ? decodeURIComponent(id as string) : "";
 
+  // Protection Check: Ensure users can only access courses in their allowed group
+  const subCat = userData.examCategory || 'MTS';
+  const isProfessionalGroup = subCat === 'IP' || subCat === 'GROUP B';
+  const isGeneralGroup = subCat === 'MTS' || subCat === 'POSTMAN' || subCat === 'PA';
+  
+  const isTargetProfessional = courseId === 'IP' || courseId === 'GROUP B';
+  const isTargetGeneral = courseId === 'MTS' || courseId === 'POSTMAN' || courseId === 'PA';
+
+  const isAllowed = isAdmin || (isProfessionalGroup && isTargetProfessional) || (isGeneralGroup && isTargetGeneral);
+
+  if (!isAllowed) {
+    // If not allowed, redirect to dashboard or their default course
+    router.push('/dashboard');
+    return null;
+  }
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Button 

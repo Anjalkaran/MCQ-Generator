@@ -26,19 +26,30 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn, normalizeDate } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { JsonFormatGuide } from './json-format-guide';
+import { Textarea } from '@/components/ui/textarea';
+import { ClipboardPaste } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const examCategories = ["MTS", "POSTMAN", "PA", "IP", "GROUP B"] as const;
 
 const uploadSchema = z.object({
   examCategory: z.enum(examCategories),
+  method: z.enum(['file', 'paste']),
   files: z
     .array(z.instanceof(File))
-    .min(1, 'Please upload at least one file.')
-    .refine(
-        (files) => files.every(file => file.type === 'application/json'),
-        'All files must be JSON documents.'
-    ),
+    .optional(),
+  pastedJson: z.string().optional(),
+}).refine((data) => {
+  if (data.method === 'file') {
+    return data.files && data.files.length > 0;
+  }
+  return data.pastedJson && data.pastedJson.trim().length > 0;
+}, {
+  message: "Please provide either a JSON file or paste valid JSON content.",
+  path: ["files"],
 });
 
 
@@ -85,7 +96,14 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
 
   const uploadForm = useForm<z.infer<typeof uploadSchema>>({
     resolver: zodResolver(uploadSchema),
+    defaultValues: {
+        method: 'file',
+        files: [],
+        pastedJson: '',
+    }
   });
+
+  const uploadMethod = uploadForm.watch('method');
   
   useEffect(() => {
     if (editingTest) {
@@ -145,10 +163,23 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
   const onUploadSubmit = async (values: z.infer<typeof uploadSchema>) => {
     setIsUploading(true);
     const formData = new FormData();
-    values.files.forEach(file => {
-        formData.append('files', file);
-    });
     formData.append('examCategory', values.examCategory);
+    
+    if (values.method === 'file' && values.files) {
+        values.files.forEach(file => {
+            formData.append('files', file);
+        });
+    } else if (values.method === 'paste' && values.pastedJson) {
+        try {
+            JSON.parse(values.pastedJson);
+            const blob = new Blob([values.pastedJson], { type: 'application/json' });
+            formData.append('files', blob, `pasted_${values.examCategory}.json`);
+        } catch (e) {
+            toast({ title: 'Invalid JSON', description: 'The pasted content is not valid JSON.', variant: 'destructive'});
+            setIsUploading(false);
+            return;
+        }
+    }
 
     try {
         const response = await fetch('/api/live-test-bank/upload', {
@@ -351,25 +382,55 @@ export function LiveTestManagement({ initialLiveTestBank, initialLiveTests }: Li
                                     </FormItem>
                                 )}
                                 />
-                            <FormField
-                                control={uploadForm.control}
-                                name="files"
-                                render={({ field: { onChange, value, ...rest } }) => (
-                                    <FormItem>
-                                    <FormLabel>Question Paper Files (.json)</FormLabel>
-                                    <FormControl>
-                                        <Input 
-                                        type="file" 
-                                        accept=".json"
-                                        multiple
-                                        onChange={(e) => onChange(e.target.files ? Array.from(e.target.files) : [])}
-                                        {...rest}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
+                            <div className="space-y-2">
+                                <FormLabel>Upload Method</FormLabel>
+                                <Tabs value={uploadForm.watch('method')} onValueChange={(v) => uploadForm.setValue('method', v as any)}>
+                                    <TabsList className="grid w-full grid-cols-2">
+                                        <TabsTrigger value="file"><Upload className="mr-2 h-4 w-4" /> File</TabsTrigger>
+                                        <TabsTrigger value="paste"><ClipboardPaste className="mr-2 h-4 w-4" /> Paste</TabsTrigger>
+                                    </TabsList>
+                                </Tabs>
+                            </div>
+
+                            {uploadMethod === 'file' ? (
+                                <FormField
+                                    control={uploadForm.control}
+                                    name="files"
+                                    render={({ field: { onChange, value, ...rest } }) => (
+                                        <FormItem>
+                                            <FormLabel>Question Paper Files (.json)</FormLabel>
+                                            <FormControl>
+                                                <Input 
+                                                    type="file" 
+                                                    accept=".json"
+                                                    multiple
+                                                    onChange={(e) => onChange(e.target.files ? Array.from(e.target.files) : [])}
+                                                    {...rest}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
                                 />
+                            ) : (
+                                <>
+                                    <FormField
+                                        control={uploadForm.control}
+                                        name="pastedJson"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Paste JSON Content</FormLabel>
+                                                <FormControl><Textarea rows={8} placeholder='[ { "question": "...", ... } ]' className="font-mono text-xs" {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </>
+                            )}
+                            
+                            <div className="pt-2">
+                                <JsonFormatGuide type="live-test" />
+                            </div>
                             <Button type="submit" disabled={isUploading}>
                                 {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                                 Upload Paper(s)

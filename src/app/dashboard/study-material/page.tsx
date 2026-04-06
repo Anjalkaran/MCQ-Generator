@@ -7,104 +7,17 @@ import { useDashboard } from '@/context/dashboard-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import type { StudyMaterial, Topic, Category } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Document, Page, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/Page/AnnotationLayer.css';
-import 'react-pdf/dist/Page/TextLayer.css';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { ADMIN_EMAILS } from '@/lib/constants';
 
-// Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
-function PdfViewer({ fileUrl, fileName, isAdmin }: { fileUrl: string, fileName: string, isAdmin: boolean }) {
-    const [numPages, setNumPages] = useState<number | null>(null);
-    const [loadError, setLoadError] = useState<boolean>(false);
 
-    // We use a proxy to avoid CORS errors
-    const proxiedUrl = `/api/pdf-proxy?url=${encodeURIComponent(fileUrl)}`;
-
-    function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
-        setNumPages(numPages);
-        setLoadError(false);
-    }
-
-    function onDocumentLoadError(error: Error) {
-        console.error("PDF Load Error:", error);
-        setLoadError(true);
-    }
-
-    return (
-        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden border-none bg-slate-950/95 backdrop-blur-xl">
-            <DialogHeader className="p-6 border-b border-slate-800 bg-slate-900/50">
-                <div className="flex items-center justify-between gap-4">
-                    <div className="space-y-1">
-                        <DialogTitle className="text-xl font-bold text-white leading-tight">
-                            {fileName}
-                        </DialogTitle>
-                        <p className="text-xs text-slate-400 font-medium flex items-center gap-2">
-                             <FileText className="h-3 w-3" /> Exclusive Study Material • Secure Viewer
-                        </p>
-                    </div>
-                </div>
-            </DialogHeader>
-            <div className="flex-grow overflow-hidden relative group">
-                <ScrollArea className="h-full scrollbar-slate">
-                    <div 
-                        className={cn(
-                            "flex flex-col items-center gap-6 p-8 min-h-full",
-                            !isAdmin && "select-none"
-                        )}
-                        onContextMenu={(e) => !isAdmin && e.preventDefault()} // Disable right-click for non-admins
-                    >
-                        <Document
-                            file={proxiedUrl}
-                            onLoadSuccess={onDocumentLoadSuccess}
-                            onLoadError={onDocumentLoadError}
-                            className="flex flex-col items-center gap-8"
-                            loading={
-                                <div className="flex flex-col items-center justify-center p-20 text-slate-400">
-                                    <Loader2 className="h-10 w-10 animate-spin mb-4 text-primary" />
-                                    <p className="text-sm font-medium animate-pulse">Decrypting and loading material...</p>
-                                </div>
-                            }
-                            error={
-                                <div className="flex flex-col items-center justify-center p-20 text-center">
-                                    <div className="h-16 w-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
-                                        <FileText className="h-8 w-8 text-red-500" />
-                                    </div>
-                                    <p className="text-white font-bold text-lg mb-2">Secure Load Failed</p>
-                                    <p className="text-sm text-slate-400 max-w-xs">
-                                        We couldn't initialize the secure viewer for this document. Please try again later.
-                                    </p>
-                                </div>
-                            }
-                        >
-                            {Array.from(new Array(numPages), (el, index) => (
-                                <Page 
-                                    key={`page_${index + 1}`} 
-                                    pageNumber={index + 1} 
-                                    renderTextLayer={true} 
-                                    renderAnnotationLayer={true}
-                                    className="shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] rounded-sm overflow-hidden bg-white"
-                                    width={Math.min(typeof window !== 'undefined' ? window.innerWidth * 0.9 : 800, 850)}
-                                />
-                            ))}
-                        </Document>
-                    </div>
-                </ScrollArea>
-                
-                {/* Visual Security Overlay */}
-                <div className="absolute inset-0 pointer-events-none border-[12px] border-slate-900/10 z-50 rounded-lg" />
-            </div>
-        </DialogContent>
-    );
-}
 
 function MaterialCard({ material, topic }: { material: StudyMaterial, topic?: Topic }) {
     const isHtml = material.fileType === 'docx' || (material.content && material.content.startsWith('<'));
@@ -161,61 +74,11 @@ function MaterialCard({ material, topic }: { material: StudyMaterial, topic?: To
     );
 }
 
-function HtmlReader({ content, fileName, isAdmin }: { content: string, fileName: string, isAdmin: boolean }) {
-    const [progress, setProgress] = useState(0);
 
-    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-        const target = e.currentTarget;
-        const totalHeight = target.scrollHeight - target.clientHeight;
-        const currentPosition = target.scrollTop;
-        const scrollPercent = (currentPosition / totalHeight) * 100;
-        setProgress(scrollPercent);
-    };
-
-    return (
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden border-none bg-white">
-            <div className="absolute top-0 left-0 w-full h-1 bg-slate-100 z-50">
-                <div 
-                    className="h-full bg-emerald-500 transition-all duration-150 ease-out" 
-                    style={{ width: `${progress}%` }}
-                />
-            </div>
-
-            <DialogHeader className="p-6 border-b bg-slate-50/50">
-                <div className="flex items-center justify-between gap-4">
-                    <div className="space-y-1">
-                        <DialogTitle className="text-2xl font-black text-slate-900 leading-tight">
-                            {fileName}
-                        </DialogTitle>
-                        <div className="flex items-center gap-3">
-                            <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 border-none font-bold text-[10px]">PREMIUM ARTICLE</Badge>
-                            <p className="text-xs text-slate-400 font-medium flex items-center gap-2">
-                                <BookOpen className="h-3 w-3" /> Enhanced Reading Mode • {Math.round(progress)}% read
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </DialogHeader>
-
-            <ScrollArea className="flex-grow p-8 sm:p-12" onScrollCapture={handleScroll}>
-                <div 
-                    className="max-w-2xl mx-auto prose prose-slate prose-headings:font-black prose-headings:text-slate-900 prose-p:text-slate-600 prose-p:leading-relaxed prose-strong:text-slate-900 prose-img:rounded-3xl prose-img:shadow-2xl"
-                    dangerouslySetInnerHTML={{ __html: content }}
-                />
-                <div className="max-w-2xl mx-auto mt-20 pt-10 border-t border-slate-100 text-center pb-20">
-                    <div className="h-12 w-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <GraduationCap className="h-6 w-6" />
-                    </div>
-                    <h4 className="font-bold text-slate-900 italic">"Success is the sum of small efforts, repeated day in and day out."</h4>
-                    <p className="text-xs text-slate-400 mt-2 uppercase tracking-widest font-bold">End of Chapter</p>
-                </div>
-            </ScrollArea>
-        </DialogContent>
-    );
-}
 
 function StudyMaterialContent({ studyMaterials, topics, categories, isLoading, userData, isAdmin }: any) {
     const searchParams = useSearchParams();
+    const router = useRouter();
     const topicIdParam = searchParams.get('topicId');
     
     const [searchTerm, setSearchTerm] = useState('');
@@ -367,18 +230,13 @@ function StudyMaterialContent({ studyMaterials, topics, categories, isLoading, u
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                                     {materials.map(({ material, topic }: any) => (
-                                        <Dialog key={material.id}>
-                                            <DialogTrigger asChild>
-                                                <button className="text-left w-full outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl">
-                                                    <MaterialCard material={material} topic={topic} />
-                                                </button>
-                                            </DialogTrigger>
-                                            {material.fileType === 'docx' || (material.content && material.content.startsWith('<')) ? (
-                                                <HtmlReader content={material.content} fileName={material.fileName} isAdmin={!!isAdmin} />
-                                            ) : (
-                                                <PdfViewer fileUrl={material.content} fileName={material.fileName} isAdmin={!!isAdmin} />
-                                            )}
-                                        </Dialog>
+                                        <button 
+                                            key={material.id}
+                                            onClick={() => router.push(`/dashboard/read-material/${material.id}`)}
+                                            className="text-left w-full outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl"
+                                        >
+                                            <MaterialCard material={material} topic={topic} />
+                                        </button>
                                     ))}
                                 </div>
                             </section>
@@ -399,18 +257,13 @@ function StudyMaterialContent({ studyMaterials, topics, categories, isLoading, u
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                                     {materials.map(({ material, topic }: any) => (
-                                        <Dialog key={material.id}>
-                                            <DialogTrigger asChild>
-                                                <button className="text-left w-full outline-none">
-                                                    <MaterialCard material={material} topic={topic} />
-                                                </button>
-                                            </DialogTrigger>
-                                            {material.fileType === 'docx' || (material.content && material.content.startsWith('<')) ? (
-                                                <HtmlReader content={material.content} fileName={material.fileName} isAdmin={!!isAdmin} />
-                                            ) : (
-                                                <PdfViewer fileUrl={material.content} fileName={material.fileName} isAdmin={!!isAdmin} />
-                                            )}
-                                        </Dialog>
+                                        <button 
+                                            key={material.id}
+                                            onClick={() => router.push(`/dashboard/read-material/${material.id}`)}
+                                            className="text-left w-full outline-none"
+                                        >
+                                            <MaterialCard material={material} topic={topic} />
+                                        </button>
                                     ))}
                                 </div>
                             </section>
@@ -422,18 +275,13 @@ function StudyMaterialContent({ studyMaterials, topics, categories, isLoading, u
                     {processedData.all.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                             {processedData.all.map(({ material, topic }: any) => (
-                                <Dialog key={material.id}>
-                                    <DialogTrigger asChild>
-                                        <button className="text-left w-full outline-none">
-                                            <MaterialCard material={material} topic={topic} />
-                                        </button>
-                                    </DialogTrigger>
-                                    {material.fileType === 'docx' || (material.content && material.content.startsWith('<')) ? (
-                                        <HtmlReader content={material.content} fileName={material.fileName} isAdmin={!!isAdmin} />
-                                    ) : (
-                                        <PdfViewer fileUrl={material.content} fileName={material.fileName} isAdmin={!!isAdmin} />
-                                    )}
-                                </Dialog>
+                                <button 
+                                    key={material.id}
+                                    onClick={() => router.push(`/dashboard/read-material/${material.id}`)}
+                                    className="text-left w-full outline-none"
+                                >
+                                    <MaterialCard material={material} topic={topic} />
+                                </button>
                             ))}
                         </div>
                     ) : <EmptyState searchTerm={searchTerm} />}

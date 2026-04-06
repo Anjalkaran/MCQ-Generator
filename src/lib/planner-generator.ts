@@ -29,9 +29,10 @@ export const DEFAULT_DURATIONS: Record<string, { fast: number; standard: number;
 export function generatePlanner(
   uid: string, 
   examCategory: UserData['examCategory'],
-  planType: 'Fast Track' | 'Standard Preparation' | 'Comprehensive Mastery'
+  planType: 'Fast Track' | 'Standard Preparation' | 'Comprehensive Mastery',
+  dynamicBlueprints?: Record<string, any>
 ): UserPlanner {
-  const blueprint = BLUEPRINTS[examCategory];
+  const blueprint = (dynamicBlueprints && dynamicBlueprints[examCategory]) || BLUEPRINTS[examCategory];
   const durations = DEFAULT_DURATIONS[examCategory];
   
   let durationDays = durations.standard;

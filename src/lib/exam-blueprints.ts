@@ -180,89 +180,27 @@ export const PA_BLUEPRINT = {
   totalDurationMinutes: 120,
   parts: [
     {
-      partName: 'Part-A: Postal Knowledge',
-      totalQuestions: 50,
+      partName: 'Paper-I: Postal Knowledge and General Awareness',
+      totalQuestions: 100,
       sections: [
         {
-          sectionName: 'Post Office Guide Part I',
-          topics: [{ id: 'PA-PA-S1-T1', name: 'Post Office Guide Part I', questions: 10 }],
-        },
-        {
-          sectionName: 'Post Office Guide Part II',
-          topics: [{ id: 'PA-PA-S2-T1', name: 'Post Office Guide Part II', questions: 10 }],
-        },
-        {
-          sectionName: 'Basic terminologies related to IT Modernisation',
-          topics: [{ id: 'PA-PA-S3-T1', name: 'Basic terminologies related to IT Modernisation', questions: 10 }],
-        },
-        {
-          sectionName: 'Products and Services',
-          randomFrom: {
-            questions: 10,
-            topics: [
-              'Mails',
-              'Banking & Remittances',
-              'Insurance',
-              'Stamps and Business',
-            ],
-          },
-        },
-        {
-          sectionName: 'Postal Manuals',
-          randomFrom: {
-            questions: 5,
-            topics: [
-              'Postal Manual Volume VI Part I',
-              'Postal Manual Volume VI Part III (Chapter I and II)',
-              'Unlimited SO orders issued by Directorate',
-            ],
-          },
-        },
-        {
-          sectionName: 'Manuals (Specific)',
-          randomFrom: {
-            questions: 5,
-            topics: [
-              'Postal Manual Volume VII',
-              'Foreign Post Manual',
-            ],
-          },
-        },
-      ],
-    },
-    {
-      partName: 'Part-B: General Knowledge, Arithmetic, and Reasoning',
-      totalQuestions: 50,
-      sections: [
-        {
-          sectionName: 'General Awareness / Knowledge',
+          sectionName: 'Part-A: Postal Knowledge (50 Questions)',
           topics: [
-            { id: 'PA-PB-S1-T1', name: 'Indian Geography', questions: 2 },
-            { id: 'PA-PB-S1-T2', name: 'Civics', questions: 2 },
-            { id: 'PA-PB-S1-T3', name: 'General Knowledge', questions: 2 },
-            { id: 'PA-PB-S1-T4', name: 'Indian Culture & Freedom Struggle', questions: 2 },
-            { id: 'PA-PB-S1-T5', name: 'Ethics and Morale Study', questions: 2 },
+            { id: 'PA-P1-SA-T1', name: 'Post Office Guide Part I', questions: 10, subTopics: ['Except Telegraphic Money Order'] },
+            { id: 'PA-P1-SA-T2', name: 'Post Office Guide Part II', questions: 10, subTopics: ['Except British and Irish Postal Order'] },
+            { id: 'PA-P1-SA-T3', name: 'IT Modernisation project terms of Dept. of Posts', questions: 10, subTopics: ['Basic terminologies related to IT Modernisation project of Department of Posts'] },
+            { id: 'PA-P1-SA-T4', name: 'Products and Services', questions: 10, subTopics: ['Mails', 'Banking & Remittances', 'Insurance', 'Stamps and Business', 'India Post Website references'] },
+            { id: 'PA-P1-SA-T5', name: 'Postal Manual VI Part I & III, SO Orders', questions: 5, subTopics: ['Postal Manual Volume VI Part I', 'Postal Manual Volume VI Part III (Chapter I & II)', 'Unlimited SO orders issued by Directorate'] },
+            { id: 'PA-P1-SA-T6', name: 'Postal Manual VII & Foreign Post Manual', questions: 5, subTopics: ['Postal Manual Volume VII', 'Foreign Post Manual'] },
           ],
         },
         {
-          sectionName: 'Basic Arithmetic',
-          randomFrom: {
-            questions: 20,
-            topics: [
-              'BODMAS',
-              'Percentage',
-              'Profit and loss',
-              'Simple interest',
-              'Average',
-              'Time and work',
-              'Time and distance',
-              'Unitary Method',
-            ],
-          },
-        },
-        {
-          sectionName: 'Reasoning and Analytical Ability',
-          topics: [{ id: 'PA-PB-S3-T1', name: 'Non-Verbal / Pictorial Reasoning', questions: 20 }],
+          sectionName: 'Part-B: General Knowledge, Arithmetic, and Reasoning (50 Questions)',
+          topics: [
+            { id: 'PA-P1-SB-T1', name: 'General Awareness / Knowledge', questions: 10, subTopics: ['Indian Geography', 'Civics', 'General Politics', 'Indian Culture & Freedom Struggle', 'Ethics and Morals'] },
+            { id: 'PA-P1-SB-T2', name: 'Basic Arithmetic', questions: 20, subTopics: ['BODMAS', 'Percentage', 'Profit and Loss', 'Simple Interest', 'Average', 'Time and Work', 'Time and Distance', 'Unitary Method'] },
+            { id: 'PA-P1-SB-T3', name: 'Reasoning and Analytical Ability', questions: 20, subTopics: ['Non-Verbal / Pictorial Reasoning'] },
+          ],
         },
       ],
     },

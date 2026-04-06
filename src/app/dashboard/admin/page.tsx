@@ -219,52 +219,118 @@ export default function AdminPage() {
   const [syllabusMCQs, setSyllabusMCQs] = useState<TopicMCQ[]>([]);
   const [syllabusMaterials, setSyllabusMaterials] = useState<StudyMaterial[]>([]);
 
-  const fetchAdminData = useCallback(async () => {
+  const fetchedSections = React.useRef(new Set<AdminSection>());
+
+  const fetchSectionData = useCallback(async (section: AdminSection) => {
     if (!userData || !ADMIN_EMAILS.includes(userData.email)) return;
+    if (fetchedSections.current.has(section)) return; // Prevents double fetching
     
     setIsLoadingAdminData(true);
     try {
-      const [
-          fetchedUsers, fetchedCategories, fetchedTopics, fetchedMaterials, 
-          fetchedVideos, fetchedMCQs, fetchedBank, fetchedReasoning, 
-          fetchedScheduled, fetchedWeekly, fetchedDaily, fetchedFeedback, fetchedQnA, fetchedSyllabi,
-          fetchedSyllabusMCQs, fetchedSyllabusMaterials
-      ] = await Promise.all([
-          getAllUsers(), getCategories(), getTopics(), getStudyMaterials(),
-          getVideoClasses(), getTopicMCQs(), getQuestionBankDocuments(), getReasoningQuestions(),
-          getLiveTests(true), getWeeklyTests(), getDailyTests(), getAllFeedback(), getQnAUsage(), getSyllabi(),
-          getSyllabusMCQs(), getSyllabusMaterials()
-      ]);
-      
-      const regularUsers = fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email));
-      setUsers(regularUsers);
-      setCategories(fetchedCategories);
-      setTopics(fetchedTopics);
-      setStudyMaterials(fetchedMaterials);
-      setVideoClasses(fetchedVideos);
-      setTopicMCQs(fetchedMCQs);
-      setBankedQuestions(fetchedBank);
-      setReasoningQuestions(fetchedReasoning);
-      setScheduledTests(fetchedScheduled);
-      setWeeklyTests(fetchedWeekly);
-      setDailyTests(fetchedDaily);
-      setFeedback(fetchedFeedback);
-      setQnaUsage(fetchedQnA);
-      setSyllabi(fetchedSyllabi);
-      setSyllabusMCQs(fetchedSyllabusMCQs);
-      setSyllabusMaterials(fetchedSyllabusMaterials);
-
+      switch(section) {
+        case 'users':
+          const fetchedUsers = await getAllUsers();
+          setUsers(fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email)));
+          break;
+        case 'topics':
+          const [fetchedCategories, fetchedTopics] = await Promise.all([getCategories(), getTopics()]);
+          setCategories(fetchedCategories);
+          setTopics(fetchedTopics);
+          break;
+        case 'study-material':
+          const mats = await getStudyMaterials();
+          setStudyMaterials(mats);
+          break;
+        case 'video-classes':
+          const vids = await getVideoClasses();
+          setVideoClasses(vids);
+          break;
+        case 'topic-mcq':
+          const tMcqs = await getTopicMCQs();
+          setTopicMCQs(tMcqs);
+          break;
+        case 'question-bank':
+          const bank = await getQuestionBankDocuments();
+          setBankedQuestions(bank);
+          break;
+        case 'reasoning-bank':
+          const rBank = await getReasoningQuestions();
+          setReasoningQuestions(rBank);
+          break;
+        case 'scheduled-tests':
+          const tests = await getLiveTests(true);
+          setScheduledTests(tests);
+          break;
+        case 'weekly-tests':
+          const wTests = await getWeeklyTests();
+          setWeeklyTests(wTests);
+          break;
+        case 'daily-tests':
+          const dTests = await getDailyTests();
+          setDailyTests(dTests);
+          break;
+        case 'feedback':
+          const feed = await getAllFeedback();
+          setFeedback(feed);
+          break;
+        case 'analytics':
+          const usage = await getQnAUsage();
+          setQnaUsage(usage);
+          break;
+        case 'syllabi':
+          const sys = await getSyllabi();
+          setSyllabi(sys);
+          break;
+        case 'syllabus-points':
+          const [sm, sq] = await Promise.all([getSyllabusMaterials(), getSyllabusMCQs()]);
+          setSyllabusMaterials(sm);
+          setSyllabusMCQs(sq);
+          break;
+      }
+      fetchedSections.current.add(section);
     } catch (error) {
-      console.error("Failed to fetch admin data:", error);
-      toast({ title: "Error", description: "Could not fetch admin data.", variant: "destructive" });
+      console.error(`Failed to fetch data for ${section}:`, error);
+      toast({ title: "Error", description: `Could not fetch ${section} data.`, variant: "destructive" });
     } finally {
       setIsLoadingAdminData(false);
     }
   }, [userData, toast]);
 
   useEffect(() => {
-    fetchAdminData();
-  }, [fetchAdminData]);
+    // Initial fetch for overview/defaults
+    const initAdmin = async () => {
+      if (!userData || !ADMIN_EMAILS.includes(userData.email)) return;
+      setIsLoadingAdminData(true);
+      try {
+        // Fetch core metrics for Overview cards
+        const [fetchedUsers, fetchedTopics, fetchedBank] = await Promise.all([
+          getAllUsers(),
+          getTopics(),
+          getQuestionBankDocuments()
+        ]);
+        
+        setUsers(fetchedUsers.filter(u => !ADMIN_EMAILS.includes(u.email)));
+        setTopics(fetchedTopics);
+        setBankedQuestions(fetchedBank);
+        
+        // Mark as fetched so tabs don't re-fetch
+        fetchedSections.current.add('users');
+        fetchedSections.current.add('topics');
+        fetchedSections.current.add('question-bank');
+      } catch (e) {
+        console.error("Overview stats fetch failed:", e);
+      } finally {
+        setIsLoadingAdminData(false);
+      }
+    };
+    initAdmin();
+  }, [userData]);
+
+  useEffect(() => {
+    if (activeSection !== 'overview') {
+       fetchSectionData(activeSection);
+    }
+  }, [activeSection, fetchSectionData]);
 
   useEffect(() => {
     const handleSwitchSection = (e: CustomEvent<{ section: AdminSection; topicId?: string }>) => {
@@ -293,7 +359,7 @@ export default function AdminPage() {
         isLoadingAdminData={isLoadingAdminData}
         activeSection={activeSection}
         setActiveSection={setActiveSection}
-        fetchAdminData={fetchAdminData}
+        fetchAdminData={() => fetchSectionData(activeSection)}
         users={users}
         categories={categories}
         topics={topics}

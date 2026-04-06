@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Loader2, Upload, Eye, Trash2, Edit, FileJson, Search, FileText } from 'lucide-react';
 import { deleteQuestionBankDocument, updateQuestionBankDocument } from '@/lib/firestore';
 import { MCQStructuredEditor } from './mcq-structured-editor';
@@ -34,18 +36,19 @@ const questionBankSchema = z.object({
     required_error: 'You must select an exam category.',
   }),
   examYear: z.string().min(4, 'Please enter a valid year (e.g. 2024)').max(4, 'Year must be 4 digits'),
+  method: z.enum(['file', 'paste']),
   files: z
     .array(z.instanceof(File))
-
-    .min(1, 'Please upload at least one file.')
-    .refine(
-        (files) => files.every((file) => file.size <= 5 * 1024 * 1024),
-        `File size must be less than 5MB.`
-    )
-    .refine(
-        (files) => files.every((file) => file.type === 'application/json'),
-        'All uploaded files must be in JSON format.'
-    ),
+    .optional(),
+  pastedJson: z.string().optional(),
+}).refine((data) => {
+  if (data.method === 'file') {
+    return data.files && data.files.length > 0;
+  }
+  return data.pastedJson && data.pastedJson.trim().length > 0;
+}, {
+  message: "Please provide either a JSON file or paste valid JSON content.",
+  path: ["files"],
 });
 
 interface QuestionBankManagementProps {
@@ -66,11 +69,14 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
   const form = useForm<z.infer<typeof questionBankSchema>>({
     resolver: zodResolver(questionBankSchema),
     defaultValues: {
-        examCategory: undefined,
         examYear: new Date().getFullYear().toString(),
+        method: 'file',
         files: [],
+        pastedJson: ''
     }
   });
+
+  const uploadMethod = form.watch('method');
 
   const filteredQuestions = useMemo(() => {
     if (!searchTerm) {
@@ -90,9 +96,23 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
     const formData = new FormData();
     formData.append('examCategory', values.examCategory);
     formData.append('examYear', values.examYear);
-    values.files.forEach(file => {
-        formData.append('files', file);
-    })
+    
+    if (values.method === 'file' && values.files) {
+        values.files.forEach(file => {
+            formData.append('files', file);
+        });
+    } else if (values.method === 'paste' && values.pastedJson) {
+        try {
+            // Validate JSON before sending
+            JSON.parse(values.pastedJson);
+            const blob = new Blob([values.pastedJson], { type: 'application/json' });
+            formData.append('files', blob, `pasted_${values.examCategory}_${values.examYear}.json`);
+        } catch (e) {
+            toast({ title: 'Invalid JSON', description: 'The pasted content is not valid JSON.', variant: 'destructive'});
+            setIsUploading(false);
+            return;
+        }
+    }
 
     try {
       const auth = getFirebaseAuth();
@@ -296,24 +316,84 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                 </div>
                 <FormField
                 control={form.control}
-                name="files"
-                render={({ field: { onChange, value, ...rest } }) => (
-                    <FormItem>
-                    <FormLabel>Previous Questions Files (.json only)</FormLabel>
-                    <FormControl>
-                        <Input 
-                        type="file" 
-                        accept=".json"
-                        multiple
-                        onChange={(e) => onChange(e.target.files ? Array.from(e.target.files) : [])}
-                        {...rest}
-                        />
-                    </FormControl>
-                    <FormMessage />
+                name="method"
+                render={({ field }) => (
+                    <FormItem className="space-y-3">
+                        <FormLabel>Upload Method</FormLabel>
+                        <FormControl>
+                            <RadioGroup
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                                className="flex flex-row space-x-4"
+                            >
+                                <FormItem className="flex items-center space-x-2 space-y-0">
+                                    <FormControl>
+                                        <RadioGroupItem value="file" />
+                                    </FormControl>
+                                    <FormLabel className="font-normal font-mono">
+                                        Upload File (.json)
+                                    </FormLabel>
+                                </FormItem>
+                                <FormItem className="flex items-center space-x-2 space-y-0">
+                                    <FormControl>
+                                        <RadioGroupItem value="paste" />
+                                    </FormControl>
+                                    <FormLabel className="font-normal font-mono">
+                                        Paste JSON
+                                    </FormLabel>
+                                </FormItem>
+                            </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
                     </FormItem>
                 )}
                 />
-                <JsonFormatGuide type="question-bank" />
+
+                {uploadMethod === 'file' ? (
+                    <FormField
+                    control={form.control}
+                    name="files"
+                    render={({ field: { onChange, value, ...rest } }) => (
+                        <FormItem>
+                        <FormLabel>Previous Questions Files (.json only)</FormLabel>
+                        <FormControl>
+                            <Input 
+                            type="file" 
+                            accept=".json"
+                            multiple
+                            onChange={(e) => onChange(e.target.files ? Array.from(e.target.files) : [])}
+                            {...rest}
+                            />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                ) : (
+                    <div className="space-y-4">
+                        <FormField
+                        control={form.control}
+                        name="pastedJson"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Paste Question Bank JSON Content</FormLabel>
+                                <FormControl>
+                                    <Textarea 
+                                        placeholder="Paste your JSON array of questions here..." 
+                                        className="h-64 font-mono text-xs leading-relaxed"
+                                        {...field}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                    </div>
+                )}
+                
+                <div className="pt-2">
+                    <JsonFormatGuide type="question-bank" />
+                </div>
 
                 <Button type="submit" disabled={isUploading}>
                 {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}

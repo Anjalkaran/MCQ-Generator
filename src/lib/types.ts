@@ -5,11 +5,17 @@ import type { Timestamp } from 'firebase/firestore';
 export interface StudyMaterial {
   id: string;
   topicId: string;
+  topicName?: string;
   fileName: string;
+  fileName_ta?: string; // Tamil localized title
+  fileName_hi?: string; // Hindi localized title
   fileType: string;
-  content: string; // The extracted text content or PDF URL
+  content: string; // The extracted text content or PDF URL (Default/English)
+  content_ta?: string; // Tamil content
+  content_hi?: string; // Hindi content
   uploadedAt: Date;
 }
+
 
 export interface MCQ {
   questionId?: string;
@@ -44,6 +50,7 @@ export interface Topic {
   examCategories: ('MTS' | 'POSTMAN' | 'PA' | 'IP' | 'GROUP B')[];
   source?: 'reasoningBank'; 
   material?: string;
+  topicName?: string; // Add topicName to shared material types
 }
 
 export interface Category {
@@ -126,6 +133,7 @@ export interface BankedQuestion {
 export interface TopicMCQ {
     id: string;
     topicId: string;
+    topicName?: string;
     fileName: string;
     content: string;
     uploadedAt: Date;

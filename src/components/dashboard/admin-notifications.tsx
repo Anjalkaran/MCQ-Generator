@@ -25,9 +25,9 @@ interface AdminNotificationsProps {
 }
 
 export function AdminNotifications({ initialNotifications }: AdminNotificationsProps) {
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const [notifications, setNotifications] = useState(initialNotifications || []);
   
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = (notifications || []).filter(n => !n.isRead).length;
 
   const handleOpenChange = async (open: boolean) => {
     // When the dropdown is closed and there are unread notifications

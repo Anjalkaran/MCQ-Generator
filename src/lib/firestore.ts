@@ -1,5 +1,5 @@
 import { getFirebaseDb, getFirebaseAuth } from './firebase';
-import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, deleteDoc, query, where, writeBatch, getDoc, DocumentReference, updateDoc, setDoc, orderBy, increment, limit, serverTimestamp, Timestamp, arrayUnion, getCountFromServer } from 'firebase/firestore';
 import type { Category, Topic, UserData, MCQHistory, TopicPerformance, BankedQuestion, LeaderboardEntry, QnAUsage, Notification, LiveTest, WeeklyTest, DailyTest, TopicMCQ, ReasoningQuestion, Feedback, VideoClass, StudyMaterial, AptiSolveLaunch, MaterialDownload, MCQData, MCQ, Bookmark, MCQReport, SyllabusBlueprint, UserPlanner, PlannerDay } from './types';
 import { ADMIN_EMAILS, LEADERBOARD_RESET_DATE } from './constants';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT, GROUPB_BLUEPRINT, IP_BLUEPRINT } from './exam-blueprints';
@@ -335,13 +335,18 @@ export const deleteCategory = async (categoryId: string, topicsToDelete: Topic[]
 };
 
 // TOPIC MANAGEMENT
-export const getTopics = async (): Promise<Topic[]> => {
+export const getTopics = async (prefetchedCategories?: Category[]): Promise<Topic[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
     
+    // Use prefetched categories if provided, otherwise fetch them
+    const categoriesPromise = prefetchedCategories 
+        ? Promise.resolve(prefetchedCategories) 
+        : getCategories();
+
     const [topicsCollectionSnapshot, categories] = await Promise.all([
         getDocs(query(collection(db, 'topics'))),
-        getCategories()
+        categoriesPromise
     ]);
     
     const rawTopics = topicsCollectionSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Topic));
@@ -675,16 +680,22 @@ export const updateLiveTestBankDocument = async (docId: string, content: string)
 export const getSyllabusMCQs = async (): Promise<TopicMCQ[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
-    const collectionRef = collection(db, 'syllabusMCQs');
-    const snapshot = await getDocs(query(collectionRef, orderBy('uploadedAt', 'desc')));
-    return snapshot.docs.map(doc => {
-        const data = doc.data();
-        return { 
-            id: doc.id, 
-            ...data, 
-            uploadedAt: normalizeDate(data.uploadedAt) || new Date() 
-        } as TopicMCQ;
-    });
+    try {
+        const collectionRef = collection(db, 'syllabusMCQs');
+        // Simple getDocs to ensure we get even docs without uploadedAt
+        const snapshot = await getDocs(collectionRef);
+        return snapshot.docs.map(doc => {
+            const data = doc.data();
+            return { 
+                id: doc.id, 
+                ...data, 
+                uploadedAt: normalizeDate(data.uploadedAt) || new Date() 
+            } as TopicMCQ;
+        }).sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime());
+    } catch (error) {
+        console.error("Error in getSyllabusMCQs:", error);
+        return [];
+    }
 };
 
 export const addSyllabusMCQ = async (mcq: Omit<TopicMCQ, 'id'>): Promise<DocumentReference> => {
@@ -702,19 +713,30 @@ export const deleteSyllabusMCQ = async (id: string): Promise<void> => {
     await deleteDoc(doc(db, 'syllabusMCQs', id));
 };
 
+export const deleteSyllabusMaterial = async (id: string): Promise<void> => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    await deleteDoc(doc(db, 'syllabusMaterials', id));
+};
+
 export const getSyllabusMaterials = async (): Promise<StudyMaterial[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
-    const collectionRef = collection(db, 'syllabusMaterials');
-    const snapshot = await getDocs(query(collectionRef, orderBy('uploadedAt', 'desc')));
-    return snapshot.docs.map(doc => {
-        const data = doc.data();
-        return { 
-            id: doc.id, 
-            ...data, 
-            uploadedAt: normalizeDate(data.uploadedAt) || new Date() 
-        } as StudyMaterial;
-    });
+    try {
+        const collectionRef = collection(db, 'syllabusMaterials');
+        const snapshot = await getDocs(collectionRef);
+        return snapshot.docs.map(doc => {
+            const data = doc.data();
+            return { 
+                id: doc.id, 
+                ...data, 
+                uploadedAt: normalizeDate(data.uploadedAt) || new Date() 
+            } as StudyMaterial;
+        }).sort((a, b) => (b.uploadedAt?.getTime() || 0) - (a.uploadedAt?.getTime() || 0));
+    } catch (error) {
+        console.error("Error in getSyllabusMaterials:", error);
+        return [];
+    }
 };
 
 export const addSyllabusMaterial = async (material: Omit<StudyMaterial, 'id'>): Promise<DocumentReference> => {
@@ -726,21 +748,10 @@ export const addSyllabusMaterial = async (material: Omit<StudyMaterial, 'id'>): 
     });
 };
 
-export const deleteSyllabusMaterial = async (id: string): Promise<void> => {
-    const db = getFirebaseDb();
-    if (!db) return;
-    await deleteDoc(doc(db, 'syllabusMaterials', id));
-};
 
-export const updateSyllabusMaterial = async (id: string, data: Partial<StudyMaterial>): Promise<void> => {
-    const db = getFirebaseDb();
-    if (!db) return;
-    const materialRef = doc(db, 'syllabusMaterials', id);
-    await updateDoc(materialRef, {
-        ...data,
-        lastModifiedAt: serverTimestamp()
-    });
-};
+
+
+
 
 export const addLiveTest = async (testData: Omit<LiveTest, 'id'>): Promise<DocumentReference> => {
     const db = getFirebaseDb();
@@ -1033,12 +1044,61 @@ export const markNotificationsAsRead = async (notificationIds: string[]): Promis
 };
 
 // TOPIC MCQ MANAGEMENT
-export const getTopicMCQs = async (topicId?: string): Promise<TopicMCQ[]> => {
+export const getTopicMCQs = async (topicId?: string, topicName?: string): Promise<TopicMCQ[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
-    const q = topicId ? query(collection(db, 'topicMCQs'), where('topicId', '==', topicId)) : query(collection(db, 'topicMCQs'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), uploadedAt: normalizeDate(doc.data().uploadedAt) || new Date() } as TopicMCQ));
+    
+    try {
+        const col1 = collection(db, 'topicMCQs');
+        const col2 = collection(db, 'syllabusMCQs');
+        
+        if (topicId || topicName) {
+            const promises = [];
+            
+            if (topicId) {
+                promises.push(getDocs(query(col1, where('topicId', '==', topicId))));
+                promises.push(getDocs(query(col2, where('topicId', '==', topicId))));
+            }
+            
+            if (topicName) {
+                promises.push(getDocs(query(col1, where('topicName', '==', topicName))));
+                promises.push(getDocs(query(col2, where('topicName', '==', topicName))));
+            }
+            
+            const snapshots = await Promise.all(promises);
+            const resultsMap = new Map<string, any>();
+            
+            snapshots.forEach(snap => {
+                snap.docs.forEach(doc => {
+                    resultsMap.set(doc.id, { id: doc.id, ...doc.data() });
+                });
+            });
+            
+            const results = Array.from(resultsMap.values());
+            return results.map(data => ({
+                ...data,
+                uploadedAt: normalizeDate((data as any).uploadedAt) || new Date()
+            } as TopicMCQ)).sort((a,b) => b.uploadedAt.getTime() - a.uploadedAt.getTime());
+        } else {
+            const [snap1, snap2] = await Promise.all([
+                getDocs(query(col1, orderBy('uploadedAt', 'desc'))),
+                getDocs(query(col2, orderBy('uploadedAt', 'desc')))
+            ]);
+            
+            const results = [
+                ...snap1.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+                ...snap2.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+            ];
+            
+            return results.map(data => ({
+                ...data,
+                uploadedAt: normalizeDate((data as any).uploadedAt) || new Date()
+            } as TopicMCQ)).sort((a,b) => b.uploadedAt.getTime() - a.uploadedAt.getTime());
+        }
+    } catch (e) {
+        console.error("Error in getTopicMCQs:", e);
+        return [];
+    }
 };
 
 export const deleteTopicMCQDocument = async (docId: string): Promise<void> => {
@@ -1242,15 +1302,20 @@ export const getDashboardData = async (userId: string) => {
     const isAdmin = ADMIN_EMAILS.includes(userData.email);
     const notificationsPromise = isAdmin ? getAdminNotifications() : Promise.resolve([]);
 
-    const [categories, topics, videoClasses, studyMaterialsLegacy, syllabusMaterials, notifications, weeklyTests, dailyTests] = await Promise.all([
-        getCategories(), 
-        getTopics(), 
+    // 1. Fetch categories first so they can be reused
+    const categories = await getCategories();
+
+    // 2. Fetch other pieces, passing categories to getTopics to avoid double-read
+    const [topics, videoClasses, studyMaterialsLegacy, syllabusMaterials, syllabusMCQs, notifications, weeklyTests, dailyTests, syllabi] = await Promise.all([
+        getTopics(categories), 
         getVideoClasses(), 
         getStudyMaterials(),
         getSyllabusMaterials(),
+        getSyllabusMCQs(),
         notificationsPromise,
         getWeeklyTests(),
-        getDailyTests()
+        getDailyTests(),
+        getSyllabi()
     ]);
 
     // Merge both legacy and new syllabus-style study materials
@@ -1264,9 +1329,11 @@ export const getDashboardData = async (userId: string) => {
         topics, 
         videoClasses, 
         studyMaterials, 
+        syllabusMCQs,
         notifications, 
         weeklyTests,
-        dailyTests
+        dailyTests,
+        syllabi
     };
 };
 
@@ -1459,3 +1526,35 @@ export const deleteUserPlanner = async (uid: string): Promise<void> => {
     const plannerRef = doc(db, 'users', uid, 'studyPlanner', 'current');
     await deleteDoc(plannerRef);
 };
+
+export async function getCollectionCount(collectionName: string) {
+    const db = getFirebaseDb();
+    if (!db) return 0;
+    try {
+        const coll = collection(db, collectionName);
+        const snapshot = await getCountFromServer(coll);
+        return snapshot.data().count;
+    } catch (e) {
+        console.error(`Error getting count for ${collectionName}:`, e);
+        return 0;
+    }
+}
+
+export async function updateSyllabusMaterial(id: string, updates: any, collectionName: 'syllabusMaterials' | 'syllabusMCQs' = 'syllabusMaterials') {
+    const db = getFirebaseDb();
+    if (!db) return;
+    try {
+        const docRef = doc(db, collectionName, id);
+        await updateDoc(docRef, {
+            ...updates,
+            lastModifiedAt: serverTimestamp()
+        });
+    } catch (e) {
+        console.error(`Error updating ${collectionName}:`, e);
+        throw e;
+    }
+}
+
+export async function updateSyllabusMCQ(id: string, updates: any) {
+    return updateSyllabusMaterial(id, updates, 'syllabusMCQs');
+}

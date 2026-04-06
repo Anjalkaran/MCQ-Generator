@@ -10,7 +10,8 @@ import {
   HelpCircle, 
   ChevronRight, 
   Layers,
-  GraduationCap
+  GraduationCap,
+  PlayCircle
 } from 'lucide-react';
 import { 
   MTS_BLUEPRINT, 
@@ -40,37 +41,32 @@ interface SyllabusExplorerProps {
 }
 
 export function SyllabusExplorer({ examCategory, isAdmin }: SyllabusExplorerProps) {
-  const [dynamicBlueprints, setDynamicBlueprints] = React.useState<Record<string, any>>({});
-  const [isLoading, setIsLoading] = React.useState(true);
+  const { topics, studyMaterials, syllabusMCQs, syllabi, isLoading: isDashboardLoading } = useDashboard();
   const [selectedTopic, setSelectedTopic] = React.useState<string | null>(null);
   const [selectedTopicId, setSelectedTopicId] = React.useState<string | null>(null);
-  
-  const { topics, studyMaterials } = useDashboard();
 
-  React.useEffect(() => {
-    async function loadSyllabi() {
-      try {
-        const data = await getSyllabi();
-        const map: Record<string, any> = {};
-        data.forEach(item => {
-          map[item.id] = item;
-        });
-        setDynamicBlueprints(map);
-      } catch (error) {
-        console.error("Failed to load syllabi:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadSyllabi();
-  }, []);
+  const blueprintMap = React.useMemo(() => {
+    const map: Record<string, any> = {
+      'MTS': MTS_BLUEPRINT,
+      'POSTMAN': POSTMAN_BLUEPRINT,
+      'PA': PA_BLUEPRINT,
+      'IP': IP_BLUEPRINT,
+      'GROUP B': GROUPB_BLUEPRINT
+    };
+    
+    // Override with dynamic syllabi from Firestore
+    syllabi.forEach(s => {
+      if (s.id) map[s.id] = s;
+    });
+    
+    return map;
+  }, [syllabi]);
 
-  const blueprint = useMemo(() => {
-    return dynamicBlueprints[examCategory] || blueprintMap[examCategory];
-  }, [examCategory, dynamicBlueprints]);
+  const blueprint = React.useMemo(() => {
+    return blueprintMap[examCategory];
+  }, [examCategory, blueprintMap]);
 
-
-  if (isLoading) {
+  if (isDashboardLoading) {
     return (
       <div className="flex flex-col items-center justify-center p-24 text-center">
         <RefreshCw className="h-12 w-12 text-red-500 animate-spin opacity-20" />
@@ -134,81 +130,121 @@ export function SyllabusExplorer({ examCategory, isAdmin }: SyllabusExplorerProp
           <StaggerItem key={partIdx}>
             <Card className="overflow-hidden border-none shadow-xl bg-white/80 backdrop-blur-sm">
               <CardHeader className="bg-slate-50/50 border-b border-slate-100">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-red-100 flex items-center justify-center text-red-600 shadow-sm">
-                      <Layers className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-2xl text-slate-900">{part.partName}</CardTitle>
-                      <CardDescription>{part.totalQuestions} Questions in this part</CardDescription>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-red-100 flex items-center justify-center text-red-600 shadow-sm shrink-0">
+                        <Layers className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl sm:text-2xl text-slate-900 leading-tight">{part.partName}</CardTitle>
+                        <CardDescription className="text-xs sm:text-sm">{part.totalQuestions} Questions in this part</CardDescription>
+                      </div>
                     </div>
                   </div>
-                </div>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="divide-y divide-slate-100">
                   {part.sections.map((section: any, sectionIdx: number) => (
                     <div key={sectionIdx} className="p-6 transition-colors hover:bg-slate-50/50">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-xs text-white shrink-0">
-                            {sectionIdx + 1}
-                          </span>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-start sm:items-center gap-3">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-xs text-white shrink-0 mt-1 sm:mt-0">
+                          {sectionIdx + 1}
+                        </span>
                         <div className="flex flex-col gap-2">
-                          <h4 className="text-xl font-bold text-slate-800">
+                          <h4 className="text-lg sm:text-xl font-bold text-slate-800 leading-snug">
                             {section.sectionName}
+                            <span className="ml-2 text-red-600 text-lg sm:text-xl font-extrabold drop-shadow-sm">
+                              ({section.topics 
+                                ? section.topics.reduce((sum: number, t: any) => sum + t.questions, 0)
+                                : section.randomFrom?.questions || 0
+                              } Qs)
+                            </span>
                           </h4>
                           
                           {/* Sub-topics cards */}
                           {(section.topics || section.randomFrom?.topics) && (
-                            <div className="mt-4 pl-11 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                              {(section.topics || section.randomFrom?.topics).map((topic: any, idx: number) => (
-                                  <div 
-                                    key={idx} 
-                                    onClick={() => {
-                                        setSelectedTopic(typeof topic === 'string' ? topic : topic.name);
-                                        setSelectedTopicId(typeof topic === 'string' ? null : topic.id);
-                                    }}
-                                    className="group/topic cursor-pointer relative flex flex-col justify-between p-4 rounded-2xl border border-slate-100 bg-white/50 hover:bg-white hover:shadow-xl hover:border-red-200 transition-all duration-500 transform hover:-translate-y-1"
-                                  >
-                                    <div className="flex flex-col gap-3">
-                                      <div className="flex items-start gap-2.5">
-                                        <div className="h-2 w-2 rounded-full bg-red-500 mt-1.5 shrink-0 shadow-[0_0_8px_rgba(239,68,68,0.5)] group-hover/topic:scale-125 transition-transform" />
-                                        <div className="flex flex-col gap-0.5">
-                                          <span className="text-[15px] font-bold text-slate-900 leading-tight">
-                                            {typeof topic === 'string' ? topic : topic.name}
-                                          </span>
-                                          <span className="text-[10px] text-red-500 font-bold opacity-0 group-hover/topic:opacity-100 transition-opacity uppercase">
-                                            CLICK TO START LEARNING
-                                          </span>
-                                        </div>
-                                      </div>
+                            <div className="mt-4 pl-0 sm:pl-11 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                  {(section.topics || section.randomFrom?.topics || []).map((topic: any, tIdx: number) => {
+                                      const topicObj = typeof topic === 'string' 
+                                        ? { id: `${examCategory}-${partIdx}-${sectionIdx}-${tIdx}`, name: topic } 
+                                        : { ...topic, id: topic.id || `${examCategory}-${partIdx}-${sectionIdx}-${tIdx}` };
                                       
-                                      {/* Sub-topics list */}
-                                      {typeof topic !== 'string' && topic.subTopics && topic.subTopics.length > 0 && (
-                                        <div className="ml-4 space-y-1.5 border-l-2 border-red-50 pl-3">
-                                          {topic.subTopics.map((sub: string, sIdx: number) => (
-                                            <div key={sIdx} className="flex items-start gap-2 text-slate-500 group/sub">
-                                              <ChevronRight className="h-3 w-3 mt-0.5 text-red-300 shrink-0" />
-                                              <span className="text-[11px] font-medium leading-normal">{sub}</span>
+                                      const targetId = topicObj.id?.trim();
+                                      const targetName = topicObj.name?.trim().toLowerCase();
+
+                                      const topicMCQs = syllabusMCQs.filter(m => {
+                                        const mId = m.topicId?.trim();
+                                        const mName = m.topicName?.trim().toLowerCase();
+                                        return (targetId && mId === targetId) || (targetName && mName === targetName);
+                                      });
+
+                                      const topicMaterials = studyMaterials.filter(m => {
+                                        const mId = m.topicId?.trim();
+                                        const mName = m.topicName?.trim().toLowerCase();
+                                        return (targetId && mId === targetId) || (targetName && mName === targetName);
+                                      });
+
+                                      const mcqCount = topicMCQs.length;
+                                      const materialCount = topicMaterials.length;
+
+                                      return (
+                                        <div 
+                                          key={tIdx} 
+                                          onClick={() => {
+                                              setSelectedTopic(topicObj.name);
+                                              setSelectedTopicId(topicObj.id);
+                                          }}
+                                          className="group/topic cursor-pointer relative flex flex-col justify-between p-4 rounded-2xl border border-slate-100 bg-white/50 hover:bg-white hover:shadow-xl hover:border-red-200 transition-all duration-500 transform hover:-translate-y-1"
+                                        >
+                                          <div className="flex flex-col gap-3">
+                                            <div className="flex items-start gap-2.5">
+                                              <div className="h-2 w-2 rounded-full bg-red-500 mt-1.5 shrink-0 shadow-[0_0_8px_rgba(239,68,68,0.5)] group-hover/topic:scale-125 transition-transform" />
+                                              <div className="flex flex-col gap-0.5">
+                                                <span className="text-[15px] font-bold text-slate-900 leading-tight">
+                                                  {topicObj.name}
+                                                </span>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                  {mcqCount > 0 && (
+                                                    <span className="flex items-center gap-1 text-[9px] font-black bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-md uppercase tracking-tighter shadow-sm border border-blue-100/50">
+                                                      <PlayCircle className="h-2.5 w-2.5" />
+                                                      {mcqCount} Tests
+                                                    </span>
+                                                  )}
+                                                  {materialCount > 0 && (
+                                                    <span className="flex items-center gap-1 text-[9px] font-black bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-md uppercase tracking-tighter shadow-sm border border-emerald-100/50">
+                                                      <FileText className="h-2.5 w-2.5" />
+                                                      {materialCount} Study
+                                                    </span>
+                                                  )}
+                                                  {!mcqCount && !materialCount && (
+                                                    <span className="text-[10px] text-red-500 font-bold opacity-0 group-hover/topic:opacity-100 transition-opacity uppercase">
+                                                      CLICK TO EXPLORE
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              </div>
                                             </div>
-                                          ))}
+                                            
+                                            {/* Sub-topics list */}
+                                            {topicObj.subTopics && topicObj.subTopics.length > 0 && (
+                                              <div className="ml-4 space-y-1.5 border-l-2 border-red-50 pl-3">
+                                                {topicObj.subTopics.map((sub: string, sIdx: number) => (
+                                                  <div key={sIdx} className="flex items-start gap-2 text-slate-500 group/sub">
+                                                    <ChevronRight className="h-3 w-3 mt-0.5 text-red-300 shrink-0" />
+                                                    <span className="text-[11px] font-medium leading-normal">{sub}</span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            )}
+                                          </div>
                                         </div>
-                                      )}
-                                    </div>
-                                  </div>
-                              ))}
+                                      );
+                                  })}
                             </div>
                           )}
                         </div>
                       </div>
-                      <Badge className="bg-red-50 text-red-600 border-none text-lg px-4 py-2 rounded-xl font-bold">
-                        {section.topics 
-                          ? section.topics.reduce((sum: number, t: any) => sum + t.questions, 0)
-                          : section.randomFrom?.questions || 0
-                        } Questions
-                      </Badge>
                     </div>
                   </div>
                 ))}
@@ -228,7 +264,6 @@ export function SyllabusExplorer({ examCategory, isAdmin }: SyllabusExplorerProp
         topicId={selectedTopicId || undefined}
         topicName={selectedTopic || ''}
         examCategory={examCategory}
-        isAdmin={isAdmin}
       />
     </div>
   );

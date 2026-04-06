@@ -11,7 +11,22 @@ import { ADMIN_EMAILS } from '@/lib/constants';
 function SyllabusContent({ userData, isAdmin }: { userData: any; isAdmin: boolean }) {
   const searchParams = useSearchParams();
   const queryCategory = searchParams.get('category');
-  const examCategory = queryCategory || userData?.examCategory || 'MTS';
+  let examCategory = queryCategory || userData?.examCategory || 'MTS';
+
+  // Protection logic: Ensure users can only view syllabi for their group
+  const subCat = userData?.examCategory || 'MTS';
+  const isProfessionalGroup = subCat === 'IP' || subCat === 'GROUP B';
+  const isGeneralGroup = subCat === 'MTS' || subCat === 'POSTMAN' || subCat === 'PA';
+  
+  const isTargetProfessional = examCategory === 'IP' || examCategory === 'GROUP B';
+  const isTargetGeneral = examCategory === 'MTS' || examCategory === 'POSTMAN' || examCategory === 'PA';
+
+  const isAllowed = isAdmin || (isProfessionalGroup && isTargetProfessional) || (isGeneralGroup && isTargetGeneral);
+
+  if (!isAllowed) {
+    // If not allowed, fallback to their authorized default category
+    examCategory = subCat;
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">

@@ -28,6 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { JsonFormatGuide } from './json-format-guide';
 import { cn } from '@/lib/utils';
 
 const categoriesList = ["MTS", "POSTMAN", "PA", "IP", "GROUP B"] as const;
@@ -474,17 +475,22 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                     )}
                                 />
                             ) : (
-                                <FormField
-                                    control={form.control}
-                                    name="pastedJson"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Paste JSON Content</FormLabel>
-                                            <FormControl><Textarea rows={8} placeholder='{ "questions": [ ... ] }' className="font-mono text-xs" {...field} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                                <>
+                                    <FormField
+                                        control={form.control}
+                                        name="pastedJson"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Paste JSON Content</FormLabel>
+                                                <FormControl><Textarea rows={8} placeholder='{ "questions": [ ... ] }' className="font-mono text-xs" {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <div className="pt-2 pb-4">
+                                        <JsonFormatGuide type="weekly-test" />
+                                    </div>
+                                </>
                             )}
 
                             <FormField
@@ -667,7 +673,8 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                         <Button 
                             variant="outline" 
                             onClick={() => {
-                                const blob = new Blob([managingTest?.content || '{}'], { type: 'application/json' });
+                                const content = JSON.stringify({ questions: testQuestions }, null, 2);
+                                const blob = new Blob([content], { type: 'application/json' });
                                 const url = URL.createObjectURL(blob);
                                 const link = document.createElement('a');
                                 link.href = url;

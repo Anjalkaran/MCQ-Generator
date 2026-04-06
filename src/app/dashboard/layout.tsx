@@ -119,14 +119,24 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       const lastSeen = localStorage.getItem('lastSeenUpdateTimestamp');
       const lastSeenDate = lastSeen ? new Date(parseInt(lastSeen, 10)) : new Date(0);
       
-      const mostRecent = [...videoClasses, ...studyMaterials].reduce((latest, item) => { 
+      const videos = videoClasses || [];
+      const materials = studyMaterials || [];
+      
+      const mostRecent = [...videos, ...materials].reduce((latest, item) => { 
+        if (!item || !item.uploadedAt) return latest;
         const d = normalizeDate(item.uploadedAt); 
         return d && d > latest ? d : latest; 
       }, new Date(0));
       
       if (mostRecent > lastSeenDate) {
-        const nv = videoClasses.filter(v => normalizeDate(v.uploadedAt)! > lastSeenDate);
-        const nm = studyMaterials.filter(m => normalizeDate(m.uploadedAt)! > lastSeenDate);
+        const nv = videos.filter(v => {
+          const d = normalizeDate(v.uploadedAt);
+          return d && d > lastSeenDate;
+        });
+        const nm = materials.filter(m => {
+          const d = normalizeDate(m.uploadedAt);
+          return d && d > lastSeenDate;
+        });
         if (nv.length > 0 || nm.length > 0) { 
           setNewContent({ videos: nv, materials: nm }); 
           setShowNewContentPopup(true); 
@@ -134,7 +144,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       }
       
       // Logic for mandatory profile update
-      const isAdmin = ADMIN_EMAILS.includes(userData.email);
+      const isAdmin = userData.email ? ADMIN_EMAILS.includes(userData.email) : false;
       if (!isAdmin && (!userData.employeeId || userData.employeeId.length !== 8 || !userData.phone)) {
         setProfileUpdateDefaults({ employeeId: userData.employeeId || '', mobileNumber: userData.phone || '' });
         setShowProfileUpdateModal(true);

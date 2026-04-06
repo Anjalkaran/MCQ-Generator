@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface JsonFormatGuideProps {
-  type: 'question-bank' | 'topic-mcq';
+  type: 'question-bank' | 'topic-mcq' | 'weekly-test' | 'daily-test' | 'live-test';
   className?: string;
 }
 
@@ -17,36 +17,29 @@ const QUESTION_BANK_SAMPLE = JSON.stringify([
     "options": ["Article 12", "Article 14", "Article 19", "Article 21"],
     "correctAnswer": "Article 14",
     "explanation": "Article 14 guarantees equality before the law and equal protection of the laws within the territory of India."
-  },
-  {
-    "question": "The Headquarters of India Post is located in?",
-    "options": ["Mumbai", "Kolkata", "New Delhi", "Chennai"],
-    "correctAnswer": "New Delhi",
-    "explanation": "India Post headquarters (Department of Posts) is located at Dak Bhavan, New Delhi."
   }
 ], null, 2);
 
-const TOPIC_MCQ_SAMPLE = JSON.stringify([
-  {
-    "question": "What does 'HO' stand for in India Post?",
-    "options": ["Head Office", "Home Office", "High Office", "Holding Office"],
-    "correctAnswer": "Head Office",
-    "explanation": "HO stands for Head Office, the main postal office in a postal division."
-  },
-  {
-    "question": "The speed post service was introduced in India in which year?",
-    "options": ["1984", "1986", "1988", "1990"],
-    "correctAnswer": "1986",
-    "explanation": "Speed Post service was introduced in India in 1986 for guaranteed time-bound delivery."
-  }
-], null, 2);
+const WEEKLY_TEST_SAMPLE = JSON.stringify({
+  "questions": [
+    {
+      "question": "Example Question for Test",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctAnswer": "Option A",
+      "explanation": "Optional explanation text."
+    }
+  ]
+}, null, 2);
+
+const TOPIC_MCQ_SAMPLE = QUESTION_BANK_SAMPLE; // They use same array format
 
 export function JsonFormatGuide({ type, className }: JsonFormatGuideProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const sample = type === 'question-bank' ? QUESTION_BANK_SAMPLE : TOPIC_MCQ_SAMPLE;
-  const label = type === 'question-bank' ? 'Question Bank' : 'Topic MCQ';
+  const isTest = type === 'weekly-test' || type === 'daily-test' || type === 'live-test';
+  const sample = isTest ? WEEKLY_TEST_SAMPLE : (type === 'question-bank' ? QUESTION_BANK_SAMPLE : TOPIC_MCQ_SAMPLE);
+  const label = type.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 
   const handleCopy = () => {
     navigator.clipboard.writeText(sample);

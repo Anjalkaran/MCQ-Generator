@@ -2,14 +2,21 @@
 "use client";
 
 import { TopicQuizForm } from "@/components/quiz/topic-quiz-form";
-import { useDashboard } from "@/app/dashboard/layout";
+import { useDashboard } from "@/context/dashboard-context";
 import { notFound } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { use } from 'react';
-
+import type { SyllabusTopic } from "@/lib/types";
+import { 
+    MTS_BLUEPRINT, 
+    POSTMAN_BLUEPRINT, 
+    PA_BLUEPRINT, 
+    GROUPB_BLUEPRINT 
+} from "@/lib/exam-blueprints";
+import { IP_BLUEPRINT } from "@/lib/exam-blueprints-ip";
 
 interface TopicParams {
     topicId: string;
@@ -17,7 +24,7 @@ interface TopicParams {
 
 export default function GenerateTopicQuizPage({ params }: { params: Promise<TopicParams> }) {
     const resolvedParams = use(params);
-    const { topics, isLoading, userData } = useDashboard();
+    const { topics, syllabi, isLoading, userData } = useDashboard();
 
     if (isLoading) {
         return (
@@ -27,11 +34,64 @@ export default function GenerateTopicQuizPage({ params }: { params: Promise<Topi
         );
     }
 
-    const topic = topics.find(t => t.id === resolvedParams.topicId);
+    let topic = topics.find(t => t.id === resolvedParams.topicId);
+    
+    // If NOT found in legacy topics, check in syllabus blueprints
+    if (!topic) {
+        // Build a list of all blueprints to search (hardcoded + Firestore dynamic)
+        const allBlueprints: any[] = [
+            { id: 'MTS', ...MTS_BLUEPRINT },
+            { id: 'POSTMAN', ...POSTMAN_BLUEPRINT },
+            { id: 'PA', ...PA_BLUEPRINT },
+            { id: 'IP', ...IP_BLUEPRINT },
+            { id: 'GROUP B', ...GROUPB_BLUEPRINT }
+        ];
+        
+        // Add dynamic Firestore syllabi (these override hardcoded if IDs match)
+        if (syllabi && syllabi.length > 0) {
+            syllabi.forEach(s => {
+                const existingIdx = allBlueprints.findIndex(bp => bp.id === s.id);
+                if (existingIdx !== -1) {
+                    allBlueprints[existingIdx] = s;
+                } else {
+                    allBlueprints.push(s);
+                }
+            });
+        }
+
+        // Flatten all blueprint topics to find the match
+        for (const blueprint of allBlueprints) {
+            const parts = blueprint.parts || [];
+            for (const part of parts) {
+                const sections = part.sections || [];
+                for (const section of sections) {
+                    if (!section.topics) continue;
+                    
+                    const foundTopic = section.topics.find((t: any) => 
+                        typeof t !== 'string' && t && t.id === resolvedParams.topicId
+                    ) as SyllabusTopic | undefined;
+
+                    if (foundTopic) {
+                        topic = {
+                            id: foundTopic.id,
+                            title: foundTopic.name,
+                            categoryId: blueprint.id || blueprint.examName,
+                            categoryName: blueprint.examName,
+                            examCategories: [blueprint.id || blueprint.examName],
+                            material: "", 
+                            part: part.partName,
+                            icon: "book-open"
+                        } as any;
+                        break;
+                    }
+                }
+                if (topic) break;
+            }
+            if (topic) break;
+        }
+    }
 
     if (!topic) {
-        // This will show a Next.js 404 page if the topic isn't found
-        // which is good practice.
         notFound();
     }
 

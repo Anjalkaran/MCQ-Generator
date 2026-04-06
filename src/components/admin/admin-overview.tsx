@@ -79,7 +79,6 @@ export function AdminOverview({
           { label: 'Syllabus Explorer', value: 'syllabi' },
           { label: 'Syllabus Point Management', value: 'syllabus-points' },
           { label: 'Topic Repository', value: 'topics' },
-          { label: 'MCQ Bank', value: 'topic-mcq' },
           { label: 'Video Lecture Bank', value: 'video-classes' },
           { label: 'Study Portfolios', value: 'study-material' },
           { label: 'Review Reports', value: 'reports' }
@@ -92,6 +91,7 @@ export function AdminOverview({
        icon: CheckCircle2,
        color: 'emerald',
        items: [
+         { label: 'MCQ Bank', value: 'topic-mcq' },
          { label: 'Weekly Live Tests', value: 'weekly-tests' },
          { label: 'Daily Practice', value: 'daily-tests' },
          { label: 'Custom Question Bank', value: 'question-bank' },

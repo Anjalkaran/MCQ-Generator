@@ -56,18 +56,20 @@ function AnalyticsTab({ qnaUsage }: { qnaUsage: QnAUsage[] }) {
 }
 
 const adminSections = [
-    { value: 'users', label: 'User Management', icon: Shield },
-    { value: 'topics', label: 'Topic Management', icon: BookCopy },
-    { value: 'video-classes', label: 'Video Classes', icon: Video },
-    { value: 'topic-mcq', label: 'MCQ Bank', icon: FileQuestion },
-    { value: 'question-bank', label: 'Question Bank', icon: FileText },
-    { value: 'reasoning-bank', label: 'Reasoning Bank', icon: NewLogoIcon },
-    { value: 'live-test', label: 'Live Test', icon: Trophy },
-    { value: 'syllabus', label: 'Syllabus', icon: Layers },
-    { value: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { value: 'feedback', label: 'Feedback', icon: MessageSquare },
-    { value: 'reports', label: 'Reports', icon: Download },
+    { value: 'users', label: 'User Management', icon: Shield, group: 'Management' },
+    { value: 'topics', label: 'Topic Management', icon: BookCopy, group: 'Management' },
+    { value: 'video-classes', label: 'Video Classes', icon: Video, group: 'Management' },
+    { value: 'syllabus', label: 'Syllabus', icon: Layers, group: 'Management' },
+    { value: 'topic-mcq', label: 'MCQ Bank', icon: FileQuestion, group: 'Assessments' },
+    { value: 'question-bank', label: 'Question Bank', icon: FileText, group: 'Assessments' },
+    { value: 'reasoning-bank', label: 'Reasoning Bank', icon: NewLogoIcon, group: 'Assessments' },
+    { value: 'live-test', label: 'Live Test', icon: Trophy, group: 'Assessments' },
+    { value: 'analytics', label: 'Analytics', icon: BarChart3, group: 'System' },
+    { value: 'feedback', label: 'Feedback', icon: MessageSquare, group: 'System' },
+    { value: 'reports', label: 'Reports', icon: Download, group: 'System' },
 ] as const;
+
+const groups = ['Management', 'Assessments', 'System'] as const;
 
 type AdminSection = typeof adminSections[number]['value'];
 
@@ -178,23 +180,38 @@ export default function AdminPage() {
           </p>
         </div>
         
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-12">
-          {adminSections.map((section) => (
-            <Card
-              key={section.value}
-              onClick={() => setActiveSection(section.value)}
-              className={cn(
-                "cursor-pointer transition-all hover:shadow-md flex flex-col items-center justify-center h-28",
-                activeSection === section.value && "border-primary ring-2 ring-primary"
-              )}
-            >
-              <CardHeader className="items-center text-center p-4">
-                {React.createElement(section.icon, { className: "h-6 w-6 text-muted-foreground mb-2" })}
-                <CardTitle className="text-sm font-medium">
-                  {section.label}
-                </CardTitle>
-              </CardHeader>
-            </Card>
+        <div className="space-y-8">
+          {groups.map(group => (
+            <div key={group} className="space-y-4">
+              <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400 pl-1">{group}</h2>
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
+                {adminSections.filter(s => s.group === group).map((section) => (
+                  <Card
+                    key={section.value}
+                    onClick={() => setActiveSection(section.value)}
+                    className={cn(
+                      "cursor-pointer transition-all hover:shadow-md flex flex-col items-center justify-center h-28 border-none ring-1 ring-slate-100",
+                      activeSection === section.value && "bg-primary/5 ring-2 ring-primary"
+                    )}
+                  >
+                    <CardHeader className="items-center text-center p-4">
+                      {React.createElement(section.icon, { 
+                        className: cn(
+                          "h-6 w-6 mb-2 transition-colors",
+                          activeSection === section.value ? "text-primary" : "text-slate-400"
+                        ) 
+                      })}
+                      <CardTitle className={cn(
+                        "text-[10px] font-bold uppercase tracking-wider",
+                        activeSection === section.value ? "text-primary" : "text-slate-600"
+                      )}>
+                        {section.label}
+                      </CardTitle>
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
 

@@ -231,23 +231,37 @@ export const getTopicMCQsAdmin = async (topicId?: string): Promise<TopicMCQ[]> =
     const db = getFirebaseDb();
     if (!db) return [];
     
-    let query: any = db.collection('topicMCQs');
-    
-    if (topicId) {
-        query = query.where('topicId', '==', topicId);
-    } else {
-        query = query.orderBy('uploadedAt', 'desc');
+    try {
+        // Query both collections
+        const col1 = db.collection('topicMCQs');
+        const col2 = db.collection('syllabusMCQs');
+        
+        let q1: any = col1;
+        let q2: any = col2;
+        
+        if (topicId) {
+            q1 = col1.where('topicId', '==', topicId);
+            q2 = col2.where('topicId', '==', topicId);
+        } else {
+            q1 = col1.orderBy('uploadedAt', 'desc');
+            q2 = col2.orderBy('uploadedAt', 'desc');
+        }
+        
+        const [snap1, snap2] = await Promise.all([q1.get(), q2.get()]);
+        
+        const results = [
+            ...snap1.docs.map((doc: any) => ({ id: doc.id, ...doc.data() })),
+            ...snap2.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }))
+        ];
+        
+        return results.map(data => ({
+            ...data,
+            uploadedAt: normalizeDate(data.uploadedAt) || new Date()
+        } as TopicMCQ));
+    } catch (error) {
+        console.error("Error in getTopicMCQsAdmin:", error);
+        return [];
     }
-    
-    const snapshot = await query.get();
-    return snapshot.docs.map((doc: any) => {
-        const data = doc.data();
-        return { 
-            id: doc.id, 
-            ...data, 
-            uploadedAt: normalizeDate(data.uploadedAt) || new Date() 
-        } as TopicMCQ;
-    });
 };
 
 /**

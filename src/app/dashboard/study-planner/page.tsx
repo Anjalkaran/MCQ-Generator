@@ -27,9 +27,16 @@ import {
 
 export default function StudyPlannerPage() {
   const router = useRouter();
-  const { user } = useDashboard();
+  const { user, syllabi } = useDashboard();
   const [planner, setPlanner] = useState<UserPlanner | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
+
+  const dynamicBlueprints = React.useMemo(() => {
+    const map: Record<string, any> = {};
+    syllabi.forEach(s => { if (s.id) map[s.id] = s; });
+    return map;
+  }, [syllabi]);
+  
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showSetup, setShowSetup] = useState(false);
@@ -77,7 +84,7 @@ export default function StudyPlannerPage() {
     if (!user || !userData) return;
     setLoading(true);
     try {
-      const newPlanner = generatePlanner(user.uid, userData.examCategory, planType);
+      const newPlanner = generatePlanner(user.uid, userData.examCategory, planType, dynamicBlueprints);
       await saveUserPlanner(user.uid, newPlanner);
       setPlanner(newPlanner);
       setShowSetup(false);

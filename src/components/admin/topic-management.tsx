@@ -49,13 +49,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from '@/lib/utils';
-import { 
-  MTS_BLUEPRINT, 
-  POSTMAN_BLUEPRINT, 
-  PA_BLUEPRINT, 
-  IP_BLUEPRINT 
-} from '@/lib/exam-blueprints';
-
 const examCategories = ["MTS", "POSTMAN", "PA", "IP", "GROUP B"] as const;
 const parts = ["Part A", "Part B", "Paper I", "Paper II", "Paper III", "Paper-I", "Paper-III"] as const;
 
@@ -303,24 +296,7 @@ export function TopicManagement({ initialCategories, initialTopics, initialTopic
     return groups;
   }, [filteredTopics, categories]);
 
-  const isOfficialTopic = (title: string) => {
-    const allBlueprints = [MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT, IP_BLUEPRINT];
-    for (const bp of allBlueprints) {
-      if (!bp || !bp.parts) continue;
-      for (const part of bp.parts) {
-        for (const section of part.sections) {
-          const checkMatch = (t: any) => {
-            const name = typeof t === 'string' ? t : t.name;
-            return name?.toLowerCase() === title.toLowerCase();
-          };
 
-          if (section.topics?.some(checkMatch)) return true;
-          if (section.randomFrom?.topics?.some(checkMatch)) return true;
-        }
-      }
-    }
-    return false;
-  };
 
   const filteredCategories = useMemo(() => {
     if (!searchTerm) return categories;
@@ -470,7 +446,6 @@ export function TopicManagement({ initialCategories, initialTopics, initialTopic
                                 key={topic.id} 
                                 topic={topic} 
                                 getMCQCount={getMCQCount} 
-                                isOfficial={isOfficialTopic(topic.title)}
                                 onEdit={() => { setEditingTopic(topic); setIsTopicDialogOpen(true); }}
                                 onDelete={() => handleDeleteTopic(topic.id)}
                               />
@@ -517,8 +492,7 @@ export function TopicManagement({ initialCategories, initialTopics, initialTopic
                               key={topic.id} 
                               topic={topic} 
                               getMCQCount={getMCQCount} 
-                              isOfficial={isOfficialTopic(topic.title)}
-                              onEdit={() => { setEditingTopic(topic); setIsTopicDialogOpen(true); }}
+                             onEdit={() => { setEditingTopic(topic); setIsTopicDialogOpen(true); }}
                               onDelete={() => handleDeleteTopic(topic.id)}
                             />
                           ))}
@@ -844,19 +818,12 @@ export function TopicManagement({ initialCategories, initialTopics, initialTopic
   );
 }
 
-function TopicRowComponent({ topic, getMCQCount, isOfficial, onEdit, onDelete }: any) {
+function TopicRowComponent({ topic, getMCQCount, onEdit, onDelete }: any) {
   return (
     <TableRow className="hover:bg-slate-50/50 transition-colors">
       <TableCell>
         <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
             <span className="font-bold text-slate-900">{topic.title}</span>
-            {isOfficial && (
-              <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 text-[10px] h-5" variant="outline">
-                Official
-              </Badge>
-            )}
-          </div>
           {topic.description && <span className="text-[10px] text-slate-400 line-clamp-1">{topic.description}</span>}
         </div>
       </TableCell>

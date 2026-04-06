@@ -7,44 +7,47 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function normalizeDate(date: any): Date | null {
-  if (!date) {
-    return null;
-  }
-  // If it's already a Date object, return it.
+  if (!date) return null;
+
+  // 1. If it's already a valid Date object
   if (date instanceof Date) {
-    return date;
+    return isNaN(date.getTime()) ? null : date;
   }
-  // If it's a Firestore Timestamp, convert it.
+
+  // 2. If it's a Firestore Timestamp (via .toDate() check)
   if (typeof date.toDate === 'function') {
     return date.toDate();
   }
-  // If it's a string, try parsing it.
+
+  // 3. If it's a Firestore Timestamp object structure
+  if (typeof date === 'object' && 'seconds' in date) {
+    const seconds = Number(date.seconds);
+    if (!isNaN(seconds)) {
+      return new Date(seconds * 1000);
+    }
+  }
+
+  // 4. If it's a string
   if (typeof date === 'string') {
-    // Attempt to parse dd/MM/yyyy format
+    // try dd/MM/yyyy format first
     const parts = date.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
     if (parts) {
-      // parts[1] is day, parts[2] is month, parts[3] is year
       const isoDate = `${parts[3]}-${parts[2]}-${parts[1]}T00:00:00.000Z`;
-      const parsed = new Date(isoDate);
-      if (!isNaN(parsed.getTime())) {
-        return parsed;
-      }
+      const d = new Date(isoDate);
+      if (!isNaN(d.getTime())) return d;
     }
     
-    // Fallback for ISO strings or other standard formats
-    const parsed = new Date(date);
-    if (!isNaN(parsed.getTime())) {
-      return parsed;
-    }
+    // standard date string
+    const d = new Date(date);
+    if (!isNaN(d.getTime())) return d;
   }
-  // If it's a number (milliseconds), convert it.
+
+  // 5. If it's a number (milliseconds)
   if (typeof date === 'number') {
-    const parsed = new Date(date);
-    if (!isNaN(parsed.getTime())) {
-        return parsed;
-    }
+    const d = new Date(date);
+    if (!isNaN(d.getTime())) return d;
   }
-  
+
   return null;
 }
 

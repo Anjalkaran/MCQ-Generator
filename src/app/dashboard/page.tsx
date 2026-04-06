@@ -73,10 +73,10 @@ export default function DashboardPage() {
     }
   };
 
-  // Define available courses based on subscription
-  const subCat = userData.subscribedCategory || userData.examCategory || 'MTS';
-  
-  const isEliteUser = subCat === 'IP' || subCat === 'GROUP B';
+  // Define available courses based on registration/grouping
+  const subCat = userData.examCategory || 'MTS';
+  const isProfessionalGroup = subCat === 'IP' || subCat === 'GROUP B';
+  const isGeneralGroup = subCat === 'MTS' || subCat === 'POSTMAN' || subCat === 'PA';
   
   const availableCourses = [
     { 
@@ -87,7 +87,7 @@ export default function DashboardPage() {
       icon: <BrainCircuit className="h-10 w-10" />,
       color: 'from-blue-500/20 to-cyan-500/20',
       textColor: 'text-blue-600',
-      allowed: true 
+      allowed: isGeneralGroup
     },
     { 
       id: 'POSTMAN', 
@@ -97,7 +97,7 @@ export default function DashboardPage() {
       icon: <PenSquare className="h-10 w-10" />,
       color: 'from-orange-500/20 to-red-500/20',
       textColor: 'text-orange-600',
-      allowed: true 
+      allowed: isGeneralGroup
     },
     { 
       id: 'PA', 
@@ -107,7 +107,7 @@ export default function DashboardPage() {
       icon: <Library className="h-10 w-10" />,
       color: 'from-red-500/20 to-rose-500/20',
       textColor: 'text-red-600',
-      allowed: true 
+      allowed: isGeneralGroup
     },
     { 
       id: 'IP', 
@@ -117,7 +117,7 @@ export default function DashboardPage() {
       icon: <Shield className="h-10 w-10" />,
       color: 'from-red-700/20 to-rose-700/20',
       textColor: 'text-red-800',
-      allowed: isEliteUser
+      allowed: isProfessionalGroup
     },
     { 
       id: 'GROUP B', 
@@ -127,7 +127,7 @@ export default function DashboardPage() {
       icon: <GraduationCap className="h-10 w-10" />,
       color: 'from-purple-500/20 to-indigo-500/20',
       textColor: 'text-purple-700',
-      allowed: isEliteUser
+      allowed: isProfessionalGroup
     },
   ].filter(course => course.allowed || isAdmin);
 
@@ -233,10 +233,10 @@ export default function DashboardPage() {
         </div>
         
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {["MTS", "POSTMAN", "PA", "IP", "GROUP B"].map((cat) => (
+          {availableCourses.map((course) => (
             <Card 
-              key={cat}
-              onClick={() => router.push(`/dashboard/syllabus?category=${cat}`)}
+              key={course.id}
+              onClick={() => router.push(`/dashboard/syllabus?category=${course.id}`)}
               className="group relative overflow-hidden border-slate-200 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-white/50 backdrop-blur-sm"
             >
               <div className="p-6 flex items-center gap-4">
@@ -244,7 +244,7 @@ export default function DashboardPage() {
                     <BookOpen className="h-6 w-6" />
                  </div>
                  <div>
-                    <h3 className="font-bold text-lg text-slate-900">{cat}</h3>
+                    <h3 className="font-bold text-lg text-slate-900">{course.id}</h3>
                     <p className="text-xs text-slate-500">View Blueprint</p>
                  </div>
                  <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">

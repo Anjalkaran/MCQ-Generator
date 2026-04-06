@@ -101,12 +101,16 @@ export function NewContentPopup({ newContent, onClose, topics }: { newContent: {
               <div>
                 <h3 className="font-semibold mb-2 flex items-center gap-2"><Video className="h-5 w-5 text-primary" /> New Video Classes</h3>
                 <div className="space-y-2">
-                  {newContent.videos.map(video => (
-                    <div key={video.id} className="text-sm p-2 border rounded-md">
-                      <p className="font-medium">{video.title}</p>
-                      <p className="text-xs text-muted-foreground">Added {formatDistanceToNow(normalizeDate(video.uploadedAt)!, { addSuffix: true })}</p>
-                    </div>
-                  ))}
+                  {newContent.videos.map(video => {
+                    const date = normalizeDate(video.uploadedAt);
+                    if (!date) return null;
+                    return (
+                      <div key={video.id} className="text-sm p-2 border rounded-md">
+                        <p className="font-medium">{video.title}</p>
+                        <p className="text-xs text-muted-foreground">Added {formatDistanceToNow(date, { addSuffix: true })}</p>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -114,12 +118,18 @@ export function NewContentPopup({ newContent, onClose, topics }: { newContent: {
               <div>
                 <h3 className="font-semibold mb-2 flex items-center gap-2"><Library className="h-5 w-5 text-primary" /> New Study Materials</h3>
                 <div className="space-y-2">
-                  {newContent.materials.map(material => (
-                    <div key={material.id} className="text-sm p-2 border rounded-md">
-                      <p className="font-medium">{getTopicTitle(material.topicId)}</p>
-                      <p className="text-xs text-muted-foreground">File: {material.fileName}</p>
-                    </div>
-                  ))}
+                  {newContent.materials.map(material => {
+                    const date = normalizeDate(material.uploadedAt);
+                    return (
+                      <div key={material.id} className="text-sm p-2 border rounded-md">
+                        <p className="font-medium">{getTopicTitle(material.topicId)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          File: {material.fileName}
+                          {date && ` • Added ${formatDistanceToNow(date, { addSuffix: true })}`}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

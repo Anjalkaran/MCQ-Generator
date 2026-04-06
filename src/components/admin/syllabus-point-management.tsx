@@ -1,21 +1,27 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { useDashboard } from '@/context/dashboard-context';
+import { cn, normalizeDate } from '@/lib/utils';
 import { 
   getSyllabusMCQs, 
   getSyllabusMaterials, 
+  getSyllabi, 
   addSyllabusMCQ, 
   addSyllabusMaterial,
   deleteSyllabusMCQ,
   deleteSyllabusMaterial,
-  updateSyllabusMaterial
+  updateSyllabusMaterial,
+  updateSyllabusMCQ
 } from '@/lib/firestore';
 import { 
   MTS_BLUEPRINT, 
@@ -27,6 +33,7 @@ import {
 import type { TopicMCQ, StudyMaterial, SyllabusBlueprint, SyllabusTopic } from '@/lib/types';
 import * as mammoth from 'mammoth';
 import DOMPurify from 'dompurify';
+import { JsonFormatGuide } from './json-format-guide';
 import { 
   BookOpen, 
   FileText, 
@@ -39,12 +46,13 @@ import {
   AlertCircle,
   ChevronRight,
   Layers,
-  Search
+  Search,
+  Code2,
+  FileCode,
+  Languages
 } from 'lucide-react';
 import { getFirebaseStorage, getFirebaseAuth } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
 import { 
   Dialog, 
   DialogContent, 
@@ -54,22 +62,46 @@ import {
   DialogFooter
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { MCQStructuredEditor } from './mcq-structured-editor';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+
+function LabelWithIcon({ icon, label }: { icon: React.ReactNode, label: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="text-slate-400">{icon}</div>
+      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{label}</span>
+    </div>
+  );
+}
+
 
 interface SyllabusPointManagementProps {
   initialMCQs: TopicMCQ[];
   initialMaterials: StudyMaterial[];
 }
 
-const BLUEPRINTS: Record<string, any> = {
-  MTS: MTS_BLUEPRINT,
-  POSTMAN: POSTMAN_BLUEPRINT,
-  PA: PA_BLUEPRINT,
-  IP: IP_BLUEPRINT,
-  'GROUP B': GROUPB_BLUEPRINT
-};
+
 
 export function SyllabusPointManagement({ initialMCQs, initialMaterials }: SyllabusPointManagementProps) {
+  const { syllabi, isLoading: isDashboardLoading } = useDashboard();
+  
+  const blueprints = useMemo(() => {
+    const map: Record<string, any> = {
+      MTS: MTS_BLUEPRINT,
+      POSTMAN: POSTMAN_BLUEPRINT,
+      PA: PA_BLUEPRINT,
+      IP: IP_BLUEPRINT,
+      'GROUP B': GROUPB_BLUEPRINT
+    };
+    
+    syllabi.forEach(s => {
+      if (s.id) map[s.id] = s;
+    });
+    
+    return map;
+  }, [syllabi]);
+
   const [selectedExam, setSelectedExam] = useState<string>('IP');
   const [mcqs, setMcqs] = useState<TopicMCQ[]>(initialMCQs);
   const [materials, setMaterials] = useState<StudyMaterial[]>(initialMaterials);
@@ -77,31 +109,47 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingMaterial, setEditingMaterial] = useState<StudyMaterial | null>(null);
+  const [editingMcq, setEditingMcq] = useState<TopicMCQ | null>(null);
   const [editContent, setEditContent] = useState('');
+  
+  // JSON Paste States
+  const [isMcqPasteOpen, setIsMcqPasteOpen] = useState(false);
+  const [mcqPasteValue, setMcqPasteValue] = useState('');
+  const [isMaterialPasteOpen, setIsMaterialPasteOpen] = useState(false);
+  const [materialPasteTitle, setMaterialPasteTitle] = useState('');
+  const [materialPasteTitleTa, setMaterialPasteTitleTa] = useState('');
+  const [materialPasteTitleHi, setMaterialPasteTitleHi] = useState('');
+  const [materialPasteValue, setMaterialPasteValue] = useState('');
+  const [materialPasteValueTa, setMaterialPasteValueTa] = useState('');
+  const [materialPasteValueHi, setMaterialPasteValueHi] = useState('');
+  const [useAutoHtml, setUseAutoHtml] = useState(false);
+
   const { toast } = useToast();
 
-  const currentBlueprint = BLUEPRINTS[selectedExam];
+  const currentBlueprint = blueprints[selectedExam];
 
   const filteredBlueprint = useMemo(() => {
+    if (!currentBlueprint || !currentBlueprint.parts) return null;
     if (!searchTerm) return currentBlueprint;
     
     // Deep clone and filter
     const cloned = JSON.parse(JSON.stringify(currentBlueprint));
-    cloned.parts = cloned.parts.map((part: any) => ({
+    cloned.parts = (cloned.parts || []).map((part: any) => ({
       ...part,
-      sections: part.sections.map((section: any) => ({
+      sections: (part.sections || []).map((section: any) => ({
         ...section,
         topics: section.topics?.filter((topic: any) => {
            const name = typeof topic === 'string' ? topic : topic.name;
            return name.toLowerCase().includes(searchTerm.toLowerCase());
         })
-      })).filter((section: any) => section.topics?.length > 0 || section.randomFrom)
-    })).filter((part: any) => part.sections.length > 0);
+      })).filter((section: any) => (section.topics?.length > 0) || section.randomFrom)
+    })).filter((part: any) => (part.sections?.length > 0));
     
     return cloned;
   }, [currentBlueprint, searchTerm]);
 
   const getTopicStats = (topicId: string) => {
+    if (!mcqs || !materials) return { mcqCount: 0, questionCount: 0, materialCount: 0 };
     const topicMcqs = mcqs.filter(m => m.topicId === topicId);
     const topicMaterials = materials.filter(m => m.topicId === topicId);
     
@@ -147,6 +195,7 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
             JSON.parse(content); // Validate JSON
             await addSyllabusMCQ({
               topicId: selectedTopic.id,
+              topicName: selectedTopic.name,
               fileName: file.name,
               content: content,
               uploadedAt: new Date()
@@ -173,6 +222,7 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
 
         await addSyllabusMaterial({
           topicId: selectedTopic.id,
+          topicName: selectedTopic.name,
           fileName: file.name,
           fileType: isHtml ? 'docx' : 'pdf',
           content: contentToStore,
@@ -189,6 +239,85 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
       e.target.value = '';
     }
   };
+
+  const handleMcqPaste = async () => {
+    if (!selectedTopic || !mcqPasteValue) return;
+    setIsLoading(true);
+    try {
+        JSON.parse(mcqPasteValue); // Validate JSON
+        await addSyllabusMCQ({
+            topicId: selectedTopic.id,
+            topicName: selectedTopic.name,
+            fileName: `Pasted_${new Date().getTime()}.json`,
+            content: mcqPasteValue,
+            uploadedAt: new Date()
+        });
+        const updated = await getSyllabusMCQs();
+        setMcqs(updated);
+        setMcqPasteValue('');
+        setIsMcqPasteOpen(false);
+        toast({ title: 'Success', description: 'MCQ JSON pasted successfully' });
+    } catch (e) {
+        toast({ title: 'Error', description: 'Invalid JSON format', variant: 'destructive' });
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  const processPastedText = (text: string) => {
+    if (!useAutoHtml) return text;
+    // Basic conversion: double newlines -> paragraphs, single -> br
+    if (text.startsWith('<')) return text; // Already HTML likely
+    
+    return text
+      .split(/\n\s*\n/)
+      .map(para => `<p>${para.trim().replace(/\n/g, '<br/>')}</p>`)
+      .join('\n');
+  };
+
+  const handleMaterialPaste = async () => {
+    if (!selectedTopic || !materialPasteValue || !materialPasteTitle) {
+        toast({ title: 'Missing Info', description: 'Title and Content are required', variant: 'destructive' });
+        return;
+    }
+    setIsLoading(true);
+    try {
+        const htmlContent = processPastedText(materialPasteValue);
+        const htmlContentTa = materialPasteValueTa ? processPastedText(materialPasteValueTa) : undefined;
+        const htmlContentHi = materialPasteValueHi ? processPastedText(materialPasteValueHi) : undefined;
+        
+        await addSyllabusMaterial({
+            topicId: selectedTopic.id,
+            topicName: selectedTopic.name,
+            fileName: materialPasteTitle,
+            fileName_ta: materialPasteTitleTa || undefined,
+            fileName_hi: materialPasteTitleHi || undefined,
+            fileType: 'docx', // Defaulting to docx/html for pasted articles
+            content: htmlContent,
+            content_ta: htmlContentTa,
+            content_hi: htmlContentHi,
+            uploadedAt: new Date()
+        });
+        const updated = await getSyllabusMaterials();
+        setMaterials(updated);
+        setMaterialPasteValue('');
+        setMaterialPasteValueTa('');
+        setMaterialPasteValueHi('');
+        setMaterialPasteTitle('');
+        setMaterialPasteTitleTa('');
+        setMaterialPasteTitleHi('');
+        setIsMaterialPasteOpen(false);
+
+        toast({ title: 'Success', description: 'Article converted and posted successfully' });
+    } catch (e) {
+        toast({ title: 'Error', description: 'Failed to save article', variant: 'destructive' });
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+
+
 
   const handleDelete = async (id: string, type: 'mcq' | 'material') => {
     try {
@@ -220,10 +349,28 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
     }
   };
 
+  const handleSaveMcqEdit = async (newContent: string) => {
+    if (!editingMcq) return;
+    setIsLoading(true);
+    try {
+        await updateSyllabusMCQ(editingMcq.id, { content: newContent }); 
+        setMcqs(prev => prev.map(m => m.id === editingMcq.id ? { ...m, content: newContent } : m));
+        setEditingMcq(null);
+        toast({ title: 'Success', description: 'MCQ bank updated' });
+    } catch (e) {
+        toast({ title: 'Error', description: 'Failed to update MCQ', variant: 'destructive' });
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
   return (
+    <>
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-20">
+
       {/* Syllabus Tree Sidebar */}
       <div className="lg:col-span-8 space-y-4">
+
         <Card className="border-none shadow-sm overflow-hidden">
           <CardHeader className="bg-slate-50 border-b pb-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -240,7 +387,7 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
                     <SelectValue placeholder="Select Exam" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
-                    {Object.keys(BLUEPRINTS).map(exam => <SelectItem key={exam} value={exam}>{exam}</SelectItem>)}
+                    {Object.keys(blueprints).map(exam => <SelectItem key={exam} value={exam}>{exam}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <div className="relative group">
@@ -269,7 +416,9 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
                         </div>
                         <div className="grid grid-cols-1 gap-1 pl-4">
                           {section.topics?.map((topic: any, tIdx: number) => {
-                            const topicObj = typeof topic === 'string' ? { id: `${selectedExam}-${pIdx}-${sIdx}-${tIdx}`, name: topic } : topic;
+                            const topicObj = typeof topic === 'string' 
+                              ? { id: `${selectedExam}-${pIdx}-${sIdx}-${tIdx}`, name: topic } 
+                              : { ...topic, id: topic.id || `${selectedExam}-${pIdx}-${sIdx}-${tIdx}` };
                             const stats = getTopicStats(topicObj.id);
                             const isActive = selectedTopic?.id === topicObj.id;
 
@@ -352,38 +501,72 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
                   
                   <TabsContent value="mcqs" className="p-6 mt-0">
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex flex-col gap-2 mb-2">
                         <LabelWithIcon icon={<FileQuestion className="h-4 w-4" />} label="Question Papers" />
-                        <label className="cursor-pointer">
-                          <div className={cn(
-                            "flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition-all",
-                            isLoading && "opacity-50 pointer-events-none"
-                          )}>
-                             {isLoading ? <Loader2 className="h-3 w-3 animate-spin"/> : <Upload className="h-3 w-3" />}
-                             Upload JSON
-                          </div>
-                          <input type="file" accept=".json" className="hidden" onChange={(e) => handleFileUpload(e, 'mcq')} disabled={isLoading} />
-                        </label>
+                        <div className="flex items-center gap-2">
+                          <label className="cursor-pointer flex-1">
+                            <div className={cn(
+                              "flex items-center justify-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 transition-all border border-red-100",
+                              isLoading && "opacity-50 pointer-events-none"
+                            )}>
+                               {isLoading ? <Loader2 className="h-3 w-3 animate-spin"/> : <Upload className="h-3 w-3" />}
+                               Upload JSON
+                            </div>
+                            <input type="file" accept=".json" className="hidden" onChange={(e) => handleFileUpload(e, 'mcq')} disabled={isLoading} />
+                          </label>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="bg-blue-50 text-blue-600 border-blue-100 rounded-xl hover:bg-blue-100"
+                            onClick={() => setIsMcqPasteOpen(true)}
+                          >
+                            <Code2 className="h-3 w-3 mr-2" />
+                            Paste JSON
+                          </Button>
+                        </div>
                       </div>
 
                       <div className="space-y-2">
-                        {mcqs.filter(m => m.topicId === selectedTopic.id).map(mcq => (
-                          <div key={mcq.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl group border border-transparent hover:border-slate-200 transition-all">
-                            <div className="flex items-center gap-3 overflow-hidden">
-                              <div className="h-8 w-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                                <FileText className="h-4 w-4" />
+                        {mcqs.filter(m => m.topicId === selectedTopic.id || (m as any).topicName === selectedTopic.name).map(mcq => {
+                          const isShared = mcq.topicId !== selectedTopic.id;
+                          return (
+                            <div key={mcq.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl group border border-transparent hover:border-slate-200 transition-all">
+                              <div className="flex items-center gap-3 overflow-hidden">
+                                <div className={cn(
+                                  "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
+                                  isShared ? "bg-orange-100 text-orange-600" : "bg-blue-100 text-blue-600"
+                                )}>
+                                  <FileText className="h-4 w-4" />
+                                </div>
+                                <div className="overflow-hidden">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-bold text-slate-700 truncate">{mcq.fileName}</p>
+                                    {isShared && (
+                                      <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-[8px] font-black rounded uppercase">Shared</span>
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] text-slate-400 uppercase font-bold">
+                                    {normalizeDate(mcq.uploadedAt)?.toLocaleDateString() || 'Just now'}
+                                  </p>
+                                </div>
                               </div>
-                              <div className="overflow-hidden">
-                                <p className="text-sm font-bold text-slate-700 truncate">{mcq.fileName}</p>
-                                <p className="text-[10px] text-slate-400 uppercase font-bold">{new Date(mcq.uploadedAt).toLocaleDateString()}</p>
+                              <div className="flex items-center gap-1">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50" 
+                                    onClick={() => setEditingMcq(mcq)}
+                                  >
+                                    <Code2 className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(mcq.id, 'mcq')}>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
                               </div>
                             </div>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(mcq.id, 'mcq')}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                        {mcqs.filter(m => m.topicId === selectedTopic.id).length === 0 && (
+                          );
+                        })}
+                        {mcqs.filter(m => m.topicId === selectedTopic.id || (m as any).topicName === selectedTopic.name).length === 0 && (
                           <div className="p-8 border-2 border-dashed border-slate-100 rounded-2xl text-center">
                             <AlertCircle className="h-8 w-8 text-slate-200 mx-auto mb-2" />
                             <p className="text-xs text-slate-400 font-medium">No MCQs uploaded for this topic.</p>
@@ -395,53 +578,77 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
 
                   <TabsContent value="materials" className="p-6 mt-0">
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex flex-col gap-2 mb-2">
                         <LabelWithIcon icon={<BookOpen className="h-4 w-4" />} label="Study Materials" />
-                        <label className="cursor-pointer">
-                          <div className={cn(
-                            "flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-all",
-                            isLoading && "opacity-50 pointer-events-none"
-                          )}>
-                             {isLoading ? <Loader2 className="h-3 w-3 animate-spin"/> : <Upload className="h-3 w-3" />}
-                             Upload PDF/DOCX
-                          </div>
-                          <input type="file" accept=".pdf,.docx" className="hidden" onChange={(e) => handleFileUpload(e, 'material')} disabled={isLoading} />
-                        </label>
+                        <div className="flex items-center gap-2">
+                          <label className="cursor-pointer flex-1">
+                            <div className={cn(
+                              "flex items-center justify-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all border border-emerald-100",
+                              isLoading && "opacity-50 pointer-events-none"
+                            )}>
+                               {isLoading ? <Loader2 className="h-3 w-3 animate-spin"/> : <Upload className="h-3 w-3" />}
+                               Upload PDF/DOCX
+                            </div>
+                            <input type="file" accept=".pdf,.docx" className="hidden" onChange={(e) => handleFileUpload(e, 'material')} disabled={isLoading} />
+                          </label>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="bg-orange-50 text-orange-600 border-orange-100 rounded-xl hover:bg-orange-100"
+                            onClick={() => setIsMaterialPasteOpen(true)}
+                          >
+                            <FileCode className="h-3 w-3 mr-2" />
+                            Paste Article
+                          </Button>
+                        </div>
                       </div>
 
                       <div className="space-y-2">
-                        {materials.filter(m => m.topicId === selectedTopic.id).map(mat => (
-                          <div key={mat.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl group border border-transparent hover:border-slate-200 transition-all">
-                            <div className="flex items-center gap-3 overflow-hidden">
-                              <div className="h-8 w-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                                <FileText className="h-4 w-4" />
+                        {materials.filter(m => m.topicId === selectedTopic.id || (m as any).topicName === selectedTopic.name).map(mat => {
+                          const isShared = mat.topicId !== selectedTopic.id;
+                          return (
+                            <div key={mat.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl group border border-transparent hover:border-slate-200 transition-all">
+                              <div className="flex items-center gap-3 overflow-hidden">
+                                <div className={cn(
+                                  "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
+                                  isShared ? "bg-orange-100 text-orange-600" : "bg-emerald-100 text-emerald-600"
+                                )}>
+                                  <FileText className="h-4 w-4" />
+                                </div>
+                                <div className="overflow-hidden">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-bold text-slate-700 truncate">{mat.fileName}</p>
+                                    {isShared && (
+                                      <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-[8px] font-black rounded uppercase">Shared</span>
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] text-slate-400 uppercase font-bold">
+                                    {normalizeDate(mat.uploadedAt)?.toLocaleDateString() || 'Just now'}
+                                  </p>
+                                </div>
                               </div>
-                              <div className="overflow-hidden">
-                                <p className="text-sm font-bold text-slate-700 truncate">{mat.fileName}</p>
-                                <p className="text-[10px] text-slate-400 uppercase font-bold">{new Date(mat.uploadedAt).toLocaleDateString()}</p>
+                              <div className="flex items-center gap-1">
+                                  {(mat.fileType === 'docx' || (mat.content && mat.content.startsWith('<'))) && (
+                                      <Button 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50" 
+                                          onClick={() => {
+                                              setEditingMaterial(mat);
+                                              setEditContent(mat.content);
+                                          }}
+                                      >
+                                          <FileText className="h-4 w-4" />
+                                      </Button>
+                                  )}
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(mat.id, 'material')}>
+                                  <Trash2 className="h-4 w-4" />
+                                  </Button>
                               </div>
                             </div>
-                            <div className="flex items-center gap-1">
-                                {(mat.fileType === 'docx' || (mat.content && mat.content.startsWith('<'))) && (
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50" 
-                                        onClick={() => {
-                                            setEditingMaterial(mat);
-                                            setEditContent(mat.content);
-                                        }}
-                                    >
-                                        <FileText className="h-4 w-4" />
-                                    </Button>
-                                )}
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(mat.id, 'material')}>
-                                <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </div>
-                          </div>
-                        ))}
-                        {materials.filter(m => m.topicId === selectedTopic.id).length === 0 && (
+                          );
+                        })}
+                        {materials.filter(m => m.topicId === selectedTopic.id || (m as any).topicName === selectedTopic.name).length === 0 && (
                           <div className="p-8 border-2 border-dashed border-slate-100 rounded-2xl text-center">
                             <AlertCircle className="h-8 w-8 text-slate-200 mx-auto mb-2" />
                             <p className="text-xs text-slate-400 font-medium">No PDF materials found for this topic.</p>
@@ -476,6 +683,209 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
           </div>
         )}
       </div>
+    </div>
+
+    {/* MCQ Paste Dialog */}
+      <Dialog open={isMcqPasteOpen} onOpenChange={setIsMcqPasteOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Paste MCQ JSON Bank</DialogTitle>
+            <DialogDescription>Paste your structured JSON question array here. See the format guide below.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+            <div className="space-y-4">
+              <Label>JSON Content</Label>
+              <Textarea 
+                placeholder="[ { 'question': '...', 'options': [...], 'correct': 0 }, ... ]"
+                className="h-[300px] font-mono text-xs"
+                value={mcqPasteValue}
+                onChange={(e) => setMcqPasteValue(e.target.value)}
+              />
+            </div>
+            <div className="bg-slate-50 p-4 rounded-xl overflow-y-auto max-h-[400px]">
+              <JsonFormatGuide type="topic-mcq" />
+            </div>
+          </div>
+          <DialogFooter className="mt-6">
+            <Button variant="outline" onClick={() => setIsMcqPasteOpen(false)}>Cancel</Button>
+            <Button onClick={handleMcqPaste} disabled={isLoading || !mcqPasteValue} className="bg-red-600 hover:bg-red-700">
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+              Save Questions
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Material Paste Dialog */}
+      <Dialog open={isMaterialPasteOpen} onOpenChange={setIsMaterialPasteOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Paste Study Article</DialogTitle>
+            <DialogDescription>Directly paste HTML or text content to create a digital study material.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+              <Tabs defaultValue="en" className="w-full">
+                <TabsList className="grid w-full grid-cols-3 mb-6">
+                  <TabsTrigger value="en">English Content</TabsTrigger>
+                  <TabsTrigger value="ta">Tamil Content</TabsTrigger>
+                  <TabsTrigger value="hi">Hindi Content</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="en" className="space-y-4">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>English Title</Label>
+                      <Input 
+                        placeholder="English Title..." 
+                        value={materialPasteTitle}
+                        onChange={(e) => setMaterialPasteTitle(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between mb-1">
+                              <Label>English Content</Label>
+                              <div className="flex items-center gap-2">
+                                <Label htmlFor="auto-html-en" className="text-[10px] text-slate-400 font-bold uppercase">Format Text</Label>
+                                <Switch 
+                                    id="auto-html-en" 
+                                    checked={useAutoHtml} 
+                                    onCheckedChange={setUseAutoHtml}
+                                    className="scale-75"
+                                />
+                                <Badge variant="outline" className={cn(
+                                    "text-[10px]",
+                                    useAutoHtml ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-slate-50 text-slate-400 border-slate-100"
+                                )}>
+                                    {useAutoHtml ? 'Line Breaks Enabled' : 'Raw Content Mode'}
+                                </Badge>
+                              </div>
+                          </div>
+                          <Textarea 
+                            placeholder="Paste your English Word content here..."
+                            className="h-[300px] font-sans text-sm"
+                            value={materialPasteValue}
+                            onChange={(e) => setMaterialPasteValue(e.target.value)}
+                          />
+                        </div>
+                        <div className="bg-slate-50 p-4 rounded-xl overflow-y-auto border">
+                          <Label className="mb-2 block text-xs font-bold uppercase text-slate-400">English Preview</Label>
+                          <div 
+                            className="prose prose-slate prose-sm max-w-none bg-white p-4 rounded-lg shadow-inner min-h-[250px]"
+                            dangerouslySetInnerHTML={{ __html: processPastedText(materialPasteValue) || '<p class="text-slate-300 italic">Preview will appear here...</p>' }}
+                          />
+                        </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="ta" className="space-y-4">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Tamil Title (Optional)</Label>
+                      <Input 
+                        placeholder="தலைப்பு (தமிழ்)..." 
+                        value={materialPasteTitleTa}
+                        onChange={(e) => setMaterialPasteTitleTa(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between mb-1">
+                              <Label>Tamil Content</Label>
+                              <div className="flex items-center gap-2">
+                                <Label htmlFor="auto-html-ta" className="text-[10px] text-slate-400 font-bold uppercase">Format Text</Label>
+                                <Switch 
+                                    id="auto-html-ta" 
+                                    checked={useAutoHtml} 
+                                    onCheckedChange={setUseAutoHtml}
+                                    className="scale-75"
+                                />
+                                <Badge variant="outline" className={cn(
+                                    "text-[10px]",
+                                    useAutoHtml ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-slate-50 text-slate-400 border-slate-100"
+                                )}>
+                                    {useAutoHtml ? 'Line Breaks Enabled' : 'Raw Content Mode'}
+                                </Badge>
+                              </div>
+                          </div>
+                          <Textarea 
+                            placeholder="தமிழ் உள்ளடக்கத்தை இங்கே ஒட்டவும்..."
+                            className="h-[300px] font-sans text-sm"
+                            value={materialPasteValueTa}
+                            onChange={(e) => setMaterialPasteValueTa(e.target.value)}
+                          />
+                        </div>
+                        <div className="bg-slate-50 p-4 rounded-xl overflow-y-auto border">
+                          <Label className="mb-2 block text-xs font-bold uppercase text-slate-400">Tamil Preview</Label>
+                          <div 
+                            className="prose prose-slate prose-sm max-w-none bg-white p-4 rounded-lg shadow-inner min-h-[250px]"
+                            dangerouslySetInnerHTML={{ __html: processPastedText(materialPasteValueTa) || '<p class="text-slate-300 italic">Preview will appear here...</p>' }}
+                          />
+                        </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="hi" className="space-y-4">
+                   <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Hindi Title (Optional)</Label>
+                      <Input 
+                        placeholder="शीर्षक (हिंदी)..." 
+                        value={materialPasteTitleHi}
+                        onChange={(e) => setMaterialPasteTitleHi(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between mb-1">
+                              <Label>Hindi Content</Label>
+                              <div className="flex items-center gap-2">
+                                <Label htmlFor="auto-html-hi" className="text-[10px] text-slate-400 font-bold uppercase">Format Text</Label>
+                                <Switch 
+                                    id="auto-html-hi" 
+                                    checked={useAutoHtml} 
+                                    onCheckedChange={setUseAutoHtml}
+                                    className="scale-75"
+                                />
+                                <Badge variant="outline" className={cn(
+                                    "text-[10px]",
+                                    useAutoHtml ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-slate-50 text-slate-400 border-slate-100"
+                                )}>
+                                    {useAutoHtml ? 'Line Breaks Enabled' : 'Raw Content Mode'}
+                                </Badge>
+                              </div>
+                          </div>
+                          <Textarea 
+                            placeholder="हिंदी सामग्री यहाँ पेस्ट करें..."
+                            className="h-[300px] font-sans text-sm"
+                            value={materialPasteValueHi}
+                            onChange={(e) => setMaterialPasteValueHi(e.target.value)}
+                          />
+                        </div>
+                        <div className="bg-slate-50 p-4 rounded-xl overflow-y-auto border">
+                          <Label className="mb-2 block text-xs font-bold uppercase text-slate-400">Hindi Preview</Label>
+                          <div 
+                            className="prose prose-slate prose-sm max-w-none bg-white p-4 rounded-lg shadow-inner min-h-[250px]"
+                            dangerouslySetInnerHTML={{ __html: processPastedText(materialPasteValueHi) || '<p class="text-slate-300 italic">Preview will appear here...</p>' }}
+                          />
+                        </div>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+          <DialogFooter className="mt-6">
+
+            <Button variant="outline" onClick={() => setIsMaterialPasteOpen(false)}>Cancel</Button>
+            <Button onClick={handleMaterialPaste} disabled={isLoading || !materialPasteValue || !materialPasteTitle} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+              Publish Article
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Editing Dialog */}
       <Dialog open={!!editingMaterial} onOpenChange={(open) => !open && setEditingMaterial(null)}>
@@ -510,15 +920,26 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
             </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      {/* MCQ Editor Dialog */}
+      <Dialog open={!!editingMcq} onOpenChange={(open) => !open && setEditingMcq(null)}>
+        <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0">
+            <DialogHeader className="p-6 border-b">
+                <DialogTitle>Structured MCQ Editor</DialogTitle>
+                <DialogDescription>Managing questions for: {editingMcq?.fileName}</DialogDescription>
+            </DialogHeader>
+            <div className="flex-grow overflow-hidden px-6 pt-2 pb-6">
+                {editingMcq && (
+                  <MCQStructuredEditor 
+                    initialContent={editingMcq?.content || ''} 
+                    onSave={handleSaveMcqEdit} 
+                    onCancel={() => setEditingMcq(null)} 
+                  />
+                )}
+            </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
-function LabelWithIcon({ icon, label }: { icon: React.ReactNode, label: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="text-slate-400">{icon}</div>
-      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{label}</span>
-    </div>
-  );
-}
+

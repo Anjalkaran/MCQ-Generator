@@ -6,47 +6,43 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, Edit2, ChevronRight, ChevronDown, Save, RefreshCw, Layers, BookOpen, Clock } from "lucide-react";
+import { Plus, Trash2, Edit2, ChevronRight, ChevronDown, Save, RefreshCw, Layers, BookOpen, Clock, CheckCircle2 } from "lucide-react";
 import { 
   getSyllabi, 
   saveSyllabus, 
   deleteSyllabus, 
-  getTopics, 
-  getCategories, 
-  updateTopic, 
-  addTopic,
-  addCategory
 } from "@/lib/firestore";
-import type { SyllabusBlueprint, SyllabusPart, SyllabusSection, SyllabusTopic, Topic, Category } from "@/lib/types";
-import { AlertCircle, CheckCircle2, RefreshCwIcon } from "lucide-react";
+import type { SyllabusBlueprint, SyllabusPart, SyllabusSection, SyllabusTopic } from "@/lib/types";
+import { AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useDashboard } from "@/context/dashboard-context";
 import { cn } from "@/lib/utils";
 import * as Blueprints from "@/lib/exam-blueprints";
 
 export function SyllabusManagement() {
+  const { refreshDashboardData, topics } = useDashboard();
   const [syllabi, setSyllabi] = useState<SyllabusBlueprint[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [activeBlueprint, setActiveBlueprint] = useState<SyllabusBlueprint | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const [isSyncing, setIsSyncing] = useState<string | null>(null);
+
+  const syncTopicWithBank = (topicName: string, sectionName: string) => {
+    toast({
+      title: "Info",
+      description: `Syncing "${topicName}" with bank is under development.`,
+    });
+  };
 
   const categories = ['MTS', 'POSTMAN', 'PA', 'IP', 'GROUP B'];
-  const [bankTopics, setBankTopics] = useState<Topic[]>([]);
-  const [bankCategories, setBankCategories] = useState<Category[]>([]);
-  const [isSyncing, setIsSyncing] = useState<string | null>(null);
 
   const fetchSyllabi = async () => {
     setIsLoading(true);
     try {
-      const [syllabiData, topicsData, catsData] = await Promise.all([
-        getSyllabi(),
-        getTopics(),
-        getCategories()
-      ]);
+      const syllabiData = await getSyllabi();
       setSyllabi(syllabiData);
-      setBankTopics(topicsData);
-      setBankCategories(catsData);
       if (syllabiData.length > 0 && !selectedCategory) {
         handleSelectCategory(syllabiData[0].id);
       }
@@ -95,6 +91,7 @@ export function SyllabusManagement() {
     try {
       const { id, ...data } = activeBlueprint;
       await saveSyllabus(id, data);
+      await refreshDashboardData(); // Real-time sync to all listeners
       toast({ title: "Success", description: "Syllabus saved successfully." });
       fetchSyllabi();
     } catch (error) {
@@ -127,6 +124,8 @@ export function SyllabusManagement() {
   const handleAddSection = (partIdx: number) => {
     updateBlueprint(prev => {
       const newParts = [...prev.parts];
+      if (!newParts[partIdx]) return prev;
+      if (!newParts[partIdx].sections) newParts[partIdx].sections = [];
       newParts[partIdx].sections.push({ sectionName: "New Section", topics: [] });
       return { ...prev, parts: newParts };
     });
@@ -143,7 +142,10 @@ export function SyllabusManagement() {
   const handleAddTopic = (partIdx: number, sectionIdx: number) => {
     updateBlueprint(prev => {
       const newParts = [...prev.parts];
-      newParts[partIdx].sections[sectionIdx].topics.push({ name: "New Sub-topic", questions: 1 });
+      if (!newParts[partIdx] || !newParts[partIdx].sections || !newParts[partIdx].sections[sectionIdx]) return prev;
+      const section = newParts[partIdx].sections[sectionIdx];
+      if (!section.topics) section.topics = [];
+      section.topics.push({ name: "New Sub-topic", questions: 1 });
       return { ...prev, parts: newParts };
     });
   };
@@ -160,7 +162,7 @@ export function SyllabusManagement() {
     updateBlueprint(prev => {
       const newParts = [...prev.parts];
       const topic = newParts[partIdx].sections[sectionIdx].topics[topicIdx];
-      if (typeof topic !== 'string') {
+      if (topic && typeof topic !== 'string') {
         if (!topic.subTopics) topic.subTopics = [];
         topic.subTopics.push("New Detail");
       }
@@ -190,56 +192,7 @@ export function SyllabusManagement() {
     });
   };
 
-  const syncTopicWithBank = async (topicName: string, sectionName: string) => {
-    setIsSyncing(topicName);
-    const examCat = selectedCategory as 'MTS' | 'POSTMAN' | 'PA' | 'IP' | 'GROUP B';
-    try {
-      // 1. Find if topic exists in bank
-      const existing = bankTopics.find(t => t.title.toLowerCase() === topicName.toLowerCase());
-      
-      if (existing) {
-        // Topic exists, ensure it's in this exam category
-        if (!existing.examCategories.includes(examCat)) {
-          await updateTopic(existing.id, {
-            examCategories: [...existing.examCategories, examCat]
-          });
-          toast({ title: "Synced", description: `Added ${examCat} to existing topic: ${topicName}` });
-        }
-      } else {
-        // Topic doesn't exist, create it
-        // Find or create category for the section
-        let catId = bankCategories.find(c => c.name.toLowerCase() === sectionName.toLowerCase())?.id;
-        
-        if (!catId) {
-          const newCatRef = await addCategory({ 
-            name: sectionName,
-            examCategories: [examCat]
-          } as any);
-          catId = newCatRef.id;
-          // Optimistically update local state if needed
-        }
 
-        await addTopic({
-          title: topicName,
-          description: `Syllabus topic for ${sectionName}`,
-          icon: 'BookOpen',
-          categoryId: catId!,
-          part: 'Part A', // Default fallback
-          examCategories: [examCat],
-        } as any);
-        toast({ title: "Created", description: `New topic category created in MCQ bank: ${topicName}` });
-      }
-      
-      // Refresh bank topics
-      const updatedTopics = await getTopics();
-      setBankTopics(updatedTopics);
-    } catch (error) {
-      console.error("Failed to sync:", error);
-      toast({ title: "Sync Error", description: "Failed to sync with MCQ bank.", variant: "destructive" });
-    } finally {
-      setIsSyncing(null);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -437,7 +390,7 @@ export function SyllabusManagement() {
                                             placeholder="Topic Name"
                                             className="h-7 text-[13px] border-none p-0 focus-visible:ring-0 font-bold text-red-900"
                                           />
-                                          {bankTopics.some(t => t.title.toLowerCase() === topic.name.toLowerCase()) ? (
+                                          {topics.some(t => t.title.toLowerCase() === topic.name.toLowerCase()) ? (
                                             <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
                                           ) : (
                                             <Button 
@@ -447,7 +400,7 @@ export function SyllabusManagement() {
                                               onClick={() => syncTopicWithBank(topic.name, section.sectionName)}
                                               disabled={isSyncing === topic.name}
                                             >
-                                              {isSyncing === topic.name ? <RefreshCwIcon className="h-3 w-3 animate-spin" /> : <AlertCircle className="h-3 w-3" />}
+                                              {isSyncing === topic.name ? <RefreshCw className="h-3 w-3 animate-spin" /> : <AlertCircle className="h-3 w-3" />}
                                             </Button>
                                           )}
                                         </div>

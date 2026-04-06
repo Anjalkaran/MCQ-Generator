@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
@@ -10,7 +9,7 @@ import {
   hasUserSubmittedFeedback, 
   getOnlineUsers as fetchOnlineUsers 
 } from '@/lib/firestore';
-import type { UserData, Category, Topic, VideoClass, StudyMaterial, WeeklyTest, DailyTest, Notification } from '@/lib/types';
+import type { UserData, Category, Topic, VideoClass, StudyMaterial, WeeklyTest, DailyTest, Notification, SyllabusBlueprint } from '@/lib/types';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -24,10 +23,13 @@ interface DashboardContextType {
   weeklyTests: WeeklyTest[];
   dailyTests: DailyTest[];
   notifications: Notification[];
+  syllabi: SyllabusBlueprint[];
+  syllabusMCQs: any[];
   onlineUsers: any[];
   isLoading: boolean;
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>;
   hasGivenFeedback: boolean;
+  refreshDashboardData: () => Promise<void>;
 }
 
 export const DashboardContext = createContext<DashboardContextType | null>(null);
@@ -49,6 +51,8 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [rawStudyMaterials, setRawStudyMaterials] = useState<StudyMaterial[]>([]);
   const [rawWeeklyTests, setRawWeeklyTests] = useState<WeeklyTest[]>([]);
   const [rawDailyTests, setRawDailyTests] = useState<DailyTest[]>([]);
+  const [rawSyllabi, setRawSyllabi] = useState<SyllabusBlueprint[]>([]);
+  const [rawSyllabusMCQs, setRawSyllabusMCQs] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -62,7 +66,13 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       return; 
     }
     
-    return onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      // If we already have data and the user hasn't changed, don't re-fetch everything
+      if (currentUser && user?.uid === currentUser.uid && userData) {
+        setIsLoading(false);
+        return;
+      }
+
       if (currentUser) {
         setUser(currentUser);
         try {
@@ -85,6 +95,8 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
           setRawStudyMaterials(data.studyMaterials || []);
           setRawWeeklyTests(data.weeklyTests || []);
           setRawDailyTests(data.dailyTests || []);
+          setRawSyllabi(data.syllabi || []);
+          setRawSyllabusMCQs(data.syllabusMCQs || []);
           setNotifications(data.notifications || []);
           setHasGivenFeedback(feedbackStatus);
         } catch (error) { 
@@ -101,7 +113,9 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
       }
     });
-  }, [router, pathname]);
+
+    return () => unsubscribe();
+  }, [router]);
 
   useEffect(() => {
     if (user?.uid) {
@@ -131,8 +145,34 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     }
   }, [userData?.email]);
 
+  const refreshDashboardData = async () => {
+    if (!user) return;
+    try {
+      const [data, feedbackStatus] = await Promise.all([
+        getDashboardData(user.uid), 
+        hasUserSubmittedFeedback(user.uid)
+      ]);
+      
+      if (data.userData) {
+        setUserData(data.userData);
+        setRawCategories(data.categories || []);
+        setRawTopics(data.topics || []);
+        setRawVideoClasses(data.videoClasses || []);
+        setRawStudyMaterials(data.studyMaterials || []);
+        setRawWeeklyTests(data.weeklyTests || []);
+        setRawDailyTests(data.dailyTests || []);
+        setRawSyllabi(data.syllabi || []);
+        setRawSyllabusMCQs(data.syllabusMCQs || []);
+        setNotifications(data.notifications || []);
+        setHasGivenFeedback(feedbackStatus);
+      }
+    } catch (e) {
+      console.error("Manual refresh error:", e);
+    }
+  };
+
   const filteredContent = useMemo(() => {
-    if (!userData) return { categories: [], topics: [], videoClasses: [], studyMaterials: [], weeklyTests: [], dailyTests: [] };
+    if (!userData) return { categories: [], topics: [], videoClasses: [], studyMaterials: [], syllabusMCQs: [], weeklyTests: [], dailyTests: [], syllabi: [] };
     
     const userCat = userData.examCategory;
     
@@ -157,14 +197,12 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     const weeklyTests = rawWeeklyTests; // Allow all weekly tests, tabs will filter them
     const dailyTests = rawDailyTests;   // Allow all daily tests, tabs will filter them
     
-    const activeTopicIds = new Set(topics.map(t => t.id));
-    const activeSyllabusIds = new Set(topics.map(t => t.syllabusId).filter(Boolean) as string[]);
-    const studyMaterials = rawStudyMaterials.filter(m => 
-        activeTopicIds.has(m.topicId) || activeSyllabusIds.has(m.topicId)
-    );
+    const syllabusMCQs = rawSyllabusMCQs;
+    const studyMaterials = rawStudyMaterials;
 
-    return { categories, topics, videoClasses, studyMaterials, weeklyTests, dailyTests };
-  }, [userData?.examCategory, rawCategories, rawTopics, rawVideoClasses, rawStudyMaterials, rawWeeklyTests, rawDailyTests]);
+    const filteredContent = { categories, topics, videoClasses, studyMaterials, syllabusMCQs, weeklyTests, dailyTests, syllabi: rawSyllabi };
+    return filteredContent;
+  }, [userData?.examCategory, rawCategories, rawTopics, rawVideoClasses, rawStudyMaterials, rawWeeklyTests, rawDailyTests, rawSyllabi, rawSyllabusMCQs]);
 
   const contextValue = useMemo(() => ({ 
     user, 
@@ -174,8 +212,9 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     onlineUsers, 
     isLoading, 
     setUserData, 
-    hasGivenFeedback 
-  }), [user, userData, filteredContent, notifications, onlineUsers, isLoading, hasGivenFeedback]);
+    hasGivenFeedback,
+    refreshDashboardData
+  }), [user, userData, filteredContent, notifications, onlineUsers, isLoading, hasGivenFeedback, refreshDashboardData]);
 
   return (
     <DashboardContext.Provider value={contextValue}>
