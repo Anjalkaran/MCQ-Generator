@@ -7,7 +7,7 @@
     "rules": "storage.rules"
   },
   "hosting": {
-    "site": "anjalkaran-new",
+    "site": "quizwiz-be479",
     "source": ".",
     "ignore": [
       "firebase.json",
