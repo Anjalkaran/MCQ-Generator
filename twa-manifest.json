@@ -1,0 +1,50 @@
+{
+  "packageId": "in.anjalkaran",
+  "host": "anjalkaran.in",
+  "name": "Anjalkaran",
+  "launcherName": "Anjalkaran",
+  "display": "standalone",
+  "themeColor": "#D62927",
+  "themeColorDark": "#000000",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#FFFFFF",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://anjalkaran.in/bird-icon.png",
+  "maskableIconUrl": "https://anjalkaran.in/bird-icon.png",
+  "monochromeIconUrl": "https://anjalkaran.in/bird-icon.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": ".\\android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "5",
+  "appVersionCode": 7,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://anjalkaran.in/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://anjalkaran.in/",
+  "minSdkVersion": 21,
+  "orientation": "any",
+  "fingerprints": [
+    "39:B9:D4:74:6F:99:5D:49:12:1E:51:13:71:75:B7:80:DB:56:E1:68:64:1B:E8:B9:AF:13:BC:1A:17:F8:E5:B9"
+  ],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": [],
+  "appVersion": "5"
+}

@@ -38,7 +38,7 @@ export function PdfViewer({ fileUrl, isAdmin = false }: { fileUrl: string, isAdm
     }
 
     return (
-        <div className="flex-grow overflow-hidden relative group">
+        <div className="h-full flex flex-col overflow-hidden relative group">
             <ScrollArea className="h-full scrollbar-slate">
                 <div 
                     className={cn(
@@ -204,7 +204,7 @@ export function MaterialContent({ material, isAdmin = false, isFullPage = false 
                 )}
             </div>
 
-            <div className="flex-grow relative overflow-hidden">
+            <div className="flex-grow relative overflow-hidden flex flex-col">
                 {isHtml ? (
                     <ScrollArea className="h-full">
                         <div className="max-w-4xl mx-auto p-4 sm:p-12 pb-32">
