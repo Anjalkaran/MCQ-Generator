@@ -9,6 +9,7 @@ import { Search, Loader2, Download, FileText } from 'lucide-react';
 import type { MaterialDownload } from '@/lib/types';
 import { getMaterialDownloads } from '@/lib/firestore';
 import { format } from 'date-fns';
+import { normalizeDate } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 export function DownloadHistoryManagement() {
@@ -50,7 +51,7 @@ export function DownloadHistoryManagement() {
                 `"${d.userName}"`,
                 `"${d.userEmail}"`,
                 `"${d.materialTitle}"`,
-                `"${format(d.downloadedAt, 'dd/MM/yyyy p')}"`
+                `"${format(normalizeDate(d.downloadedAt) || new Date(), 'dd/MM/yyyy p')}"`
             ].join(','))
         ].join('\n');
 
@@ -123,7 +124,7 @@ export function DownloadHistoryManagement() {
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-right text-sm">
-                                                {format(d.downloadedAt, 'dd/MM/yyyy p')}
+                                                {format(normalizeDate(d.downloadedAt) || new Date(), 'dd/MM/yyyy p')}
                                             </TableCell>
                                         </TableRow>
                                     ))

@@ -105,9 +105,9 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
 
   const reasoningTopics = useMemo(() => {
     const reasoningCategories = categories.filter(c => 
-        c.name.toLowerCase().includes("reasoning") || 
-        c.name.toLowerCase().includes("non-verbal") ||
-        c.name.toLowerCase().includes("non verbal")
+        (c.name || '').toLowerCase().includes("reasoning") || 
+        (c.name || '').toLowerCase().includes("non-verbal") ||
+        (c.name || '').toLowerCase().includes("non verbal")
     );
     if (reasoningCategories.length === 0) return [];
     
@@ -116,7 +116,7 @@ export function ReasoningBankManagement({ initialQuestions }: ReasoningBankManag
     return topics.filter(t => 
         reasoningCategoryIds.has(t.categoryId) &&
         t.part === 'Part B' &&
-        (t.examCategories.includes('POSTMAN') || t.examCategories.includes('PA'))
+        (t.examCategories?.includes('POSTMAN') || t.examCategories?.includes('PA'))
     );
   }, [topics, categories]);
 

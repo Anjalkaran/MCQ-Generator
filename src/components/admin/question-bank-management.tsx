@@ -83,12 +83,17 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
       return bankedQuestions;
     }
     const lowercasedFilter = searchTerm.toLowerCase();
-    return bankedQuestions.filter(question =>
-      question.fileName.toLowerCase().includes(lowercasedFilter) ||
-      question.examCategory.toLowerCase().includes(lowercasedFilter) ||
-      (question.examYear && question.examYear.toLowerCase().includes(lowercasedFilter)) ||
-      question.content.toLowerCase().includes(lowercasedFilter)
-    );
+    return bankedQuestions.filter(question => {
+      const fileName = (question.fileName || '').toLowerCase();
+      const examCategory = (question.examCategory || '').toLowerCase();
+      const examYear = (question.examYear || '').toLowerCase();
+      const content = (question.content || '').toLowerCase();
+      
+      return fileName.includes(lowercasedFilter) ||
+             examCategory.includes(lowercasedFilter) ||
+             examYear.includes(lowercasedFilter) ||
+             content.includes(lowercasedFilter);
+    });
   }, [searchTerm, bankedQuestions]);
 
   const onSubmit = async (values: z.infer<typeof questionBankSchema>) => {

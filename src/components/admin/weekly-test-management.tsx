@@ -20,6 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { format } from 'date-fns';
+import { normalizeDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
@@ -591,9 +592,9 @@ export function WeeklyTestManagement({ initialWeeklyTests, initialBankedQuestion
                                         {t.scheduledAt ? (
                                             <div className="flex flex-col">
                                                 <span className="text-amber-600 font-bold">Scheduled:</span>
-                                                <span>{format(t.scheduledAt, 'dd/MM/yyyy HH:mm')}</span>
+                                                <span>{format(normalizeDate(t.scheduledAt) || new Date(), 'dd/MM/yyyy HH:mm')}</span>
                                             </div>
-                                        ) : t.createdAt ? format(t.createdAt, 'dd/MM/yyyy') : 'N/A'}
+                                        ) : t.createdAt ? format(normalizeDate(t.createdAt) || new Date(), 'dd/MM/yyyy') : 'N/A'}
                                     </TableCell>
                                     <TableCell className="text-right space-x-2">
                                         <Button variant="ghost" size="icon" onClick={() => handleManageQuestions(t)} title="Edit Questions"><List className="h-4 w-4 text-primary" /></Button>

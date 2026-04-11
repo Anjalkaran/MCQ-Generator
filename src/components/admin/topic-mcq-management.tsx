@@ -293,11 +293,14 @@ export function TopicMCQManagement({ initialTopics, initialTopicMCQs, onUpdate }
         return topicMCQs;
     }
     const lowercasedFilter = searchTerm.toLowerCase();
-    return topicMCQs.filter(tm => 
-        getTopicTitle(tm.topicId).toLowerCase().includes(lowercasedFilter) ||
-        tm.fileName.toLowerCase().includes(lowercasedFilter) ||
-        tm.content.toLowerCase().includes(lowercasedFilter)
-    );
+    return topicMCQs.filter(tm => {
+        const title = getTopicTitle(tm.topicId).toLowerCase();
+        const fileName = (tm.fileName || '').toLowerCase();
+        const content = (tm.content || '').toLowerCase();
+        return title.includes(lowercasedFilter) ||
+               fileName.includes(lowercasedFilter) ||
+               content.includes(lowercasedFilter);
+    });
   }, [searchTerm, topicMCQs, topics]);
 
 

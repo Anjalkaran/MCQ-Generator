@@ -15,7 +15,7 @@ import { format } from 'date-fns';
 import { Star, MessageSquare, Edit, Loader2, Filter, Mail, User, Info, CheckCircle2, Inbox, Trash2, AlertCircle } from 'lucide-react';
 import { replyToFeedback, deleteFeedback } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { cn, normalizeDate } from '@/lib/utils';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -206,7 +206,7 @@ export function FeedbackManagement({ initialFeedback }: FeedbackManagementProps)
                                                         </div>
                                                     )}
                                                     <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tight pl-1">
-                                                        {format(item.createdAt, 'PP')}
+                                                        {format(normalizeDate(item.createdAt) || new Date(), 'PP')}
                                                     </div>
                                                 </div>
                                             </TableCell>
@@ -299,7 +299,7 @@ export function FeedbackManagement({ initialFeedback }: FeedbackManagementProps)
                              Feedback Reply
                         </DialogTitle>
                         <DialogDescription>
-                            From **{currentFeedback?.userName || 'User'}** on {currentFeedback ? format(currentFeedback.createdAt, 'PPp') : ''}
+                            From **{currentFeedback?.userName || 'User'}** on {currentFeedback ? format(normalizeDate(currentFeedback.createdAt) || new Date(), 'PPp') : ''}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-5 py-4">

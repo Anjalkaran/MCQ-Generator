@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription as AlertDialogDesc, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { normalizeDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Checkbox } from '../ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -87,16 +88,18 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials, initi
     const filteredMaterials = useMemo(() => {
         const lowercasedFilter = searchTerm.toLowerCase();
         return materials.filter(material => {
-          const topic = topics.find(t => t.id === material.topicId);
-          return topic?.title.toLowerCase().includes(lowercasedFilter) || material.fileName.toLowerCase().includes(lowercasedFilter);
+            const topic = topics.find(t => t.id === material.topicId);
+            const topicTitle = (topic?.title || '').toLowerCase();
+            const fileName = (material.fileName || '').toLowerCase();
+            return topicTitle.includes(lowercasedFilter) || fileName.includes(lowercasedFilter);
         });
-      }, [searchTerm, materials, topics]);
+    }, [searchTerm, materials, topics]);
 
     const stats = useMemo(() => ({
         total: materials.length,
-        mtsCount: topics.filter(t => t.examCategories.includes('MTS')).length,
-        postmanCount: topics.filter(t => t.examCategories.includes('POSTMAN')).length,
-        paCount: topics.filter(t => t.examCategories.includes('PA')).length,
+        mtsCount: topics.filter(t => t.examCategories?.includes('MTS')).length,
+        postmanCount: topics.filter(t => t.examCategories?.includes('POSTMAN')).length,
+        paCount: topics.filter(t => t.examCategories?.includes('PA')).length,
     }), [materials, topics]);
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -436,7 +439,7 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials, initi
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex flex-wrap gap-1">
-                                                        {topic?.examCategories.map(cat => (
+                                                        {topic?.examCategories?.map(cat => (
                                                             <Badge key={cat} variant="secondary" className="text-[10px] uppercase py-0 px-1.5 font-bold">
                                                                 {cat}
                                                             </Badge>
@@ -451,7 +454,7 @@ export function StudyMaterialManagement({ initialTopics, initialMaterials, initi
                                                 <TableCell>
                                                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                                         <Clock className="h-3 w-3" />
-                                                        {format(new Date(material.uploadedAt), 'MMM dd, yyyy')}
+                                                        {format(normalizeDate(material.uploadedAt) || new Date(), 'MMM dd, yyyy')}
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-right">

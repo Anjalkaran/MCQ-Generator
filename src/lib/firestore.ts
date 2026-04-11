@@ -6,6 +6,16 @@ import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT, GROUPB_BLUEPRINT, IP_BL
 import { normalizeDate } from './utils';
 
 // USER MANAGEMENT
+const clean = (obj: any) => {
+    const newObj: any = { ...obj };
+    Object.keys(newObj).forEach(key => {
+        if (newObj[key] === undefined) {
+            delete newObj[key];
+        }
+    });
+    return newObj;
+};
+
 export const getUserData = async (userId: string): Promise<UserData | null> => {
     const db = getFirebaseDb();
     if (!db) return null;
@@ -193,6 +203,7 @@ export const isQuestionBookmarked = async (userId: string, questionIdOrText: str
     const db = getFirebaseDb();
     if (!db) return false;
 
+    if (!questionIdOrText) return false;
     const questionId = questionIdOrText.includes('<') || questionIdOrText.length > 50 
         ? getSafeId(questionIdOrText) 
         : questionIdOrText;
@@ -701,10 +712,10 @@ export const getSyllabusMCQs = async (): Promise<TopicMCQ[]> => {
 export const addSyllabusMCQ = async (mcq: Omit<TopicMCQ, 'id'>): Promise<DocumentReference> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
-    return await addDoc(collection(db, 'syllabusMCQs'), { 
+    return await addDoc(collection(db, 'syllabusMCQs'), clean({ 
         ...mcq, 
         uploadedAt: serverTimestamp() 
-    });
+    }));
 };
 
 export const deleteSyllabusMCQ = async (id: string): Promise<void> => {
@@ -742,10 +753,10 @@ export const getSyllabusMaterials = async (): Promise<StudyMaterial[]> => {
 export const addSyllabusMaterial = async (material: Omit<StudyMaterial, 'id'>): Promise<DocumentReference> => {
     const db = getFirebaseDb();
     if (!db) throw new Error("Firestore is not initialized");
-    return await addDoc(collection(db, 'syllabusMaterials'), { 
+    return await addDoc(collection(db, 'syllabusMaterials'), clean({ 
         ...material, 
         uploadedAt: serverTimestamp() 
-    });
+    }));
 };
 
 
