@@ -49,7 +49,7 @@ function DailyTestCard({ test, index }: { test: DailyTest; index: number }) {
                 examCategory: userData.examCategory,
                 language: selectedLanguage,
                 testTitle: test.title,
-                duration: test.duration,
+                duration: test.duration || undefined,
             });
 
             if (!quizId) throw new Error("Generation failed.");
@@ -66,7 +66,8 @@ function DailyTestCard({ test, index }: { test: DailyTest; index: number }) {
         window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
     };
 
-    const isNew = test.createdAt ? isToday(test.createdAt) : false;
+    const createdDate = test.createdAt ? normalizeDate(test.createdAt) : null;
+    const isNew = createdDate ? isToday(createdDate) : false;
 
     return (
         <Card 
@@ -91,10 +92,10 @@ function DailyTestCard({ test, index }: { test: DailyTest; index: number }) {
                     )}>
                         <BookOpen className="h-5 w-5" />
                     </div>
-                    {test.createdAt && (
+                    {createdDate && (
                         <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground bg-muted px-2 py-1 rounded-md flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
-                            {isToday(test.createdAt) ? 'Today' : isYesterday(test.createdAt) ? 'Yesterday' : format(test.createdAt, 'MMM d')}
+                            {isToday(createdDate) ? 'Today' : isYesterday(createdDate) ? 'Yesterday' : format(createdDate, 'MMM d')}
                         </div>
                     )}
                 </div>
@@ -162,6 +163,7 @@ function DailyTestSpotlight({ test }: { test: DailyTest }) {
     const [selectedLanguage, setSelectedLanguage] = useState<string>('English');
 
     const availableLanguages = userData?.examCategory === 'IP' ? ipLanguages : allLanguages;
+    const createdDate = test.createdAt ? normalizeDate(test.createdAt) : null;
 
     const startTest = async () => {
         setIsGenerating(true);
@@ -172,7 +174,7 @@ function DailyTestSpotlight({ test }: { test: DailyTest }) {
                 examCategory: userData?.examCategory || 'MTS',
                 language: selectedLanguage,
                 testTitle: test.title,
-                duration: test.duration,
+                duration: test.duration || undefined,
             });
             if (quizId) router.push(`/quiz/${quizId}`);
         } catch (error: any) {
@@ -194,7 +196,7 @@ function DailyTestSpotlight({ test }: { test: DailyTest }) {
                         <div className="flex items-center gap-6 text-red-600 font-bold tracking-widest text-xs uppercase">
                             <div className="flex items-center gap-2">
                                 <Calendar className="h-4 w-4" />
-                                {test.createdAt ? format(test.createdAt, 'EEEE, dd MMMM yyyy') : 'Live Now'}
+                                {createdDate ? format(createdDate, 'EEEE, dd MMMM yyyy') : 'Live Now'}
                             </div>
                             {test.duration && (
                                 <div className="flex items-center gap-2 px-3 py-1 bg-red-50 rounded-lg">
@@ -259,6 +261,7 @@ function DailyTestArchiveItem({ test }: { test: DailyTest }) {
     const { userData } = useDashboard();
     const router = useRouter();
     const [isGenerating, setIsGenerating] = useState(false);
+    const createdDate = test.createdAt ? normalizeDate(test.createdAt) : null;
 
     const startTest = async () => {
         setIsGenerating(true);
@@ -269,7 +272,7 @@ function DailyTestArchiveItem({ test }: { test: DailyTest }) {
                 examCategory: userData?.examCategory || 'MTS',
                 language: 'English',
                 testTitle: test.title,
-                duration: test.duration,
+                duration: test.duration || undefined,
             });
             if (quizId) router.push(`/quiz/${quizId}`);
         } finally {
@@ -288,7 +291,7 @@ function DailyTestArchiveItem({ test }: { test: DailyTest }) {
                     <div className="text-[10px] text-slate-400 flex items-center gap-2">
                         <span className="flex items-center gap-1 font-medium italic">
                             <Calendar className="h-2.5 w-2.5" />
-                            {test.createdAt ? format(test.createdAt, 'MMM dd, yyyy') : 'No Date'}
+                            {createdDate ? format(createdDate, 'MMM dd, yyyy') : 'No Date'}
                         </span>
                     </div>
                 </div>
@@ -326,7 +329,8 @@ export default function DailyTestPage() {
         const userCatUpper = userCategory.toUpperCase();
         const singularCat = (test as any).examCategory?.toUpperCase();
         
-        const isScheduledForFuture = test.scheduledAt && normalizeDate(test.scheduledAt)! > new Date();
+        const scheduledDate = test.scheduledAt ? normalizeDate(test.scheduledAt) : null;
+        const isScheduledForFuture = scheduledDate && scheduledDate > new Date();
         if (isScheduledForFuture) return false;
 
         const matchesCat = cats.includes(userCatUpper) || singularCat === userCatUpper;
@@ -340,14 +344,20 @@ export default function DailyTestPage() {
             const userCatUpper = userCategory.toUpperCase();
             const singularCat = (test as any).examCategory?.toUpperCase();
             const isMatch = cats.includes(userCatUpper) || singularCat === userCatUpper;
-            const isScheduledForFuture = test.scheduledAt && normalizeDate(test.scheduledAt)! > new Date();
+            
+            const scheduledDate = test.scheduledAt ? normalizeDate(test.scheduledAt) : null;
+            const isScheduledForFuture = scheduledDate && scheduledDate > new Date();
             return isMatch && isScheduledForFuture;
         })
-        .sort((a,b) => normalizeDate(a.scheduledAt)!.getTime() - normalizeDate(b.scheduledAt)!.getTime())[0];
+        .sort((a, b) => {
+            const dateA = normalizeDate(a.scheduledAt)?.getTime() || 0;
+            const dateB = normalizeDate(b.scheduledAt)?.getTime() || 0;
+            return dateA - dateB;
+        })[0];
 
     const sortedTests = [...filteredTests].sort((a, b) => {
-        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        const dateA = a.createdAt ? (normalizeDate(a.createdAt)?.getTime() || 0) : 0;
+        const dateB = b.createdAt ? (normalizeDate(b.createdAt)?.getTime() || 0) : 0;
         return dateB - dateA;
     });
 
@@ -357,8 +367,9 @@ export default function DailyTestPage() {
 
     // Group Archive by Month
     const groupedArchive = archive.reduce((acc, test) => {
-        if (!test.createdAt) return acc;
-        const monthKey = format(test.createdAt, 'MMMM yyyy');
+        const date = test.createdAt ? normalizeDate(test.createdAt) : null;
+        if (!date) return acc;
+        const monthKey = format(date, 'MMMM yyyy');
         if (!acc[monthKey]) acc[monthKey] = [];
         acc[monthKey].push(test);
         return acc;
@@ -413,7 +424,7 @@ export default function DailyTestPage() {
                                 LIVE IN
                             </div>
                             <CountdownTimer 
-                                targetDate={normalizeDate(nextUpcomingTest.scheduledAt)!} 
+                                targetDate={normalizeDate(nextUpcomingTest.scheduledAt) || new Date()} 
                                 className="bg-transparent border-none shadow-none p-0" 
                             />
                         </div>
@@ -516,7 +527,7 @@ function EmptyState({ userCategory, onRefresh, nextUpcomingTest }: any) {
             {nextUpcomingTest && (
                 <div className="bg-white p-8 rounded-[2rem] border-2 border-red-50 shadow-xl shadow-red-100/50">
                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">RELEASING IN</div>
-                    <CountdownTimer targetDate={normalizeDate(nextUpcomingTest.scheduledAt)!} className="bg-transparent border-none shadow-none p-0" />
+                    <CountdownTimer targetDate={normalizeDate(nextUpcomingTest.scheduledAt) || new Date()} className="bg-transparent border-none shadow-none p-0" />
                 </div>
             )}
 

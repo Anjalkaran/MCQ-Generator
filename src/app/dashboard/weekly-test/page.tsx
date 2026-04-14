@@ -97,7 +97,7 @@ function WeeklyTestTimelineItem({ test, index, isLast, history }: { test: Weekly
                                 </span>
                                 <span className="flex items-center gap-1 text-slate-400 text-xs">
                                     <Calendar className="h-3 w-3" />
-                                    {test.createdAt ? format(test.createdAt, 'MMM d, yyyy') : 'Recently released'}
+                                    {test.createdAt ? format(normalizeDate(test.createdAt) || new Date(), 'MMM d, yyyy') : 'Recently released'}
                                 </span>
                                 {test.duration && (
                                     <span className="flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full text-[10px] font-bold border border-amber-100">
@@ -220,7 +220,8 @@ export default function WeeklyTestPage() {
         const userCatUpper = userCategory.toUpperCase();
         const singularCat = (test as any).examCategory?.toUpperCase();
         
-        const isScheduledForFuture = test.scheduledAt && normalizeDate(test.scheduledAt)! > new Date();
+        const scheduledDate = test.scheduledAt ? normalizeDate(test.scheduledAt) : null;
+        const isScheduledForFuture = scheduledDate && scheduledDate > new Date();
         if (isScheduledForFuture) return false;
 
         return cats.includes(userCatUpper) || singularCat === userCatUpper;
@@ -232,10 +233,16 @@ export default function WeeklyTestPage() {
             const userCatUpper = userCategory.toUpperCase();
             const singularCat = (test as any).examCategory?.toUpperCase();
             const isMatch = cats.includes(userCatUpper) || singularCat === userCatUpper;
-            const isScheduledForFuture = test.scheduledAt && normalizeDate(test.scheduledAt)! > new Date();
+            
+            const scheduledDate = test.scheduledAt ? normalizeDate(test.scheduledAt) : null;
+            const isScheduledForFuture = scheduledDate && scheduledDate > new Date();
             return isMatch && isScheduledForFuture;
         })
-        .sort((a,b) => normalizeDate(a.scheduledAt)!.getTime() - normalizeDate(b.scheduledAt)!.getTime())[0];
+        .sort((a, b) => {
+            const dateA = normalizeDate(a.scheduledAt)?.getTime() || 0;
+            const dateB = normalizeDate(b.scheduledAt)?.getTime() || 0;
+            return dateA - dateB;
+        })[0];
 
     return (
         <div className="space-y-10 pb-12">
@@ -265,7 +272,7 @@ export default function WeeklyTestPage() {
                                 NEXT CHALLENGE IN
                             </div>
                             <CountdownTimer 
-                                targetDate={normalizeDate(nextUpcomingTest.scheduledAt)!} 
+                                targetDate={normalizeDate(nextUpcomingTest.scheduledAt) || new Date()} 
                                 className="bg-white/80 backdrop-blur-md shadow-2xl border-2 border-red-100 rounded-[2.5rem] px-8 py-6 scale-90 sm:scale-100" 
                             />
                             <div className="text-[10px] font-bold text-slate-400 max-w-[200px] text-center leading-tight">

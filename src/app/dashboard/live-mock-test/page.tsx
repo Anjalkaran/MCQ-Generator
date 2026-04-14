@@ -55,12 +55,26 @@ export default function LiveMockTestPage() {
     
     const now = new Date();
     const upcomingTests = allLiveTests
-        .filter(test => normalizeDate(test.endTime)! > now)
-        .sort((a, b) => normalizeDate(a.startTime)!.getTime() - normalizeDate(b.startTime)!.getTime());
+        .filter(test => {
+            const date = normalizeDate(test.endTime);
+            return date ? date > now : false;
+        })
+        .sort((a, b) => {
+            const dateA = normalizeDate(a.startTime)?.getTime() || 0;
+            const dateB = normalizeDate(b.startTime)?.getTime() || 0;
+            return dateA - dateB;
+        });
 
     const pastTests = allLiveTests
-        .filter(test => normalizeDate(test.endTime)! <= now)
-        .sort((a, b) => normalizeDate(b.endTime)!.getTime() - normalizeDate(a.endTime)!.getTime());
+        .filter(test => {
+            const date = normalizeDate(test.endTime);
+            return date ? date <= now : false;
+        })
+        .sort((a, b) => {
+            const dateA = normalizeDate(a.endTime)?.getTime() || 0;
+            const dateB = normalizeDate(b.endTime)?.getTime() || 0;
+            return dateB - dateA;
+        });
 
     return (
         <div className="space-y-6">

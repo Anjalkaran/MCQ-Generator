@@ -226,15 +226,83 @@ export function SyllabusExplorer({ examCategory, isAdmin }: SyllabusExplorerProp
                                               </div>
                                             </div>
                                             
-                                            {/* Sub-topics list */}
+                                            {/* Sub-topics list with classification & grid logic */}
                                             {topicObj.subTopics && topicObj.subTopics.length > 0 && (
-                                              <div className="ml-4 space-y-1.5 border-l-2 border-red-50 pl-3">
-                                                {topicObj.subTopics.map((sub: string, sIdx: number) => (
-                                                  <div key={sIdx} className="flex items-start gap-2 text-slate-500 group/sub">
-                                                    <ChevronRight className="h-3 w-3 mt-0.5 text-red-300 shrink-0" />
-                                                    <span className="text-[11px] font-medium leading-normal">{sub}</span>
-                                                  </div>
-                                                ))}
+                                              <div className="mt-3 ml-4 border-l-2 border-red-100/50 pl-4">
+                                                {(() => {
+                                                  const subTopics = topicObj.subTopics;
+                                                  
+                                                  // Heuristic classification for Postal topics
+                                                  const groups: Record<string, string[]> = {
+                                                    "Savings & Schemes": [],
+                                                    "Insurance": [],
+                                                    "Banking & Remittance": [],
+                                                    "General": []
+                                                  };
+
+                                                  const savingsKeywords = ['SB', 'RD', 'TD', 'MIS', 'SCSS', 'PPF', 'SSA', 'NSC', 'KVP', 'MSSC', 'SAVINGS', 'SCHEME', 'CERTIFICATE'];
+                                                  const insuranceKeywords = ['PLI', 'RPLI', 'INSURANCE', 'LIFE'];
+                                                  const bankingKeywords = ['IPPB', 'BANKING', 'REMITTANCE', 'MONEY', 'PAYMENTS', 'MAILS'];
+
+                                                  subTopics.forEach((sub: string) => {
+                                                    const s = sub.toUpperCase();
+                                                    if (savingsKeywords.some(k => s.includes(k))) groups["Savings & Schemes"].push(sub);
+                                                    else if (insuranceKeywords.some(k => s.includes(k))) groups["Insurance"].push(sub);
+                                                    else if (bankingKeywords.some(k => s.includes(k))) groups["Banking & Remittance"].push(sub);
+                                                    else groups["General"].push(sub);
+                                                  });
+
+                                                  const activeGroups = Object.entries(groups).filter(([_, items]) => items.length > 0);
+                                                  const shouldGroup = activeGroups.length > 1 && subTopics.length > 6;
+
+                                                  if (shouldGroup) {
+                                                    const groupStyles: Record<string, { badge: string, dot: string, line: string }> = {
+                                                      "Savings & Schemes": { badge: "text-blue-600 bg-blue-50/50", dot: "bg-blue-400", line: "bg-blue-100/30" },
+                                                      "Insurance": { badge: "text-emerald-600 bg-emerald-50/50", dot: "bg-emerald-400", line: "bg-emerald-100/30" },
+                                                      "Banking & Remittance": { badge: "text-amber-600 bg-amber-50/50", dot: "bg-amber-400", line: "bg-amber-100/30" },
+                                                      "General": { badge: "text-slate-500 bg-slate-50/50", dot: "bg-slate-300", line: "bg-slate-100/30" }
+                                                    };
+
+                                                    return (
+                                                      <div className="space-y-4">
+                                                        {activeGroups.map(([group, items]) => {
+                                                          const style = groupStyles[group] || groupStyles["General"];
+                                                          return (
+                                                            <div key={group} className="space-y-1.5">
+                                                              <div className="flex items-center gap-2">
+                                                                <span className={cn("text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md", style.badge)}>{group}</span>
+                                                                <div className={cn("h-px flex-1", style.line)} />
+                                                              </div>
+                                                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                                                                {items.map((sub: string, i: number) => (
+                                                                  <div key={i} className="flex items-start gap-1.5 text-slate-500 group/sub">
+                                                                    <div className={cn("h-1.5 w-1.5 rounded-full mt-1.5 shrink-0 opacity-60", style.dot)} />
+                                                                    <span className="text-[11px] font-medium leading-tight">{sub}</span>
+                                                                  </div>
+                                                                ))}
+                                                              </div>
+                                                            </div>
+                                                          );
+                                                        })}
+                                                      </div>
+                                                    );
+                                                  }
+
+                                                  // Default compact grid for non-groupable long lists
+                                                  return (
+                                                    <div className={cn(
+                                                      "grid gap-x-6 gap-y-1.5",
+                                                      subTopics.length > 4 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
+                                                    )}>
+                                                      {subTopics.map((sub: string, sIdx: number) => (
+                                                        <div key={sIdx} className="flex items-start gap-1.5 text-slate-500 group/sub">
+                                                          <ChevronRight className="h-3 w-3 mt-0.5 text-red-300 shrink-0" />
+                                                          <span className="text-[11px] font-medium leading-normal">{sub}</span>
+                                                        </div>
+                                                      ))}
+                                                    </div>
+                                                  );
+                                                })()}
                                               </div>
                                             )}
                                           </div>
