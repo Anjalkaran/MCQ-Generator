@@ -111,8 +111,17 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
   const [editingMaterial, setEditingMaterial] = useState<StudyMaterial | null>(null);
   const [editingMcq, setEditingMcq] = useState<TopicMCQ | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [editContentTa, setEditContentTa] = useState('');
+  const [editContentHi, setEditContentHi] = useState('');
+  const [editTitle, setEditTitle] = useState('');
+  const [editTitleTa, setEditTitleTa] = useState('');
+  const [editTitleHi, setEditTitleHi] = useState('');
+  const [selectedSubTopic, setSelectedSubTopic] = useState<string>('');
   
-  // JSON Paste States
+  // Reset sub-topic when topic changes
+  useEffect(() => {
+    setSelectedSubTopic('');
+  }, [selectedTopic]);
   const [isMcqPasteOpen, setIsMcqPasteOpen] = useState(false);
   const [mcqPasteValue, setMcqPasteValue] = useState('');
   const [isMaterialPasteOpen, setIsMaterialPasteOpen] = useState(false);
@@ -196,6 +205,7 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
             await addSyllabusMCQ({
               topicId: selectedTopic.id,
               topicName: selectedTopic.name,
+              subTopic: selectedSubTopic || undefined,
               fileName: file.name,
               content: content,
               uploadedAt: new Date()
@@ -223,6 +233,7 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
         await addSyllabusMaterial({
           topicId: selectedTopic.id,
           topicName: selectedTopic.name,
+          subTopic: selectedSubTopic || undefined,
           fileName: file.name,
           fileType: isHtml ? 'docx' : 'pdf',
           content: contentToStore,
@@ -248,6 +259,7 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
         await addSyllabusMCQ({
             topicId: selectedTopic.id,
             topicName: selectedTopic.name,
+            subTopic: selectedSubTopic || undefined,
             fileName: `Pasted_${new Date().getTime()}.json`,
             content: mcqPasteValue,
             uploadedAt: new Date()
@@ -289,6 +301,7 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
         await addSyllabusMaterial({
             topicId: selectedTopic.id,
             topicName: selectedTopic.name,
+            subTopic: selectedSubTopic || undefined,
             fileName: materialPasteTitle,
             fileName_ta: materialPasteTitleTa || undefined,
             fileName_hi: materialPasteTitleHi || undefined,
@@ -338,8 +351,16 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
     if (!editingMaterial) return;
     setIsLoading(true);
     try {
-        await updateSyllabusMaterial(editingMaterial.id, { content: editContent });
-        setMaterials(prev => prev.map(m => m.id === editingMaterial.id ? { ...m, content: editContent } : m));
+        const updateData = { 
+            fileName: editTitle,
+            fileName_ta: editTitleTa || undefined,
+            fileName_hi: editTitleHi || undefined,
+            content: editContent,
+            content_ta: editContentTa || undefined,
+            content_hi: editContentHi || undefined
+        };
+        await updateSyllabusMaterial(editingMaterial.id, updateData);
+        setMaterials(prev => prev.map(m => m.id === editingMaterial.id ? { ...m, ...updateData } : m));
         setEditingMaterial(null);
         toast({ title: 'Success', description: 'Article content updated' });
     } catch (e) {
@@ -501,6 +522,24 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
                   
                   <TabsContent value="mcqs" className="p-6 mt-0">
                     <div className="space-y-4">
+                      {selectedTopic.subTopics && selectedTopic.subTopics.length > 0 && (
+                        <div className="space-y-2 pb-2 border-b border-slate-100">
+                          <LabelWithIcon icon={<Layers className="h-4 w-4" />} label="Select Sub-topic" />
+                          <Select value={selectedSubTopic} onValueChange={setSelectedSubTopic}>
+                            <SelectTrigger className="w-full bg-white border-blue-100 ring-1 ring-blue-50">
+                              <SelectValue placeholder="All Sub-topics" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">All Sub-topics</SelectItem>
+                              {selectedTopic.subTopics.map(sub => (
+                                <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-[10px] text-slate-400 italic">Uploads will be associated with the selected sub-topic.</p>
+                        </div>
+                      )}
+
                       <div className="flex flex-col gap-2 mb-2">
                         <LabelWithIcon icon={<FileQuestion className="h-4 w-4" />} label="Question Papers" />
                         <div className="flex items-center gap-2">
@@ -527,7 +566,7 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
                       </div>
 
                       <div className="space-y-2">
-                        {mcqs.filter(m => m.topicId === selectedTopic.id || (m as any).topicName === selectedTopic.name).map(mcq => {
+                        {mcqs.filter(m => (m.topicId === selectedTopic.id || (m as any).topicName === selectedTopic.name) && (!selectedSubTopic || selectedSubTopic === 'none' || m.subTopic === selectedSubTopic)).map(mcq => {
                           const isShared = mcq.topicId !== selectedTopic.id;
                           return (
                             <div key={mcq.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl group border border-transparent hover:border-slate-200 transition-all">
@@ -545,9 +584,16 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
                                       <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-[8px] font-black rounded uppercase">Shared</span>
                                     )}
                                   </div>
-                                  <p className="text-[10px] text-slate-400 uppercase font-bold">
-                                    {normalizeDate(mcq.uploadedAt)?.toLocaleDateString() || 'Just now'}
-                                  </p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-[10px] text-slate-400 uppercase font-bold">
+                                      {normalizeDate(mcq.uploadedAt)?.toLocaleDateString() || 'Just now'}
+                                    </p>
+                                    {mcq.subTopic && (
+                                      <Badge variant="outline" className="h-4 px-1 text-[8px] font-black bg-white border-blue-100 text-blue-600 uppercase">
+                                        {mcq.subTopic}
+                                      </Badge>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                               <div className="flex items-center gap-1">
@@ -566,10 +612,10 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
                             </div>
                           );
                         })}
-                        {mcqs.filter(m => m.topicId === selectedTopic.id || (m as any).topicName === selectedTopic.name).length === 0 && (
+                        {mcqs.filter(m => (m.topicId === selectedTopic.id || (m as any).topicName === selectedTopic.name) && (!selectedSubTopic || selectedSubTopic === 'none' || m.subTopic === selectedSubTopic)).length === 0 && (
                           <div className="p-8 border-2 border-dashed border-slate-100 rounded-2xl text-center">
                             <AlertCircle className="h-8 w-8 text-slate-200 mx-auto mb-2" />
-                            <p className="text-xs text-slate-400 font-medium">No MCQs uploaded for this topic.</p>
+                            <p className="text-xs text-slate-400 font-medium">No MCQs found for this {selectedSubTopic && selectedSubTopic !== 'none' ? `sub-topic: ${selectedSubTopic}` : 'topic'}.</p>
                           </div>
                         )}
                       </div>
@@ -578,6 +624,24 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
 
                   <TabsContent value="materials" className="p-6 mt-0">
                     <div className="space-y-4">
+                      {selectedTopic.subTopics && selectedTopic.subTopics.length > 0 && (
+                        <div className="space-y-2 pb-2 border-b border-slate-100">
+                          <LabelWithIcon icon={<Layers className="h-4 w-4" />} label="Select Sub-topic" />
+                          <Select value={selectedSubTopic} onValueChange={setSelectedSubTopic}>
+                            <SelectTrigger className="w-full bg-white border-emerald-100 ring-1 ring-emerald-50">
+                              <SelectValue placeholder="All Sub-topics" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">All Sub-topics</SelectItem>
+                              {selectedTopic.subTopics.map(sub => (
+                                <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-[10px] text-slate-400 italic">Uploads will be associated with the selected sub-topic.</p>
+                        </div>
+                      )}
+
                       <div className="flex flex-col gap-2 mb-2">
                         <LabelWithIcon icon={<BookOpen className="h-4 w-4" />} label="Study Materials" />
                         <div className="flex items-center gap-2">
@@ -604,7 +668,7 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
                       </div>
 
                       <div className="space-y-2">
-                        {materials.filter(m => m.topicId === selectedTopic.id || (m as any).topicName === selectedTopic.name).map(mat => {
+                        {materials.filter(m => (m.topicId === selectedTopic.id || (m as any).topicName === selectedTopic.name) && (!selectedSubTopic || selectedSubTopic === 'none' || m.subTopic === selectedSubTopic)).map(mat => {
                           const isShared = mat.topicId !== selectedTopic.id;
                           return (
                             <div key={mat.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl group border border-transparent hover:border-slate-200 transition-all">
@@ -622,9 +686,16 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
                                       <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-[8px] font-black rounded uppercase">Shared</span>
                                     )}
                                   </div>
-                                  <p className="text-[10px] text-slate-400 uppercase font-bold">
-                                    {normalizeDate(mat.uploadedAt)?.toLocaleDateString() || 'Just now'}
-                                  </p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-[10px] text-slate-400 uppercase font-bold">
+                                      {normalizeDate(mat.uploadedAt)?.toLocaleDateString() || 'Just now'}
+                                    </p>
+                                    {mat.subTopic && (
+                                      <Badge variant="outline" className="h-4 px-1 text-[8px] font-black bg-white border-emerald-100 text-emerald-600 uppercase">
+                                        {mat.subTopic}
+                                      </Badge>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                               <div className="flex items-center gap-1">
@@ -636,6 +707,11 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
                                           onClick={() => {
                                               setEditingMaterial(mat);
                                               setEditContent(mat.content);
+                                              setEditContentTa(mat.content_ta || '');
+                                              setEditContentHi(mat.content_hi || '');
+                                              setEditTitle(mat.fileName);
+                                              setEditTitleTa(mat.fileName_ta || '');
+                                              setEditTitleHi(mat.fileName_hi || '');
                                           }}
                                       >
                                           <FileText className="h-4 w-4" />
@@ -648,10 +724,10 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
                             </div>
                           );
                         })}
-                        {materials.filter(m => m.topicId === selectedTopic.id || (m as any).topicName === selectedTopic.name).length === 0 && (
+                        {materials.filter(m => (m.topicId === selectedTopic.id || (m as any).topicName === selectedTopic.name) && (!selectedSubTopic || selectedSubTopic === 'none' || m.subTopic === selectedSubTopic)).length === 0 && (
                           <div className="p-8 border-2 border-dashed border-slate-100 rounded-2xl text-center">
                             <AlertCircle className="h-8 w-8 text-slate-200 mx-auto mb-2" />
-                            <p className="text-xs text-slate-400 font-medium">No PDF materials found for this topic.</p>
+                            <p className="text-xs text-slate-400 font-medium">No PDF materials found for this {selectedSubTopic && selectedSubTopic !== 'none' ? `sub-topic: ${selectedSubTopic}` : 'topic'}.</p>
                           </div>
                         )}
                       </div>
@@ -894,22 +970,108 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
                 <DialogTitle>Edit Study Article</DialogTitle>
                 <DialogDescription>Content for {editingMaterial?.fileName}</DialogDescription>
             </DialogHeader>
-            <div className="flex-grow grid grid-cols-2 overflow-hidden">
-                <div className="p-6 border-r flex flex-col gap-4">
-                    <Label className="text-xs font-black uppercase tracking-widest text-slate-400">HTML Content</Label>
-                    <Textarea 
-                        value={editContent} 
-                        onChange={(e) => setEditContent(e.target.value)} 
-                        className="flex-grow font-mono text-xs resize-none"
-                    />
-                </div>
-                <div className="p-6 bg-slate-50 overflow-y-auto">
-                    <Label className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 block">Live Premium Preview</Label>
-                    <div 
-                        className="prose prose-slate max-w-none bg-white p-8 rounded-2xl shadow-sm min-h-full"
-                        dangerouslySetInnerHTML={{ __html: editContent }}
-                    />
-                </div>
+            <div className="flex-grow overflow-hidden flex flex-col">
+              <Tabs defaultValue="en" className="flex-grow flex flex-col overflow-hidden">
+                <TabsList className="grid w-full grid-cols-3 rounded-none border-b h-12">
+                  <TabsTrigger value="en" className="font-bold">English</TabsTrigger>
+                  <TabsTrigger value="ta" className="font-bold">Tamil</TabsTrigger>
+                  <TabsTrigger value="hi" className="font-bold">Hindi</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="en" className="flex-grow flex flex-col overflow-hidden m-0 p-0">
+                  <div className="flex-grow grid grid-cols-2 overflow-hidden">
+                    <div className="p-6 border-r flex flex-col gap-4 overflow-y-auto">
+                        <div className="space-y-2">
+                          <Label className="text-xs font-black uppercase tracking-widest text-slate-400">English Title</Label>
+                          <Input 
+                            value={editTitle} 
+                            onChange={(e) => setEditTitle(e.target.value)} 
+                            className="font-bold border-slate-200"
+                          />
+                        </div>
+                        <div className="flex-grow flex flex-col gap-2">
+                          <Label className="text-xs font-black uppercase tracking-widest text-slate-400">HTML Content</Label>
+                          <Textarea 
+                              value={editContent} 
+                              onChange={(e) => setEditContent(e.target.value)} 
+                              className="flex-grow font-mono text-xs resize-none border-slate-200"
+                          />
+                        </div>
+                    </div>
+                    <div className="p-6 bg-slate-50 overflow-y-auto">
+                        <Label className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 block">English Preview</Label>
+                        <div 
+                            className="prose prose-slate max-w-none bg-white p-8 rounded-2xl shadow-sm min-h-full border border-slate-200"
+                            dangerouslySetInnerHTML={{ __html: editContent }}
+                        />
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="ta" className="flex-grow flex flex-col overflow-hidden m-0 p-0">
+                  <div className="flex-grow grid grid-cols-2 overflow-hidden">
+                    <div className="p-6 border-r flex flex-col gap-4 overflow-y-auto">
+                        <div className="space-y-2">
+                          <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Tamil Title</Label>
+                          <Input 
+                            value={editTitleTa} 
+                            onChange={(e) => setEditTitleTa(e.target.value)} 
+                            className="font-bold border-slate-200"
+                            placeholder="தலைப்பை இங்கே உள்ளிடவும்..."
+                          />
+                        </div>
+                        <div className="flex-grow flex flex-col gap-2">
+                          <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Tamil HTML Content</Label>
+                          <Textarea 
+                              value={editContentTa} 
+                              onChange={(e) => setEditContentTa(e.target.value)} 
+                              className="flex-grow font-mono text-xs resize-none border-slate-200"
+                              placeholder="உள்ளடக்கத்தை இங்கே உள்ளிடவும்..."
+                          />
+                        </div>
+                    </div>
+                    <div className="p-6 bg-slate-50 overflow-y-auto">
+                        <Label className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 block">Tamil Preview</Label>
+                        <div 
+                            className="prose prose-slate max-w-none bg-white p-8 rounded-2xl shadow-sm min-h-full border border-slate-200"
+                            dangerouslySetInnerHTML={{ __html: editContentTa }}
+                        />
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="hi" className="flex-grow flex flex-col overflow-hidden m-0 p-0">
+                  <div className="flex-grow grid grid-cols-2 overflow-hidden">
+                    <div className="p-6 border-r flex flex-col gap-4 overflow-y-auto">
+                        <div className="space-y-2">
+                          <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Hindi Title</Label>
+                          <Input 
+                            value={editTitleHi} 
+                            onChange={(e) => setEditTitleHi(e.target.value)} 
+                            className="font-bold border-slate-200"
+                            placeholder="यहाँ शीर्षक दर्ज करें..."
+                          />
+                        </div>
+                        <div className="flex-grow flex flex-col gap-2">
+                          <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Hindi HTML Content</Label>
+                          <Textarea 
+                              value={editContentHi} 
+                              onChange={(e) => setEditContentHi(e.target.value)} 
+                              className="flex-grow font-mono text-xs resize-none border-slate-200"
+                              placeholder="यहाँ सामग्री दर्ज करें..."
+                          />
+                        </div>
+                    </div>
+                    <div className="p-6 bg-slate-50 overflow-y-auto">
+                        <Label className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 block">Hindi Preview</Label>
+                        <div 
+                            className="prose prose-slate max-w-none bg-white p-8 rounded-2xl shadow-sm min-h-full border border-slate-200"
+                            dangerouslySetInnerHTML={{ __html: editContentHi }}
+                        />
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
             <DialogFooter className="p-4 border-t bg-slate-50">
                 <Button variant="outline" onClick={() => setEditingMaterial(null)}>Cancel</Button>

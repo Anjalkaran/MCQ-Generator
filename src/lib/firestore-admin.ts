@@ -94,27 +94,48 @@ export const getUnifiedLeaderboardsAdmin = async (): Promise<{
     if (!db) return { topics: {} as any, mocks: {} as any, daily: {} as any, pastWeeklyTests: [], pastDailyTests: [] };
 
     try {
-        // 1. Fetch ALL users once (needed for categorization)
-        const allUsers = await getAllUsersAdmin();
-        const users = allUsers.filter(u => u.email && !ADMIN_EMAILS.includes(u.email));
-        const userMap = new Map(users.map(u => [u.uid, u]));
-
-        // 2. Fetch history since reset date
+        // 2. Fetch history since reset date - Optimized with select and limit
         const historyRef = db.collection('mcqHistory');
         const historySnapshot = await historyRef
             .where('takenAt', '>=', LEADERBOARD_RESET_DATE)
+            .select('userId', 'score', 'totalQuestions', 'isMockTest', 'dailyTestId', 'liveTestId', 'takenAt')
+            .limit(10000) // Safety limit to prevent 300s timeouts
             .get();
         
         const histories = historySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MCQHistory));
+
+        // 1. Only fetch users that exist in the histories result to avoid fetching thousands of inactive users
+        const activeUserIds = Array.from(new Set(histories.map(h => h.userId))).filter(Boolean);
+        const userMap = new Map<string, UserData>();
+        
+        if (activeUserIds.length > 0) {
+            // Fetch users in chunks using db.getAll for better performance and reliability
+            for (let i = 0; i < activeUserIds.length; i += 100) {
+                const chunkIds = activeUserIds.slice(i, i + 100);
+                const userRefs = chunkIds.map(id => db.collection('users').doc(id));
+                const usersSnap = await db.getAll(...userRefs);
+                
+                usersSnap.forEach(doc => {
+                    if (doc.exists) {
+                        const data = doc.data() as UserData;
+                        // Skip admins
+                        if (data && data.email && !ADMIN_EMAILS.includes(data.email)) {
+                            userMap.set(doc.id, { uid: doc.id, ...data });
+                        }
+                    }
+                });
+            }
+        }
 
         // 3. Process Topic and Mock Leaderboards
         const categories: UserData['examCategory'][] = ['MTS', 'POSTMAN', 'PA', 'IP'];
         
         // Pre-fetch daily test IDs to correctly categorize them if they use liveTestId
-        const dailyTestsSnap = await db.collection('dailyTests').get();
+        const dailyTestsSnap = await db.collection('dailyTests').select('title').get();
         const dailyTestIds = new Set(dailyTestsSnap.docs.map(doc => doc.id));
+        
         // Also include IDs matching common daily naming patterns if they are in live_tests
-        const liveTestsSnap = await db.collection('live_tests').get();
+        const liveTestsSnap = await db.collection('live_tests').select('title', 'type').get();
         liveTestsSnap.docs.forEach(doc => {
             const title = doc.data().title || "";
             if (title.toLowerCase().includes("(daily)") || doc.data().type === 'daily') {

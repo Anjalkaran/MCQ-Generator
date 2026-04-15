@@ -22,8 +22,16 @@ interface TopicParams {
     topicId: string;
 }
 
-export default function GenerateTopicQuizPage({ params }: { params: Promise<TopicParams> }) {
+export default function GenerateTopicQuizPage({ 
+    params,
+    searchParams 
+}: { 
+    params: Promise<TopicParams>,
+    searchParams: Promise<{ subTopic?: string }>
+}) {
     const resolvedParams = use(params);
+    const resolvedSearchParams = use(searchParams);
+    const subTopic = resolvedSearchParams.subTopic;
     const { topics, syllabi, isLoading, userData } = useDashboard();
 
     if (isLoading) {
@@ -115,7 +123,7 @@ export default function GenerateTopicQuizPage({ params }: { params: Promise<Topi
                     Generate a custom practice exam for this topic from the available question bank.
                 </p>
             </div>
-            <TopicQuizForm topic={topic} />
+            <TopicQuizForm topic={topic} subTopic={subTopic} />
         </div>
     );
 }

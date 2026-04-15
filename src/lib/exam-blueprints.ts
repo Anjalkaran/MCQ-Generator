@@ -22,7 +22,12 @@ export const MTS_BLUEPRINT = {
             { id: 'MTS-PA-S1-T8', name: 'Duties of Letter Box Peon', questions: 1 },
             { id: 'MTS-PA-S1-T9', name: 'Official postal articles', questions: 2 },
             { id: 'MTS-PA-S1-T10', name: 'Prohibited postal articles', questions: 2 },
-            { id: 'MTS-PA-S1-T11', name: 'Products and Services: Mails, Banking & Remittances, Insurance, Stamps and Business', questions: 4 },
+            { 
+              id: 'MTS-PA-S1-T11', 
+              name: 'Products and Services: Mails, Banking & Remittances, Insurance, Stamps and Business', 
+              questions: 4,
+              subTopics: ['SB', 'RD', 'SSA', 'PPF', 'SCSS', 'TD & MIS', 'MSSC', 'NSC & KVP', 'Misc', 'PLI/RPLI', 'IPPB', 'Money Remittances', 'Mails', 'Stamps', 'PM Jansuraksha & APY']
+            },
           ],
         },
         {
@@ -86,7 +91,12 @@ export const POSTMAN_BLUEPRINT = {
             { id: 'PM-P1-SA-T8', name: 'Duties of Letter Box Peon', questions: 2 },
             { id: 'PM-P1-SA-T9', name: 'Official postal articles', questions: 2 },
             { id: 'PM-P1-SA-T10', name: 'Prohibited postal articles', questions: 2 },
-            { id: 'PM-P1-SA-T11', name: 'Products and Services: Mails, Banking & Remittances, Insurance, Stamps and Business', questions: 3 },
+            { 
+              id: 'PM-P1-SA-T11', 
+              name: 'Products and Services: Mails, Banking & Remittances, Insurance, Stamps and Business', 
+              questions: 3,
+              subTopics: ['SB', 'RD', 'SSA', 'PPF', 'SCSS', 'TD & MIS', 'MSSC', 'NSC & KVP', 'Misc', 'PLI/RPLI', 'IPPB', 'Money Remittances', 'Mails', 'Stamps', 'PM Jansuraksha & APY']
+            },
             { id: 'PM-P1-SA-T12', name: 'Definitions', questions: 7 },
           ],
         },
@@ -189,7 +199,12 @@ export const PA_BLUEPRINT = {
             { id: 'PA-P1-SA-T1', name: 'Post Office Guide Part I', questions: 10, subTopics: ['Except Telegraphic Money Order'] },
             { id: 'PA-P1-SA-T2', name: 'Post Office Guide Part II', questions: 10, subTopics: ['Except British and Irish Postal Order'] },
             { id: 'PA-P1-SA-T3', name: 'IT Modernisation project terms of Dept. of Posts', questions: 10, subTopics: ['Basic terminologies related to IT Modernisation project of Department of Posts'] },
-            { id: 'PA-P1-SA-T4', name: 'Products and Services', questions: 10, subTopics: ['Mails', 'Banking & Remittances', 'Insurance', 'Stamps and Business', 'India Post Website references'] },
+            { 
+              id: 'PA-P1-SA-T4', 
+              name: 'Products and Services', 
+              questions: 10, 
+              subTopics: ['SB', 'RD', 'SSA', 'PPF', 'SCSS', 'TD & MIS', 'MSSC', 'NSC & KVP', 'Misc', 'PLI/RPLI', 'IPPB', 'Money Remittances', 'Mails', 'Stamps', 'PM Jansuraksha & APY'] 
+            },
             { id: 'PA-P1-SA-T5', name: 'Postal Manual VI Part I & III, SO Orders', questions: 5, subTopics: ['Postal Manual Volume VI Part I', 'Postal Manual Volume VI Part III (Chapter I & II)', 'Unlimited SO orders issued by Directorate'] },
             { id: 'PA-P1-SA-T6', name: 'Postal Manual VII & Foreign Post Manual', questions: 5, subTopics: ['Postal Manual Volume VII', 'Foreign Post Manual'] },
           ],

@@ -1,0 +1,742 @@
+{
+  "fields": {
+    "examName": {
+      "stringValue": "Postman/Mail Guard Exam"
+    },
+    "id": {
+      "stringValue": "POSTMAN"
+    },
+    "parts": {
+      "arrayValue": {
+        "values": [
+          {
+            "mapValue": {
+              "fields": {
+                "partName": {
+                  "stringValue": "Paper-I: Basic Postal Knowledge and General Awareness"
+                },
+                "totalQuestions": {
+                  "integerValue": 50
+                },
+                "sections": {
+                  "arrayValue": {
+                    "values": [
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "sectionName": {
+                              "stringValue": "Part-A: Postal Knowledge"
+                            },
+                            "topics": {
+                              "arrayValue": {
+                                "values": [
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SA-T1"
+                                        },
+                                        "name": {
+                                          "stringValue": "Organization of the Department"
+                                        },
+                                        "questions": {
+                                          "integerValue": 2
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SA-T2"
+                                        },
+                                        "name": {
+                                          "stringValue": "Type of Post Offices"
+                                        },
+                                        "questions": {
+                                          "integerValue": 2
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SA-T3"
+                                        },
+                                        "name": {
+                                          "stringValue": "Business Hours"
+                                        },
+                                        "questions": {
+                                          "integerValue": 2
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SA-T4"
+                                        },
+                                        "name": {
+                                          "stringValue": "Payment of postage, stamps and stationery"
+                                        },
+                                        "questions": {
+                                          "integerValue": 2
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SA-T5"
+                                        },
+                                        "name": {
+                                          "stringValue": "General rules as to packing, sealing and posting manner of affixing Postage stamps"
+                                        },
+                                        "questions": {
+                                          "integerValue": 2
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SA-T6"
+                                        },
+                                        "name": {
+                                          "stringValue": "Methods of address"
+                                        },
+                                        "questions": {
+                                          "integerValue": 2
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SA-T7"
+                                        },
+                                        "name": {
+                                          "stringValue": "Post boxes and Post bags"
+                                        },
+                                        "questions": {
+                                          "integerValue": 2
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SA-T8"
+                                        },
+                                        "name": {
+                                          "stringValue": "Duties of Letter Box Peon"
+                                        },
+                                        "questions": {
+                                          "integerValue": 2
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SA-T9"
+                                        },
+                                        "name": {
+                                          "stringValue": "Official postal articles"
+                                        },
+                                        "questions": {
+                                          "integerValue": 2
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SA-T10"
+                                        },
+                                        "name": {
+                                          "stringValue": "Prohibited postal articles"
+                                        },
+                                        "questions": {
+                                          "integerValue": 2
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SA-T11"
+                                        },
+                                        "name": {
+                                          "stringValue": "Products and Services: Mails, Banking & Remittances, Insurance, Stamps and Business"
+                                        },
+                                        "questions": {
+                                          "integerValue": 3
+                                        },
+                                        "subTopics": {
+                                          "arrayValue": {
+                                            "values": [
+                                              {
+                                                "stringValue": "SB"
+                                              },
+                                              {
+                                                "stringValue": "RD"
+                                              },
+                                              {
+                                                "stringValue": "SSA"
+                                              },
+                                              {
+                                                "stringValue": "PPF"
+                                              },
+                                              {
+                                                "stringValue": "SCSS"
+                                              },
+                                              {
+                                                "stringValue": "TD & MIS"
+                                              },
+                                              {
+                                                "stringValue": "MSSC"
+                                              },
+                                              {
+                                                "stringValue": "NSC & KVP"
+                                              },
+                                              {
+                                                "stringValue": "Misc"
+                                              },
+                                              {
+                                                "stringValue": "PLI/RPLI"
+                                              },
+                                              {
+                                                "stringValue": "IPPB"
+                                              },
+                                              {
+                                                "stringValue": "Money Remittances"
+                                              },
+                                              {
+                                                "stringValue": "Mails"
+                                              },
+                                              {
+                                                "stringValue": "Stamps"
+                                              },
+                                              {
+                                                "stringValue": "PM Jansuraksha & APY"
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SA-T12"
+                                        },
+                                        "name": {
+                                          "stringValue": "Definitions"
+                                        },
+                                        "questions": {
+                                          "integerValue": 7
+                                        }
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "sectionName": {
+                              "stringValue": "Part-B: General Awareness and Basic Arithmetic"
+                            },
+                            "topics": {
+                              "arrayValue": {
+                                "values": [
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SB-T1"
+                                        },
+                                        "name": {
+                                          "stringValue": "Indian Geography"
+                                        },
+                                        "questions": {
+                                          "integerValue": 2
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SB-T2"
+                                        },
+                                        "name": {
+                                          "stringValue": "Civics"
+                                        },
+                                        "questions": {
+                                          "integerValue": 2
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SB-T3"
+                                        },
+                                        "name": {
+                                          "stringValue": "General Knowledge"
+                                        },
+                                        "questions": {
+                                          "integerValue": 2
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SB-T4"
+                                        },
+                                        "name": {
+                                          "stringValue": "Indian Culture & Freedom Struggle"
+                                        },
+                                        "questions": {
+                                          "integerValue": 2
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SB-T5"
+                                        },
+                                        "name": {
+                                          "stringValue": "Ethics and Morale study"
+                                        },
+                                        "questions": {
+                                          "integerValue": 2
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SB-T6"
+                                        },
+                                        "name": {
+                                          "stringValue": "BODMAS"
+                                        },
+                                        "questions": {
+                                          "integerValue": 2
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SB-T7"
+                                        },
+                                        "name": {
+                                          "stringValue": "Percentage"
+                                        },
+                                        "questions": {
+                                          "integerValue": 1
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SB-T8"
+                                        },
+                                        "name": {
+                                          "stringValue": "Profit and loss"
+                                        },
+                                        "questions": {
+                                          "integerValue": 1
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SB-T9"
+                                        },
+                                        "name": {
+                                          "stringValue": "Simple interest"
+                                        },
+                                        "questions": {
+                                          "integerValue": 1
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SB-T10"
+                                        },
+                                        "name": {
+                                          "stringValue": "Average"
+                                        },
+                                        "questions": {
+                                          "integerValue": 1
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SB-T11"
+                                        },
+                                        "name": {
+                                          "stringValue": "Time and work"
+                                        },
+                                        "questions": {
+                                          "integerValue": 1
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SB-T12"
+                                        },
+                                        "name": {
+                                          "stringValue": "Time and distance"
+                                        },
+                                        "questions": {
+                                          "integerValue": 1
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P1-SB-T13"
+                                        },
+                                        "name": {
+                                          "stringValue": "Unitary Method"
+                                        },
+                                        "questions": {
+                                          "integerValue": 2
+                                        }
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "partName": {
+                  "stringValue": "Paper-II: Knowledge of Postal Operations"
+                },
+                "totalQuestions": {
+                  "integerValue": 25
+                },
+                "sections": {
+                  "arrayValue": {
+                    "values": [
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "sectionName": {
+                              "stringValue": "Post Office Guide Part I"
+                            },
+                            "topics": {
+                              "arrayValue": {
+                                "values": [
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P2-S1-T1"
+                                        },
+                                        "name": {
+                                          "stringValue": "Delivery of mails"
+                                        },
+                                        "questions": {
+                                          "integerValue": 1
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P2-S1-T2"
+                                        },
+                                        "name": {
+                                          "stringValue": "Refusal of article"
+                                        },
+                                        "questions": {
+                                          "integerValue": 1
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P2-S1-T3"
+                                        },
+                                        "name": {
+                                          "stringValue": "Payment of eMoney Order"
+                                        },
+                                        "questions": {
+                                          "integerValue": 1
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P2-S1-T4"
+                                        },
+                                        "name": {
+                                          "stringValue": "Redirection"
+                                        },
+                                        "questions": {
+                                          "integerValue": 1
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PM-P2-S1-T5"
+                                        },
+                                        "name": {
+                                          "stringValue": "Instruction regarding address change"
+                                        },
+                                        "questions": {
+                                          "integerValue": 1
+                                        }
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "sectionName": {
+                              "stringValue": "Postal Manual Volume VI - Part III"
+                            },
+                            "randomFrom": {
+                              "mapValue": {
+                                "fields": {
+                                  "questions": {
+                                    "integerValue": 10
+                                  },
+                                  "topics": {
+                                    "arrayValue": {
+                                      "values": [
+                                        {
+                                          "stringValue": "Head Postman"
+                                        },
+                                        {
+                                          "stringValue": "Knowledge of Postal Business"
+                                        },
+                                        {
+                                          "stringValue": "Supply of forms to be carried out"
+                                        },
+                                        {
+                                          "stringValue": "Sale of stamps"
+                                        },
+                                        {
+                                          "stringValue": "Postman's Book"
+                                        },
+                                        {
+                                          "stringValue": "Address to be noted on Postal Articles"
+                                        },
+                                        {
+                                          "stringValue": "Damaged articles to be noticed"
+                                        },
+                                        {
+                                          "stringValue": "Receipts for articles issued for delivery"
+                                        },
+                                        {
+                                          "stringValue": "Book of receipts for High-Value delivery"
+                                        },
+                                        {
+                                          "stringValue": "Instruction for delivery"
+                                        },
+                                        {
+                                          "stringValue": "Realization of postage before delivery"
+                                        },
+                                        {
+                                          "stringValue": "Receipts of addresses for registered"
+                                        },
+                                        {
+                                          "stringValue": "Delivery to illiterate addresses, Pardanashin women"
+                                        },
+                                        {
+                                          "stringValue": "Delivery of insured articles addressed to minors"
+                                        },
+                                        {
+                                          "stringValue": "Payment of e-Money Orders"
+                                        },
+                                        {
+                                          "stringValue": "e-Money Orders addressed to minors"
+                                        },
+                                        {
+                                          "stringValue": "Payment of e-Mo and delivery of registered letters to lunatics"
+                                        },
+                                        {
+                                          "stringValue": "Duties of Village Postman"
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "sectionName": {
+                              "stringValue": "Postal Manual Vol. VII"
+                            },
+                            "randomFrom": {
+                              "mapValue": {
+                                "fields": {
+                                  "questions": {
+                                    "integerValue": 10
+                                  },
+                                  "topics": {
+                                    "arrayValue": {
+                                      "values": [
+                                        {
+                                          "stringValue": "Stamps and Seals"
+                                        },
+                                        {
+                                          "stringValue": "Portfolio and its contents"
+                                        },
+                                        {
+                                          "stringValue": "Stationery"
+                                        },
+                                        {
+                                          "stringValue": "Preparation of daily report"
+                                        },
+                                        {
+                                          "stringValue": "Mail Abstract"
+                                        },
+                                        {
+                                          "stringValue": "Exchange of Mails"
+                                        },
+                                        {
+                                          "stringValue": "Cage TB"
+                                        },
+                                        {
+                                          "stringValue": "Disposal of Mails addressed to a section or a mail office"
+                                        },
+                                        {
+                                          "stringValue": "Closing of transit bags"
+                                        },
+                                        {
+                                          "stringValue": "Duties and responsibilities of Mail Guard/Agent"
+                                        },
+                                        {
+                                          "stringValue": "Final duties before quitting Van or office"
+                                        },
+                                        {
+                                          "stringValue": "'A' order and 'B' order"
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "totalDurationMinutes": {
+      "integerValue": 90
+    },
+    "updatedAt": {
+      "stringValue": "2026-04-15T08:27:13.018Z"
+    }
+  }
+}

@@ -23,21 +23,11 @@ import { SocialLinksSidebar } from '@/components/social-links-sidebar';
 export { useDashboard } from '@/context/dashboard-context';
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
-  const { 
-    user, 
-    userData, 
-    topics, 
-    videoClasses, 
-    studyMaterials, 
-    notifications, 
-    isLoading, 
-    setUserData 
-  } = useDashboard();
-
+  const { userData, user, isLoading, videoClasses, studyMaterials, syllabusMCQs, topics, refreshDashboardData, notifications, setUserData } = useDashboard();
   const [showProfileUpdateModal, setShowProfileUpdateModal] = useState(false);
   const [profileUpdateDefaults, setProfileUpdateDefaults] = useState({ employeeId: '', mobileNumber: '' });
   const [showNewContentPopup, setShowNewContentPopup] = useState(false);
-  const [newContent, setNewContent] = useState<{ videos: VideoClass[], materials: StudyMaterial[] }>({ videos: [], materials: [] });
+  const [newContent, setNewContent] = useState<{ videos: VideoClass[], materials: StudyMaterial[], mcqs: any[] }>({ videos: [], materials: [], mcqs: [] });
 
   useEffect(() => {
     if (isLoading || !userData) return;
@@ -121,8 +111,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       
       const videos = videoClasses || [];
       const materials = studyMaterials || [];
+      const mcqs = syllabusMCQs || [];
       
-      const mostRecent = [...videos, ...materials].reduce((latest, item) => { 
+      const mostRecent = [...videos, ...materials, ...mcqs].reduce((latest, item) => { 
         if (!item || !item.uploadedAt) return latest;
         const d = normalizeDate(item.uploadedAt); 
         return d && d > latest ? d : latest; 
@@ -137,8 +128,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           const d = normalizeDate(m.uploadedAt);
           return d && d > lastSeenDate;
         });
-        if (nv.length > 0 || nm.length > 0) { 
-          setNewContent({ videos: nv, materials: nm }); 
+        const nmcq = mcqs.filter(m => {
+          const d = normalizeDate(m.uploadedAt);
+          return d && d > lastSeenDate;
+        });
+        if (nv.length > 0 || nm.length > 0 || nmcq.length > 0) { 
+          setNewContent({ videos: nv, materials: nm, mcqs: nmcq }); 
           setShowNewContentPopup(true); 
         }
       }
@@ -150,7 +145,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         setShowProfileUpdateModal(true);
       }
     }
-  }, [isLoading, userData, user, videoClasses, studyMaterials]);
+  }, [isLoading, userData, user, videoClasses, studyMaterials, syllabusMCQs]);
 
   const handleProfileUpdate = async (values: { employeeId: string, mobileNumber: string }) => {
     if (!user) return;

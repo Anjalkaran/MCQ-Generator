@@ -6,6 +6,7 @@ export interface StudyMaterial {
   id: string;
   topicId: string;
   topicName?: string;
+  subTopic?: string; // Optional sub-topic categorization
   fileName: string;
   fileName_ta?: string; // Tamil localized title
   fileName_hi?: string; // Hindi localized title
@@ -134,6 +135,7 @@ export interface TopicMCQ {
     id: string;
     topicId: string;
     topicName?: string;
+    subTopic?: string; // Optional sub-topic categorization
     fileName: string;
     content: string;
     uploadedAt: Date;

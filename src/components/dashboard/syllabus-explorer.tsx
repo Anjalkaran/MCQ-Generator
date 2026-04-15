@@ -44,6 +44,8 @@ export function SyllabusExplorer({ examCategory, isAdmin }: SyllabusExplorerProp
   const { topics, studyMaterials, syllabusMCQs, syllabi, isLoading: isDashboardLoading } = useDashboard();
   const [selectedTopic, setSelectedTopic] = React.useState<string | null>(null);
   const [selectedTopicId, setSelectedTopicId] = React.useState<string | null>(null);
+  const [selectedSubTopics, setSelectedSubTopics] = React.useState<string[]>([]);
+  const [initialSubTopic, setInitialSubTopic] = React.useState<string | undefined>(undefined);
 
   const blueprintMap = React.useMemo(() => {
     const map: Record<string, any> = {
@@ -54,9 +56,36 @@ export function SyllabusExplorer({ examCategory, isAdmin }: SyllabusExplorerProp
       'GROUP B': GROUPB_BLUEPRINT
     };
     
-    // Override with dynamic syllabi from Firestore
+    // Override with dynamic syllabi from Firestore with metadata preservation
     syllabi.forEach(s => {
-      if (s.id) map[s.id] = s;
+      if (s.id && map[s.id]) {
+        const base = map[s.id];
+        const dynamic = JSON.parse(JSON.stringify(s));
+        
+        if (dynamic.parts && base.parts) {
+          dynamic.parts.forEach((part: any, pIdx: number) => {
+            const basePart = base.parts[pIdx];
+            if (basePart && part.sections && basePart.sections) {
+              part.sections.forEach((sec: any, sIdx: number) => {
+                const baseSec = basePart.sections[sIdx];
+                if (baseSec && sec.topics && baseSec.topics) {
+                  sec.topics.forEach((topic: any) => {
+                    const baseTopic = baseSec.topics.find((bt: any) => 
+                      (bt.id === topic.id) || (bt.name === topic.name)
+                    );
+                    if (baseTopic?.subTopics && (!topic.subTopics || topic.subTopics.length === 0)) {
+                      topic.subTopics = baseTopic.subTopics;
+                    }
+                  });
+                }
+              });
+            }
+          });
+        }
+        map[s.id] = dynamic;
+      } else if (s.id) {
+        map[s.id] = s;
+      }
     });
     
     return map;
@@ -189,14 +218,16 @@ export function SyllabusExplorer({ examCategory, isAdmin }: SyllabusExplorerProp
                                       const materialCount = topicMaterials.length;
 
                                       return (
-                                        <div 
-                                          key={tIdx} 
-                                          onClick={() => {
-                                              setSelectedTopic(topicObj.name);
-                                              setSelectedTopicId(topicObj.id);
-                                          }}
-                                          className="group/topic cursor-pointer relative flex flex-col justify-between p-4 rounded-2xl border border-slate-100 bg-white/50 hover:bg-white hover:shadow-xl hover:border-red-200 transition-all duration-500 transform hover:-translate-y-1"
-                                        >
+                                          <div 
+                                            key={tIdx} 
+                                            onClick={() => {
+                                                setSelectedTopic(topicObj.name);
+                                                setSelectedTopicId(topicObj.id);
+                                                setSelectedSubTopics(topicObj.subTopics || []);
+                                                setInitialSubTopic(undefined);
+                                            }}
+                                            className="group/topic cursor-pointer relative flex flex-col justify-between p-4 rounded-2xl border border-slate-100 bg-white/50 hover:bg-white hover:shadow-xl hover:border-red-200 transition-all duration-500 transform hover:-translate-y-1"
+                                          >
                                           <div className="flex flex-col gap-3">
                                             <div className="flex items-start gap-2.5">
                                               <div className="h-2 w-2 rounded-full bg-red-500 mt-1.5 shrink-0 shadow-[0_0_8px_rgba(239,68,68,0.5)] group-hover/topic:scale-125 transition-transform" />
@@ -275,10 +306,20 @@ export function SyllabusExplorer({ examCategory, isAdmin }: SyllabusExplorerProp
                                                               </div>
                                                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                                                                 {items.map((sub: string, i: number) => (
-                                                                  <div key={i} className="flex items-start gap-1.5 text-slate-500 group/sub">
-                                                                    <div className={cn("h-1.5 w-1.5 rounded-full mt-1.5 shrink-0 opacity-60", style.dot)} />
-                                                                    <span className="text-[11px] font-medium leading-tight">{sub}</span>
-                                                                  </div>
+                                                                  <button 
+                                                                    key={i} 
+                                                                    onClick={(e) => {
+                                                                      e.stopPropagation();
+                                                                      setSelectedTopic(topicObj.name);
+                                                                      setSelectedTopicId(topicObj.id);
+                                                                      setSelectedSubTopics(subTopics);
+                                                                      setInitialSubTopic(sub);
+                                                                    }}
+                                                                    className="flex items-start gap-1.5 text-slate-500 group/sub hover:text-red-600 transition-colors text-left"
+                                                                  >
+                                                                    <div className={cn("h-1.5 w-1.5 rounded-full mt-1.5 shrink-0 opacity-60 bg-red-400 group-hover/sub:scale-125 transition-transform", style.dot)} />
+                                                                    <span className="text-[11px] font-medium leading-tight underline-offset-4 group-hover/sub:underline">{sub}</span>
+                                                                  </button>
                                                                 ))}
                                                               </div>
                                                             </div>
@@ -295,10 +336,20 @@ export function SyllabusExplorer({ examCategory, isAdmin }: SyllabusExplorerProp
                                                       subTopics.length > 4 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
                                                     )}>
                                                       {subTopics.map((sub: string, sIdx: number) => (
-                                                        <div key={sIdx} className="flex items-start gap-1.5 text-slate-500 group/sub">
-                                                          <ChevronRight className="h-3 w-3 mt-0.5 text-red-300 shrink-0" />
-                                                          <span className="text-[11px] font-medium leading-normal">{sub}</span>
-                                                        </div>
+                                                        <button 
+                                                          key={sIdx} 
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedTopic(topicObj.name);
+                                                            setSelectedTopicId(topicObj.id);
+                                                            setSelectedSubTopics(subTopics);
+                                                            setInitialSubTopic(sub);
+                                                          }}
+                                                          className="flex items-start gap-1.5 text-slate-500 group/sub hover:text-red-600 transition-colors text-left"
+                                                        >
+                                                          <ChevronRight className="h-3 w-3 mt-0.5 text-red-300 shrink-0 group-hover/sub:translate-x-1 transition-transform" />
+                                                          <span className="text-[11px] font-medium leading-normal underline-offset-4 group-hover/sub:underline">{sub}</span>
+                                                        </button>
                                                       ))}
                                                     </div>
                                                   );
@@ -328,10 +379,14 @@ export function SyllabusExplorer({ examCategory, isAdmin }: SyllabusExplorerProp
         onClose={() => {
             setSelectedTopic(null);
             setSelectedTopicId(null);
+            setSelectedSubTopics([]);
+            setInitialSubTopic(undefined);
         }}
         topicId={selectedTopicId || undefined}
         topicName={selectedTopic || ''}
         examCategory={examCategory}
+        subTopics={selectedSubTopics}
+        initialSubTopic={initialSubTopic}
       />
     </div>
   );

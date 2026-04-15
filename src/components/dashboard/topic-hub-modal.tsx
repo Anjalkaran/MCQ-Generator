@@ -24,26 +24,52 @@ interface TopicHubModalProps {
   topicId?: string;
   topicName: string;
   examCategory: string;
+  initialSubTopic?: string;
 }
 
-export function TopicHubModal({ isOpen, onClose, topicId, topicName, examCategory }: TopicHubModalProps) {
+export function TopicHubModal({ isOpen, onClose, topicId, topicName, examCategory, initialSubTopic, subTopics = [] }: TopicHubModalProps & { subTopics?: string[] }) {
   const { studyMaterials, syllabusMCQs, isLoading } = useDashboard();
+  const [selectedSubTopic, setSelectedSubTopic] = React.useState<string | null>(initialSubTopic || null);
+
+  React.useEffect(() => {
+    if (initialSubTopic) setSelectedSubTopic(initialSubTopic);
+  }, [initialSubTopic]);
 
   const materials = useMemo(() => {
-    return studyMaterials ? studyMaterials.filter(m => m.topicId === topicId || (m.topicName === topicName)) : [];
-  }, [studyMaterials, topicId, topicName]);
+    let filtered = studyMaterials ? studyMaterials.filter(m => m.topicId === topicId || (m.topicName === topicName)) : [];
+    if (selectedSubTopic && selectedSubTopic !== 'All') {
+        const subUpper = selectedSubTopic.toUpperCase();
+        filtered = filtered.filter(m => 
+            m.subTopic === selectedSubTopic || // Direct match
+            m.fileName.toUpperCase().includes(subUpper) || 
+            (m as any).content?.toUpperCase().includes(subUpper)
+        );
+    }
+    return filtered;
+  }, [studyMaterials, topicId, topicName, selectedSubTopic]);
 
   const topicMCQs = useMemo(() => {
     if (!syllabusMCQs) return [];
     const targetId = topicId?.trim();
     const targetName = topicName?.trim().toLowerCase();
     
-    return syllabusMCQs.filter(m => {
+    let filtered = syllabusMCQs.filter(m => {
       const mId = m.topicId?.trim();
       const mName = m.topicName?.trim().toLowerCase();
       return (targetId && mId === targetId) || (targetName && mName === targetName);
     });
-  }, [syllabusMCQs, topicId, topicName]);
+
+    if (selectedSubTopic && selectedSubTopic !== 'All') {
+        const subUpper = selectedSubTopic.toUpperCase();
+        filtered = filtered.filter(m => 
+            m.subTopic === selectedSubTopic || // Direct match
+            m.fileName.toUpperCase().includes(subUpper) || 
+            (m as any).content?.toUpperCase().includes(subUpper)
+        );
+    }
+
+    return filtered;
+  }, [syllabusMCQs, topicId, topicName, selectedSubTopic]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -69,6 +95,49 @@ export function TopicHubModal({ isOpen, onClose, topicId, topicName, examCategor
               Select your learning path for this topic.
             </DialogDescription>
           </DialogHeader>
+
+          {subTopics.length > 0 && (
+            <div className="mb-8 space-y-3">
+                <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Individual Segment</p>
+                    {selectedSubTopic && selectedSubTopic !== 'All' && (
+                        <button 
+                            onClick={() => setSelectedSubTopic(null)}
+                            className="text-[10px] font-bold text-red-600 hover:text-red-700 transition-colors"
+                        >
+                            CLEAR FILTER
+                        </button>
+                    )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    <button
+                        onClick={() => setSelectedSubTopic(null)}
+                        className={cn(
+                            "px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all border",
+                            !selectedSubTopic || selectedSubTopic === 'All'
+                                ? "bg-red-600 text-white border-red-600 shadow-lg shadow-red-200"
+                                : "bg-white text-slate-500 border-slate-100 hover:border-red-200"
+                        )}
+                    >
+                        ALL CONTENTS
+                    </button>
+                    {subTopics.map((sub, idx) => (
+                        <button
+                            key={idx}
+                            onClick={() => setSelectedSubTopic(sub)}
+                            className={cn(
+                                "px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all border",
+                                selectedSubTopic === sub
+                                    ? "bg-red-600 text-white border-red-600 shadow-lg shadow-red-200"
+                                    : "bg-white text-slate-500 border-slate-100 hover:border-red-200"
+                            )}
+                        >
+                            {sub}
+                        </button>
+                    ))}
+                </div>
+            </div>
+          )}
 
           {materials.length === 0 && topicMCQs.length === 0 && !isLoading ? (
             <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
@@ -152,8 +221,8 @@ export function TopicHubModal({ isOpen, onClose, topicId, topicName, examCategor
                   asChild 
                   className="w-full bg-slate-900 hover:bg-black text-white font-bold h-12 rounded-xl transition-all"
                 >
-                  <Link href={`/dashboard/topic-wise-mcq/${topicId}`}>
-                    Start Practice Quiz
+                  <Link href={`/dashboard/topic-wise-mcq/${topicId}${selectedSubTopic ? `?subTopic=${encodeURIComponent(selectedSubTopic)}` : ''}`}>
+                    Start {selectedSubTopic ? `${selectedSubTopic} ` : ''}Practice Quiz
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>

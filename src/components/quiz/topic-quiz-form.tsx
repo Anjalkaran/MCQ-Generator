@@ -34,9 +34,10 @@ type FormValues = z.infer<typeof formSchema>;
 
 interface TopicQuizFormProps {
     topic: Topic;
+    subTopic?: string;
 }
 
-export function TopicQuizForm({ topic }: TopicQuizFormProps) {
+export function TopicQuizForm({ topic, subTopic }: TopicQuizFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const { user, userData, isLoading } = useDashboard();
@@ -98,6 +99,7 @@ export function TopicQuizForm({ topic }: TopicQuizFormProps) {
     try {
       const res: any = await generateMCQs({
           topic: topic.title,
+          subTopic: subTopic,
           category: topic.categoryName,
           numberOfQuestions: values.numberOfQuestions,
           examCategory: userData.examCategory,
@@ -136,7 +138,7 @@ export function TopicQuizForm({ topic }: TopicQuizFormProps) {
     <Card>
        <CardHeader>
           <CardTitle>
-            Exam Setup
+            {subTopic ? `${subTopic} ` : ''}Exam Setup
           </CardTitle>
         </CardHeader>
       <Form {...form}>
