@@ -1556,8 +1556,12 @@ export async function updateSyllabusMaterial(id: string, updates: any, collectio
     if (!db) return;
     try {
         const docRef = doc(db, collectionName, id);
+        // Filter out undefined values to prevent Firebase crash
+        const cleanedUpdates = Object.fromEntries(
+            Object.entries(updates).filter(([_, v]) => v !== undefined)
+        );
         await updateDoc(docRef, {
-            ...updates,
+            ...cleanedUpdates,
             lastModifiedAt: serverTimestamp()
         });
     } catch (e) {

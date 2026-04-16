@@ -202,14 +202,16 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
           const content = event.target?.result as string;
           try {
             JSON.parse(content); // Validate JSON
-            await addSyllabusMCQ({
+            const mcqData: any = {
               topicId: selectedTopic.id,
               topicName: selectedTopic.name,
-              subTopic: selectedSubTopic || undefined,
               fileName: file.name,
               content: content,
               uploadedAt: new Date()
-            });
+            };
+            if (selectedSubTopic && selectedSubTopic !== 'none') mcqData.subTopic = selectedSubTopic;
+            
+            await addSyllabusMCQ(mcqData);
             const updated = await getSyllabusMCQs();
             setMcqs(updated);
             toast({ title: 'Success', description: 'MCQs uploaded and registered' });
@@ -230,15 +232,17 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
             toast({ title: 'Conversion Success', description: 'DOCX converted to HTML Reader mode' });
         }
 
-        await addSyllabusMaterial({
+        const materialData: any = {
           topicId: selectedTopic.id,
           topicName: selectedTopic.name,
-          subTopic: selectedSubTopic || undefined,
           fileName: file.name,
           fileType: isHtml ? 'docx' : 'pdf',
           content: contentToStore,
           uploadedAt: new Date()
-        });
+        };
+        if (selectedSubTopic && selectedSubTopic !== 'none') materialData.subTopic = selectedSubTopic;
+
+        await addSyllabusMaterial(materialData);
         const updated = await getSyllabusMaterials();
         setMaterials(updated);
         toast({ title: 'Success', description: isHtml ? 'Material converted and saved' : 'Study material uploaded' });
@@ -256,14 +260,16 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
     setIsLoading(true);
     try {
         JSON.parse(mcqPasteValue); // Validate JSON
-        await addSyllabusMCQ({
+        const mcqData: any = {
             topicId: selectedTopic.id,
             topicName: selectedTopic.name,
-            subTopic: selectedSubTopic || undefined,
             fileName: `Pasted_${new Date().getTime()}.json`,
             content: mcqPasteValue,
             uploadedAt: new Date()
-        });
+        };
+        if (selectedSubTopic && selectedSubTopic !== 'none') mcqData.subTopic = selectedSubTopic;
+
+        await addSyllabusMCQ(mcqData);
         const updated = await getSyllabusMCQs();
         setMcqs(updated);
         setMcqPasteValue('');
@@ -298,19 +304,22 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
         const htmlContentTa = materialPasteValueTa ? processPastedText(materialPasteValueTa) : undefined;
         const htmlContentHi = materialPasteValueHi ? processPastedText(materialPasteValueHi) : undefined;
         
-        await addSyllabusMaterial({
+        const newMaterial: any = {
             topicId: selectedTopic.id,
             topicName: selectedTopic.name,
-            subTopic: selectedSubTopic || undefined,
             fileName: materialPasteTitle,
-            fileName_ta: materialPasteTitleTa || undefined,
-            fileName_hi: materialPasteTitleHi || undefined,
             fileType: 'docx', // Defaulting to docx/html for pasted articles
             content: htmlContent,
-            content_ta: htmlContentTa,
-            content_hi: htmlContentHi,
             uploadedAt: new Date()
-        });
+        };
+        
+        if (selectedSubTopic && selectedSubTopic !== 'none') newMaterial.subTopic = selectedSubTopic;
+        if (materialPasteTitleTa) newMaterial.fileName_ta = materialPasteTitleTa;
+        if (materialPasteTitleHi) newMaterial.fileName_hi = materialPasteTitleHi;
+        if (htmlContentTa) newMaterial.content_ta = htmlContentTa;
+        if (htmlContentHi) newMaterial.content_hi = htmlContentHi;
+
+        await addSyllabusMaterial(newMaterial);
         const updated = await getSyllabusMaterials();
         setMaterials(updated);
         setMaterialPasteValue('');
@@ -351,14 +360,14 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
     if (!editingMaterial) return;
     setIsLoading(true);
     try {
-        const updateData = { 
+        const updateData: any = { 
             fileName: editTitle,
-            fileName_ta: editTitleTa || undefined,
-            fileName_hi: editTitleHi || undefined,
             content: editContent,
-            content_ta: editContentTa || undefined,
-            content_hi: editContentHi || undefined
         };
+        if (editTitleTa) updateData.fileName_ta = editTitleTa;
+        if (editTitleHi) updateData.fileName_hi = editTitleHi;
+        if (editContentTa) updateData.content_ta = editContentTa;
+        if (editContentHi) updateData.content_hi = editContentHi;
         await updateSyllabusMaterial(editingMaterial.id, updateData);
         setMaterials(prev => prev.map(m => m.id === editingMaterial.id ? { ...m, ...updateData } : m));
         setEditingMaterial(null);
