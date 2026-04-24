@@ -36,7 +36,7 @@ const prompt = ai.definePrompt({
   name: 'answerQuestionPrompt',
   input: { schema: AnswerQuestionInputSchema },
   output: { schema: AnswerQuestionOutputSchema },
-  model: 'googleai/gemini-2.0-flash',
+  model: 'googleai/gemini-1.5-flash',
   prompt: `You are a helpful assistant for postal exam preparation.
 
 First, check if the user's question is relevant to the specified topic.

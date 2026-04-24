@@ -55,7 +55,7 @@ const translateMCQBatch = async (mcqs: MCQ[], targetLanguage: string): Promise<M
 
     try {
         const result = await ai.generate({
-            model: 'googleai/gemini-2.0-flash',
+            model: 'googleai/gemini-1.5-flash',
             prompt: prompt,
             output: {
                 format: 'json',

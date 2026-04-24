@@ -50,7 +50,7 @@ const extractMCQsFromTextPrompt = ai.definePrompt({
     name: 'extractMCQsFromTextPrompt',
     input: { schema: z.object({ textContent: z.string(), topicName: z.string(), numberOfQuestions: z.number(), language: z.string().optional().default('English') }) },
     output: { schema: z.object({ mcqs: z.array(MCQSchema) }) },
-    model: 'googleai/gemini-2.5-pro',
+    model: 'googleai/gemini-1.5-pro',
     prompt: `You are an expert at parsing and formatting multiple-choice questions (MCQs).
 
 Your task is to extract as many high-quality, unique questions as you can find from the 'TEXT CONTENT' provided below and format them according to the user's requested language.
@@ -83,7 +83,7 @@ const generateKnowledgeMCQsPrompt = ai.definePrompt({
     name: 'generateKnowledgeMCQsPrompt',
     input: { schema: z.object({ topicName: z.string(), numberOfQuestions: z.number(), language: z.string().optional().default('English') }) },
     output: { schema: z.object({ mcqs: z.array(MCQSchema) }) },
-    model: 'googleai/gemini-2.5-pro',
+    model: 'googleai/gemini-1.5-pro',
     prompt: `You are an expert quiz generator for Indian competitive exams. Your task is to generate {{numberOfQuestions}} multiple-choice questions (MCQs) on the topic of "{{topicName}}".
 
 **CRITICAL INSTRUCTION - FACT VERIFICATION:** Before generating any question, you MUST verify every single fact and answer using Google Search and by cross-referencing with standard Indian school textbooks (like NCERT) and materials from reputable competitive exam coaching institutes. Accuracy is paramount.
