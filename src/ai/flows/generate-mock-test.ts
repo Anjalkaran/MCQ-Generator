@@ -9,9 +9,16 @@ import {z} from 'zod';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT, IP_BLUEPRINT, GROUPB_BLUEPRINT } from '@/lib/exam-blueprints';
 import type { MCQ, Topic } from '@/lib/types';
 import { getTopicsAdmin, getTopicMCQsAdmin, getReasoningQuestionsAdmin, getSyllabiAdmin } from '@/lib/firestore-admin';
-import { gemini15Flash } from '@genkit-ai/googleai';
+
 import { getFirebaseDb, admin } from '@/lib/firebase-admin';
 import { shuffleArray } from '@/lib/utils';
+
+// Generate a stable ID from question text (fallback when questionId is missing)
+const makeQuestionId = (text: string): string =>
+    text.replace(/[^a-z0-9]/gi, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .substring(0, 100);
 
 const GenerateMockTestInputSchema = z.object({
   examCategory: z.string().describe('The exam category (e.g., MTS, POSTMAN, PA).'),
@@ -48,7 +55,7 @@ const translateMCQBatch = async (mcqs: MCQ[], targetLanguage: string): Promise<M
 
     try {
         const result = await ai.generate({
-            model: gemini15Flash,
+            model: 'googleai/gemini-2.0-flash',
             prompt: prompt,
             output: {
                 format: 'json',
@@ -114,16 +121,38 @@ const generateMockTestFlow = ai.defineFlow(
     const allMcqsForCategory: (MCQ & { sourceDocId: string; topicId: string })[] = [];
     
     const categoryTopicIds = new Set(allFirestoreTopics.filter(t => t.examCategories.includes(input.examCategory as any)).map(t => t.id));
+    // Also include blueprint topic IDs (e.g., MTS-PB-S1-T1) and topic names for syllabusMCQs
+    const categoryTopicNames = new Set(allFirestoreTopics.filter(t => t.examCategories.includes(input.examCategory as any)).map(t => t.title.toLowerCase()));
+    const blueprintTopicIds = new Set<string>();
+    for (const part of blueprint.parts) {
+        for (const section of part.sections) {
+            if (section.topics) {
+                (section.topics as any[]).forEach((t: any) => {
+                    if (t && t.id) blueprintTopicIds.add(t.id);
+                    if (t && t.name) categoryTopicNames.add(t.name.toLowerCase());
+                });
+            }
+        }
+    }
 
     allMcqDocsForCategory.forEach(doc => {
-      if (categoryTopicIds.has(doc.topicId)) {
+      const matchById = categoryTopicIds.has(doc.topicId) || blueprintTopicIds.has(doc.topicId);
+      const matchByName = doc.topicName && categoryTopicNames.has(doc.topicName.toLowerCase());
+      if (matchById || matchByName) {
         try {
           const parsed = JSON.parse(doc.content);
-          if (parsed.mcqs && Array.isArray(parsed.mcqs)) {
-            parsed.mcqs.forEach((mcq: any) => {
-              allMcqsForCategory.push({ ...mcq, sourceDocId: doc.id, topicId: doc.topicId });
-            });
+          // Support: plain array, {mcqs:[]}, {questions:[]}
+          let mcqList: any[] = [];
+          if (Array.isArray(parsed)) {
+            mcqList = parsed;
+          } else if (parsed.mcqs && Array.isArray(parsed.mcqs)) {
+            mcqList = parsed.mcqs;
+          } else if (parsed.questions && Array.isArray(parsed.questions)) {
+            mcqList = parsed.questions;
           }
+          mcqList.forEach((mcq: any) => {
+            allMcqsForCategory.push({ ...mcq, sourceDocId: doc.id, topicId: doc.topicId });
+          });
         } catch (e) { }
       }
     });
@@ -223,7 +252,7 @@ const generateMockTestFlow = ai.defineFlow(
 
     const quizData = {
         mcqs: shuffleArray(finalProcessedQuestions.filter(Boolean)).map(m => ({
-            questionId: m.questionId,
+            questionId: m.questionId || makeQuestionId(m.question),
             topicId: (m as any).topicId,
             question: m.question,
             options: shuffleArray([...m.options]),

@@ -22,7 +22,8 @@ import {
   Layout,
   Target,
   Sparkles,
-  AlertCircle
+  AlertCircle,
+  ArrowLeft
 } from 'lucide-react';
 
 export default function StudyPlannerPage() {
@@ -37,11 +38,10 @@ export default function StudyPlannerPage() {
     return map;
   }, [syllabi]);
   
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [showSetup, setShowSetup] = useState(false);
   const [selectedDay, setSelectedDay] = useState<number>(1);
   const [isEditing, setIsEditing] = useState(false);
+  const [pendingPlan, setPendingPlan] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -58,20 +58,13 @@ export default function StudyPlannerPage() {
         getUserData(user.uid)
       ]);
       
-      const isAdmin = uData?.email ? ADMIN_EMAILS.includes(uData.email) : false;
-      if (!isAdmin) {
-        router.push('/dashboard');
-        return;
-      }
+      // Removed isAdmin restriction to make Study Planner available to all users
 
       console.log("Loaded planner:", existingPlanner);
       setPlanner(existingPlanner);
       setUserData(uData);
       if (existingPlanner) {
         setSelectedDay(existingPlanner.currentDay);
-        setShowSetup(false);
-      } else {
-        setShowSetup(true);
       }
     } catch (error) {
       console.error("Failed to load planner data:", error);
@@ -87,8 +80,8 @@ export default function StudyPlannerPage() {
       const newPlanner = generatePlanner(user.uid, userData.examCategory, planType, dynamicBlueprints);
       await saveUserPlanner(user.uid, newPlanner);
       setPlanner(newPlanner);
-      setShowSetup(false);
       setSelectedDay(1);
+      setPendingPlan(null);
     } catch (error) {
       console.error("Failed to create plan:", error);
     } finally {
@@ -126,21 +119,7 @@ export default function StudyPlannerPage() {
     }
   };
 
-  const handleDeletePlanner = async () => {
-    if (!user) return;
-    setLoading(true);
-    try {
-      console.log("Attempting to delete planner for user:", user.uid);
-      await deleteUserPlanner(user.uid);
-      setPlanner(null);
-      setShowResetConfirm(false);
-      setShowSetup(true);
-    } catch (error) {
-      console.error("Failed to delete planner:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Removed handleDeletePlanner since we switch plans instead
 
   const addCustomTask = async (dayNumber: number, title: string) => {
     if (!user || !planner || !title.trim()) return;
@@ -172,20 +151,86 @@ export default function StudyPlannerPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="relative w-16 h-16">
-          <div className="absolute inset-0 border-4 border-indigo-200 rounded-full"></div>
-          <div className="absolute inset-0 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
+          <div className="absolute inset-0 border-4 border-red-200 rounded-full"></div>
+          <div className="absolute inset-0 border-4 border-red-600 rounded-full border-t-transparent animate-spin"></div>
         </div>
       </div>
     );
   }
 
-  if (showSetup) {
+  const options = userData?.examCategory ? [
+    { id: 'Fast Track', icon: Clock, desc: `Complete everything in ${DEFAULT_DURATIONS[userData.examCategory].fast} days. Intense but fast.`, color: 'rose' },
+    { id: 'Standard Preparation', icon: Target, desc: `Perfect ${DEFAULT_DURATIONS[userData.examCategory].standard} day balance of speed and depth.`, color: 'red' },
+    { id: 'Comprehensive Mastery', icon: Sparkles, desc: `In-depth ${DEFAULT_DURATIONS[userData.examCategory].comprehensive} day coverage with extra revision.`, color: 'emerald' },
+  ] : [];
+
+  const handlePlanClick = (planId: string) => {
+    if (planner?.planType === planId) return;
+    if (planner) {
+      setPendingPlan(planId);
+    } else {
+      handleCreatePlan(planId as any);
+    }
+  };
+
+  if (!planner) {
     return (
-        <PlannerSetup 
-          examCategory={userData?.examCategory || 'MTS'} 
-          userName={userData?.name || 'Aspirant'} 
-          onSelect={handleCreatePlan} 
-        />
+      <div className="min-h-[80vh] flex flex-col items-center justify-center p-4 relative">
+        <button 
+          onClick={() => router.push('/dashboard')}
+          className="absolute top-4 left-4 md:top-8 md:left-8 flex items-center gap-2 text-slate-500 hover:text-red-600 transition-colors font-semibold"
+        >
+          <ArrowLeft size={20} />
+          Back to Dashboard
+        </button>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-4xl w-full space-y-10 text-center"
+        >
+          <div className="space-y-4">
+            <div className="w-20 h-20 bg-red-600 rounded-3xl flex items-center justify-center text-white mx-auto shadow-2xl shadow-red-200 dark:shadow-none">
+              <Sparkles size={40} />
+            </div>
+            <h1 className="text-4xl font-extrabold text-slate-900 dark:text-white">Welcome, {userData?.name || 'Aspirant'}!</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-lg max-w-2xl mx-auto">
+              Your exam for <span className="text-red-600 dark:text-red-400 font-bold">{userData?.examCategory || 'MTS'}</span> awaits. 
+              Let's build a scientific study plan tailored to your timeline.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {options.map((opt) => (
+              <button
+                key={opt.id}
+                onClick={() => handlePlanClick(opt.id)}
+                className="group p-8 rounded-[2.5rem] bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 hover:border-red-500 hover:shadow-2xl hover:shadow-red-100 dark:hover:shadow-none transition-all duration-500 text-left space-y-6"
+              >
+                <div className="flex items-center justify-between">
+                  <div className={`w-14 h-14 rounded-2xl bg-${opt.color}-100 dark:bg-${opt.color}-900/30 flex items-center justify-center text-${opt.color}-600 dark:text-${opt.color}-400 group-hover:scale-110 transition-transform`}>
+                    <opt.icon size={28} />
+                  </div>
+                  <div className={`px-4 py-1.5 rounded-full bg-${opt.color}-500/10 text-${opt.color}-600 dark:text-${opt.color}-400 text-sm font-black border border-${opt.color}-500/20 shadow-sm`}>
+                    {opt.id === 'Fast Track' ? DEFAULT_DURATIONS[userData.examCategory].fast : 
+                     opt.id === 'Standard Preparation' ? DEFAULT_DURATIONS[userData.examCategory].standard : 
+                     DEFAULT_DURATIONS[userData.examCategory].comprehensive} DAYS
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-2">{opt.id}</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{opt.desc}</p>
+                </div>
+                <div className="pt-4 flex items-center text-red-600 dark:text-red-400 font-bold text-sm">
+                  Choose Plan <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </div>
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-slate-400 font-medium italic">
+            * Plans are generated using the latest syllabus blueprints. You can add custom tasks later.
+          </p>
+        </motion.div>
+      </div>
     );
   }
 
@@ -193,7 +238,15 @@ export default function StudyPlannerPage() {
   const currentDayData = planner?.days.find(d => d.dayNumber === selectedDay);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700">
+    <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-700">
+      <button 
+        onClick={() => router.push('/dashboard')}
+        className="flex items-center gap-2 text-slate-500 hover:text-red-600 transition-colors font-semibold"
+      >
+        <ArrowLeft size={20} />
+        Back to Dashboard
+      </button>
+
       {/* Header & Overall Progress */}
       <div className="relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-8 border border-slate-100 dark:border-slate-800">
         <div className="absolute top-0 right-0 p-4 opacity-5">
@@ -202,7 +255,7 @@ export default function StudyPlannerPage() {
 
         <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-semibold uppercase tracking-wider text-xs">
+            <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-semibold uppercase tracking-wider text-xs">
               <Sparkles size={14} />
               Personalized Plan
             </div>
@@ -217,29 +270,22 @@ export default function StudyPlannerPage() {
           <div className="flex flex-col items-end gap-2">
             <div className="flex items-center gap-4">
               <div className="text-right">
-                <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{progress}%</div>
+                <div className="text-2xl font-bold text-red-600 dark:text-red-400">{progress}%</div>
                 <div className="text-xs text-slate-500 uppercase font-medium">Overall Progress</div>
               </div>
               <div className="w-48 h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                 <motion.div 
                   initial={{ width: 0 }}
                   animate={{ width: `${progress}%` }}
-                  className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-sm"
+                  className="h-full bg-gradient-to-r from-red-500 via-purple-500 to-pink-500 shadow-sm"
                 />
               </div>
             </div>
-            <button 
-              onClick={() => setShowResetConfirm(true)}
-              className="text-xs text-rose-500 hover:text-rose-600 flex items-center gap-1 font-medium transition-colors"
-            >
-              <Trash2 size={12} />
-              Reset Plan
-            </button>
           </div>
         </div>
 
-        {/* Custom Reset Modal */}
-        {showResetConfirm && (
+        {/* Plan Switch Modal */}
+        {pendingPlan && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
@@ -250,28 +296,68 @@ export default function StudyPlannerPage() {
                 <AlertCircle size={32} />
               </div>
               <div className="text-center space-y-2">
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Reset Study Plan?</h3>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Switch Study Plan?</h3>
                 <p className="text-slate-500 dark:text-slate-400">
-                  This will permanently delete your current progress and custom tasks. This action cannot be undone.
+                  You are about to switch to the <strong>{pendingPlan}</strong> plan. This will permanently overwrite your current progress and custom tasks.
                 </p>
               </div>
               <div className="flex gap-3">
                 <button 
-                  onClick={() => setShowResetConfirm(false)}
+                  onClick={() => setPendingPlan(null)}
                   className="flex-1 px-6 py-4 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-200 transition-colors"
                 >
                   Cancel
                 </button>
                 <button 
-                  onClick={handleDeletePlanner}
-                  className="flex-1 px-6 py-4 rounded-2xl bg-rose-600 text-white font-bold hover:bg-rose-700 shadow-lg shadow-rose-200 dark:shadow-none transition-all"
+                  onClick={() => handleCreatePlan(pendingPlan as any)}
+                  className="flex-1 px-6 py-4 rounded-2xl bg-red-600 text-white font-bold hover:bg-red-700 shadow-lg shadow-red-200 dark:shadow-none transition-all"
                 >
-                  Yes, Reset
+                  Yes, Switch Plan
                 </button>
               </div>
             </motion.div>
           </div>
         )}
+
+      </div>
+
+      {/* Plan Selection Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {options.map((opt) => {
+          const isActive = planner?.planType === opt.id;
+          return (
+            <button
+              key={opt.id}
+              onClick={() => handlePlanClick(opt.id)}
+              className={`group p-6 rounded-3xl border-2 transition-all duration-300 text-left flex items-start gap-4 relative overflow-hidden
+                ${isActive 
+                  ? 'bg-red-50/50 dark:bg-red-900/20 border-red-500 shadow-md' 
+                  : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-red-300'}
+              `}
+            >
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform
+                ${isActive ? `bg-red-500 text-white` : `bg-${opt.color}-100 dark:bg-${opt.color}-900/30 text-${opt.color}-600 dark:text-${opt.color}-400 group-hover:scale-110`}
+              `}>
+                <opt.icon size={24} />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className={`font-bold ${isActive ? 'text-red-900 dark:text-red-100' : 'text-slate-900 dark:text-white'}`}>
+                    {opt.id}
+                  </h3>
+                  {isActive && (
+                    <span className="text-[10px] font-black uppercase tracking-wider text-red-600 bg-red-100 dark:bg-red-900/50 dark:text-red-300 px-2 py-1 rounded-md">
+                      Active
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                  {opt.desc}
+                </p>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {/* Main Content Grid */}
@@ -282,10 +368,10 @@ export default function StudyPlannerPage() {
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-lg border border-slate-100 dark:border-slate-800">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Calendar size={18} className="text-indigo-500" />
+                <Calendar size={18} className="text-red-500" />
                 Schedule
               </h3>
-              <div className="text-xs font-semibold px-2 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg">
+              <div className="text-xs font-semibold px-2 py-1 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg">
                 Week {Math.ceil(selectedDay / 7)}
               </div>
             </div>
@@ -298,7 +384,7 @@ export default function StudyPlannerPage() {
                   className={`
                     aspect-square rounded-2xl flex flex-col items-center justify-center transition-all duration-300
                     ${selectedDay === day.dayNumber 
-                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none scale-110 z-10' 
+                      ? 'bg-red-600 text-white shadow-lg shadow-red-200 dark:shadow-none scale-110 z-10' 
                       : 'bg-slate-50 dark:bg-slate-800 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}
                   `}
                 >
@@ -308,7 +394,7 @@ export default function StudyPlannerPage() {
               ))}
             </div>
 
-            <div className="h-[400px] overflow-y-auto pr-2 space-y-2 custom-scrollbar">
+            <div className="hidden lg:block h-[400px] overflow-y-auto pr-2 space-y-2 custom-scrollbar">
               {planner?.days.map((day) => {
                 const dayProgress = calculateDayProgress(day);
                 return (
@@ -318,7 +404,7 @@ export default function StudyPlannerPage() {
                     className={`
                       w-full flex items-center gap-4 p-4 rounded-2xl transition-all border-2 text-left
                       ${selectedDay === day.dayNumber 
-                        ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-500 shadow-sm' 
+                        ? 'bg-red-50 dark:bg-red-900/20 border-red-500 shadow-sm' 
                         : 'bg-transparent border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50'}
                     `}
                   >
@@ -335,7 +421,7 @@ export default function StudyPlannerPage() {
                       </div>
                       <div className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-1">
                         <div className="flex-1 h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                          <div className={`h-full ${dayProgress === 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`} style={{ width: `${dayProgress}%` }}></div>
+                          <div className={`h-full ${dayProgress === 100 ? 'bg-emerald-500' : 'bg-red-500'}`} style={{ width: `${dayProgress}%` }}></div>
                         </div>
                         <span className="font-bold">{dayProgress}%</span>
                       </div>
@@ -371,7 +457,7 @@ export default function StudyPlannerPage() {
                 <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-lg border border-slate-100 dark:border-slate-800 overflow-hidden">
                   <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-100 dark:shadow-none">
+                      <div className="w-12 h-12 bg-red-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-red-100 dark:shadow-none">
                         {selectedDay}
                       </div>
                       <div>
@@ -379,7 +465,7 @@ export default function StudyPlannerPage() {
                         <p className="text-slate-500 text-sm">{currentDayData?.topics.length} Primary Topics to study</p>
                       </div>
                     </div>
-                    <div className="text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-4 py-2 rounded-xl text-sm font-bold">
+                    <div className="text-red-600 bg-red-50 dark:bg-red-900/30 px-4 py-2 rounded-xl text-sm font-bold">
                         {calculateDayProgress(currentDayData!)}% Done
                     </div>
                   </div>
@@ -400,7 +486,7 @@ export default function StudyPlannerPage() {
                               flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left group
                               ${topic.completed 
                                 ? 'bg-slate-50 dark:bg-slate-800/50 border-emerald-500/20' 
-                                : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-indigo-500'}
+                                : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-red-500'}
                             `}
                           >
                             <div className={`
@@ -412,7 +498,7 @@ export default function StudyPlannerPage() {
                             <span className={`text-sm font-semibold flex-1 ${topic.completed ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-200'}`}>
                               {topic.name}
                             </span>
-                            <ChevronRight size={16} className={`text-slate-300 group-hover:text-indigo-500 transition-colors ${topic.completed ? 'opacity-0' : ''}`} />
+                            <ChevronRight size={16} className={`text-slate-300 group-hover:text-red-500 transition-colors ${topic.completed ? 'opacity-0' : ''}`} />
                           </button>
                         ))}
                       </div>
@@ -431,18 +517,18 @@ export default function StudyPlannerPage() {
                         {currentDayData?.customTasks?.map((task) => (
                            <div
                             key={task.id}
-                            className="flex items-center gap-4 p-4 rounded-2xl bg-indigo-50/30 dark:bg-indigo-900/10 border-2 border-indigo-500/20"
+                            className="flex items-center gap-4 p-4 rounded-2xl bg-red-50/30 dark:bg-red-900/10 border-2 border-red-500/20"
                            >
                             <button 
                               onClick={() => handleToggleTask(selectedDay, task.id, 'custom')}
                               className={`
                                 flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center
-                                ${task.completed ? 'bg-indigo-500 text-white' : 'border-2 border-indigo-200 dark:border-indigo-700'}
+                                ${task.completed ? 'bg-red-500 text-white' : 'border-2 border-red-200 dark:border-red-700'}
                               `}
                             >
                                 <CheckCircle2 size={16} />
                             </button>
-                            <span className={`text-sm font-semibold flex-1 ${task.completed ? 'text-slate-400 line-through' : 'text-indigo-900 dark:text-indigo-100'}`}>
+                            <span className={`text-sm font-semibold flex-1 ${task.completed ? 'text-slate-400 line-through' : 'text-red-900 dark:text-red-100'}`}>
                               {task.title}
                             </span>
                            </div>
@@ -452,7 +538,7 @@ export default function StudyPlannerPage() {
                            <input 
                             type="text" 
                             placeholder="Add a person note or task for today..."
-                            className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-900 rounded-2xl px-6 py-4 text-sm transition-all outline-none"
+                            className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-red-500 focus:bg-white dark:focus:bg-slate-900 rounded-2xl px-6 py-4 text-sm transition-all outline-none"
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                     addCustomTask(selectedDay, e.currentTarget.value);
@@ -469,13 +555,13 @@ export default function StudyPlannerPage() {
               )}
 
               {/* Motivator Card */}
-              <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-8 shadow-xl text-white relative overflow-hidden">
+              <div className="bg-gradient-to-br from-slate-900 via-red-950 to-slate-900 rounded-3xl p-8 shadow-xl text-white relative overflow-hidden">
                 <div className="absolute -bottom-10 -right-10 opacity-20 pointer-events-none">
                     <Target size={180} />
                 </div>
                 <div className="relative z-10 space-y-4">
                   <h4 className="text-xl font-bold flex items-center gap-2">
-                    <AlertCircle className="text-indigo-400" size={20} />
+                    <AlertCircle className="text-red-400" size={20} />
                     Exam Countdown
                   </h4>
                   <p className="text-slate-400 text-sm max-w-lg">
@@ -498,63 +584,4 @@ function calculateDayProgress(day: PlannerDay) {
   return Math.round((completed / total) * 100);
 }
 
-function PlannerSetup({ examCategory, userName, onSelect }: { examCategory: string, userName: string, onSelect: (type: any) => void }) {
-    const options = [
-      { id: 'Fast Track', icon: Clock, desc: `Complete everything in ${DEFAULT_DURATIONS[examCategory].fast} days. Intense but fast.`, color: 'rose' },
-      { id: 'Standard Preparation', icon: Target, desc: `Perfect ${DEFAULT_DURATIONS[examCategory].standard} day balance of speed and depth.`, color: 'indigo' },
-      { id: 'Comprehensive Mastery', icon: Sparkles, desc: `In-depth ${DEFAULT_DURATIONS[examCategory].comprehensive} day coverage with extra revision.`, color: 'emerald' },
-    ];
-
-    return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center p-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-4xl w-full space-y-10 text-center"
-        >
-          <div className="space-y-4">
-            <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center text-white mx-auto shadow-2xl shadow-indigo-200 dark:shadow-none">
-              <Sparkles size={40} />
-            </div>
-            <h1 className="text-4xl font-extrabold text-slate-900 dark:text-white">Welcome, {userName}!</h1>
-            <p className="text-slate-500 dark:text-slate-400 text-lg max-w-2xl mx-auto">
-              Your exam for <span className="text-indigo-600 dark:text-indigo-400 font-bold">{examCategory}</span> awaits. 
-              Let's build a scientific study plan tailored to your timeline.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {options.map((opt) => (
-              <button
-                key={opt.id}
-                onClick={() => onSelect(opt.id)}
-                className="group p-8 rounded-[2.5rem] bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 hover:border-indigo-500 hover:shadow-2xl hover:shadow-indigo-100 dark:hover:shadow-none transition-all duration-500 text-left space-y-6"
-              >
-                <div className="flex items-center justify-between">
-                  <div className={`w-14 h-14 rounded-2xl bg-${opt.color}-100 dark:bg-${opt.color}-900/30 flex items-center justify-center text-${opt.color}-600 dark:text-${opt.color}-400 group-hover:scale-110 transition-transform`}>
-                    <opt.icon size={28} />
-                  </div>
-                  <div className={`px-4 py-1.5 rounded-full bg-${opt.color}-500/10 text-${opt.color}-600 dark:text-${opt.color}-400 text-sm font-black border border-${opt.color}-500/20 shadow-sm`}>
-                    {opt.id === 'Fast Track' ? DEFAULT_DURATIONS[examCategory].fast : 
-                     opt.id === 'Standard Preparation' ? DEFAULT_DURATIONS[examCategory].standard : 
-                     DEFAULT_DURATIONS[examCategory].comprehensive} DAYS
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-2">{opt.id}</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{opt.desc}</p>
-                </div>
-                <div className="pt-4 flex items-center text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                  Choose Plan <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                </div>
-              </button>
-            ))}
-          </div>
-
-          <p className="text-xs text-slate-400 font-medium italic">
-            * Plans are generated using the latest syllabus blueprints. You can add custom tasks later.
-          </p>
-        </motion.div>
-      </div>
-    );
-}
+// Removed PlannerSetup function since it's merged into the main component

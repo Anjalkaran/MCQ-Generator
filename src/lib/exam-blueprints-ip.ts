@@ -5,7 +5,7 @@ export const IP_BLUEPRINT = {
     parts: [
       {
         partName: 'Paper-I: Acts, Rules and Postal Operations',
-        totalQuestions: 125,
+        totalQuestions: 142,
         sections: [
           {
             sectionName: '1. Acts',
@@ -165,7 +165,7 @@ export const IP_BLUEPRINT = {
       },
       {
         partName: 'Paper-III: Constitutional and Financial Knowledge',
-        totalQuestions: 150,
+        totalQuestions: 160,
         sections: [
           {
             sectionName: '1. Constitution of India',

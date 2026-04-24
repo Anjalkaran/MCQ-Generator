@@ -34,7 +34,8 @@ import {
   Clock,
   Bookmark,
   LineChart,
-  Book
+  Book,
+  Youtube
 } from 'lucide-react';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -118,16 +119,14 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
 
-                {isAdmin && (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/study-planner'} tooltip="Study Planner">
-                      <Link href="/dashboard/study-planner" onClick={onLinkClick}>
-                        <CalendarCheck className="text-indigo-500" />
-                        <span>Study Planner</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )}
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname === '/dashboard/study-planner'} tooltip="Study Planner">
+                    <Link href="/dashboard/study-planner" onClick={onLinkClick}>
+                      <CalendarCheck className="text-indigo-500" />
+                      <span>Study Planner</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -164,10 +163,10 @@ export function AppSidebar() {
                 </SidebarMenuItem>
 
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === '/dashboard/syllabus'} tooltip="Syllabus Explorer">
+                  <SidebarMenuButton asChild isActive={pathname === '/dashboard/syllabus'} tooltip="Syllabus wise test">
                     <Link href="/dashboard/syllabus" onClick={onLinkClick}>
                       <Book />
-                      <span>Syllabus Explorer</span>
+                      <span>Syllabus wise test</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -197,14 +196,14 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
 
-                <SidebarMenuItem>
+                {/* <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/online-test')} tooltip="Topic Wise MCQ Test">
                     <Link href="/dashboard/online-test" onClick={onLinkClick}>
                       <PenSquare />
                       <span>Topic Wise MCQ Test</span>
                     </Link>
                   </SidebarMenuButton>
-                </SidebarMenuItem>
+                </SidebarMenuItem> */}
 
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={pathname === '/dashboard/history'} tooltip="Exam History">
@@ -270,6 +269,15 @@ export function AppSidebar() {
                     <a href="https://wa.me/9003142899" target="_blank" rel="noopener noreferrer">
                       <MessageCircleIcon />
                       <span>WhatsApp Support</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="YouTube Channel">
+                    <a href="https://youtube.com/@anjalkaranss" target="_blank" rel="noopener noreferrer">
+                      <Youtube />
+                      <span>YouTube Channel</span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

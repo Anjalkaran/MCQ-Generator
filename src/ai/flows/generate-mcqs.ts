@@ -13,6 +13,13 @@ import type { MCQ } from '@/lib/types';
 import { getFirebaseDb } from '@/lib/firebase-admin';
 import { shuffleArray } from '@/lib/utils';
 
+// Generate a stable ID from question text (fallback when questionId is missing)
+const makeQuestionId = (text: string): string =>
+    text.replace(/[^a-z0-9]/gi, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .substring(0, 100);
+
 const GenerateMCQsInputSchema = z.object({
   topic: z.string().describe('The topic for which MCQs are generated.'),
   category: z.string().optional().describe('The parent category of the topic.'),
@@ -43,7 +50,7 @@ const extractMCQsFromTextPrompt = ai.definePrompt({
     name: 'extractMCQsFromTextPrompt',
     input: { schema: z.object({ textContent: z.string(), topicName: z.string(), numberOfQuestions: z.number(), language: z.string().optional().default('English') }) },
     output: { schema: z.object({ mcqs: z.array(MCQSchema) }) },
-    model: 'googleai/gemini-1.5-pro',
+    model: 'googleai/gemini-2.5-pro',
     prompt: `You are an expert at parsing and formatting multiple-choice questions (MCQs).
 
 Your task is to extract as many high-quality, unique questions as you can find from the 'TEXT CONTENT' provided below and format them according to the user's requested language.
@@ -76,7 +83,7 @@ const generateKnowledgeMCQsPrompt = ai.definePrompt({
     name: 'generateKnowledgeMCQsPrompt',
     input: { schema: z.object({ topicName: z.string(), numberOfQuestions: z.number(), language: z.string().optional().default('English') }) },
     output: { schema: z.object({ mcqs: z.array(MCQSchema) }) },
-    model: 'googleai/gemini-1.5-pro',
+    model: 'googleai/gemini-2.5-pro',
     prompt: `You are an expert quiz generator for Indian competitive exams. Your task is to generate {{numberOfQuestions}} multiple-choice questions (MCQs) on the topic of "{{topicName}}".
 
 **CRITICAL INSTRUCTION - FACT VERIFICATION:** Before generating any question, you MUST verify every single fact and answer using Google Search and by cross-referencing with standard Indian school textbooks (like NCERT) and materials from reputable competitive exam coaching institutes. Accuracy is paramount.
@@ -132,14 +139,19 @@ const generateMCQsFlow = ai.defineFlow(
     const answeredQuestionTexts = new Set(topicHistory.flatMap(h => h.questions));
 
     // **PRIORITY 1: Check for uploaded JSON files in the MCQ Bank**
-    const uploadedMCQDocs = await getTopicMCQsAdmin(input.topicId);
+    const uploadedMCQDocs = await getTopicMCQsAdmin(input.topicId, input.topic);
     let canonicalQuestions: MCQ[] = [];
     if (uploadedMCQDocs && uploadedMCQDocs.length > 0) {
         uploadedMCQDocs.forEach(doc => {
             try {
                 const parsedContent = JSON.parse(doc.content);
-                if (parsedContent.mcqs && Array.isArray(parsedContent.mcqs)) {
+                // Support: plain array, {mcqs:[]}, {questions:[]}
+                if (Array.isArray(parsedContent)) {
+                    canonicalQuestions.push(...parsedContent);
+                } else if (parsedContent.mcqs && Array.isArray(parsedContent.mcqs)) {
                     canonicalQuestions.push(...parsedContent.mcqs);
+                } else if (parsedContent.questions && Array.isArray(parsedContent.questions)) {
+                    canonicalQuestions.push(...parsedContent.questions);
                 }
             } catch (error) {
                 console.warn(`Could not parse JSON from document ${doc.fileName} for topic ${input.topic}`);
@@ -282,7 +294,7 @@ const generateMCQsFlow = ai.defineFlow(
             categoryId: input.category || "uncategorized",
         },
         mcqs: shuffleArray(finalMCQs.map(m => ({
-            questionId: m.questionId,
+            questionId: m.questionId || makeQuestionId(m.question),
             topicId: m.topicId || input.topicId,
             question: m.question,
             options: shuffleArray([...m.options]),

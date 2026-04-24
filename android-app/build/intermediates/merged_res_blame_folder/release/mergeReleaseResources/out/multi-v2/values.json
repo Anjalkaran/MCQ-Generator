@@ -57,7 +57,7 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\shanm\\Downloads\\Anjalkaran\\app\\build\\generated\\res\\resValues\\release\\values\\gradleResValues.xml",
+                    "source": "C:\\Users\\shanm\\Downloads\\Anjalkaran\\android-app\\build\\generated\\res\\resValues\\release\\values\\gradleResValues.xml",
                     "from": {
                         "startLines": "6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
@@ -74,20 +74,22 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\shanm\\Downloads\\Anjalkaran\\app\\src\\main\\res\\values\\colors.xml",
+                    "source": "C:\\Users\\shanm\\Downloads\\Anjalkaran\\android-app\\src\\main\\res\\values\\strings.xml",
                     "from": {
-                        "startLines": "16",
-                        "startColumns": "4",
-                        "startOffsets": "647",
-                        "endColumns": "53",
-                        "endOffsets": "696"
+                        "startLines": "31",
+                        "startColumns": "2",
+                        "startOffsets": "1145",
+                        "endLines": "40",
+                        "endColumns": "11",
+                        "endOffsets": "1395"
                     },
                     "to": {
-                        "startLines": "83",
+                        "startLines": "318",
                         "startColumns": "4",
-                        "startOffsets": "5431",
-                        "endColumns": "53",
-                        "endOffsets": "5480"
+                        "startOffsets": "20539",
+                        "endLines": "327",
+                        "endColumns": "11",
+                        "endOffsets": "20789"
                     }
                 },
                 {
@@ -144,6 +146,23 @@
                     }
                 },
                 {
+                    "source": "C:\\Users\\shanm\\Downloads\\Anjalkaran\\android-app\\src\\main\\res\\values\\colors.xml",
+                    "from": {
+                        "startLines": "16",
+                        "startColumns": "4",
+                        "startOffsets": "647",
+                        "endColumns": "53",
+                        "endOffsets": "696"
+                    },
+                    "to": {
+                        "startLines": "83",
+                        "startColumns": "4",
+                        "startOffsets": "5431",
+                        "endColumns": "53",
+                        "endOffsets": "5480"
+                    }
+                },
+                {
                     "source": "C:\\Users\\shanm\\.gradle\\caches\\8.11.1\\transforms\\48bafeae36779f423d74bd8112b18853\\transformed\\fragment-1.5.4\\res\\values\\values.xml",
                     "from": {
                         "startLines": "2,3,4,5,10",
@@ -160,25 +179,6 @@
                         "endLines": "251,258,281,2662,2666",
                         "endColumns": "56,64,63,24,24",
                         "endOffsets": "16567,16874,18082,152825,152974"
-                    }
-                },
-                {
-                    "source": "C:\\Users\\shanm\\Downloads\\Anjalkaran\\app\\src\\main\\res\\values\\strings.xml",
-                    "from": {
-                        "startLines": "31",
-                        "startColumns": "2",
-                        "startOffsets": "1145",
-                        "endLines": "40",
-                        "endColumns": "11",
-                        "endOffsets": "1395"
-                    },
-                    "to": {
-                        "startLines": "318",
-                        "startColumns": "4",
-                        "startOffsets": "20539",
-                        "endLines": "327",
-                        "endColumns": "11",
-                        "endOffsets": "20789"
                     }
                 },
                 {

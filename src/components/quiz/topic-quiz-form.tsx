@@ -55,8 +55,13 @@ export function TopicQuizForm({ topic, subTopic }: TopicQuizFormProps) {
         mcqDocs.forEach(doc => {
             try {
                 const data = JSON.parse(doc.content);
-                if (data.mcqs && Array.isArray(data.mcqs)) {
+                // Support: plain array, {mcqs:[]}, {questions:[]}
+                if (Array.isArray(data)) {
+                    totalMCQs += data.length;
+                } else if (data.mcqs && Array.isArray(data.mcqs)) {
                     totalMCQs += data.mcqs.length;
+                } else if (data.questions && Array.isArray(data.questions)) {
+                    totalMCQs += data.questions.length;
                 }
             } catch (e) {
                 console.warn(`Could not parse content of ${doc.fileName}`);

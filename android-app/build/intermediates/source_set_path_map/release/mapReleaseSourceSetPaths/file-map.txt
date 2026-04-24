@@ -19,10 +19,10 @@ in.anjalkaran.app-core-1.13.0-17 C:\Users\shanm\.gradle\caches\8.11.1\transforms
 in.anjalkaran.app-profileinstaller-1.3.1-18 C:\Users\shanm\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\res
 in.anjalkaran.app-browser-1.9.0-alpha04-19 C:\Users\shanm\.gradle\caches\8.11.1\transforms\be57bd43967b699c12a0f6b8bd2f21c6\transformed\browser-1.9.0-alpha04\res
 in.anjalkaran.app-appcompat-resources-1.7.0-20 C:\Users\shanm\.gradle\caches\8.11.1\transforms\d6f2e3c3aeb152384c7f6efcc9d99697\transformed\appcompat-resources-1.7.0\res
-in.anjalkaran.app-pngs-21 C:\Users\shanm\Downloads\Anjalkaran\app\build\generated\res\pngs\release
-in.anjalkaran.app-resValues-22 C:\Users\shanm\Downloads\Anjalkaran\app\build\generated\res\resValues\release
-in.anjalkaran.app-packageReleaseResources-23 C:\Users\shanm\Downloads\Anjalkaran\app\build\intermediates\incremental\release\packageReleaseResources\merged.dir
-in.anjalkaran.app-packageReleaseResources-24 C:\Users\shanm\Downloads\Anjalkaran\app\build\intermediates\incremental\release\packageReleaseResources\stripped.dir
-in.anjalkaran.app-release-25 C:\Users\shanm\Downloads\Anjalkaran\app\build\intermediates\merged_res\release\mergeReleaseResources
-in.anjalkaran.app-main-26 C:\Users\shanm\Downloads\Anjalkaran\app\src\main\res
-in.anjalkaran.app-release-27 C:\Users\shanm\Downloads\Anjalkaran\app\src\release\res
+in.anjalkaran.app-pngs-21 C:\Users\shanm\Downloads\Anjalkaran\android-app\build\generated\res\pngs\release
+in.anjalkaran.app-resValues-22 C:\Users\shanm\Downloads\Anjalkaran\android-app\build\generated\res\resValues\release
+in.anjalkaran.app-packageReleaseResources-23 C:\Users\shanm\Downloads\Anjalkaran\android-app\build\intermediates\incremental\release\packageReleaseResources\merged.dir
+in.anjalkaran.app-packageReleaseResources-24 C:\Users\shanm\Downloads\Anjalkaran\android-app\build\intermediates\incremental\release\packageReleaseResources\stripped.dir
+in.anjalkaran.app-release-25 C:\Users\shanm\Downloads\Anjalkaran\android-app\build\intermediates\merged_res\release\mergeReleaseResources
+in.anjalkaran.app-main-26 C:\Users\shanm\Downloads\Anjalkaran\android-app\src\main\res
+in.anjalkaran.app-release-27 C:\Users\shanm\Downloads\Anjalkaran\android-app\src\release\res

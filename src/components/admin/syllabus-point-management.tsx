@@ -49,7 +49,8 @@ import {
   Search,
   Code2,
   FileCode,
-  Languages
+  Languages,
+  Download
 } from 'lucide-react';
 import { getFirebaseStorage, getFirebaseAuth } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -407,7 +408,7 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
               <div>
                 <CardTitle className="text-xl font-bold flex items-center gap-2">
                   <Layers className="h-5 w-5 text-red-600" />
-                  Syllabus Explorer
+                  Syllabus wise test
                 </CardTitle>
                 <CardDescription>Select a topic to manage its dedicated content</CardDescription>
               </div>
@@ -708,6 +709,17 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
                                 </div>
                               </div>
                               <div className="flex items-center gap-1">
+                                  {(mat.fileType === 'pdf' || (mat.content && mat.content.startsWith('http'))) && (
+                                      <Button 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          className="h-8 w-8 text-slate-400 hover:text-green-600 hover:bg-green-50" 
+                                          title="Download PDF"
+                                          onClick={() => window.open(mat.content, '_blank')}
+                                      >
+                                          <Download className="h-4 w-4" />
+                                      </Button>
+                                  )}
                                   {(mat.fileType === 'docx' || (mat.content && mat.content.startsWith('<'))) && (
                                       <Button 
                                           variant="ghost" 
@@ -753,7 +765,7 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
                  </div>
                  <div>
                     <h5 className="text-sm font-bold text-blue-900">Pro Tip</h5>
-                    <p className="text-[11px] text-blue-700 leading-tight">These materials are tied to the unique Syllabus ID. Users will see these in their Syllabus Explorer after the final migration.</p>
+                    <p className="text-[11px] text-blue-700 leading-tight">These materials are tied to the unique Syllabus ID. Users will see these in their Syllabus wise test after the final migration.</p>
                  </div>
                </div>
             </Card>

@@ -81,7 +81,6 @@ export default function CourseDetailPage() {
           </div>
           
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
-            {isAdmin && (
               <Card className="hover:shadow-lg transition-shadow border-red-200 bg-red-50/10">
                 <Link href="/dashboard/study-planner" className="block p-6 text-center space-y-4">
                   <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-red-100">
@@ -93,7 +92,6 @@ export default function CourseDetailPage() {
                   </div>
                 </Link>
               </Card>
-            )}
 
             <Card className="hover:shadow-lg transition-shadow border-slate-200">
               <Link href={`/dashboard/syllabus?category=${courseId}`} className="block p-6 text-center space-y-4">
@@ -101,7 +99,7 @@ export default function CourseDetailPage() {
                   <BookOpen className="h-6 w-6 text-red-600" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg">Syllabus Explorer</h3>
+                  <h3 className="font-bold text-lg">Syllabus wise test</h3>
                   <p className="text-sm text-slate-500">View blueprints and breakdown</p>
                 </div>
               </Link>
@@ -131,7 +129,7 @@ export default function CourseDetailPage() {
               </Link>
             </Card>
 
-            <Card className="hover:shadow-lg transition-shadow border-slate-200">
+            <Card className="hidden hover:shadow-lg transition-shadow border-slate-200">
               <Link href="/dashboard/online-test" className="block p-6 text-center space-y-4">
                 <div className="w-12 h-12 bg-orange-50 rounded-full flex items-center justify-center mx-auto">
                   <PenSquare className="h-6 w-6 text-orange-600" />

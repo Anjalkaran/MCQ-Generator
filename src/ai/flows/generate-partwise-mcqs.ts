@@ -13,7 +13,7 @@ import { z } from 'zod';
 import { getTopicsByPartAndExam, getTopicMCQs, updateTopicMCQWithTranslation } from '@/lib/firestore';
 import type { MCQ } from '@/lib/types';
 import { ai } from '../genkit';
-import { gemini15Pro } from '@genkit-ai/googleai';
+
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { shuffleArray } from '@/lib/utils';
 
@@ -50,7 +50,7 @@ const translateMCQ = async (mcq: MCQ, targetLanguage: string): Promise<MCQ> => {
       `;
 
     const result = await ai.generate({
-        model: gemini15Pro,
+        model: 'googleai/gemini-2.5-pro',
         prompt: prompt,
         output: {
             schema: MCQSchema,

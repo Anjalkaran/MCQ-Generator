@@ -76,7 +76,7 @@ export function AdminOverview({
        icon: Video,
        color: 'orange',
         items: [
-          { label: 'Syllabus Explorer', value: 'syllabi' },
+          { label: 'Syllabus wise test', value: 'syllabi' },
           { label: 'Syllabus Point Management', value: 'syllabus-points' },
           { label: 'Topic Repository', value: 'topics' },
           { label: 'Video Lecture Bank', value: 'video-classes' },

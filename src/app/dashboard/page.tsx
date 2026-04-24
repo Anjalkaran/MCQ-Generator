@@ -141,11 +141,10 @@ export default function DashboardPage() {
           Choose your course to continue your preparation and access your study materials.
         </p>
 
-        {isAdmin && (
           <div className="pt-4 pb-2">
             <Card 
               onClick={() => router.push('/dashboard/study-planner')}
-              className="bg-indigo-600 border-none overflow-hidden cursor-pointer group shadow-xl hover:shadow-indigo-200 transition-all duration-500 relative"
+              className="bg-red-600 border-none overflow-hidden cursor-pointer group shadow-xl hover:shadow-red-200 transition-all duration-500 relative"
             >
                 <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-700">
                     <CalendarCheck size={120} className="text-white" />
@@ -157,7 +156,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="text-left space-y-1">
                             <h3 className="text-2xl font-black text-white">{userData.examCategory} Study Journey</h3>
-                            <p className="text-indigo-100 font-medium">Your personalized {userData.examCategory} preparation roadmap • 30-180 Days</p>
+                            <p className="text-red-100 font-medium">Your personalized {userData.examCategory} preparation roadmap • 30-180 Days</p>
                         </div>
                     </div>
                     <Button 
@@ -165,7 +164,7 @@ export default function DashboardPage() {
                             e.stopPropagation();
                             router.push('/dashboard/study-planner');
                         }}
-                        className="bg-white text-indigo-600 hover:bg-indigo-50 font-bold px-8 h-12 rounded-xl z-20"
+                        className="bg-white text-red-600 hover:bg-red-50 font-bold px-8 h-12 rounded-xl z-20"
                     >
                         Open {userData.examCategory} Planner
                         <ChevronRight className="ml-2 h-5 w-5" />
@@ -173,7 +172,6 @@ export default function DashboardPage() {
                 </div>
             </Card>
           </div>
-        )}
       </div>
 
       <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">

@@ -2,7 +2,7 @@
 "use client";
 
 import React from 'react';
-import { Instagram, Facebook, Send, Share2 } from 'lucide-react';
+import { Instagram, Facebook, Send, Share2, Youtube } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
@@ -53,6 +53,15 @@ const socialLinks = [
     color: 'hover:bg-[#0088cc] hover:text-white',
     iconColor: 'text-[#0088cc]',
     shadow: 'hover:shadow-[0_0_15px_rgba(0,136,204,0.4)]',
+  },
+  {
+    name: 'YouTube',
+    icon: Youtube,
+    handle: '@anjalkaranss',
+    url: 'https://youtube.com/@anjalkaranss',
+    color: 'hover:bg-[#FF0000] hover:text-white',
+    iconColor: 'text-[#FF0000]',
+    shadow: 'hover:shadow-[0_0_15px_rgba(255,0,0,0.4)]',
   },
 ];
 

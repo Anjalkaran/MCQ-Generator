@@ -228,7 +228,7 @@ export const GROUPB_BLUEPRINT = {
   parts: [
     {
       partName: 'Paper-I: Postal Operations and Rules',
-      totalQuestions: 125,
+      totalQuestions: 113,
       sections: [
         {
           sectionName: 'Acts',
@@ -344,7 +344,7 @@ export const GROUPB_BLUEPRINT = {
     },
     {
       partName: 'Paper-II: Service Rules and Financial Regulations',
-      totalQuestions: 150,
+      totalQuestions: 151,
       sections: [
         {
           sectionName: 'Subjects',

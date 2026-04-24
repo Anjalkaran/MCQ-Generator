@@ -61,7 +61,7 @@ function OnlineTestContent() {
       color: "from-blue-500/10 to-cyan-500/10",
       accent: "text-blue-600",
       buttonBg: "bg-blue-600 hover:bg-blue-700",
-      show: true
+      show: false
     },
     {
       title: "Reasoning Test",

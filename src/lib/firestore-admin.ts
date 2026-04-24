@@ -247,38 +247,61 @@ export const getReasoningQuestionsAdmin = async (): Promise<any[]> => {
 
 /**
  * Server-side version of getTopicMCQs using Firebase Admin SDK.
+ * Searches both topicMCQs and syllabusMCQs collections.
+ * Supports lookup by topicId AND/OR topicName to bridge the gap between
+ * Firestore document IDs and blueprint IDs (e.g., MTS-PB-S1-T1).
  */
-export const getTopicMCQsAdmin = async (topicId?: string): Promise<TopicMCQ[]> => {
+export const getTopicMCQsAdmin = async (topicId?: string, topicName?: string): Promise<TopicMCQ[]> => {
     const db = getFirebaseDb();
     if (!db) return [];
     
     try {
-        // Query both collections
         const col1 = db.collection('topicMCQs');
         const col2 = db.collection('syllabusMCQs');
-        
-        let q1: any = col1;
-        let q2: any = col2;
-        
-        if (topicId) {
-            q1 = col1.where('topicId', '==', topicId);
-            q2 = col2.where('topicId', '==', topicId);
+
+        if (topicId || topicName) {
+            const promises: Promise<any>[] = [];
+
+            if (topicId) {
+                promises.push(col1.where('topicId', '==', topicId).get());
+                promises.push(col2.where('topicId', '==', topicId).get());
+            }
+            if (topicName) {
+                promises.push(col1.where('topicName', '==', topicName).get());
+                promises.push(col2.where('topicName', '==', topicName).get());
+            }
+
+            const snapshots = await Promise.all(promises);
+
+            // Deduplicate by doc ID (topicId and topicName queries may return same doc)
+            const resultsMap = new Map<string, any>();
+            snapshots.forEach(snap => {
+                snap.docs.forEach((doc: any) => {
+                    resultsMap.set(doc.id, { id: doc.id, ...doc.data() });
+                });
+            });
+
+            return Array.from(resultsMap.values()).map(data => ({
+                ...data,
+                uploadedAt: normalizeDate(data.uploadedAt) || new Date()
+            } as TopicMCQ));
         } else {
-            q1 = col1.orderBy('uploadedAt', 'desc');
-            q2 = col2.orderBy('uploadedAt', 'desc');
+            // Fetch all
+            const [snap1, snap2] = await Promise.all([
+                col1.orderBy('uploadedAt', 'desc').get(),
+                col2.orderBy('uploadedAt', 'desc').get()
+            ]);
+
+            const results = [
+                ...snap1.docs.map((doc: any) => ({ id: doc.id, ...doc.data() })),
+                ...snap2.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }))
+            ];
+
+            return results.map(data => ({
+                ...data,
+                uploadedAt: normalizeDate(data.uploadedAt) || new Date()
+            } as TopicMCQ));
         }
-        
-        const [snap1, snap2] = await Promise.all([q1.get(), q2.get()]);
-        
-        const results = [
-            ...snap1.docs.map((doc: any) => ({ id: doc.id, ...doc.data() })),
-            ...snap2.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }))
-        ];
-        
-        return results.map(data => ({
-            ...data,
-            uploadedAt: normalizeDate(data.uploadedAt) || new Date()
-        } as TopicMCQ));
     } catch (error) {
         console.error("Error in getTopicMCQsAdmin:", error);
         return [];

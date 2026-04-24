@@ -70,7 +70,7 @@ const adminSections = [
     { value: 'topics', label: 'Topic Management', icon: BookCopy },
     { value: 'study-material', label: 'Study Material', icon: Library },
     { value: 'video-classes', label: 'Video Classes', icon: Video },
-    { value: 'syllabi', label: 'Syllabus Explorer', icon: GraduationCap },
+    { value: 'syllabi', label: 'Syllabus wise test', icon: GraduationCap },
     { value: 'topic-mcq', label: 'MCQ Bank', icon: FileQuestion },
     { value: 'question-bank', label: 'Question Bank', icon: FileText },
     { value: 'reasoning-bank', label: 'Reasoning Bank', icon: NewLogoIcon },

@@ -37,7 +37,7 @@ const prompt = ai.definePrompt({
   name: 'explainAptitudeConceptPrompt',
   input: {schema: ExplainAptitudeConceptInputSchema},
   output: {schema: ExplainAptitudeConceptOutputSchema},
-  model: googleAI.model('gemini-1.5-pro'),
+  model: 'googleai/gemini-2.5-pro',
   prompt: `You are an expert tutor for quantitative aptitude. Your task is to explain the core concept and list the key formulas for the given topic.
 
 **Topic:** "{{topic}}"

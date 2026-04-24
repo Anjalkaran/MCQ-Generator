@@ -34,7 +34,7 @@ const prompt = ai.definePrompt({
   name: 'generateAptitudeProblemPrompt',
   input: {schema: GenerateAptitudeProblemInputSchema},
   output: {schema: GenerateAptitudeProblemOutputSchema},
-  model: googleAI.model('gemini-1.5-pro'),
+  model: 'googleai/gemini-2.5-pro',
   prompt: `You are an expert tutor specializing in quantitative aptitude for Indian competitive exams. Your task is to generate a single, unique, high-quality aptitude problem based on the given topic.
 
 **CRITICAL INSTRUCTIONS:**

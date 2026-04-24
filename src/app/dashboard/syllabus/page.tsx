@@ -36,7 +36,7 @@ function SyllabusContent({ userData, isAdmin }: { userData: any; isAdmin: boolea
             <BookOpen className="h-6 w-6" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 lg:text-4xl">
-            Syllabus Explorer
+            Syllabus wise test
           </h1>
         </div>
       </div>
