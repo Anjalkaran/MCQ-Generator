@@ -57,8 +57,8 @@ android {
         applicationId "in.anjalkaran"
         minSdkVersion 21
         targetSdkVersion 35
-        versionCode 7
-        versionName "5"
+        versionCode 8
+        versionName "6"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name
@@ -150,9 +150,18 @@ android {
 
         
     }
+    signingConfigs {
+        release {
+            storeFile file("../android.keystore")
+            storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: "Nanaa@2023"
+            keyAlias "android"
+            keyPassword System.getenv("ANDROID_KEY_PASSWORD") ?: "Nanaa@2023"
+        }
+    }
     buildTypes {
         release {
             minifyEnabled true
+            signingConfig signingConfigs.release
         }
     }
     compileOptions {

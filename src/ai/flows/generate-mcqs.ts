@@ -38,6 +38,7 @@ const MCQSchema = z.object({
   options: z.array(z.string().min(1, "Option text cannot be empty.")).length(4).describe('An array of four possible answers, with the full text for each option.'),
   correctAnswer: z.string().min(1, "Correct answer cannot be empty.").describe('The full text of the correct answer, which MUST be an exact match to one of the four strings in the `options` array.'),
   solution: z.string().optional().describe('A step-by-step solution for arithmetic problems, or a detailed explanation for other topics.'),
+  explanation: z.string().optional().describe('An alternative field for solution/explanation.'),
   topic: z.string().optional().describe("The specific topic of the question."),
 });
 
@@ -182,7 +183,7 @@ const generateMCQsFlow = ai.defineFlow(
                 const base = {
                     ...mcq,
                     topic: mcq.topic || input.topic,
-                    solution: mcq.solution || "",
+                    solution: mcq.solution || mcq.explanation || "",
                 };
 
                 const lang = input.language || 'English';
@@ -192,7 +193,8 @@ const generateMCQsFlow = ai.defineFlow(
                 const t = mcq.translations && (
                     mcq.translations[lang] || 
                     (langCode ? mcq.translations[langCode] : null) ||
-                    mcq.translations[langKey]
+                    mcq.translations[langKey] ||
+                    (langCode ? (mcq.translations as any)[langCode.toLowerCase()] : null)
                 );
 
                 if (t) {
@@ -201,7 +203,7 @@ const generateMCQsFlow = ai.defineFlow(
                         question: t.question || base.question,
                         options: (t.options && t.options.length > 0) ? t.options : base.options,
                         correctAnswer: t.correctAnswer || base.correctAnswer,
-                        solution: t.solution || base.solution,
+                        solution: t.solution || t.explanation || base.solution,
                     };
                 }
                 return base;

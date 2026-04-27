@@ -205,15 +205,36 @@ export const PA_BLUEPRINT = {
               questions: 10, 
               subTopics: ['SB', 'RD', 'SSA', 'PPF', 'SCSS', 'TD & MIS', 'MSSC', 'NSC & KVP', 'Misc', 'PLI/RPLI', 'IPPB', 'Money Remittances', 'Mails', 'Stamps', 'PM Jansuraksha & APY'] 
             },
-            { id: 'PA-P1-SA-T5', name: 'Postal Manual VI Part I & III, SO Orders', questions: 5, subTopics: ['Postal Manual Volume VI Part I', 'Postal Manual Volume VI Part III (Chapter I & II)', 'Unlimited SO orders issued by Directorate'] },
+            { id: 'PA-P1-SA-T5', name: 'Postal Manual VI Part I & III', questions: 5, subTopics: ['Postal Manual Volume VI Part I', 'Postal Manual Volume VI Part III (Chapter I & II)'] },
             { id: 'PA-P1-SA-T6', name: 'Postal Manual VII & Foreign Post Manual', questions: 5, subTopics: ['Postal Manual Volume VII', 'Foreign Post Manual'] },
           ],
         },
         {
-          sectionName: 'Part-B: General Knowledge, Arithmetic, and Reasoning (50 Questions)',
+          sectionName: 'Part-B: General Awareness / Knowledge (10 Questions)',
           topics: [
-            { id: 'PA-P1-SB-T1', name: 'General Awareness / Knowledge', questions: 10, subTopics: ['Indian Geography', 'Civics', 'General Politics', 'Indian Culture & Freedom Struggle', 'Ethics and Morals'] },
-            { id: 'PA-P1-SB-T2', name: 'Basic Arithmetic', questions: 20, subTopics: ['BODMAS', 'Percentage', 'Profit and Loss', 'Simple Interest', 'Average', 'Time and Work', 'Time and Distance', 'Unitary Method'] },
+            { id: 'PA-P1-SB-T1-GK1', name: 'Indian Geography', questions: 2 },
+            { id: 'PA-P1-SB-T1-GK2', name: 'Civics', questions: 2 },
+            { id: 'PA-P1-SB-T1-GK3', name: 'General Knowledge', questions: 2 },
+            { id: 'PA-P1-SB-T1-GK4', name: 'Indian Culture & Freedom Struggle', questions: 2 },
+            { id: 'PA-P1-SB-T1-GK5', name: 'Ethics and Morale study', questions: 2 },
+          ],
+        },
+        {
+          sectionName: 'Part-B: Basic Arithmetic (20 Questions)',
+          topics: [
+            { id: 'PA-P1-SB-T2-A1', name: 'BODMAS', questions: 4 },
+            { id: 'PA-P1-SB-T2-A2', name: 'Percentage', questions: 2 },
+            { id: 'PA-P1-SB-T2-A3', name: 'Profit and loss', questions: 2 },
+            { id: 'PA-P1-SB-T2-A4', name: 'Simple interest', questions: 2 },
+            { id: 'PA-P1-SB-T2-A5', name: 'Average', questions: 2 },
+            { id: 'PA-P1-SB-T2-A6', name: 'Time and work', questions: 2 },
+            { id: 'PA-P1-SB-T2-A7', name: 'Time and distance', questions: 2 },
+            { id: 'PA-P1-SB-T2-A8', name: 'Unitary Method', questions: 2 },
+          ],
+        },
+        {
+          sectionName: 'Part-B: Reasoning and Analytical Ability (20 Questions)',
+          topics: [
             { id: 'PA-P1-SB-T3', name: 'Reasoning and Analytical Ability', questions: 20, subTopics: ['Non-Verbal / Pictorial Reasoning'] },
           ],
         },

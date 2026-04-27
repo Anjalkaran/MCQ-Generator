@@ -25,6 +25,7 @@ export interface MCQ {
   options: string[];
   correctAnswer: string;
   solution?: string;
+  explanation?: string; // Support user's preferred field name
   topic?: string;
   sourceLanguage?: string;
   translations?: Record<string, MCQ>;

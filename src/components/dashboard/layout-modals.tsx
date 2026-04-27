@@ -132,10 +132,11 @@ export function NewContentPopup({ newContent, onClose, topics }: { newContent: {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          File: {material.fileName}
-                          {date && ` • Added ${formatDistanceToNow(date, { addSuffix: true })}`}
-                        </p>
+                        {date && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Added {formatDistanceToNow(date, { addSuffix: true })}
+                          </p>
+                        )}
                       </div>
                     );
                   })}
@@ -159,10 +160,11 @@ export function NewContentPopup({ newContent, onClose, topics }: { newContent: {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          File: {mcq.fileName}
-                          {date && ` • Added ${formatDistanceToNow(date, { addSuffix: true })}`}
-                        </p>
+                        {date && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Added {formatDistanceToNow(date, { addSuffix: true })}
+                          </p>
+                        )}
                       </div>
                     );
                   })}

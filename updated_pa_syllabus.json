@@ -1,0 +1,377 @@
+{
+  "name": "projects/quizwiz-be479/databases/(default)/documents/syllabi/PA",
+  "fields": {
+    "examName": {
+      "stringValue": "Postal Assistant / Sorting Assistant (PA/SA) Exam"
+    },
+    "lastModified": {
+      "mapValue": {
+        "fields": {
+          "nanoseconds": {
+            "integerValue": "970000000"
+          },
+          "seconds": {
+            "integerValue": "1776593421"
+          }
+        }
+      }
+    },
+    "parts": {
+      "arrayValue": {
+        "values": [
+          {
+            "mapValue": {
+              "fields": {
+                "partName": {
+                  "stringValue": "Paper-I: Postal Knowledge and General Awareness"
+                },
+                "sections": {
+                  "arrayValue": {
+                    "values": [
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "sectionName": {
+                              "stringValue": "Part-A: Postal Knowledge (50 Questions)"
+                            },
+                            "topics": {
+                              "arrayValue": {
+                                "values": [
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PA-P1-SA-T1"
+                                        },
+                                        "name": {
+                                          "stringValue": "Post Office Guide Part I"
+                                        },
+                                        "questions": {
+                                          "integerValue": "10"
+                                        },
+                                        "subTopics": {
+                                          "arrayValue": {
+                                            "values": [
+                                              {
+                                                "stringValue": "Except Telegraphic Money Order"
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PA-P1-SA-T2"
+                                        },
+                                        "name": {
+                                          "stringValue": "Post Office Guide Part II"
+                                        },
+                                        "questions": {
+                                          "integerValue": "10"
+                                        },
+                                        "subTopics": {
+                                          "arrayValue": {
+                                            "values": [
+                                              {
+                                                "stringValue": "Except British and Irish Postal Order"
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PA-P1-SA-T3"
+                                        },
+                                        "name": {
+                                          "stringValue": "IT Modernisation project terms of Dept. of Posts"
+                                        },
+                                        "questions": {
+                                          "integerValue": "10"
+                                        },
+                                        "subTopics": {
+                                          "arrayValue": {
+                                            "values": [
+                                              {
+                                                "stringValue": "Basic terminologies related to IT Modernisation project of Department of Posts"
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PA-P1-SA-T4"
+                                        },
+                                        "name": {
+                                          "stringValue": "Products and Services"
+                                        },
+                                        "questions": {
+                                          "integerValue": "10"
+                                        },
+                                        "subTopics": {
+                                          "arrayValue": {
+                                            "values": [
+                                              {
+                                                "stringValue": "SB"
+                                              },
+                                              {
+                                                "stringValue": "RD"
+                                              },
+                                              {
+                                                "stringValue": "SSA"
+                                              },
+                                              {
+                                                "stringValue": "PPF"
+                                              },
+                                              {
+                                                "stringValue": "SCSS"
+                                              },
+                                              {
+                                                "stringValue": "TD & MIS"
+                                              },
+                                              {
+                                                "stringValue": "MSSC"
+                                              },
+                                              {
+                                                "stringValue": "NSC & KVP"
+                                              },
+                                              {
+                                                "stringValue": "Misc"
+                                              },
+                                              {
+                                                "stringValue": "PLI/RPLI"
+                                              },
+                                              {
+                                                "stringValue": "IPPB"
+                                              },
+                                              {
+                                                "stringValue": "Money Remittances"
+                                              },
+                                              {
+                                                "stringValue": "Mails"
+                                              },
+                                              {
+                                                "stringValue": "Stamps"
+                                              },
+                                              {
+                                                "stringValue": "PM Jansuraksha & APY"
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PA-P1-SA-T5"
+                                        },
+                                        "name": {
+                                          "stringValue": "Postal Manual VI Part I & III"
+                                        },
+                                        "questions": {
+                                          "integerValue": "5"
+                                        },
+                                        "subTopics": {
+                                          "arrayValue": {
+                                            "values": [
+                                              {
+                                                "stringValue": "Postal Manual Volume VI Part I"
+                                              },
+                                              {
+                                                "stringValue": "Postal Manual Volume VI Part III (Chapter I & II)"
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PA-P1-SA-T6"
+                                        },
+                                        "name": {
+                                          "stringValue": "Postal Manual VII & Foreign Post Manual"
+                                        },
+                                        "questions": {
+                                          "integerValue": "5"
+                                        },
+                                        "subTopics": {
+                                          "arrayValue": {
+                                            "values": [
+                                              {
+                                                "stringValue": "Postal Manual Volume VII"
+                                              },
+                                              {
+                                                "stringValue": "Foreign Post Manual"
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "mapValue": {
+                          "fields": {
+                            "sectionName": {
+                              "stringValue": "Part-B: General Knowledge, Arithmetic, and Reasoning (50 Questions)"
+                            },
+                            "topics": {
+                              "arrayValue": {
+                                "values": [
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PA-P1-SB-T1"
+                                        },
+                                        "name": {
+                                          "stringValue": "General Awareness / Knowledge"
+                                        },
+                                        "questions": {
+                                          "integerValue": "10"
+                                        },
+                                        "subTopics": {
+                                          "arrayValue": {
+                                            "values": [
+                                              {
+                                                "stringValue": "Indian Geography"
+                                              },
+                                              {
+                                                "stringValue": "Civics"
+                                              },
+                                              {
+                                                "stringValue": "General Politics"
+                                              },
+                                              {
+                                                "stringValue": "Indian Culture & Freedom Struggle"
+                                              },
+                                              {
+                                                "stringValue": "Ethics and Morals"
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PA-P1-SB-T2"
+                                        },
+                                        "name": {
+                                          "stringValue": "Basic Arithmetic"
+                                        },
+                                        "questions": {
+                                          "integerValue": "20"
+                                        },
+                                        "subTopics": {
+                                          "arrayValue": {
+                                            "values": [
+                                              {
+                                                "stringValue": "BODMAS"
+                                              },
+                                              {
+                                                "stringValue": "Percentage"
+                                              },
+                                              {
+                                                "stringValue": "Profit and Loss"
+                                              },
+                                              {
+                                                "stringValue": "Simple Interest"
+                                              },
+                                              {
+                                                "stringValue": "Average"
+                                              },
+                                              {
+                                                "stringValue": "Time and Work"
+                                              },
+                                              {
+                                                "stringValue": "Time and Distance"
+                                              },
+                                              {
+                                                "stringValue": "Unitary Method"
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "mapValue": {
+                                      "fields": {
+                                        "id": {
+                                          "stringValue": "PA-P1-SB-T3"
+                                        },
+                                        "name": {
+                                          "stringValue": "Reasoning and Analytical Ability"
+                                        },
+                                        "questions": {
+                                          "integerValue": "20"
+                                        },
+                                        "subTopics": {
+                                          "arrayValue": {
+                                            "values": [
+                                              {
+                                                "stringValue": "Non-Verbal / Pictorial Reasoning"
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "totalQuestions": {
+                  "integerValue": "100"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "totalDurationMinutes": {
+      "integerValue": "120"
+    },
+    "updatedAt": {
+      "timestampValue": "2026-04-26T03:50:01.800Z"
+    }
+  }
+}

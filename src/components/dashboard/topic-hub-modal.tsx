@@ -232,7 +232,7 @@ export function TopicHubModal({ isOpen, onClose, topicId, topicName, examCategor
           
           <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
             <span>Powered by Anjalkaran</span>
-            <span>2024 Exam Edition</span>
+            <span>2026 Exam Edition</span>
           </div>
         </div>
       </DialogContent>

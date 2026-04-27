@@ -11,3 +11,5 @@ env:
   # Injected via Cloud Secret Manager - you'll need to create these secrets
   - variable: GEMINI_API_KEY
     secret: GEMINI_API_KEY
+  - variable: ANTHROPIC_API_KEY
+    secret: ANTHROPIC_API_KEY
