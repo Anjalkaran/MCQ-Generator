@@ -10,6 +10,6 @@ console.log('ANTHROPIC_API_KEY being used by Genkit:', process.env.ANTHROPIC_API
 export const ai = genkit({
   plugins: [
     googleAI({ apiKey: process.env.GEMINI_API_KEY }),
-    anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }),
+    ...(process.env.ANTHROPIC_API_KEY ? [anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })] : []),
   ],
 });
