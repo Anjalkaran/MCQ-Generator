@@ -10,6 +10,50 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Search, BookOpen, FileText, BrainCircuit, ChevronRight, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
+function getSnippet(content: string, query: string): string {
+    if (!content) return "";
+    let cleanText = content;
+    
+    // Check if it's stringified JSON
+    if (content.trim().startsWith('[') || content.trim().startsWith('{')) {
+        try {
+            const parsed = JSON.parse(content);
+            const questions = Array.isArray(parsed) ? parsed : (parsed.questions || []);
+            // Search inside questions
+            for (const q of questions) {
+                if (q.question && q.question.toLowerCase().includes(query)) {
+                    return `MCQ: "${q.question}"`;
+                }
+                if (q.options && Array.isArray(q.options)) {
+                    for (const opt of q.options) {
+                        if (opt && opt.toLowerCase().includes(query)) {
+                            return `Option: "...${opt}..."`;
+                        }
+                    }
+                }
+                if (q.solution && q.solution.toLowerCase().includes(query)) {
+                    return `Solution: "...${q.solution}..."`;
+                }
+            }
+        } catch (e) {
+            // Not valid JSON or parse failed, treat as raw text
+        }
+    }
+    
+    // Fallback: Raw text search
+    const index = cleanText.toLowerCase().indexOf(query);
+    if (index === -1) return "";
+    
+    const start = Math.max(0, index - 40);
+    const end = Math.min(cleanText.length, index + query.length + 40);
+    let snippet = cleanText.substring(start, end);
+    if (start > 0) snippet = "..." + snippet;
+    if (end < cleanText.length) snippet = snippet + "...";
+    
+    // Remove unwanted JSON artifacts if any leaked through
+    return snippet.replace(/["'{}[\]]/g, '').trim();
+}
+
 export default function SearchPage() {
     return (
         <React.Suspense fallback={<div className="flex h-[50vh] w-full items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>}>
@@ -46,6 +90,9 @@ function SearchContent() {
             const matchesText = t.title.toLowerCase().includes(lowerQuery) || 
                                t.description?.toLowerCase().includes(lowerQuery);
             return matchesExam && matchesText;
+        }).map(t => {
+            const snippet = getSnippet(t.description || "", lowerQuery);
+            return { ...t, snippet };
         });
 
         // Filter Materials
@@ -53,8 +100,18 @@ function SearchContent() {
             const topic = (topics || []).find(t => t.id === m.topicId);
             const matchesExam = topic?.examCategories?.includes(selectedExam as any);
             const matchesText = m.fileName.toLowerCase().includes(lowerQuery) || 
-                               (m.content && m.content.toLowerCase().includes(lowerQuery));
+                               (m.fileName_ta && m.fileName_ta.toLowerCase().includes(lowerQuery)) ||
+                               (m.fileName_hi && m.fileName_hi.toLowerCase().includes(lowerQuery)) ||
+                               (m.content && m.content.toLowerCase().includes(lowerQuery)) ||
+                               (m.content_ta && m.content_ta.toLowerCase().includes(lowerQuery)) ||
+                               (m.content_hi && m.content_hi.toLowerCase().includes(lowerQuery));
             return matchesExam && matchesText;
+        }).map(m => {
+            let snippet = "";
+            if (m.content && m.content.toLowerCase().includes(lowerQuery)) snippet = getSnippet(m.content, lowerQuery);
+            else if (m.content_ta && m.content_ta.toLowerCase().includes(lowerQuery)) snippet = getSnippet(m.content_ta, lowerQuery);
+            else if (m.content_hi && m.content_hi.toLowerCase().includes(lowerQuery)) snippet = getSnippet(m.content_hi, lowerQuery);
+            return { ...m, snippet };
         });
 
         // Filter MCQs
@@ -62,8 +119,18 @@ function SearchContent() {
             const topic = (topics || []).find(t => t.id === m.topicId);
             const matchesExam = topic?.examCategories?.includes(selectedExam as any);
             const matchesText = m.fileName.toLowerCase().includes(lowerQuery) || 
-                               (m.content && m.content.toLowerCase().includes(lowerQuery));
+                               (m.fileName_ta && m.fileName_ta.toLowerCase().includes(lowerQuery)) ||
+                               (m.fileName_hi && m.fileName_hi.toLowerCase().includes(lowerQuery)) ||
+                               (m.content && m.content.toLowerCase().includes(lowerQuery)) ||
+                               (m.content_ta && m.content_ta.toLowerCase().includes(lowerQuery)) ||
+                               (m.content_hi && m.content_hi.toLowerCase().includes(lowerQuery));
             return matchesExam && matchesText;
+        }).map(m => {
+            let snippet = "";
+            if (m.content && m.content.toLowerCase().includes(lowerQuery)) snippet = getSnippet(m.content, lowerQuery);
+            else if (m.content_ta && m.content_ta.toLowerCase().includes(lowerQuery)) snippet = getSnippet(m.content_ta, lowerQuery);
+            else if (m.content_hi && m.content_hi.toLowerCase().includes(lowerQuery)) snippet = getSnippet(m.content_hi, lowerQuery);
+            return { ...m, snippet };
         });
 
         return {
@@ -216,8 +283,8 @@ function TopicResultCard({ topic }: { topic: any }) {
     return (
         <Card className="hover:border-red-200 transition-all duration-300 hover:shadow-md cursor-pointer bg-white">
             <Link href={`/dashboard/topic-wise-mcq/${topic.id}`}>
-                <CardHeader className="p-4 flex flex-row items-center gap-4">
-                    <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-red-600">
+                <CardHeader className="p-4 flex flex-row items-center gap-4 pb-2">
+                    <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-red-600 flex-shrink-0">
                         <BrainCircuit className="h-5 w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -226,6 +293,13 @@ function TopicResultCard({ topic }: { topic: any }) {
                     </div>
                     <ChevronRight className="h-4 w-4 text-slate-400 flex-shrink-0" />
                 </CardHeader>
+                {topic.snippet && (
+                    <CardContent className="px-4 pb-4 pt-0">
+                        <p className="text-xs text-slate-500 bg-slate-50/50 p-2 rounded-lg border border-slate-100/80 font-medium leading-relaxed">
+                            {topic.snippet}
+                        </p>
+                    </CardContent>
+                )}
             </Link>
         </Card>
     );
@@ -236,8 +310,8 @@ function MaterialResultCard({ material, topics }: { material: any, topics: any[]
     return (
         <Card className="hover:border-red-200 transition-all duration-300 hover:shadow-md cursor-pointer bg-white">
             <Link href={`/dashboard/read-material/${material.id}`}>
-                <CardHeader className="p-4 flex flex-row items-center gap-4">
-                    <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+                <CardHeader className="p-4 flex flex-row items-center gap-4 pb-2">
+                    <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 flex-shrink-0">
                         <FileText className="h-5 w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -248,6 +322,13 @@ function MaterialResultCard({ material, topics }: { material: any, topics: any[]
                     </div>
                     <ChevronRight className="h-4 w-4 text-slate-400 flex-shrink-0" />
                 </CardHeader>
+                {material.snippet && (
+                    <CardContent className="px-4 pb-4 pt-0">
+                        <p className="text-xs text-slate-500 bg-slate-50/50 p-2 rounded-lg border border-slate-100/80 font-medium leading-relaxed">
+                            {material.snippet}
+                        </p>
+                    </CardContent>
+                )}
             </Link>
         </Card>
     );
@@ -258,8 +339,8 @@ function McqResultCard({ mcq, topics }: { mcq: any, topics: any[] }) {
     return (
         <Card className="hover:border-red-200 transition-all duration-300 hover:shadow-md cursor-pointer bg-white">
             <Link href={`/dashboard/topic-wise-mcq/${mcq.topicId}`}>
-                <CardHeader className="p-4 flex flex-row items-center gap-4">
-                    <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
+                <CardHeader className="p-4 flex flex-row items-center gap-4 pb-2">
+                    <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600 flex-shrink-0">
                         <BookOpen className="h-5 w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -270,6 +351,13 @@ function McqResultCard({ mcq, topics }: { mcq: any, topics: any[] }) {
                     </div>
                     <ChevronRight className="h-4 w-4 text-slate-400 flex-shrink-0" />
                 </CardHeader>
+                {mcq.snippet && (
+                    <CardContent className="px-4 pb-4 pt-0">
+                        <p className="text-xs text-slate-500 bg-slate-50/50 p-2 rounded-lg border border-slate-100/80 font-medium leading-relaxed">
+                            {mcq.snippet}
+                        </p>
+                    </CardContent>
+                )}
             </Link>
         </Card>
     );
