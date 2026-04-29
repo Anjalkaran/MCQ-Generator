@@ -4,10 +4,8 @@
  * @fileOverview Generates a mock test by extracting questions and sanitizing optional fields.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import type { MCQ } from '@/lib/types';
-import { getLiveTestQuestionPaper } from '@/lib/firestore';
 import { MTS_BLUEPRINT, PA_BLUEPRINT, POSTMAN_BLUEPRINT, IP_BLUEPRINT, GROUPB_BLUEPRINT } from '@/lib/exam-blueprints';
 import { getFirebaseDb, admin } from '@/lib/firebase-admin';
 import { shuffleArray } from '@/lib/utils';
@@ -20,6 +18,13 @@ const blueprintMap = {
     "GROUP B": GROUPB_BLUEPRINT,
 };
 
+const languageMap: Record<string, string> = {
+    'tamil': 'ta',
+    'hindi': 'hi',
+    'telugu': 'te',
+    'kannada': 'kn'
+};
+
 const GenerateLiveMockTestInputSchema = z.object({
   liveTestId: z.string().optional().describe('ID of scheduled test.'),
   weeklyTestId: z.string().optional().describe('ID of permanent weekly test.'),
@@ -30,33 +35,18 @@ const GenerateLiveMockTestInputSchema = z.object({
   testTitle: z.string().describe('Display title.'),
   duration: z.number().optional().describe('Custom duration in minutes.'),
 });
+
 export type GenerateLiveMockTestInput = z.infer<typeof GenerateLiveMockTestInputSchema>;
 
-const GenerateLiveMockTestOutputSchema = z.object({
-  quizId: z.string().describe('Firestore ID of the generated quiz.'),
-});
-export type GenerateLiveMockTestOutput = z.infer<typeof GenerateLiveMockTestOutputSchema>;
-
-export async function generateLiveMockTest(input: GenerateLiveMockTestInput): Promise<GenerateLiveMockTestOutput> {
-  return generateLiveMockTestFlow(input);
-}
-
-const languageMap: Record<string, string> = {
-    'tamil': 'ta',
-    'hindi': 'hi',
-    'telugu': 'te',
-    'kannada': 'kn'
+export type GenerateLiveMockTestOutput = {
+  quizId: string;
 };
 
-const generateLiveMockTestFlow = ai.defineFlow(
-  {
-    name: 'generateLiveMockTestFlow',
-    inputSchema: GenerateLiveMockTestInputSchema,
-    outputSchema: GenerateLiveMockTestOutputSchema,
-  },
-  async input => {
+export async function generateLiveMockTest(input: GenerateLiveMockTestInput): Promise<GenerateLiveMockTestOutput> {
+    const validatedInput = GenerateLiveMockTestInputSchema.parse(input);
+
     const db = getFirebaseDb();
-    const questionPaperSnap = await db.collection('liveTestBank').doc(input.questionPaperId).get();
+    const questionPaperSnap = await db.collection('liveTestBank').doc(validatedInput.questionPaperId).get();
     const questionPaper = questionPaperSnap.exists ? questionPaperSnap.data() : null;
     if (!questionPaper) throw new Error(`The question paper could not be found.`);
     
@@ -71,8 +61,6 @@ const generateLiveMockTestFlow = ai.defineFlow(
         throw new Error(`The question paper is empty or incorrectly formatted.`);
     }
 
-    const langKey = languageMap[input.language.toLowerCase()];
-    
     const processedQuestions: MCQ[] = parsedData.questions
         .filter(q => q && q.question && q.options && Array.isArray(q.options))
         .map(q => {
@@ -84,7 +72,7 @@ const generateLiveMockTestFlow = ai.defineFlow(
                 solution: q.solution || "",
             };
 
-            const lang = input.language || 'English';
+            const lang = validatedInput.language || 'English';
             const langKey = lang.toLowerCase();
             const langCode = languageMap[langKey];
             
@@ -108,12 +96,12 @@ const generateLiveMockTestFlow = ai.defineFlow(
 
     if (processedQuestions.length === 0) throw new Error("No valid questions found in this paper.");
     
-    const blueprint = (blueprintMap as any)[input.examCategory];
+    const blueprint = (blueprintMap as any)[validatedInput.examCategory];
     const quizId = `test-${Date.now()}`;
     
     // Set time limit: Input duration (mins) > Blueprint duration > Default 60 mins
-    const timeLimitInSeconds = input.duration 
-        ? input.duration * 60 
+    const timeLimitInSeconds = validatedInput.duration 
+        ? validatedInput.duration * 60 
         : (blueprint?.totalDurationMinutes || 60) * 60;
 
     // Shuffle both questions and their options
@@ -126,12 +114,12 @@ const generateLiveMockTestFlow = ai.defineFlow(
         mcqs: randomizedQuestions,
         timeLimit: timeLimitInSeconds,
         isMockTest: true,
-        examCategory: input.examCategory,
-        language: input.language,
-        questionPaperId: input.questionPaperId,
+        examCategory: validatedInput.examCategory,
+        language: validatedInput.language,
+        questionPaperId: validatedInput.questionPaperId,
         topic: {
             id: quizId,
-            title: input.testTitle,
+            title: validatedInput.testTitle,
             description: `Full practice test.`,
             icon: 'scroll-text',
             categoryId: 'weekly-test',
@@ -139,11 +127,10 @@ const generateLiveMockTestFlow = ai.defineFlow(
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    if (input.liveTestId) quizData.liveTestId = input.liveTestId;
-    if (input.weeklyTestId) quizData.weeklyTestId = input.weeklyTestId;
-    if (input.dailyTestId) quizData.dailyTestId = input.dailyTestId;
+    if (validatedInput.liveTestId) quizData.liveTestId = validatedInput.liveTestId;
+    if (validatedInput.weeklyTestId) quizData.weeklyTestId = validatedInput.weeklyTestId;
+    if (validatedInput.dailyTestId) quizData.dailyTestId = validatedInput.dailyTestId;
 
     const docRef = await db.collection("generatedQuizzes").add(quizData);
     return { quizId: docRef.id };
-  }
-);
+}
