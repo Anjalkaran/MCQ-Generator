@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useDashboard } from "@/app/dashboard/layout";
+import { useDashboard } from "@/context/dashboard-context";
 import { UserManagement } from '@/components/admin/user-management';
 import { TopicManagement } from '@/components/admin/topic-management';
 import { QuestionBankManagement } from '@/components/admin/question-bank-management';

@@ -1,6 +1,6 @@
 "use client";
 
-import { useDashboard } from "@/app/dashboard/layout";
+import { useDashboard } from "@/context/dashboard-context";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, BookCopy, FileText, Rss, Globe, PenSquare, Brain } from 'lucide-react';
 import { NewLogoIcon } from '@/components/icons/new-logo-icon';

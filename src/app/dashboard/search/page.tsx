@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useDashboard } from '@/app/dashboard/layout';
+import { useDashboard } from "@/context/dashboard-context";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';

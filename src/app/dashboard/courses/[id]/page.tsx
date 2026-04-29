@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useDashboard } from "@/app/dashboard/layout";
+import { useDashboard } from "@/context/dashboard-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, PenSquare, Video, BrainCircuit, Library, CalendarCheck, ArrowLeft, Clock, History, BookOpen } from 'lucide-react';
 import Link from "next/link";

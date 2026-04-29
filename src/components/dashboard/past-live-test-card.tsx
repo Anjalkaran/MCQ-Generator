@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { useDashboard } from '@/app/dashboard/layout';
+import { useDashboard } from "@/context/dashboard-context";
 import { Loader2, PlayCircle, CheckCircle, Trophy, Ban, Repeat, Gem } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';

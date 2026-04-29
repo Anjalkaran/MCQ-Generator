@@ -1,6 +1,6 @@
 "use client";
 
-import { useDashboard } from "@/app/dashboard/layout";
+import { useDashboard } from "@/context/dashboard-context";
 import { Button } from "@/components/ui/button";
 import { Loader2, PlayCircle, CalendarCheck, Share2, Calendar, ChevronRight, Award, Trophy, Sparkles, HelpCircle, ClipboardCheck, Clock } from "lucide-react";
 import { useState, useEffect } from "react";

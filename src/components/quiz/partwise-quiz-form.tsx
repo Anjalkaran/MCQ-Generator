@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { normalizeDate } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
-import { useDashboard } from '@/app/dashboard/layout';
+import { useDashboard } from "@/context/dashboard-context";
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { generatePartwiseMCQs } from '@/ai/flows/generate-partwise-mcqs';
 

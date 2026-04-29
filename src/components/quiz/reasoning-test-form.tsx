@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { useDashboard } from '@/app/dashboard/layout';
+import { useDashboard } from "@/context/dashboard-context";
 import { getReasoningQuestions } from '@/lib/firestore';
 import type { ReasoningQuestion, MCQ } from '@/lib/types';
 import { ADMIN_EMAILS } from '@/lib/constants';

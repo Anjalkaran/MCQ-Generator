@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useDashboard } from "@/app/dashboard/layout";
+import { useDashboard } from "@/context/dashboard-context";
 import { getLiveTests } from '@/lib/firestore';
 import type { LiveTest } from '@/lib/types';
 import { Loader2 } from 'lucide-react';

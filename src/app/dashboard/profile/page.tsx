@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useDashboard } from '@/app/dashboard/layout';
+import { useDashboard } from "@/context/dashboard-context";
 import { ProfileForm } from '@/components/dashboard/profile-form';
 import { ChangePasswordForm } from '@/components/dashboard/change-password-form';
 import { Separator } from '@/components/ui/separator';

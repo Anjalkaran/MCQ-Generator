@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, AlertTriangle, Gem, Repeat, FileText, CheckCircle2, PlayCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useDashboard } from '@/app/dashboard/layout';
+import { useDashboard } from "@/context/dashboard-context";
 import { generateMockTestFromBank } from '@/ai/flows/generate-mock-test-from-bank';
 import { Badge } from '@/components/ui/badge';
 import { getQuestionBankDocumentsByCategory } from '@/lib/firestore';

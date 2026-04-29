@@ -2,7 +2,7 @@
 "use client";
 
 import { PreviousYearMockTestForm } from "@/components/quiz/previous-year-mock-test-form";
-import { useDashboard } from "@/app/dashboard/layout";
+import { useDashboard } from "@/context/dashboard-context";
 import { ADMIN_EMAILS } from "@/lib/constants";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
