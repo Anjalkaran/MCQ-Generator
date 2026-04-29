@@ -69,29 +69,38 @@ export default function GenerateTopicQuizPage({
 
         // Flatten all blueprint topics to find the match
         for (const blueprint of allBlueprints) {
+            const blueprintId = blueprint.id || blueprint.examName;
             const parts = blueprint.parts || [];
-            for (const part of parts) {
+            
+            for (let partIdx = 0; partIdx < parts.length; partIdx++) {
+                const part = parts[partIdx];
                 const sections = part.sections || [];
-                for (const section of sections) {
-                    if (!section.topics) continue;
+                
+                for (let sectionIdx = 0; sectionIdx < sections.length; sectionIdx++) {
+                    const section = sections[sectionIdx];
+                    const topicsList = section.topics || section.randomFrom?.topics || [];
                     
-                    const foundTopic = section.topics.find((t: any) => 
-                        typeof t !== 'string' && t && t.id === resolvedParams.topicId
-                    ) as SyllabusTopic | undefined;
-
-                    if (foundTopic) {
-                        topic = {
-                            id: foundTopic.id,
-                            title: foundTopic.name,
-                            categoryId: blueprint.id || blueprint.examName,
-                            categoryName: blueprint.examName,
-                            examCategories: [blueprint.id || blueprint.examName],
-                            material: "", 
-                            part: part.partName,
-                            icon: "book-open"
-                        } as any;
-                        break;
+                    for (let tIdx = 0; tIdx < topicsList.length; tIdx++) {
+                        const t = topicsList[tIdx];
+                        const topicObj = typeof t === 'string' 
+                            ? { id: `${blueprintId}-${partIdx}-${sectionIdx}-${tIdx}`, name: t } 
+                            : { ...t, id: t.id || `${blueprintId}-${partIdx}-${sectionIdx}-${tIdx}` };
+                        
+                        if (topicObj.id === resolvedParams.topicId) {
+                            topic = {
+                                id: topicObj.id,
+                                title: topicObj.name,
+                                categoryId: blueprintId,
+                                categoryName: blueprint.examName,
+                                examCategories: [blueprintId],
+                                material: "", 
+                                part: part.partName,
+                                icon: "book-open"
+                            } as any;
+                            break;
+                        }
                     }
+                    if (topic) break;
                 }
                 if (topic) break;
             }

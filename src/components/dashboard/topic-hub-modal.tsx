@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import { BookOpen, FileText, PlayCircle, Loader2, ArrowRight, ChevronRight, GraduationCap } from 'lucide-react';
+import { BookOpen, FileText, PlayCircle, Loader2, ArrowRight, ChevronRight, GraduationCap, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useDashboard } from '@/context/dashboard-context';
@@ -30,6 +30,7 @@ interface TopicHubModalProps {
 export function TopicHubModal({ isOpen, onClose, topicId, topicName, examCategory, initialSubTopic, subTopics = [] }: TopicHubModalProps & { subTopics?: string[] }) {
   const { studyMaterials, syllabusMCQs, isLoading } = useDashboard();
   const [selectedSubTopic, setSelectedSubTopic] = React.useState<string | null>(initialSubTopic || null);
+  const [expandedSection, setExpandedSection] = React.useState<'materials' | 'exam' | 'video' | null>(null);
 
   React.useEffect(() => {
     if (initialSubTopic) setSelectedSubTopic(initialSubTopic);
@@ -149,84 +150,134 @@ export function TopicHubModal({ isOpen, onClose, topicId, topicName, examCategor
               </Button>
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-4">
 
-              {/* Study Materials Hub / Admin Material Upload */}
-              <div className="group relative overflow-hidden p-6 rounded-3xl bg-white border-2 border-slate-100 shadow-lg transition-all hover:border-red-100">
-                <div className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center mb-4 text-red-600">
-                  <FileText className="h-6 w-6" />
+              {/* Study Materials Hub */}
+              <div 
+                onClick={() => setExpandedSection(expandedSection === 'materials' ? null : 'materials')}
+                className="group cursor-pointer relative overflow-hidden p-6 rounded-2xl bg-white border-2 border-slate-100 shadow-sm transition-all hover:border-red-100"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center text-red-600 shadow-sm">
+                      <FileText className="h-6 w-6" />
+                    </div>
+                    <div className="text-left">
+                      <h3 className="text-lg font-bold text-slate-900">Study Material</h3>
+                      <p className="text-slate-500 text-xs mt-0.5">
+                        {materials.length > 0 
+                          ? `Access ${materials.length} professional visual guides for this topic.` 
+                          : "Comprehensive visual summaries for this topic."
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className={cn("h-5 w-5 text-slate-400 transition-transform duration-300", expandedSection === 'materials' && "rotate-90")} />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">
-                  Study Material
-                </h3>
-                <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-                  {materials.length > 0 
-                    ? `Access ${materials.length} professional visual guides for this topic.` 
-                    : "Comprehensive visual summaries for this topic."
-                  }
-                </p>
 
-                {materials.length === 1 ? (
-                    <Button 
-                        asChild
-                        className="w-full border-slate-200 hover:border-red-600 hover:text-red-600 h-12 rounded-xl font-bold transition-all"
-                        variant="outline"
-                    >
-                        <Link href={`/dashboard/read-material/${materials[0].id}`}>
-                            {materials[0].fileType === 'docx' || (materials[0].content && (materials[0].content.startsWith('<') || materials[0].content.startsWith('{'))) ? 'Read Study Material' : 'Open PDF'}
-                            <ChevronRight className="ml-2 h-4 w-4" />
-                        </Link>
-                    </Button>
-                ) : materials.length > 1 ? (
-                    <div className="space-y-2">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Select Material</p>
-                        <div className="grid gap-2">
-                            {materials.map((mat) => (
-                                <Button 
-                                    asChild
-                                    key={mat.id}
-                                    variant="ghost" 
-                                    className="w-full justify-between h-10 px-4 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-red-600 border border-slate-100"
-                                >
-                                    <Link href={`/dashboard/read-material/${mat.id}`}>
-                                        <span className="truncate max-w-[180px]">{mat.fileName}</span>
-                                        <ChevronRight className="h-3 w-3" />
-                                    </Link>
-                                </Button>
-                            ))}
+                {expandedSection === 'materials' && (
+                  <div className="mt-6 pt-4 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
+                    {materials.length === 1 ? (
+                        <Button 
+                            asChild
+                            className="w-full border-slate-200 hover:border-red-600 hover:text-red-600 h-12 rounded-xl font-bold transition-all"
+                            variant="outline"
+                        >
+                            <Link href={`/dashboard/read-material/${materials[0].id}`}>
+                                {materials[0].fileType === 'docx' || (materials[0].content && (materials[0].content.startsWith('<') || materials[0].content.startsWith('{'))) ? 'Read Study Material' : 'Open PDF'}
+                                <ChevronRight className="ml-2 h-4 w-4" />
+                            </Link>
+                        </Button>
+                    ) : materials.length > 1 ? (
+                        <div className="space-y-2">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Select Material</p>
+                            <div className="grid gap-2">
+                                {materials.map((mat) => (
+                                    <Button 
+                                        asChild
+                                        key={mat.id}
+                                        variant="ghost" 
+                                        className="w-full justify-between h-10 px-4 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-red-600 border border-slate-100"
+                                    >
+                                        <Link href={`/dashboard/read-material/${mat.id}`}>
+                                            <span className="truncate max-w-[250px]">{mat.fileName}</span>
+                                            <ChevronRight className="h-3 w-3" />
+                                        </Link>
+                                    </Button>
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                ) : (
-                    <div className="p-4 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">No detailed materials yet</p>
-                    </div>
+                    ) : (
+                        <div className="p-4 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">No detailed materials yet</p>
+                        </div>
+                    )}
+                  </div>
                 )}
               </div>
 
               {/* Practice MCQs Hub */}
-              <div className="group relative overflow-hidden p-6 rounded-3xl bg-slate-50 border-2 border-slate-100 shadow-lg transition-all hover:border-red-100">
-                <div className="h-10 w-10 bg-red-100 rounded-xl flex items-center justify-center mb-4 text-red-600">
-                  <PlayCircle className="h-6 w-6" />
+              <div 
+                onClick={() => setExpandedSection(expandedSection === 'exam' ? null : 'exam')}
+                className="group cursor-pointer relative overflow-hidden p-6 rounded-2xl bg-white border-2 border-slate-100 shadow-sm transition-all hover:border-red-100"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center text-red-600 shadow-sm">
+                      <PlayCircle className="h-6 w-6" />
+                    </div>
+                    <div className="text-left">
+                      <h3 className="text-lg font-bold text-slate-900">Practice Exam</h3>
+                      <p className="text-slate-500 text-xs mt-0.5">
+                        {topicMCQs.length > 0 
+                          ? `Test your knowledge with ${topicMCQs.length} question sets for this topic.` 
+                          : "Exclusive practice tests and previous year questions."
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className={cn("h-5 w-5 text-slate-400 transition-transform duration-300", expandedSection === 'exam' && "rotate-90")} />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">
-                  Practice Exam
-                </h3>
-                <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-                  {topicMCQs.length > 0 
-                    ? `Test your knowledge with ${topicMCQs.length} question sets for this topic.` 
-                    : "Exclusive practice tests and previous year questions."
-                  }
-                </p>
-                <Button 
-                  asChild 
-                  className="w-full bg-slate-900 hover:bg-black text-white font-bold h-12 rounded-xl transition-all"
-                >
-                  <Link href={`/dashboard/topic-wise-mcq/${topicId}${selectedSubTopic ? `?subTopic=${encodeURIComponent(selectedSubTopic)}` : ''}`}>
-                    Start {selectedSubTopic ? `${selectedSubTopic} ` : ''}Practice Quiz
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
+
+                {expandedSection === 'exam' && (
+                  <div className="mt-6 pt-4 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
+                    <Button 
+                      asChild 
+                      className="w-full bg-slate-900 hover:bg-black text-white font-bold h-12 rounded-xl transition-all"
+                    >
+                      <Link href={`/dashboard/topic-wise-mcq/${topicId}${selectedSubTopic ? `?subTopic=${encodeURIComponent(selectedSubTopic)}` : ''}`}>
+                        Start {selectedSubTopic ? `${selectedSubTopic} ` : ''}Practice Quiz
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </div>
+                )}
               </div>
+
+              {/* Video Classes Hub (Future integration) */}
+              <div 
+                className="group relative overflow-hidden p-6 rounded-2xl bg-slate-50/50 border-2 border-slate-100 opacity-60 shadow-sm transition-all"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 shadow-sm">
+                      <Video className="h-6 w-6" />
+                    </div>
+                    <div className="text-left">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-bold text-slate-400">Video Classes</h3>
+                        <Badge className="bg-slate-200 text-slate-600 hover:bg-slate-200 border-none px-2 rounded-lg text-[8px] font-black uppercase">
+                          Coming Soon
+                        </Badge>
+                      </div>
+                      <p className="text-slate-400 text-xs mt-0.5">
+                        Expert-led video lessons to master this topic visually.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
           )}
           

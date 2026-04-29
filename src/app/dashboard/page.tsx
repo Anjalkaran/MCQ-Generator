@@ -3,7 +3,7 @@
 
 import { useDashboard } from "@/app/dashboard/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, PenSquare, Video, BrainCircuit, Library, Shield, GraduationCap, BookOpen, ChevronRight, CalendarCheck, Clock } from 'lucide-react';
+import { Loader2, PenSquare, Video, BrainCircuit, Library, Shield, GraduationCap, BookOpen, ChevronRight, CalendarCheck, Clock, Search } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { ADMIN_EMAILS } from "@/lib/constants";
 import { updateDoc, doc } from "firebase/firestore";
@@ -141,6 +141,32 @@ export default function DashboardPage() {
           Choose your course to continue your preparation and access your study materials.
         </p>
 
+        <form 
+          onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            const q = formData.get('search')?.toString();
+            if (q?.trim()) {
+              router.push(`/dashboard/search?q=${encodeURIComponent(q.trim())}`);
+            }
+          }}
+          className="relative max-w-2xl mx-auto mt-6 group"
+        >
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-red-600 transition-colors" />
+          <input
+            type="text"
+            name="search"
+            placeholder="Search topics, MCQs, or study guides..."
+            className="w-full pl-12 pr-24 h-14 bg-white border border-slate-200 rounded-2xl shadow-md focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all text-base font-medium text-slate-900"
+          />
+          <Button 
+            type="submit" 
+            className="absolute right-2 top-1/2 -translate-y-1/2 h-10 rounded-xl bg-red-600 hover:bg-red-700 text-sm font-bold px-6 shadow-sm"
+          >
+            Search
+          </Button>
+        </form>
+
           <div className="pt-4 pb-2">
             <Card 
               onClick={() => router.push('/dashboard/study-planner')}
@@ -155,8 +181,8 @@ export default function DashboardPage() {
                              <Clock size={32} />
                         </div>
                         <div className="text-left space-y-1">
-                            <h3 className="text-2xl font-black text-white">{userData.examCategory} Study Journey</h3>
-                            <p className="text-red-100 font-medium">Your personalized {userData.examCategory} preparation roadmap • 30-180 Days</p>
+                            <h3 className="text-2xl font-black text-white">{userData.examCategory || 'MTS'} Study Journey</h3>
+                            <p className="text-red-100 font-medium">Your personalized {userData.examCategory || 'MTS'} preparation roadmap • 30-180 Days</p>
                         </div>
                     </div>
                     <Button 
@@ -166,7 +192,7 @@ export default function DashboardPage() {
                         }}
                         className="bg-white text-red-600 hover:bg-red-50 font-bold px-8 h-12 rounded-xl z-20"
                     >
-                        Open {userData.examCategory} Planner
+                        Open {userData.examCategory || 'Study'} Planner
                         <ChevronRight className="ml-2 h-5 w-5" />
                     </Button>
                 </div>

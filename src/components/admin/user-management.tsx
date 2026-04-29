@@ -93,7 +93,9 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
   const filteredUsers = useMemo(() => {
     return users
       .filter(u => {
-          const matchesSearch = (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (u.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+          const matchesSearch = (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                               (u.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                               (u.phone || '').toLowerCase().includes(searchTerm.toLowerCase());
           const matchesCategory = categoryFilter === 'all' || u.examCategory === categoryFilter;
           const matchesStatus = statusFilter === 'all' || (statusFilter === 'pro' ? u.isPro : !u.isPro);
           return matchesSearch && matchesCategory && matchesStatus;
@@ -137,10 +139,13 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
   };
 
   const handleGlobalSearch = async () => {
-    if (!searchTerm.includes('@')) {
+    const isEmail = searchTerm.includes('@');
+    const isPhone = /^\+?[\d\s-]{10,}$/.test(searchTerm.trim());
+
+    if (!isEmail && !isPhone) {
       toast({ 
-        title: 'Email Required', 
-        description: 'Please enter a full email address to search the entire database.',
+        title: 'Search Criteria', 
+        description: 'Please enter a full email address or phone number to search the entire database.',
         variant: 'destructive'
       });
       return;
@@ -148,8 +153,10 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
 
     setIsSearchingGlobally(true);
     try {
-      const { searchUsersByEmail } = await import('@/lib/firestore');
-      const foundUsers = await searchUsersByEmail(searchTerm.trim());
+      const { searchUsersByEmail, searchUsersByPhone } = await import('@/lib/firestore');
+      const foundUsers = isEmail 
+        ? await searchUsersByEmail(searchTerm.trim())
+        : await searchUsersByPhone(searchTerm.trim());
       
       if (foundUsers.length > 0) {
         // Add the found users to our local state if they aren't already there
@@ -246,13 +253,13 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                     <div className="relative flex-1">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input 
-                            placeholder="Search name or email..." 
+                            placeholder="Search name, email or phone..." 
                             className="pl-8" 
                             value={searchTerm} 
                             onChange={e => setSearchTerm(e.target.value)} 
                         />
                     </div>
-                    {searchTerm.includes('@') && filteredUsers.length === 0 && (
+                    {(searchTerm.includes('@') || /^\+?[\d\s-]{10,}$/.test(searchTerm.trim())) && filteredUsers.length === 0 && (
                         <Button 
                             variant="secondary" 
                             size="sm" 
@@ -293,6 +300,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                     <TableHeader>
                         <TableRow>
                             <TableHead>User</TableHead>
+                            <TableHead>Phone</TableHead>
                             <TableHead>Course</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
@@ -311,6 +319,9 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                                                 Joined: {normalizeDate(u.createdAt) ? format(normalizeDate(u.createdAt)!, 'dd MMM yyyy') : 'Pre-audit'}
                                             </span>
                                         </div>
+                                    </TableCell>
+                                    <TableCell className="text-sm">
+                                        {u.phone || <span className="text-muted-foreground text-xs">N/A</span>}
                                     </TableCell>
                                     <TableCell>
                                         <Badge variant="outline">{u.examCategory}</Badge>
@@ -338,7 +349,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                                     No users found matching your filters.
                                 </TableCell>
                             </TableRow>

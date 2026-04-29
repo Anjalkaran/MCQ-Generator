@@ -77,7 +77,8 @@ export default function StudyPlannerPage() {
     if (!user || !userData) return;
     setLoading(true);
     try {
-      const newPlanner = generatePlanner(user.uid, userData.examCategory, planType, dynamicBlueprints);
+      const currentCategory = userData?.examCategory || 'MTS';
+      const newPlanner = generatePlanner(user.uid, currentCategory, planType, dynamicBlueprints);
       await saveUserPlanner(user.uid, newPlanner);
       setPlanner(newPlanner);
       setSelectedDay(1);
@@ -158,11 +159,12 @@ export default function StudyPlannerPage() {
     );
   }
 
-  const options = userData?.examCategory ? [
-    { id: 'Fast Track', icon: Clock, desc: `Complete everything in ${DEFAULT_DURATIONS[userData.examCategory].fast} days. Intense but fast.`, color: 'rose' },
-    { id: 'Standard Preparation', icon: Target, desc: `Perfect ${DEFAULT_DURATIONS[userData.examCategory].standard} day balance of speed and depth.`, color: 'red' },
-    { id: 'Comprehensive Mastery', icon: Sparkles, desc: `In-depth ${DEFAULT_DURATIONS[userData.examCategory].comprehensive} day coverage with extra revision.`, color: 'emerald' },
-  ] : [];
+  const currentCategory = userData?.examCategory || 'MTS';
+  const options = [
+    { id: 'Fast Track', icon: Clock, desc: `Complete everything in ${DEFAULT_DURATIONS[currentCategory].fast} days. Intense but fast.`, color: 'rose' },
+    { id: 'Standard Preparation', icon: Target, desc: `Perfect ${DEFAULT_DURATIONS[currentCategory].standard} day balance of speed and depth.`, color: 'red' },
+    { id: 'Comprehensive Mastery', icon: Sparkles, desc: `In-depth ${DEFAULT_DURATIONS[currentCategory].comprehensive} day coverage with extra revision.`, color: 'emerald' },
+  ];
 
   const handlePlanClick = (planId: string) => {
     if (planner?.planType === planId) return;
@@ -211,9 +213,9 @@ export default function StudyPlannerPage() {
                     <opt.icon size={28} />
                   </div>
                   <div className={`px-4 py-1.5 rounded-full bg-${opt.color}-500/10 text-${opt.color}-600 dark:text-${opt.color}-400 text-sm font-black border border-${opt.color}-500/20 shadow-sm`}>
-                    {opt.id === 'Fast Track' ? DEFAULT_DURATIONS[userData.examCategory].fast : 
-                     opt.id === 'Standard Preparation' ? DEFAULT_DURATIONS[userData.examCategory].standard : 
-                     DEFAULT_DURATIONS[userData.examCategory].comprehensive} DAYS
+                    {opt.id === 'Fast Track' ? DEFAULT_DURATIONS[currentCategory].fast : 
+                     opt.id === 'Standard Preparation' ? DEFAULT_DURATIONS[currentCategory].standard : 
+                     DEFAULT_DURATIONS[currentCategory].comprehensive} DAYS
                   </div>
                 </div>
                 <div>
