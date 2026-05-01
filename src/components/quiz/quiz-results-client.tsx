@@ -53,6 +53,7 @@ export function MCQResultsClient({ topicId }: MCQResultsClientProps) {
           score: correctCount,
           totalQuestions: numberOfQuestions,
           questions: mcqs.map((mcq: MCQ) => mcq.question), // Save the question strings
+          userAnswers: answers,
           takenAt: new Date(),
       }).catch(err => {
           console.error("Failed to save mcq history:", err);

@@ -120,7 +120,7 @@ export const getUnifiedLeaderboardsAdmin = async (): Promise<{
                         const data = doc.data() as UserData;
                         // Skip admins
                         if (data && data.email && !ADMIN_EMAILS.includes(data.email)) {
-                            userMap.set(doc.id, { uid: doc.id, ...data });
+                            userMap.set(doc.id, { ...data, uid: doc.id });
                         }
                     }
                 });

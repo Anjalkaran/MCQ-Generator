@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { useDashboard } from '@/context/dashboard-context';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
+import { generateMCQs } from '@/ai/flows/generate-mcqs';
 
 import {
   Dialog,
@@ -28,7 +30,9 @@ interface TopicHubModalProps {
 }
 
 export function TopicHubModal({ isOpen, onClose, topicId, topicName, examCategory, initialSubTopic, subTopics = [] }: TopicHubModalProps & { subTopics?: string[] }) {
-  const { studyMaterials, syllabusMCQs, isLoading } = useDashboard();
+  const { studyMaterials, syllabusMCQs, isLoading, user, userData, categories, topics } = useDashboard();
+  const router = useRouter();
+  const [isGenerating, setIsGenerating] = React.useState(false);
   const [selectedSubTopic, setSelectedSubTopic] = React.useState<string | null>(initialSubTopic || null);
   const [expandedSection, setExpandedSection] = React.useState<'materials' | 'exam' | 'video' | null>(null);
 
@@ -242,13 +246,53 @@ export function TopicHubModal({ isOpen, onClose, topicId, topicName, examCategor
                 {expandedSection === 'exam' && (
                   <div className="mt-6 pt-4 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
                     <Button 
-                      asChild 
+                      disabled={isGenerating}
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        if (isGenerating) return;
+                        setIsGenerating(true);
+                        try {
+                          if (!user || !userData) {
+                            router.push('/auth/login');
+                            return;
+                          }
+
+                          const topic = topics?.find(t => t.id === topicId);
+                          const res: any = await generateMCQs({
+                            topic: topicName || topic?.title || "Topic MCQs",
+                            category: topic?.categoryId || "uncategorized",
+                            numberOfQuestions: 25,
+                            examCategory: userData.examCategory,
+                            part: topic?.part,
+                            material: topic?.material,
+                            userId: user.uid,
+                            topicId: topicId,
+                            language: 'English',
+                            subTopic: selectedSubTopic || undefined
+                          });
+
+                          if (res && res.quizId) {
+                            router.push(`/quiz/${res.quizId}`);
+                          }
+                        } catch (error) {
+                          console.error("Error generating exam:", error);
+                        } finally {
+                          setIsGenerating(false);
+                        }
+                      }}
                       className="w-full bg-slate-900 hover:bg-black text-white font-bold h-12 rounded-xl transition-all"
                     >
-                      <Link href={`/dashboard/topic-wise-mcq/${topicId}${selectedSubTopic ? `?subTopic=${encodeURIComponent(selectedSubTopic)}` : ''}`}>
-                        Start {selectedSubTopic ? `${selectedSubTopic} ` : ''}Practice Quiz
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Preparing Questions...
+                        </>
+                      ) : (
+                        <>
+                          Start {selectedSubTopic ? `${selectedSubTopic} ` : ''}Practice Quiz
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </>
+                      )}
                     </Button>
                   </div>
                 )}

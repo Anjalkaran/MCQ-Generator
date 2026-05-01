@@ -30,6 +30,8 @@ const GenerateMCQsInputSchema = z.object({
   userId: z.string().describe('The ID of the user requesting the quiz.'),
   topicId: z.string().describe('The ID of the topic.'),
   language: z.string().optional().default('English').describe('The language for the generated quiz (e.g., "English", "Tamil", "Hindi").'),
+  specificQuestionText: z.string().optional().describe('If provided, generates a quiz with ONLY this specific question.'),
+  subTopic: z.string().optional().describe('An optional subtopic for the generated questions.'),
 });
 export type GenerateMCQsInput = z.infer<typeof GenerateMCQsInputSchema>;
 
@@ -162,20 +164,29 @@ const generateMCQsFlow = ai.defineFlow(
     
     // Logic for selecting questions from the bank
     if (canonicalQuestions.length > 0) {
-        // Filter out questions the user has already answered
-        const unansweredQuestions = canonicalQuestions.filter(mcq => !answeredQuestionTexts.has(mcq.question.trim()));
-        const answeredQuestions = canonicalQuestions.filter(mcq => answeredQuestionTexts.has(mcq.question.trim()));
-        
         let selectedQuestions: MCQ[] = [];
         
-        // 1. Take as many unanswered questions as possible up to the requested number
-        selectedQuestions = shuffleArray([...unansweredQuestions]).slice(0, input.numberOfQuestions);
+        if (input.specificQuestionText) {
+            const specificQ = canonicalQuestions.find(q => q.question === input.specificQuestionText);
+            if (specificQ) {
+                selectedQuestions = [specificQ];
+            }
+        }
         
-        // 2. If we still need more questions to reach the requested count, take from already answered ones
-        if (selectedQuestions.length < input.numberOfQuestions && answeredQuestions.length > 0) {
-            const needed = input.numberOfQuestions - selectedQuestions.length;
-            const extra = shuffleArray([...answeredQuestions]).slice(0, needed);
-            selectedQuestions = [...selectedQuestions, ...extra];
+        if (selectedQuestions.length === 0) {
+            // Filter out questions the user has already answered
+            const unansweredQuestions = canonicalQuestions.filter(mcq => !answeredQuestionTexts.has(mcq.question.trim()));
+            const answeredQuestions = canonicalQuestions.filter(mcq => answeredQuestionTexts.has(mcq.question.trim()));
+            
+            // 1. Take as many unanswered questions as possible up to the requested number
+            selectedQuestions = shuffleArray([...unansweredQuestions]).slice(0, input.numberOfQuestions);
+            
+            // 2. If we still need more questions to reach the requested count, take from already answered ones
+            if (selectedQuestions.length < input.numberOfQuestions && answeredQuestions.length > 0) {
+                const needed = input.numberOfQuestions - selectedQuestions.length;
+                const extra = shuffleArray([...answeredQuestions]).slice(0, needed);
+                selectedQuestions = [...selectedQuestions, ...extra];
+            }
         }
 
         if (selectedQuestions.length > 0) {

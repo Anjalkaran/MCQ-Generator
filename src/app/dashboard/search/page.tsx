@@ -8,31 +8,40 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Search, BookOpen, FileText, BrainCircuit, ChevronRight, ArrowLeft } from 'lucide-react';
+import { getQuestionBankDocuments } from '@/lib/firestore';
+import { generateMCQs } from '@/ai/flows/generate-mcqs';
 import Link from 'next/link';
 
-function getSnippet(content: string, query: string): string {
-    if (!content) return "";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
+import { CheckCircle } from 'lucide-react';
+
+function getSnippet(content: string, query: string): { text: string, matchedQuestion: string | null, matchedQuestionObj: any | null } {
+    if (!content) return { text: "", matchedQuestion: null, matchedQuestionObj: null };
     let cleanText = content;
     
     // Check if it's stringified JSON
     if (content.trim().startsWith('[') || content.trim().startsWith('{')) {
         try {
             const parsed = JSON.parse(content);
-            const questions = Array.isArray(parsed) ? parsed : (parsed.questions || []);
+            const questions = Array.isArray(parsed) ? parsed : (parsed.questions || parsed.mcqs || []);
             // Search inside questions
             for (const q of questions) {
                 if (q.question && q.question.toLowerCase().includes(query)) {
-                    return `MCQ: "${q.question}"`;
+                    return { text: `MCQ: "${q.question}"`, matchedQuestion: q.question, matchedQuestionObj: q };
                 }
                 if (q.options && Array.isArray(q.options)) {
                     for (const opt of q.options) {
                         if (opt && opt.toLowerCase().includes(query)) {
-                            return `Option: "...${opt}..."`;
+                            return { text: `Option: "...${opt}..."`, matchedQuestion: q.question, matchedQuestionObj: q };
                         }
                     }
                 }
                 if (q.solution && q.solution.toLowerCase().includes(query)) {
-                    return `Solution: "...${q.solution}..."`;
+                    return { text: `Solution: "...${q.solution}..."`, matchedQuestion: q.question, matchedQuestionObj: q };
+                }
+                if (q.explanation && q.explanation.toLowerCase().includes(query)) {
+                    return { text: `Explanation: "...${q.explanation}..."`, matchedQuestion: q.question, matchedQuestionObj: q };
                 }
             }
         } catch (e) {
@@ -42,7 +51,7 @@ function getSnippet(content: string, query: string): string {
     
     // Fallback: Raw text search
     const index = cleanText.toLowerCase().indexOf(query);
-    if (index === -1) return "";
+    if (index === -1) return { text: "", matchedQuestion: null };
     
     const start = Math.max(0, index - 40);
     const end = Math.min(cleanText.length, index + query.length + 40);
@@ -51,7 +60,7 @@ function getSnippet(content: string, query: string): string {
     if (end < cleanText.length) snippet = snippet + "...";
     
     // Remove unwanted JSON artifacts if any leaked through
-    return snippet.replace(/["'{}[\]]/g, '').trim();
+    return { text: snippet.replace(/["'{}[\]]/g, '').trim(), matchedQuestion: null, matchedQuestionObj: null };
 }
 
 export default function SearchPage() {
@@ -69,6 +78,26 @@ function SearchContent() {
     
     const { topics, studyMaterials, syllabusMCQs, userData, isLoading } = useDashboard();
     const [searchTerm, setSearchTerm] = useState(query);
+    const [questionBank, setQuestionBank] = useState<any[]>([]);
+    const [isBankLoading, setIsBankLoading] = useState(false);
+
+    React.useEffect(() => {
+        if (!userData?.examCategory) return;
+        
+        async function loadBank() {
+            setIsBankLoading(true);
+            try {
+                const docs = await getQuestionBankDocuments();
+                setQuestionBank(docs);
+            } catch (error) {
+                console.error("Error loading question bank:", error);
+            } finally {
+                setIsBankLoading(false);
+            }
+        }
+        
+        loadBank();
+    }, [userData?.examCategory]);
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -84,61 +113,108 @@ function SearchContent() {
 
         const selectedExam = userData.examCategory || 'MTS';
 
+        // Helper for multi-word search
+        const matchesQuery = (fields: (string | undefined | null)[]) => {
+            const keywords = lowerQuery.split(/\s+/).filter(Boolean);
+            if (keywords.length === 0) return true;
+            return keywords.every(kw => 
+                fields.some(f => f && f.toLowerCase().includes(kw))
+            );
+        };
+
         // Filter Topics
         const filteredTopics = (topics || []).filter(t => {
             const matchesExam = t.examCategories?.includes(selectedExam as any);
-            const matchesText = t.title.toLowerCase().includes(lowerQuery) || 
-                               t.description?.toLowerCase().includes(lowerQuery);
+            const matchesText = matchesQuery([t.title, t.description, t.material, t.material_ta, t.material_hi]);
             return matchesExam && matchesText;
         }).map(t => {
-            const snippet = getSnippet(t.description || "", lowerQuery);
-            return { ...t, snippet };
+            let snippetObj = { text: "", matchedQuestion: null as string | null, matchedQuestionObj: null as any | null };
+            if (t.material && matchesQuery([t.material])) snippetObj = getSnippet(t.material, lowerQuery);
+            else if (t.material_ta && matchesQuery([t.material_ta])) snippetObj = getSnippet(t.material_ta, lowerQuery);
+            else if (t.material_hi && matchesQuery([t.material_hi])) snippetObj = getSnippet(t.material_hi, lowerQuery);
+            else snippetObj = getSnippet(t.description || "", lowerQuery);
+            return { ...t, snippet: snippetObj.text, matchedQuestion: snippetObj.matchedQuestion, matchedQuestionObj: snippetObj.matchedQuestionObj };
         });
 
+        // Create Virtual Materials from Topics containing text guides
+        const virtualMaterials = (topics || []).filter(t => t.material || t.material_ta || t.material_hi).map(t => ({
+            id: `v_${t.id}`,
+            topicId: t.id,
+            fileName: t.title,
+            fileType: 'docx',
+            content: t.material || "",
+            content_ta: t.material_ta || "",
+            content_hi: t.material_hi || "",
+            examCategories: t.examCategories,
+            uploadedAt: new Date()
+        }));
+
+        const allMaterials = [...(studyMaterials || []), ...virtualMaterials];
+
         // Filter Materials
-        const filteredMaterials = (studyMaterials || []).filter(m => {
+        const filteredMaterials = allMaterials.filter(m => {
             const topic = (topics || []).find(t => t.id === m.topicId);
-            const matchesExam = topic?.examCategories?.includes(selectedExam as any);
-            const matchesText = m.fileName.toLowerCase().includes(lowerQuery) || 
-                               (m.fileName_ta && m.fileName_ta.toLowerCase().includes(lowerQuery)) ||
-                               (m.fileName_hi && m.fileName_hi.toLowerCase().includes(lowerQuery)) ||
-                               (m.content && m.content.toLowerCase().includes(lowerQuery)) ||
-                               (m.content_ta && m.content_ta.toLowerCase().includes(lowerQuery)) ||
-                               (m.content_hi && m.content_hi.toLowerCase().includes(lowerQuery));
+            const matchesExam = topic 
+                ? topic.examCategories?.includes(selectedExam as any) 
+                : m.examCategories?.includes(selectedExam as any);
+                
+            const matchesText = matchesQuery([m.fileName, m.fileName_ta, m.fileName_hi, m.content, m.content_ta, m.content_hi, m.topicName]);
             return matchesExam && matchesText;
         }).map(m => {
-            let snippet = "";
-            if (m.content && m.content.toLowerCase().includes(lowerQuery)) snippet = getSnippet(m.content, lowerQuery);
-            else if (m.content_ta && m.content_ta.toLowerCase().includes(lowerQuery)) snippet = getSnippet(m.content_ta, lowerQuery);
-            else if (m.content_hi && m.content_hi.toLowerCase().includes(lowerQuery)) snippet = getSnippet(m.content_hi, lowerQuery);
-            return { ...m, snippet };
+            let snippetObj = { text: "", matchedQuestion: null as string | null, matchedQuestionObj: null as any | null };
+            if (m.content && matchesQuery([m.content])) snippetObj = getSnippet(m.content, lowerQuery);
+            else if (m.content_ta && matchesQuery([m.content_ta])) snippetObj = getSnippet(m.content_ta, lowerQuery);
+            else if (m.content_hi && matchesQuery([m.content_hi])) snippetObj = getSnippet(m.content_hi, lowerQuery);
+            return { ...m, snippet: snippetObj.text, matchedQuestion: snippetObj.matchedQuestion, matchedQuestionObj: snippetObj.matchedQuestionObj };
         });
 
         // Filter MCQs
         const filteredMcqs = (syllabusMCQs || []).filter(m => {
             const topic = (topics || []).find(t => t.id === m.topicId);
-            const matchesExam = topic?.examCategories?.includes(selectedExam as any);
-            const matchesText = m.fileName.toLowerCase().includes(lowerQuery) || 
-                               (m.fileName_ta && m.fileName_ta.toLowerCase().includes(lowerQuery)) ||
-                               (m.fileName_hi && m.fileName_hi.toLowerCase().includes(lowerQuery)) ||
-                               (m.content && m.content.toLowerCase().includes(lowerQuery)) ||
-                               (m.content_ta && m.content_ta.toLowerCase().includes(lowerQuery)) ||
-                               (m.content_hi && m.content_hi.toLowerCase().includes(lowerQuery));
+            const matchesExam = topic 
+                ? topic.examCategories?.includes(selectedExam as any) 
+                : (m.examCategory === selectedExam || m.examCategories?.includes(selectedExam as any) || !m.examCategory);
+                
+            const matchesText = matchesQuery([m.fileName, m.fileName_ta, m.fileName_hi, m.content, m.content_ta, m.content_hi, m.topicName]);
             return matchesExam && matchesText;
         }).map(m => {
-            let snippet = "";
-            if (m.content && m.content.toLowerCase().includes(lowerQuery)) snippet = getSnippet(m.content, lowerQuery);
-            else if (m.content_ta && m.content_ta.toLowerCase().includes(lowerQuery)) snippet = getSnippet(m.content_ta, lowerQuery);
-            else if (m.content_hi && m.content_hi.toLowerCase().includes(lowerQuery)) snippet = getSnippet(m.content_hi, lowerQuery);
-            return { ...m, snippet };
+            let snippetObj = { text: "", matchedQuestion: null as string | null, matchedQuestionObj: null as any | null };
+            if (m.content && matchesQuery([m.content])) snippetObj = getSnippet(m.content, lowerQuery);
+            else if (m.content_ta && matchesQuery([m.content_ta])) snippetObj = getSnippet(m.content_ta, lowerQuery);
+            else if (m.content_hi && matchesQuery([m.content_hi])) snippetObj = getSnippet(m.content_hi, lowerQuery);
+            return { ...m, snippet: snippetObj.text, matchedQuestion: snippetObj.matchedQuestion, matchedQuestionObj: snippetObj.matchedQuestionObj };
+        });
+
+        // Filter MCQ Bank
+        const filteredMcqBank = (questionBank || []).filter(m => {
+            let isAllowed = false;
+            const userCat = userData.examCategory;
+            
+            if (userData?.email && ["shanmugasundaram.tsm@gmail.com", "admin@anjalkaran.in"].includes(userData.email)) {
+                isAllowed = true;
+            } else if (userCat === 'IP' || userCat === 'GROUP B') {
+                isAllowed = m.examCategory === 'IP' || m.examCategory === 'GROUP B';
+            } else if (userCat === 'PA') {
+                isAllowed = m.examCategory === 'PA' || m.examCategory === 'POSTMAN' || m.examCategory === 'MTS';
+            } else if (userCat === 'POSTMAN') {
+                isAllowed = m.examCategory === 'POSTMAN' || m.examCategory === 'MTS';
+            } else if (userCat === 'MTS') {
+                isAllowed = m.examCategory === 'MTS';
+            }
+
+            const matchesText = matchesQuery([m.fileName, m.content]);
+            return isAllowed && matchesText;
+        }).map(m => {
+            const snippetObj = getSnippet(m.content || "", lowerQuery);
+            return { ...m, snippet: snippetObj.text, matchedQuestion: snippetObj.matchedQuestion, matchedQuestionObj: snippetObj.matchedQuestionObj, isBank: true };
         });
 
         return {
             topics: filteredTopics,
             materials: filteredMaterials,
-            mcqs: filteredMcqs
+            mcqs: [...filteredMcqs, ...filteredMcqBank]
         };
-    }, [query, topics, studyMaterials, syllabusMCQs, userData, isLoading]);
+    }, [query, topics, studyMaterials, syllabusMCQs, userData, isLoading, questionBank]);
 
     if (isLoading) {
         return (
@@ -315,9 +391,9 @@ function MaterialResultCard({ material, topics }: { material: any, topics: any[]
                         <FileText className="h-5 w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <CardTitle className="text-sm font-bold truncate">{material.fileName}</CardTitle>
+                        <CardTitle className="text-sm font-bold truncate">{topic?.title || "General Study Guide"}</CardTitle>
                         <CardDescription className="text-xs truncate">
-                            Topic: {topic?.title || "General"}
+                            Study Document
                         </CardDescription>
                     </div>
                     <ChevronRight className="h-4 w-4 text-slate-400 flex-shrink-0" />
@@ -335,31 +411,155 @@ function MaterialResultCard({ material, topics }: { material: any, topics: any[]
 }
 
 function McqResultCard({ mcq, topics }: { mcq: any, topics: any[] }) {
+    const { user, userData } = useDashboard();
+    const router = useRouter();
+    const [isGenerating, setIsGenerating] = React.useState(false);
+
     const topic = topics?.find(t => t.id === mcq.topicId);
-    return (
-        <Card className="hover:border-red-200 transition-all duration-300 hover:shadow-md cursor-pointer bg-white">
-            <Link href={`/dashboard/topic-wise-mcq/${mcq.topicId}`}>
-                <CardHeader className="p-4 flex flex-row items-center gap-4 pb-2">
-                    <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600 flex-shrink-0">
-                        <BookOpen className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <CardTitle className="text-sm font-bold truncate">{mcq.fileName}</CardTitle>
-                        <CardDescription className="text-xs truncate">
-                            Topic: {topic?.title || "General"}
-                        </CardDescription>
-                    </div>
+    const linkHref = mcq.isBank 
+        ? "/dashboard/mock-test/previous-year" 
+        : `/dashboard/topic-wise-mcq/${mcq.topicId}`;
+
+    const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+
+    const handleClick = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        
+        // If we matched a specific question, just show it
+        if (mcq.matchedQuestionObj) {
+            setIsDialogOpen(true);
+            return;
+        }
+
+        if (mcq.isBank) {
+            // Let the standard Link handle Question Bank redirections
+            router.push(linkHref);
+            return;
+        }
+
+        if (isGenerating) return;
+
+        setIsGenerating(true);
+        try {
+            if (!user || !userData) {
+                router.push('/auth/login');
+                return;
+            }
+
+            const res: any = await generateMCQs({
+                topic: topic?.title || mcq.topicTitle || "Topic MCQs",
+                category: topic?.categoryId || "uncategorized",
+                numberOfQuestions: mcq.matchedQuestion ? 1 : 25, // default quantity or 1 for specific
+                examCategory: userData.examCategory,
+                part: topic?.part,
+                material: topic?.material,
+                userId: user.uid,
+                topicId: mcq.topicId,
+                language: 'English',
+                specificQuestionText: mcq.matchedQuestion,
+            });
+
+            if (res && res.quizId) {
+                router.push(`/quiz/${res.quizId}`);
+            } else {
+                console.error("Exam Generation Failed", res?.error);
+            }
+        } catch (error) {
+            console.error("Error generating exam on click:", error);
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    const cardContent = (
+        <>
+            <CardHeader className="p-4 flex flex-row items-center gap-4 pb-2">
+                <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600 flex-shrink-0">
+                    <BookOpen className="h-5 w-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <CardTitle className="text-sm font-bold truncate">
+                        {mcq.matchedQuestionObj 
+                            ? mcq.matchedQuestionObj.question 
+                            : (mcq.isBank 
+                                ? `${mcq.examCategory || "General"} Previous Paper` 
+                                : (topic?.title || "Topic MCQs"))}
+                    </CardTitle>
+                    <CardDescription className="text-xs truncate">
+                        {mcq.matchedQuestionObj 
+                            ? `From: ${topic?.title || mcq.topicTitle || "Question Bank"}` 
+                            : (mcq.isBank 
+                                ? `MCQ Bank (${mcq.examYear || 'Past Year'})` 
+                                : `Interactive Test`)}
+                    </CardDescription>
+                </div>
+                {isGenerating ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-red-600 flex-shrink-0" />
+                ) : (
                     <ChevronRight className="h-4 w-4 text-slate-400 flex-shrink-0" />
-                </CardHeader>
-                {mcq.snippet && (
-                    <CardContent className="px-4 pb-4 pt-0">
-                        <p className="text-xs text-slate-500 bg-slate-50/50 p-2 rounded-lg border border-slate-100/80 font-medium leading-relaxed">
-                            {mcq.snippet}
-                        </p>
-                    </CardContent>
                 )}
-            </Link>
-        </Card>
+            </CardHeader>
+            {mcq.snippet && (
+                <CardContent className="px-4 pb-4 pt-0">
+                    <p className="text-xs text-slate-500 bg-slate-50/50 p-2 rounded-lg border border-slate-100/80 font-medium leading-relaxed">
+                        {mcq.snippet}
+                    </p>
+                </CardContent>
+            )}
+        </>
+    );
+
+    return (
+        <>
+            <Card 
+                onClick={mcq.matchedQuestionObj ? handleClick : (!mcq.isBank ? handleClick : undefined)} 
+                className={cn(
+                    "hover:border-red-200 transition-all duration-300 hover:shadow-md bg-white",
+                    (mcq.matchedQuestionObj || !mcq.isBank) ? "cursor-pointer" : "",
+                    isGenerating ? 'opacity-70 pointer-events-none' : ''
+                )}
+            >
+                {mcq.isBank && !mcq.matchedQuestionObj ? (
+                    <Link href={linkHref}>
+                        {cardContent}
+                    </Link>
+                ) : (
+                    cardContent
+                )}
+            </Card>
+
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent className="max-w-xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Question Overview</DialogTitle>
+                    </DialogHeader>
+                    {mcq.matchedQuestionObj && (
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-lg">{mcq.matchedQuestionObj.question}</h3>
+                            <div className="space-y-2">
+                                {mcq.matchedQuestionObj.options?.map((opt: string, i: number) => {
+                                    const isCorrect = opt === mcq.matchedQuestionObj.correctAnswer;
+                                    return (
+                                        <div key={i} className={cn("p-3 rounded-lg border", isCorrect ? "bg-green-50 border-green-200" : "bg-slate-50 border-slate-100")}>
+                                            <div className="flex items-center gap-2">
+                                                {isCorrect && <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />}
+                                                <span className={cn(isCorrect && "text-green-700 font-medium")}>{opt}</span>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                            {(mcq.matchedQuestionObj.solution || mcq.matchedQuestionObj.explanation) && (
+                                <div className="mt-4 p-4 bg-blue-50 rounded-lg text-sm text-blue-900 border border-blue-100">
+                                    <span className="font-semibold block mb-1">Explanation:</span>
+                                    {mcq.matchedQuestionObj.solution || mcq.matchedQuestionObj.explanation}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }
 
