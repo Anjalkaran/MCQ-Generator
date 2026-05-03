@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { generateMCQs } from '@/ai/flows/generate-mcqs';
+import { getExamHistoryForUser } from '@/lib/firestore';
 
 import {
   Dialog,
@@ -35,10 +36,29 @@ export function TopicHubModal({ isOpen, onClose, topicId, topicName, examCategor
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [selectedSubTopic, setSelectedSubTopic] = React.useState<string | null>(initialSubTopic || null);
   const [expandedSection, setExpandedSection] = React.useState<'materials' | 'exam' | 'video' | null>(null);
+  const [quizLanguage, setQuizLanguage] = React.useState<string>('English');
+  const [quizQuestionCount, setQuizQuestionCount] = React.useState<number>(25);
+  const [attendedMCQsCount, setAttendedMCQsCount] = React.useState<number | null>(null);
 
   React.useEffect(() => {
     if (initialSubTopic) setSelectedSubTopic(initialSubTopic);
   }, [initialSubTopic]);
+
+  React.useEffect(() => {
+    const fetchHistory = async () => {
+      if (user && topicId) {
+        try {
+          const history = await getExamHistoryForUser(user.uid);
+          const topicHistory = history.filter(h => h.topicId === topicId);
+          const answeredQuestions = new Set(topicHistory.flatMap(h => h.questions || []));
+          setAttendedMCQsCount(answeredQuestions.size);
+        } catch (e) {
+          console.error("Error fetching exam history", e);
+        }
+      }
+    };
+    fetchHistory();
+  }, [user, topicId]);
 
   const materials = useMemo(() => {
     let filtered = studyMaterials ? studyMaterials.filter(m => m.topicId === topicId || (m.topicName === topicName)) : [];
@@ -75,6 +95,25 @@ export function TopicHubModal({ isOpen, onClose, topicId, topicName, examCategor
 
     return filtered;
   }, [syllabusMCQs, topicId, topicName, selectedSubTopic]);
+
+  const totalAvailableMCQs = useMemo(() => {
+    let count = 0;
+    topicMCQs.forEach(doc => {
+      try {
+        if (doc.content) {
+          const parsed = JSON.parse(doc.content);
+          if (Array.isArray(parsed)) {
+            count += parsed.length;
+          } else if (parsed.mcqs && Array.isArray(parsed.mcqs)) {
+            count += parsed.mcqs.length;
+          } else if (parsed.questions && Array.isArray(parsed.questions)) {
+            count += parsed.questions.length;
+          }
+        }
+      } catch (e) {}
+    });
+    return count;
+  }, [topicMCQs]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -233,8 +272,8 @@ export function TopicHubModal({ isOpen, onClose, topicId, topicName, examCategor
                     <div className="text-left">
                       <h3 className="text-lg font-bold text-slate-900">Practice Exam</h3>
                       <p className="text-slate-500 text-xs mt-0.5">
-                        {topicMCQs.length > 0 
-                          ? `Test your knowledge with ${topicMCQs.length} question sets for this topic.` 
+                        {totalAvailableMCQs > 0 
+                          ? `Total Available: ${totalAvailableMCQs} MCQs${attendedMCQsCount !== null ? ` • Attended: ${attendedMCQsCount}` : ''}`
                           : "Exclusive practice tests and previous year questions."
                         }
                       </p>
@@ -244,7 +283,34 @@ export function TopicHubModal({ isOpen, onClose, topicId, topicName, examCategor
                 </div>
 
                 {expandedSection === 'exam' && (
-                  <div className="mt-6 pt-4 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
+                  <div className="mt-6 pt-4 border-t border-slate-100 space-y-4" onClick={(e) => e.stopPropagation()}>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Language</label>
+                        <select 
+                          value={quizLanguage}
+                          onChange={(e) => setQuizLanguage(e.target.value)}
+                          className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
+                        >
+                          <option value="English">English</option>
+                          <option value="Tamil">Tamil</option>
+                          <option value="Hindi">Hindi</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Questions</label>
+                        <select 
+                          value={quizQuestionCount}
+                          onChange={(e) => setQuizQuestionCount(Number(e.target.value))}
+                          className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
+                        >
+                          <option value={10}>10 Questions</option>
+                          <option value={20}>20 Questions</option>
+                          <option value={25}>25 Questions</option>
+                          <option value={50}>50 Questions</option>
+                        </select>
+                      </div>
+                    </div>
                     <Button 
                       disabled={isGenerating}
                       onClick={async (e) => {
@@ -261,13 +327,13 @@ export function TopicHubModal({ isOpen, onClose, topicId, topicName, examCategor
                           const res: any = await generateMCQs({
                             topic: topicName || topic?.title || "Topic MCQs",
                             category: topic?.categoryId || "uncategorized",
-                            numberOfQuestions: 25,
+                            numberOfQuestions: quizQuestionCount,
                             examCategory: userData.examCategory,
                             part: topic?.part,
                             material: topic?.material,
                             userId: user.uid,
                             topicId: topicId,
-                            language: 'English',
+                            language: quizLanguage,
                             subTopic: selectedSubTopic || undefined
                           });
 

@@ -213,6 +213,19 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     setIsUpdateDialogOpen(true);
   };
 
+  const handleDeleteUser = async (userId: string) => {
+    setIsLoading(true);
+    try {
+      await deleteUserDocument(userId);
+      setUsers(users.filter(u => u.uid !== userId));
+      toast({ title: 'Success', description: 'User deleted successfully.' });
+    } catch (error) {
+      toast({ title: 'Error', variant: 'destructive', description: 'Failed to delete user.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Card>
         <CardHeader>
@@ -343,6 +356,32 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                                             <Button variant="ghost" size="icon" onClick={() => handleOpenUpdateDialog(u)}>
                                                 <Edit className="h-4 w-4" />
                                             </Button>
+
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            This will permanently delete the user account for <strong>{u.name || u.email}</strong> and remove all their data from the database.
+                                                            This action cannot be undone.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction 
+                                                            onClick={() => handleDeleteUser(u.uid)}
+                                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                        >
+                                                            Delete User
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
                                         </div>
                                     </TableCell>
                                 </TableRow>
