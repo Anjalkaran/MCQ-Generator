@@ -33,6 +33,8 @@ import {
 import type { TopicMCQ, StudyMaterial, SyllabusBlueprint, SyllabusTopic } from '@/lib/types';
 import * as mammoth from 'mammoth';
 import DOMPurify from 'dompurify';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { JsonFormatGuide } from './json-format-guide';
 import { 
   BookOpen, 
@@ -395,6 +397,93 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
     }
   };
 
+  const handleDownloadPdf = (mat: StudyMaterial) => {
+    try {
+        const doc = new jsPDF();
+        
+        // Header
+        doc.setFontSize(20);
+        doc.setTextColor(185, 28, 28); // red-700
+        doc.text("Anjalkaran Study Material", 14, 22);
+        
+        doc.setFontSize(12);
+        doc.setTextColor(100);
+        doc.text(`Topic: ${mat.topicName}`, 14, 32);
+        doc.text(`Title: ${mat.fileName}`, 14, 38);
+        if (mat.subTopic) {
+            doc.text(`Sub-topic: ${mat.subTopic}`, 14, 44);
+        }
+        doc.line(14, 48, 196, 48);
+
+        // Simple HTML to Text conversion while preserving structure
+        const htmlToText = (html: string) => {
+            if (!html) return "";
+            
+            // Create a temporary element to parse HTML
+            const temp = document.createElement('div');
+            temp.innerHTML = html;
+            
+            // Basic structural replacements
+            const walk = (node: Node, depth = 0): string => {
+                let text = "";
+                node.childNodes.forEach(child => {
+                    if (child.nodeType === Node.TEXT_NODE) {
+                        text += child.textContent;
+                    } else if (child.nodeType === Node.ELEMENT_NODE) {
+                        const el = child as HTMLElement;
+                        const tag = el.tagName.toLowerCase();
+                        
+                        if (tag === 'p' || tag === 'div') {
+                            text += '\n\n' + walk(child, depth + 1);
+                        } else if (tag === 'h1' || tag === 'h2' || tag === 'h3') {
+                            text += '\n\n' + walk(child, depth + 1).toUpperCase() + '\n';
+                        } else if (tag === 'li') {
+                            text += '\n • ' + walk(child, depth + 1);
+                        } else if (tag === 'br') {
+                            text += '\n';
+                        } else {
+                            text += walk(child, depth + 1);
+                        }
+                    }
+                });
+                return text;
+            };
+
+            return walk(temp).trim();
+        };
+
+        const text = htmlToText(mat.content);
+        
+        doc.setFontSize(11);
+        doc.setTextColor(40);
+        const splitText = doc.splitTextToSize(text, 180);
+        
+        let y = 55;
+        const pageHeight = doc.internal.pageSize.getHeight();
+        
+        splitText.forEach((line: string) => {
+            if (y > pageHeight - 20) {
+                doc.addPage();
+                y = 20;
+                // Add mini header on new pages
+                doc.setFontSize(8);
+                doc.setTextColor(150);
+                doc.text(`${mat.fileName} - Anjalkaran`, 14, 10);
+                doc.setFontSize(11);
+                doc.setTextColor(40);
+            }
+            doc.text(line, 14, y);
+            y += 6; // line height
+        });
+
+        doc.save(`${mat.fileName.replace(/[^a-z0-9]/gi, '_')}.pdf`);
+        toast({ title: "Success", description: "PDF generated and downloading." });
+    } catch (error: any) {
+        console.error("PDF generation error:", error);
+        toast({ title: "Error", description: "Failed to generate PDF.", variant: "destructive" });
+    }
+  };
+
   return (
     <>
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-20">
@@ -721,22 +810,33 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
                                       </Button>
                                   )}
                                   {(mat.fileType === 'docx' || (mat.content && mat.content.startsWith('<'))) && (
-                                      <Button 
-                                          variant="ghost" 
-                                          size="icon" 
-                                          className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50" 
-                                          onClick={() => {
-                                              setEditingMaterial(mat);
-                                              setEditContent(mat.content);
-                                              setEditContentTa(mat.content_ta || '');
-                                              setEditContentHi(mat.content_hi || '');
-                                              setEditTitle(mat.fileName);
-                                              setEditTitleTa(mat.fileName_ta || '');
-                                              setEditTitleHi(mat.fileName_hi || '');
-                                          }}
-                                      >
-                                          <FileText className="h-4 w-4" />
-                                      </Button>
+                                      <div className="flex items-center gap-1">
+                                          <Button 
+                                              variant="ghost" 
+                                              size="icon" 
+                                              className="h-8 w-8 text-slate-400 hover:text-green-600 hover:bg-green-50" 
+                                              title="Download as PDF"
+                                              onClick={() => handleDownloadPdf(mat)}
+                                          >
+                                              <Download className="h-4 w-4" />
+                                          </Button>
+                                          <Button 
+                                              variant="ghost" 
+                                              size="icon" 
+                                              className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50" 
+                                              onClick={() => {
+                                                  setEditingMaterial(mat);
+                                                  setEditContent(mat.content);
+                                                  setEditContentTa(mat.content_ta || '');
+                                                  setEditContentHi(mat.content_hi || '');
+                                                  setEditTitle(mat.fileName);
+                                                  setEditTitleTa(mat.fileName_ta || '');
+                                                  setEditTitleHi(mat.fileName_hi || '');
+                                              }}
+                                          >
+                                              <FileText className="h-4 w-4" />
+                                          </Button>
+                                      </div>
                                   )}
                                   <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(mat.id, 'material')}>
                                   <Trash2 className="h-4 w-4" />
