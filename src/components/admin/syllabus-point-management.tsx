@@ -33,8 +33,6 @@ import {
 import type { TopicMCQ, StudyMaterial, SyllabusBlueprint, SyllabusTopic } from '@/lib/types';
 import * as mammoth from 'mammoth';
 import DOMPurify from 'dompurify';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { JsonFormatGuide } from './json-format-guide';
 import { 
   BookOpen, 
@@ -399,88 +397,232 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
 
   const handleDownloadPdf = (mat: StudyMaterial) => {
     try {
-        const doc = new jsPDF();
-        
-        // Header
-        doc.setFontSize(20);
-        doc.setTextColor(185, 28, 28); // red-700
-        doc.text("Anjalkaran Study Material", 14, 22);
-        
-        doc.setFontSize(12);
-        doc.setTextColor(100);
-        doc.text(`Topic: ${mat.topicName}`, 14, 32);
-        doc.text(`Title: ${mat.fileName}`, 14, 38);
-        if (mat.subTopic) {
-            doc.text(`Sub-topic: ${mat.subTopic}`, 14, 44);
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            toast({ title: "Error", description: "Popup blocked. Please allow popups and try again.", variant: "destructive" });
+            return;
         }
-        doc.line(14, 48, 196, 48);
 
-        // Simple HTML to Text conversion while preserving structure
-        const htmlToText = (html: string) => {
-            if (!html) return "";
-            
-            // Create a temporary element to parse HTML
-            const temp = document.createElement('div');
-            temp.innerHTML = html;
-            
-            // Basic structural replacements
-            const walk = (node: Node, depth = 0): string => {
-                let text = "";
-                node.childNodes.forEach(child => {
-                    if (child.nodeType === Node.TEXT_NODE) {
-                        text += child.textContent;
-                    } else if (child.nodeType === Node.ELEMENT_NODE) {
-                        const el = child as HTMLElement;
-                        const tag = el.tagName.toLowerCase();
-                        
-                        if (tag === 'p' || tag === 'div') {
-                            text += '\n\n' + walk(child, depth + 1);
-                        } else if (tag === 'h1' || tag === 'h2' || tag === 'h3') {
-                            text += '\n\n' + walk(child, depth + 1).toUpperCase() + '\n';
-                        } else if (tag === 'li') {
-                            text += '\n • ' + walk(child, depth + 1);
-                        } else if (tag === 'br') {
-                            text += '\n';
-                        } else {
-                            text += walk(child, depth + 1);
-                        }
-                    }
-                });
-                return text;
-            };
+        const sanitizedContent = DOMPurify.sanitize(mat.content || '');
 
-            return walk(temp).trim();
-        };
+        printWindow.document.write(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${mat.fileName} - Anjalkaran Study Material</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-        const text = htmlToText(mat.content);
-        
-        doc.setFontSize(11);
-        doc.setTextColor(40);
-        const splitText = doc.splitTextToSize(text, 180);
-        
-        let y = 55;
-        const pageHeight = doc.internal.pageSize.getHeight();
-        
-        splitText.forEach((line: string) => {
-            if (y > pageHeight - 20) {
-                doc.addPage();
-                y = 20;
-                // Add mini header on new pages
-                doc.setFontSize(8);
-                doc.setTextColor(150);
-                doc.text(`${mat.fileName} - Anjalkaran`, 14, 10);
-                doc.setFontSize(11);
-                doc.setTextColor(40);
-            }
-            doc.text(line, 14, y);
-            y += 6; // line height
-        });
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        doc.save(`${mat.fileName.replace(/[^a-z0-9]/gi, '_')}.pdf`);
-        toast({ title: "Success", description: "PDF generated and downloading." });
+    body {
+      font-family: 'Inter', Arial, sans-serif;
+      font-size: 13px;
+      line-height: 1.75;
+      color: #1e293b;
+      background: #ffffff;
+      padding: 0;
+      margin: 0;
+    }
+
+    /* ── Print Header ── */
+    .print-header {
+      background: linear-gradient(135deg, #b91c1c, #dc2626);
+      color: white;
+      padding: 24px 40px 20px;
+      margin-bottom: 0;
+    }
+    .print-header .brand {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      opacity: 0.85;
+      margin-bottom: 6px;
+    }
+    .print-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .print-header .meta {
+      font-size: 11px;
+      opacity: 0.8;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .print-header .meta span { display: flex; align-items: center; gap: 4px; }
+
+    /* ── Content Area ── */
+    .content-area {
+      padding: 32px 40px 48px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* ── Typography ── */
+    h1, h2, h3, h4, h5, h6 {
+      color: #0f172a;
+      font-weight: 700;
+      margin-top: 1.6em;
+      margin-bottom: 0.5em;
+      line-height: 1.3;
+    }
+    h1 { font-size: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+    h2 { font-size: 17px; color: #b91c1c; }
+    h3 { font-size: 15px; color: #1d4ed8; }
+    h4 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; }
+
+    p {
+      margin-bottom: 0.85em;
+      color: #334155;
+    }
+
+    /* ── Lists ── */
+    ul, ol {
+      margin: 0.75em 0 0.75em 1.5em;
+      color: #334155;
+    }
+    li { margin-bottom: 0.4em; }
+    li::marker { color: #b91c1c; font-weight: 700; }
+
+    /* ── Tables ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.2em 0;
+      font-size: 12px;
+    }
+    th {
+      background: #b91c1c;
+      color: white;
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    td {
+      padding: 7px 12px;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: #f8fafc; }
+    tr:hover td { background: #fef2f2; }
+
+    /* ── Inline styles ── */
+    strong, b { font-weight: 700; color: #0f172a; }
+    em, i { font-style: italic; color: #475569; }
+    u { text-decoration: underline; }
+    mark { background: #fef08a; padding: 1px 3px; border-radius: 2px; }
+
+    code {
+      font-family: 'Courier New', monospace;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #b91c1c;
+    }
+    pre {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid #b91c1c;
+      padding: 14px 16px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      margin: 1em 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    blockquote {
+      border-left: 4px solid #b91c1c;
+      background: #fff5f5;
+      margin: 1em 0;
+      padding: 12px 16px;
+      border-radius: 0 6px 6px 0;
+      color: #7f1d1d;
+      font-style: italic;
+    }
+
+    hr {
+      border: none;
+      border-top: 2px solid #e2e8f0;
+      margin: 1.5em 0;
+    }
+
+    img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+
+    a { color: #1d4ed8; text-decoration: underline; }
+
+    /* ── Footer ── */
+    .print-footer {
+      border-top: 1px solid #e2e8f0;
+      padding: 12px 40px;
+      font-size: 10px;
+      color: #94a3b8;
+      display: flex;
+      justify-content: space-between;
+      margin-top: 24px;
+    }
+
+    /* ── Print-specific ── */
+    @media print {
+      body { background: #fff; }
+      .no-print { display: none !important; }
+      .print-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      h1, h2, h3, h4 { page-break-after: avoid; }
+      table { page-break-inside: avoid; }
+      pre, blockquote { page-break-inside: avoid; }
+      @page { margin: 10mm; size: A4; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-header">
+    <div class="brand">Anjalkaran · Study Material</div>
+    <h1>${mat.fileName}</h1>
+    <div class="meta">
+      <span>📚 Topic: ${mat.topicName}</span>
+      ${mat.subTopic ? `<span>🏷️ Sub-topic: ${mat.subTopic}</span>` : ''}
+      <span>📅 ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+    </div>
+  </div>
+
+  <div class="content-area">
+    ${sanitizedContent}
+  </div>
+
+  <div class="print-footer">
+    <span>Anjalkaran · Postal Exam Preparation</span>
+    <span>${mat.fileName}</span>
+  </div>
+
+  <div class="no-print" style="position:fixed;bottom:24px;right:24px;display:flex;gap:10px;z-index:9999;">
+    <button onclick="window.print()" style="background:#b91c1c;color:white;border:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(185,28,28,0.4);">
+      🖨️ Download as PDF
+    </button>
+    <button onclick="window.close()" style="background:#f1f5f9;color:#475569;border:none;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;">
+      ✕ Close
+    </button>
+  </div>
+</body>
+</html>`);
+
+        printWindow.document.close();
+        toast({ title: "Opened!", description: "Click 'Download as PDF' in the new window. Set destination to 'Save as PDF' in print dialog." });
     } catch (error: any) {
         console.error("PDF generation error:", error);
-        toast({ title: "Error", description: "Failed to generate PDF.", variant: "destructive" });
+        toast({ title: "Error", description: "Failed to open print view.", variant: "destructive" });
     }
   };
 
