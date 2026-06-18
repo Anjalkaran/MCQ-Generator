@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Loader2 } from 'lucide-react';
 import { ADMIN_EMAILS } from '@/lib/constants';
-import { normalizeDate } from '@/lib/utils';
+import { normalizeDate, checkIsPro } from '@/lib/utils';
 import { AdminNotifications } from '@/components/dashboard/admin-notifications';
 import { DashboardProvider, useDashboard } from '@/context/dashboard-context';
 

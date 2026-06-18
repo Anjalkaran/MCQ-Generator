@@ -1,6 +1,8 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { ADMIN_EMAILS } from "./constants"
+import type { UserData } from "./types"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -58,4 +60,25 @@ export function shuffleArray<T>(array: T[]): T[] {
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
+}
+
+export function checkIsPro(userData: UserData | null): boolean {
+  if (!userData) return false;
+  
+  const adminEmail = userData.email;
+  const isAdmin = adminEmail ? ADMIN_EMAILS.includes(adminEmail) : false;
+  if (isAdmin) return true;
+
+  const isProfessionalGroup = userData.examCategory === 'IP' || userData.examCategory === 'GROUP B';
+  if (isProfessionalGroup) return true;
+
+  const proValidUntilDate = normalizeDate(userData.proValidUntil);
+  const subscribedCategory = userData.subscribedCategory;
+  
+  return !!(
+    userData.isPro &&
+    proValidUntilDate &&
+    proValidUntilDate > new Date() &&
+    (!subscribedCategory || subscribedCategory === userData.examCategory)
+  );
 }

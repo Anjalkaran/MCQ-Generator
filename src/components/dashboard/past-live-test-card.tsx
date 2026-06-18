@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { generateLiveMockTest } from '@/ai/flows/generate-live-mock-test';
 import type { LiveTest } from '@/lib/types';
-import { normalizeDate } from '@/lib/utils';
+import { normalizeDate, checkIsPro } from '@/lib/utils';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { Badge } from '@/components/ui/badge';
 import { getExamHistoryForUser } from '@/lib/firestore';
@@ -33,6 +33,7 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
     const [selectedLanguage, setSelectedLanguage] = useState<string>('English');
 
     const startTime = normalizeDate(test.startTime);
+    const isPro = checkIsPro(userData);
     const isIPTest = test.examCategory === 'IP';
     const availableLanguages = isIPTest ? ipLanguages : allLanguages;
 
@@ -68,7 +69,7 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
             const { quizId } = await generateLiveMockTest({ 
                 liveTestId: test.id,
                 questionPaperId: test.questionPaperId,
-                examCategory: test.examCategory,
+                examCategory: test.examCategory === 'All' ? (userData?.examCategory || 'MTS') : (test.examCategory as any),
                 language: selectedLanguage,
                 testTitle: `${test.title} (Practice)`,
             });
@@ -93,6 +94,16 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
                 <Button disabled className="w-full">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Checking History...
+                </Button>
+            );
+        }
+
+        if (!isPro) {
+            return (
+                <Button asChild className="w-full bg-red-600 hover:bg-red-700 text-white font-bold">
+                    <Link href="/dashboard/upgrade">
+                        <Gem className="mr-2 h-4 w-4" /> Upgrade to Practice
+                    </Link>
                 </Button>
             );
         }
@@ -123,7 +134,7 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
                 <CardDescription>
                     Held on: {startTime ? format(startTime, 'dd/MM/yyyy') : 'N/A'}
                 </CardDescription>
-                 {practiceAttempts > 0 && (
+                 {practiceAttempts > 0 && isPro && (
                     <Badge variant="secondary" className="w-fit mt-2">
                         <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
                         Attempted {practiceAttempts} time(s)
@@ -134,7 +145,7 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
                  {showLanguageSelect && (
                     <div className="space-y-2 text-left">
                         <Label htmlFor={`past-language-select-${test.id}`}>Language</Label>
-                        <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                        <Select value={selectedLanguage} onValueChange={setSelectedLanguage} disabled={!isPro}>
                             <SelectTrigger id={`past-language-select-${test.id}`}>
                                 <SelectValue placeholder="Select a language" />
                             </SelectTrigger>

@@ -12,11 +12,11 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, AlertTriangle, Gem } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { normalizeDate } from '@/lib/utils';
+import { normalizeDate, checkIsPro } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
 import { useDashboard } from "@/context/dashboard-context";
-import { ADMIN_EMAILS } from '@/lib/constants';
+import { ADMIN_EMAILS, FREE_EXAM_LIMIT } from '@/lib/constants';
 import { generatePartwiseMCQs } from '@/ai/flows/generate-partwise-mcqs';
 
 import { getSyllabi } from '@/lib/firestore';
@@ -168,11 +168,29 @@ export function PartwiseQuizForm() {
     }
   };
   
+  const isPro = checkIsPro(userData);
+  const totalExamsTaken = userData?.totalExamsTaken || 0;
+  const hasExceededFreeLimit = !isPro && userData && totalExamsTaken >= FREE_EXAM_LIMIT;
+
   return (
     <Card>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CardContent className="pt-6">
+                {hasExceededFreeLimit ? (
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Free Limit Reached</AlertTitle>
+                        <AlertDescription>
+                            You have used your free exam allocation. Please upgrade for unlimited access.
+                        </AlertDescription>
+                        <Button asChild className="mt-4 bg-red-600 hover:bg-red-700 text-white font-bold">
+                            <Link href="/dashboard/upgrade">
+                                Upgrade Now <Gem className="ml-2 h-4 w-4" />
+                            </Link>
+                        </Button>
+                    </Alert>
+                ) : (
                 <fieldset disabled={isGenerating || userLoading || syllabiLoading} className="space-y-6">
                     <FormField
                       control={form.control}
@@ -262,19 +280,22 @@ export function PartwiseQuizForm() {
                     )}
                     />
                 </fieldset>
+                )}
              </CardContent>
-            <CardFooter>
-                <Button type="submit" disabled={isGenerating || !form.formState.isValid || userLoading || syllabiLoading} className="w-full">
-                     {isGenerating ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Generating... Please wait a moment.
-                        </>
-                    ) : (
-                        "Start Part-wise Exam"
-                    )}
-                </Button>
-            </CardFooter>
+            {!hasExceededFreeLimit && (
+                <CardFooter>
+                    <Button type="submit" disabled={isGenerating || !form.formState.isValid || userLoading || syllabiLoading} className="w-full">
+                         {isGenerating ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Generating... Please wait a moment.
+                            </>
+                        ) : (
+                            "Start Part-wise Exam"
+                        )}
+                    </Button>
+                </CardFooter>
+            )}
         </form>
         </Form>
     </Card>

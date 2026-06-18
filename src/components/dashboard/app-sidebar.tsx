@@ -35,7 +35,8 @@ import {
   Bookmark,
   LineChart,
   Book,
-  Youtube
+  Youtube,
+  Gem
 } from 'lucide-react';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -43,6 +44,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { ADMIN_EMAILS } from '@/lib/constants';
+import { checkIsPro } from '@/lib/utils';
 import { useDashboard } from '@/context/dashboard-context';
 import { CardDescription } from '@/components/ui/card';
 import { 
@@ -86,6 +88,8 @@ export function AppSidebar() {
 
 
   const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
+  const isPro = checkIsPro(userData);
+  const showUpgradeButton = !!(userData && !isPro);
   
   const uniqueOnlineUsers = useMemo(() => {
     return Array.from(new Map(onlineUsers.map(u => [u.uid, u])).values());
@@ -263,6 +267,17 @@ export function AppSidebar() {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+
+                {showUpgradeButton && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/upgrade'} className="text-primary hover:bg-primary/10 hover:text-primary font-semibold" tooltip="Upgrade to Pro">
+                      <Link href="/dashboard/upgrade" onClick={onLinkClick}>
+                        <Gem className="text-red-600 animate-pulse" />
+                        <span>Upgrade to Pro</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
 
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="WhatsApp Support">

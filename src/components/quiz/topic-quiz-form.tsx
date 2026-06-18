@@ -17,8 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
 import { useDashboard } from "@/context/dashboard-context";
-import { ADMIN_EMAILS } from '@/lib/constants';
-import { normalizeDate } from '@/lib/utils';
+import { ADMIN_EMAILS, FREE_EXAM_LIMIT } from '@/lib/constants';
+import { normalizeDate, checkIsPro } from '@/lib/utils';
 import type { Topic, MCQ } from '@/lib/types';
 import { getTopicMCQs, getExamHistoryForUser } from '@/lib/firestore';
 
@@ -139,6 +139,10 @@ export function TopicQuizForm({ topic, subTopic }: TopicQuizFormProps) {
     }
   };
   
+  const isPro = checkIsPro(userData);
+  const totalExamsTaken = userData?.totalExamsTaken || 0;
+  const hasExceededFreeLimit = !isPro && userData && totalExamsTaken >= FREE_EXAM_LIMIT;
+
   return (
     <Card>
        <CardHeader>
@@ -163,6 +167,20 @@ export function TopicQuizForm({ topic, subTopic }: TopicQuizFormProps) {
                         </CardHeader>
                     </Card>
                 </div>
+                {hasExceededFreeLimit ? (
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Free Limit Reached</AlertTitle>
+                        <AlertDescription>
+                            You have used your free exam allocation. Please upgrade for unlimited access.
+                        </AlertDescription>
+                        <Button asChild className="mt-4 bg-red-600 hover:bg-red-700 text-white font-bold">
+                            <Link href="/dashboard/upgrade">
+                                Upgrade Now <Gem className="ml-2 h-4 w-4" />
+                            </Link>
+                        </Button>
+                    </Alert>
+                ) : (
                 <fieldset disabled={isGenerating || isLoading} className="space-y-6">
                     <FormField
                         control={form.control}
@@ -200,19 +218,22 @@ export function TopicQuizForm({ topic, subTopic }: TopicQuizFormProps) {
                     )}
                     />
                 </fieldset>
+                )}
              </CardContent>
-            <CardFooter>
-                <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading} className="w-full">
-                    {isGenerating ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Generating... Please wait.
-                        </>
-                    ) : (
-                        "Start Exam"
-                    )}
-                </Button>
-            </CardFooter>
+            {!hasExceededFreeLimit && (
+                 <CardFooter>
+                    <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading} className="w-full">
+                        {isGenerating ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Generating... Please wait.
+                            </>
+                        ) : (
+                            "Start Exam"
+                        )}
+                    </Button>
+                </CardFooter>
+            )}
         </form>
         </Form>
     </Card>

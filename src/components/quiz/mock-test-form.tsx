@@ -18,7 +18,7 @@ import { generateMockTest } from '@/ai/flows/generate-mock-test';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT, IP_BLUEPRINT, GROUPB_BLUEPRINT } from '@/lib/exam-blueprints';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { Input } from '@/components/ui/input';
-import { normalizeDate } from '@/lib/utils';
+import { normalizeDate, checkIsPro } from '@/lib/utils';
 import Link from 'next/link';
 
 import { getSyllabi } from '@/lib/firestore';
@@ -139,6 +139,8 @@ export function MockTestForm() {
     }
   };
 
+  const isPro = checkIsPro(userData);
+
   return (
     <Card>
         <CardHeader>
@@ -148,6 +150,20 @@ export function MockTestForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CardContent>
+                 {!isPro ? (
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Pro Feature</AlertTitle>
+                        <AlertDescription>
+                            Practice Mock Tests are available for Pro users only. Please upgrade for unlimited access.
+                        </AlertDescription>
+                        <Button asChild className="mt-4 bg-red-600 hover:bg-red-700 text-white font-bold">
+                            <Link href="/dashboard/upgrade">
+                                Upgrade Now <Gem className="ml-2 h-4 w-4" />
+                            </Link>
+                        </Button>
+                    </Alert>
+                ) : (
                 <fieldset disabled={isGenerating || userLoading || isLoadingSyllabi} className="space-y-6">
                     <FormField
                     control={form.control}
@@ -158,19 +174,45 @@ export function MockTestForm() {
                         <Select onValueChange={field.onChange} value={field.value} disabled={!user}>
                             <FormControl>
                             <SelectTrigger>
-                                <SelectValue placeholder="Select Exam Type" />
+                                <SelectValue placeholder="Select Exam" />
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                {availableExams.map((exam) => (
-                                    <SelectItem key={exam} value={exam}>{exam}</SelectItem>
-                                ))}
+                            {availableExams.map((exam) => (
+                                <SelectItem key={exam} value={exam}>
+                                {exam}
+                                </SelectItem>
+                            ))}
                             </SelectContent>
                         </Select>
                         <FormMessage />
                         </FormItem>
                     )}
                     />
+                    
+                    <FormField
+                        control={form.control}
+                        name="language"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Language</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select a language" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {availableLanguages.map((lang) => (
+                                            <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
                     {selectedExamType === 'IP' && (
                         <FormField
                             control={form.control}
@@ -185,8 +227,8 @@ export function MockTestForm() {
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            <SelectItem value="Paper-I">Paper-I (Departmental Rules & Acts)</SelectItem>
-                                            <SelectItem value="Paper-III">Paper-III (Rules, Management & Accounts)</SelectItem>
+                                            <SelectItem value="Paper-I">Paper I (Legislative & Administrative)</SelectItem>
+                                            <SelectItem value="Paper-III">Paper III (Rules & Procedures)</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
@@ -194,9 +236,9 @@ export function MockTestForm() {
                             )}
                         />
                     )}
-                    
-                    {selectedExamType && blueprint && (
-                        <Alert className="border-red-100 bg-red-50/50">
+
+                    {blueprint && (
+                        <Alert className="bg-red-50 border-red-200">
                             <Gem className="h-4 w-4 text-red-600" />
                             <AlertTitle className="text-red-900">
                                 {blueprint.examName} 
@@ -206,31 +248,34 @@ export function MockTestForm() {
                                 {selectedExamType === 'IP' ? (
                                     <>
                                         This {form.watch('paper')} test will have {
-                                            blueprint.parts.find(p => p.partName === form.watch('paper'))?.totalQuestions
+                                            blueprint.parts.find((p: any) => p.partName === form.watch('paper'))?.totalQuestions
                                         } questions and a specialized time limit.
                                     </>
                                 ) : (
                                     <>
-                                        This test will have {blueprint.parts.reduce((sum, p) => sum + p.totalQuestions, 0)} questions and a time limit of {blueprint.totalDurationMinutes} minutes.
+                                        This test will have {blueprint.parts.reduce((sum: number, p: any) => sum + p.totalQuestions, 0)} questions and a time limit of {blueprint.totalDurationMinutes} minutes.
                                     </>
                                 )}
                             </AlertDescription>
                         </Alert>
                     )}
                 </fieldset>
+                )}
              </CardContent>
-             <CardFooter>
-                <Button type="submit" disabled={isGenerating || !form.formState.isValid || userLoading || isLoadingSyllabi} className="w-full">
-                    {isGenerating ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Generating... Please wait a moment.
-                        </>
-                    ) : (
-                        "Generate Mock Test"
-                    )}
-                </Button>
-            </CardFooter>
+             {isPro && (
+                <CardFooter>
+                    <Button type="submit" disabled={isGenerating || !form.formState.isValid || userLoading || isLoadingSyllabi} className="w-full">
+                        {isGenerating ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Generating... Please wait a moment.
+                            </>
+                        ) : (
+                            "Generate Mock Test"
+                        )}
+                    </Button>
+                </CardFooter>
+             )}
         </form>
         </Form>
     </Card>

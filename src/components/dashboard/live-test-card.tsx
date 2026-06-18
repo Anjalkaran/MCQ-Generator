@@ -4,13 +4,14 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { useDashboard } from "@/context/dashboard-context";
-import { Loader2, PlayCircle, Lock, CheckCircle, TimerOff, Trophy, Repeat, Users, Share2, Calendar } from 'lucide-react';
+import { Loader2, PlayCircle, Lock, CheckCircle, TimerOff, Trophy, Repeat, Users, Share2, Calendar, Gem } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { generateLiveMockTest } from '@/ai/flows/generate-live-mock-test';
 import type { LiveTest } from '@/lib/types';
 import { markLiveTestAsTaken } from '@/lib/firestore';
-import { normalizeDate } from '@/lib/utils';
+import { normalizeDate, checkIsPro } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { formatDistanceToNowStrict, format } from 'date-fns';
@@ -34,6 +35,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const endTime = useMemo(() => normalizeDate(test.endTime), [test.endTime]);
     
     const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
+    const isPro = checkIsPro(userData);
     const hasTakenTest = userData?.liveTestsTaken?.includes(test.id);
 
     const isIPTest = test.examCategory === 'IP';
@@ -114,11 +116,19 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
                     </Select>
                  </div>
             </CardContent>
-            <CardFooter>
-                <Button onClick={startTest} disabled={isGenerating || (testState === 'upcoming' && !isAdmin)} className={cn("w-full", hasTakenTest ? "bg-orange-600 hover:bg-orange-700" : "bg-green-600 hover:bg-green-700")}>
-                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (hasTakenTest ? <Repeat className="mr-2 h-4 w-4" /> : <PlayCircle className="mr-2 h-4 w-4" />)}
-                    {testState === 'upcoming' && !isAdmin ? `Starts in ${timeRemaining}` : (hasTakenTest ? "Retake Test" : "Start Weekly Test")}
-                </Button>
+            <CardFooter className="w-full">
+                {!isPro ? (
+                    <Button asChild className="w-full bg-red-600 hover:bg-red-700 text-white font-bold">
+                        <Link href="/dashboard/upgrade">
+                            <Gem className="mr-2 h-4 w-4" /> Upgrade to Pro to Join
+                        </Link>
+                    </Button>
+                ) : (
+                    <Button onClick={startTest} disabled={isGenerating || (testState === 'upcoming' && !isAdmin)} className={cn("w-full", hasTakenTest ? "bg-orange-600 hover:bg-orange-700" : "bg-green-600 hover:bg-green-700")}>
+                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (hasTakenTest ? <Repeat className="mr-2 h-4 w-4" /> : <PlayCircle className="mr-2 h-4 w-4" />)}
+                        {testState === 'upcoming' && !isAdmin ? `Starts in ${timeRemaining}` : (hasTakenTest ? "Retake Test" : "Start Weekly Test")}
+                    </Button>
+                )}
             </CardFooter>
         </Card>
     );
