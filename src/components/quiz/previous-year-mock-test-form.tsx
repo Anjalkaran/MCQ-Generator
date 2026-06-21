@@ -21,6 +21,9 @@ import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-bluep
 import { ADMIN_EMAILS } from '@/lib/constants';
 import type { BankedQuestion } from '@/lib/types';
 
+import { checkIsPro } from '@/lib/utils';
+import Link from 'next/link';
+
 const examCategories = ["MTS", "POSTMAN", "PA", "IP", "GROUP B"] as const;
 const languages = ["English", "Tamil"] as const;
 
@@ -167,6 +170,7 @@ export function PreviousYearMockTestForm() {
     }
   };
   
+  const isPro = checkIsPro(userData);
   const completedTestIds = new Set(userData?.completedMockBankTests || []);
   const availablePapers = questionBank.filter(p => !completedTestIds.has(p.id));
   const hasCompletedAllPapers = selectedExamType && !isBankLoading && questionBank.length > 0 && availablePapers.length === 0;
@@ -194,6 +198,20 @@ export function PreviousYearMockTestForm() {
       <Form {...form}>
         <form className="space-y-6">
             <CardContent className="pt-6">
+                {!isPro ? (
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Pro Feature</AlertTitle>
+                        <AlertDescription>
+                            Previous Year Papers are available for Pro users only. Please upgrade for unlimited access.
+                        </AlertDescription>
+                        <Button asChild className="mt-4 bg-red-600 hover:bg-red-700 text-white font-bold">
+                            <Link href="/dashboard/upgrade">
+                                Upgrade Now <Gem className="ml-2 h-4 w-4" />
+                            </Link>
+                        </Button>
+                    </Alert>
+                ) : (
                 <fieldset disabled={isGenerating || isLoading} className="space-y-6">
                     <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
                         <div>
@@ -244,12 +262,13 @@ export function PreviousYearMockTestForm() {
                         </Alert>
                     )}
                 </fieldset>
+                )}
              </CardContent>
         </form>
         </Form>
     </Card>
 
-    {selectedExamType && questionBank.length > 0 && (
+    {isPro && selectedExamType && questionBank.length > 0 && (
         <div className="space-y-8">
             <div className="flex items-center justify-between px-1">
                 <h3 className="text-lg font-semibold text-slate-900">Question Papers by Year</h3>

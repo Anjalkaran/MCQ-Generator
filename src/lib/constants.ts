@@ -13,4 +13,4 @@ export const RAZORPAY_KEY_ID = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_l
 export const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || "qwc68Pt1Ra8f1AswPWFJ842I";
 export const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET || "Nanaadheera@2324";
 
-export const FREE_EXAM_LIMIT = 3;
+export const FREE_EXAM_LIMIT = 0;

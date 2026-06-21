@@ -9,9 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle, Gem } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import Link from 'next/link';
+import { checkIsPro } from '@/lib/utils';
 import { useDashboard } from "@/context/dashboard-context";
 import { getReasoningQuestions } from '@/lib/firestore';
 import type { ReasoningQuestion, MCQ } from '@/lib/types';
@@ -158,11 +161,27 @@ export function ReasoningTestForm() {
     }
   };
   
+  const isPro = checkIsPro(userData);
+
   return (
      <Card>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <CardContent className="pt-6">
+                    {!isPro ? (
+                        <Alert variant="destructive">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle>Pro Feature</AlertTitle>
+                            <AlertDescription>
+                                Reasoning Tests are available for Pro users only. Please upgrade for unlimited access.
+                            </AlertDescription>
+                            <Button asChild className="mt-4 bg-red-600 hover:bg-red-700 text-white font-bold">
+                                <Link href="/dashboard/upgrade">
+                                    Upgrade Now <Gem className="ml-2 h-4 w-4" />
+                                </Link>
+                            </Button>
+                        </Alert>
+                    ) : (
                     <fieldset disabled={isGenerating || isLoading || isLoadingQuestions} className="space-y-6">
                         <FormField
                         control={form.control}
@@ -222,19 +241,22 @@ export function ReasoningTestForm() {
                         )}
                         />
                     </fieldset>
+                    )}
                 </CardContent>
-                <CardFooter>
-                    <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading || isLoadingQuestions} className="w-full">
-                        {isGenerating || isLoadingQuestions ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                {isGenerating ? "Preparing Test..." : "Loading Questions..."}
-                            </>
-                        ) : (
-                            "Start Reasoning Test"
-                        )}
-                    </Button>
-                </CardFooter>
+                {isPro && (
+                    <CardFooter>
+                        <Button type="submit" disabled={isGenerating || !form.formState.isValid || isLoading || isLoadingQuestions} className="w-full">
+                            {isGenerating || isLoadingQuestions ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    {isGenerating ? "Preparing Test..." : "Loading Questions..."}
+                                </>
+                            ) : (
+                                "Start Reasoning Test"
+                            )}
+                        </Button>
+                    </CardFooter>
+                )}
             </form>
         </Form>
     </Card>

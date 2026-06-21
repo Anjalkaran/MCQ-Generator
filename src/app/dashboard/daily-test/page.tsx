@@ -3,10 +3,11 @@
 import { useDashboard } from "@/context/dashboard-context";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlayCircle, CalendarCheck, Clock, Share2, Calendar, Sparkles, BookOpen, ChevronRight, CheckCircle2, Trophy, Search, Hash } from "lucide-react";
+import { Loader2, PlayCircle, CalendarCheck, Clock, Share2, Calendar, Sparkles, BookOpen, ChevronRight, CheckCircle2, Trophy, Search, Hash, Gem } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { generateLiveMockTest } from "@/ai/flows/generate-live-mock-test";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from "@/components/ui/label";
@@ -16,7 +17,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { FadeIn, SlideUp, StaggerContainer, StaggerItem, HoverScale } from '@/components/animations/motion-wrapper';
 import type { DailyTest } from "@/lib/types";
 import { format, isToday, isYesterday, startOfMonth } from "date-fns";
-import { cn, normalizeDate } from "@/lib/utils";
+import { cn, normalizeDate, checkIsPro } from "@/lib/utils";
 import { CountdownTimer } from "@/components/ui/countdown-timer";
 
 const allLanguages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
@@ -29,6 +30,7 @@ function DailyTestCard({ test, index }: { test: DailyTest; index: number }) {
     const [isGenerating, setIsGenerating] = useState(false);
     const [selectedLanguage, setSelectedLanguage] = useState<string>('English');
 
+    const isPro = checkIsPro(userData);
     const isIPUser = userData?.examCategory === 'IP';
     const availableLanguages = isIPUser ? ipLanguages : allLanguages;
 
@@ -132,16 +134,27 @@ function DailyTestCard({ test, index }: { test: DailyTest; index: number }) {
             </CardContent>
 
             <CardFooter className="gap-2 pt-2 pb-6 px-6">
-                <Button 
-                    onClick={startTest} 
-                    disabled={isGenerating} 
-                    className={cn(
-                        "flex-1 h-10 relative overflow-hidden transition-all duration-300",
-                        "bg-gradient-to-r from-red-600 to-rose-500 hover:from-red-500 hover:to-rose-400 border-none shadow-lg shadow-red-500/20 active:scale-95 text-xs font-bold"
-                    )}
-                >
-                    {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Start Test"}
-                </Button>
+                {!isPro ? (
+                    <Button 
+                        asChild 
+                        className="flex-1 h-10 bg-red-600 hover:bg-red-700 text-white font-bold text-xs"
+                    >
+                        <Link href="/dashboard/upgrade">
+                            <Gem className="mr-2 h-4 w-4" /> Upgrade to Pro
+                        </Link>
+                    </Button>
+                ) : (
+                    <Button 
+                        onClick={startTest} 
+                        disabled={isGenerating} 
+                        className={cn(
+                            "flex-1 h-10 relative overflow-hidden transition-all duration-300",
+                            "bg-gradient-to-r from-red-600 to-rose-500 hover:from-red-500 hover:to-rose-400 border-none shadow-lg shadow-red-500/20 active:scale-95 text-xs font-bold"
+                        )}
+                    >
+                        {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Start Test"}
+                    </Button>
+                )}
                 <Button 
                     variant="outline" 
                     size="icon" 
@@ -162,6 +175,7 @@ function DailyTestSpotlight({ test }: { test: DailyTest }) {
     const [isGenerating, setIsGenerating] = useState(false);
     const [selectedLanguage, setSelectedLanguage] = useState<string>('English');
 
+    const isPro = checkIsPro(userData);
     const availableLanguages = userData?.examCategory === 'IP' ? ipLanguages : allLanguages;
     const createdDate = test.createdAt ? normalizeDate(test.createdAt) : null;
 
@@ -226,14 +240,24 @@ function DailyTestSpotlight({ test }: { test: DailyTest }) {
                             </Select>
                         </div>
                         
-                        <Button 
-                            onClick={startTest} 
-                            disabled={isGenerating}
-                            className="w-full sm:w-auto h-16 px-10 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black text-lg shadow-xl shadow-red-600/20 transition-all hover:scale-[1.02] active:scale-95"
-                        >
-                            {isGenerating ? <Loader2 className="h-6 w-6 animate-spin mr-3" /> : <PlayCircle className="h-6 w-6 mr-3" />}
-                            START PRACTICE NOW
-                        </Button>
+                        {!isPro ? (
+                            <Button 
+                                onClick={() => router.push('/dashboard/upgrade')}
+                                className="w-full sm:w-auto h-16 px-10 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black text-lg shadow-xl shadow-red-600/20 transition-all hover:scale-[1.02] active:scale-95 animate-pulse"
+                            >
+                                <Gem className="h-6 w-6 mr-3" />
+                                UPGRADE TO ACCESS
+                            </Button>
+                        ) : (
+                            <Button 
+                                onClick={startTest} 
+                                disabled={isGenerating}
+                                className="w-full sm:w-auto h-16 px-10 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black text-lg shadow-xl shadow-red-600/20 transition-all hover:scale-[1.02] active:scale-95"
+                            >
+                                {isGenerating ? <Loader2 className="h-6 w-6 animate-spin mr-3" /> : <PlayCircle className="h-6 w-6 mr-3" />}
+                                START PRACTICE NOW
+                            </Button>
+                        )}
                     </div>
                 </div>
 

@@ -2,7 +2,7 @@
 
 import { useDashboard } from "@/context/dashboard-context";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlayCircle, CalendarCheck, Share2, Calendar, ChevronRight, Award, Trophy, Sparkles, HelpCircle, ClipboardCheck, Clock } from "lucide-react";
+import { Loader2, PlayCircle, CalendarCheck, Share2, Calendar, ChevronRight, Award, Trophy, Sparkles, HelpCircle, ClipboardCheck, Clock, Gem } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -13,7 +13,7 @@ import type { WeeklyTest, MCQHistory } from "@/lib/types";
 import { format } from "date-fns";
 import { getExamHistoryForUser } from "@/lib/firestore";
 import { FadeIn, SlideUp, StaggerContainer, StaggerItem, HoverScale } from '@/components/animations/motion-wrapper';
-import { cn, normalizeDate } from "@/lib/utils";
+import { cn, normalizeDate, checkIsPro } from "@/lib/utils";
 import { CountdownTimer } from "@/components/ui/countdown-timer";
 
 const allLanguages = ["English", "Tamil", "Hindi", "Telugu", "Kannada"] as const;
@@ -23,6 +23,7 @@ function WeeklyTestTimelineItem({ test, index, isLast, history }: { test: Weekly
     const { user, userData } = useDashboard();
     const { toast } = useToast();
     const router = useRouter();
+    const isPro = checkIsPro(userData);
     const [isGenerating, setIsGenerating] = useState(false);
     const [selectedLanguage, setSelectedLanguage] = useState<string>('English');
 
@@ -154,18 +155,28 @@ function WeeklyTestTimelineItem({ test, index, isLast, history }: { test: Weekly
 
                         <div className="flex gap-2">
                             <HoverScale className="flex-grow">
-                                <Button 
-                                    onClick={startTest} 
-                                    disabled={isGenerating} 
-                                    className="w-full h-12 bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/20 font-bold"
-                                >
-                                    {isGenerating ? (
-                                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                    ) : (
-                                        <PlayCircle className="mr-2 h-5 w-5" />
-                                    )}
-                                    Start Full Test
-                                </Button>
+                                {!isPro ? (
+                                    <Button 
+                                        onClick={() => router.push('/dashboard/upgrade')}
+                                        className="w-full h-12 bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/20 font-bold"
+                                    >
+                                        <Gem className="mr-2 h-5 w-5" />
+                                        Upgrade to Pro
+                                    </Button>
+                                ) : (
+                                    <Button 
+                                        onClick={startTest} 
+                                        disabled={isGenerating} 
+                                        className="w-full h-12 bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/20 font-bold"
+                                    >
+                                        {isGenerating ? (
+                                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                        ) : (
+                                            <PlayCircle className="mr-2 h-5 w-5" />
+                                        )}
+                                        Start Full Test
+                                    </Button>
+                                )}
                             </HoverScale>
                             <Button 
                                 variant="outline" 

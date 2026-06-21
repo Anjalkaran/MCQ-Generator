@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import { BookOpen, FileText, PlayCircle, Loader2, ArrowRight, ChevronRight, GraduationCap, Video } from 'lucide-react';
+import { BookOpen, FileText, PlayCircle, Loader2, ArrowRight, ChevronRight, GraduationCap, Video, Gem } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useDashboard } from '@/context/dashboard-context';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { cn, checkIsPro } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { generateMCQs } from '@/ai/flows/generate-mcqs';
 import { getExamHistoryForUser } from '@/lib/firestore';
@@ -33,6 +33,7 @@ interface TopicHubModalProps {
 export function TopicHubModal({ isOpen, onClose, topicId, topicName, examCategory, initialSubTopic, subTopics = [] }: TopicHubModalProps & { subTopics?: string[] }) {
   const { studyMaterials, syllabusMCQs, isLoading, user, userData, categories, topics } = useDashboard();
   const router = useRouter();
+  const isPro = checkIsPro(userData);
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [selectedSubTopic, setSelectedSubTopic] = React.useState<string | null>(initialSubTopic || null);
   const [expandedSection, setExpandedSection] = React.useState<'materials' | 'exam' | 'video' | null>(null);
@@ -311,55 +312,67 @@ export function TopicHubModal({ isOpen, onClose, topicId, topicName, examCategor
                         </select>
                       </div>
                     </div>
-                    <Button 
-                      disabled={isGenerating}
-                      onClick={async (e) => {
-                        e.preventDefault();
-                        if (isGenerating) return;
-                        setIsGenerating(true);
-                        try {
-                          if (!user || !userData) {
-                            router.push('/auth/login');
-                            return;
-                          }
+                    {!isPro ? (
+                      <Button 
+                        asChild
+                        className="w-full bg-red-600 hover:bg-red-700 text-white font-bold h-12 rounded-xl transition-all"
+                      >
+                        <Link href="/dashboard/upgrade">
+                          Upgrade to Pro to Practice Quiz
+                          <Gem className="ml-2 h-4 w-4" />
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button 
+                        disabled={isGenerating}
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          if (isGenerating) return;
+                          setIsGenerating(true);
+                          try {
+                            if (!user || !userData) {
+                              router.push('/auth/login');
+                              return;
+                            }
 
-                          const topic = topics?.find(t => t.id === topicId);
-                          const res: any = await generateMCQs({
-                            topic: topicName || topic?.title || "Topic MCQs",
-                            category: topic?.categoryId || "uncategorized",
-                            numberOfQuestions: quizQuestionCount,
-                            examCategory: userData.examCategory,
-                            part: topic?.part,
-                            material: topic?.material,
-                            userId: user.uid,
-                            topicId: topicId,
-                            language: quizLanguage,
-                            subTopic: selectedSubTopic || undefined
-                          });
+                            const topic = topics?.find(t => t.id === topicId);
+                            const res: any = await generateMCQs({
+                              topic: topicName || topic?.title || "Topic MCQs",
+                              category: topic?.categoryId || "uncategorized",
+                              numberOfQuestions: quizQuestionCount,
+                              examCategory: userData.examCategory,
+                              part: topic?.part,
+                              material: topic?.material,
+                              userId: user.uid,
+                              topicId: topicId,
+                              language: quizLanguage,
+                              subTopic: selectedSubTopic || undefined
+                            });
 
-                          if (res && res.quizId) {
-                            router.push(`/quiz/${res.quizId}`);
+                            if (res && res.quizId) {
+                              router.push(`/quiz/${res.quizId}`);
+                            }
+                          } catch (error) {
+                            console.error("Error generating exam:", error);
+                          } finally {
+                            setIsGenerating(false);
                           }
-                        } catch (error) {
-                          console.error("Error generating exam:", error);
-                        } finally {
-                          setIsGenerating(false);
-                        }
-                      }}
-                      className="w-full bg-slate-900 hover:bg-black text-white font-bold h-12 rounded-xl transition-all"
-                    >
-                      {isGenerating ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Preparing Questions...
-                        </>
-                      ) : (
-                        <>
-                          Start {selectedSubTopic ? `${selectedSubTopic} ` : ''}Practice Quiz
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </>
-                      )}
-                    </Button>
+                        }}
+                        className="w-full bg-slate-900 hover:bg-black text-white font-bold h-12 rounded-xl transition-all"
+                      >
+                        {isGenerating ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Preparing Questions...
+                          </>
+                        ) : (
+                          <>
+                            Start {selectedSubTopic ? `${selectedSubTopic} ` : ''}Practice Quiz
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </>
+                        )}
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
