@@ -21,8 +21,11 @@ import {
   deleteSyllabusMCQ,
   deleteSyllabusMaterial,
   updateSyllabusMaterial,
-  updateSyllabusMCQ
+  updateSyllabusMCQ,
+  addDailyTest,
+  addLiveTestBankDocument
 } from '@/lib/firestore';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   MTS_BLUEPRINT, 
   POSTMAN_BLUEPRINT, 
@@ -108,6 +111,7 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
   const [materials, setMaterials] = useState<StudyMaterial[]>(initialMaterials);
   const [selectedTopic, setSelectedTopic] = useState<SyllabusTopic | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDailyTest, setIsDailyTest] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingMaterial, setEditingMaterial] = useState<StudyMaterial | null>(null);
   const [editingMcq, setEditingMcq] = useState<TopicMCQ | null>(null);
@@ -213,6 +217,25 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
             if (selectedSubTopic && selectedSubTopic !== 'none') mcqData.subTopic = selectedSubTopic;
             
             await addSyllabusMCQ(mcqData);
+            if (isDailyTest) {
+              const parsed = JSON.parse(content);
+              const questions = Array.isArray(parsed) ? parsed : (parsed.questions || parsed.mcqs || []);
+              const finalContent = JSON.stringify({ questions });
+              const bankRef = await addLiveTestBankDocument({
+                fileName: `${selectedTopic.name}_daily_${Date.now()}.json`,
+                examCategory: selectedExam as any,
+                content: finalContent
+              });
+              await addDailyTest({
+                title: selectedTopic.name,
+                examCategories: [selectedExam],
+                questionPaperId: bankRef.id,
+                duration: undefined,
+                scheduledAt: new Date(),
+                createdAt: new Date()
+              });
+              setIsDailyTest(false);
+            }
             const updated = await getSyllabusMCQs();
             setMcqs(updated);
             toast({ title: 'Success', description: 'MCQs uploaded and registered' });
@@ -271,6 +294,25 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
         if (selectedSubTopic && selectedSubTopic !== 'none') mcqData.subTopic = selectedSubTopic;
 
         await addSyllabusMCQ(mcqData);
+        if (isDailyTest) {
+          const parsed = JSON.parse(mcqPasteValue);
+          const questions = Array.isArray(parsed) ? parsed : (parsed.questions || parsed.mcqs || []);
+          const finalContent = JSON.stringify({ questions });
+          const bankRef = await addLiveTestBankDocument({
+            fileName: `${selectedTopic.name}_daily_${Date.now()}.json`,
+            examCategory: selectedExam as any,
+            content: finalContent
+          });
+          await addDailyTest({
+            title: selectedTopic.name,
+            examCategories: [selectedExam],
+            questionPaperId: bankRef.id,
+            duration: undefined,
+            scheduledAt: new Date(),
+            createdAt: new Date()
+          });
+          setIsDailyTest(false);
+        }
         const updated = await getSyllabusMCQs();
         setMcqs(updated);
         setMcqPasteValue('');
@@ -783,6 +825,18 @@ export function SyllabusPointManagement({ initialMCQs, initialMaterials }: Sylla
 
                       <div className="flex flex-col gap-2 mb-2">
                         <LabelWithIcon icon={<FileQuestion className="h-4 w-4" />} label="Question Papers" />
+                        
+                        <div className="flex items-center space-x-2 py-1">
+                          <Checkbox 
+                            id="isDailyTest" 
+                            checked={isDailyTest} 
+                            onCheckedChange={(checked) => setIsDailyTest(!!checked)}
+                          />
+                          <label htmlFor="isDailyTest" className="text-xs font-semibold text-slate-600 cursor-pointer select-none">
+                            Add to Daily Tests at the same time
+                          </label>
+                        </div>
+
                         <div className="flex items-center gap-2">
                           <label className="cursor-pointer flex-1">
                             <div className={cn(

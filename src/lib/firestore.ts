@@ -696,6 +696,15 @@ export const isQuestionBookmarked = async (userId: string, questionIdOrText: str
         await updateDoc(docRef, { content, lastModifiedAt: serverTimestamp() });
     };
 
+    export const addLiveTestBankDocument = async (bankData: Omit<BankedQuestion, 'id' | 'uploadedAt'>): Promise<DocumentReference> => {
+        const db = getFirebaseDb();
+        if (!db) throw new Error("Firestore is not initialized");
+        return await addDoc(collection(db, 'liveTestBank'), {
+            ...bankData,
+            uploadedAt: serverTimestamp()
+        });
+    };
+
     // SYLLABUS-WISE CONTENT MANAGEMENT (New System)
     export const getSyllabusMCQs = async (): Promise<TopicMCQ[]> => {
         const db = getFirebaseDb();

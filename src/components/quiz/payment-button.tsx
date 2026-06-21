@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
@@ -30,17 +30,47 @@ export default function PaymentButton({ user, amount, planType, onPaymentSuccess
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
 
+    useEffect(() => {
+        // Preload Razorpay script on mount
+        if (!window.Razorpay && !document.getElementById('razorpay-checkout-js-dynamic')) {
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.id = 'razorpay-checkout-js-dynamic';
+            script.async = true;
+            document.body.appendChild(script);
+        }
+    }, []);
+
     const createOrder = async () => {
         setLoading(true);
 
         if (!window.Razorpay) {
-            toast({
-                title: "Payment Gateway Not Ready",
-                description: "The payment gateway is still loading. Please try again in a moment.",
-                variant: "destructive",
+            // Try to load it dynamically on click
+            const loaded = await new Promise<boolean>((resolve) => {
+                const existingScript = document.getElementById('razorpay-checkout-js-dynamic');
+                if (existingScript) {
+                    existingScript.addEventListener('load', () => resolve(true));
+                    existingScript.addEventListener('error', () => resolve(false));
+                } else {
+                    const script = document.createElement('script');
+                    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+                    script.id = 'razorpay-checkout-js-dynamic';
+                    script.async = true;
+                    script.onload = () => resolve(true);
+                    script.onerror = () => resolve(false);
+                    document.body.appendChild(script);
+                }
             });
-            setLoading(false);
-            return;
+
+            if (!loaded || !window.Razorpay) {
+                toast({
+                    title: "Payment Gateway Error",
+                    description: "Failed to load the payment gateway. Please check your internet connection and try again.",
+                    variant: "destructive",
+                });
+                setLoading(false);
+                return;
+            }
         }
 
         try {

@@ -3,7 +3,7 @@
 
 import { useDashboard } from "@/context/dashboard-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, PenSquare, Video, BrainCircuit, Library, CalendarCheck, ArrowLeft, Clock, History, BookOpen } from 'lucide-react';
+import { Loader2, PenSquare, Video, BrainCircuit, Library, CalendarCheck, ArrowLeft, Clock, History, BookOpen, ChevronRight, CheckCircle2 } from 'lucide-react';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useParams, useRouter } from "next/navigation";
@@ -71,6 +71,43 @@ export default function CourseDetailPage() {
           Access your personalized study materials, practice exams, and video classes for the {courseId} track.
         </p>
       </div>
+
+      {/* Course Study Journey Banner */}
+      <FadeIn>
+        <div className="relative overflow-hidden rounded-2xl bg-[#d32f2f] text-white p-6 md:p-8 shadow-lg flex flex-col md:flex-row items-center justify-between gap-6 transition-all duration-300 hover:shadow-xl hover:translate-y-[-2px]">
+          {/* Left section: Icon & text */}
+          <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left z-10">
+            <div className="flex-shrink-0 w-14 h-14 bg-white/15 rounded-2xl flex items-center justify-center shadow-inner">
+              <Clock className="h-7 w-7 text-white" />
+            </div>
+            <div className="space-y-1.5">
+              <h2 className="text-2xl font-extrabold tracking-tight">
+                {courseId} Study Journey
+              </h2>
+              <p className="text-white/85 text-sm md:text-base font-medium max-w-xl">
+                Your personalized {courseId} preparation roadmap &bull; 30-180 Days
+              </p>
+            </div>
+          </div>
+
+          {/* Right section: Action button */}
+          <div className="w-full md:w-auto flex-shrink-0 z-10">
+            <Link href="/dashboard/study-planner" className="block w-full">
+              <Button className="w-full md:w-auto bg-white text-[#d32f2f] hover:bg-white/95 active:scale-95 font-bold px-6 py-5 text-base rounded-xl flex items-center justify-center gap-2 shadow-md transition-all duration-200">
+                Open {courseId} Planner
+                <ChevronRight className="h-5 w-5 stroke-[2.5]" />
+              </Button>
+            </Link>
+          </div>
+
+          {/* Watermark graphics in background */}
+          <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none select-none translate-x-6 translate-y-6">
+            <div className="w-48 h-48 border-[6px] border-white rounded-full flex items-center justify-center">
+              <CheckCircle2 className="w-24 h-24 text-white" />
+            </div>
+          </div>
+        </div>
+      </FadeIn>
 
       <FadeIn>
         <div className="mt-12 space-y-8">

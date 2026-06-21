@@ -3,7 +3,7 @@
 
 import { useDashboard } from "@/context/dashboard-context";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, PenSquare, Video, BrainCircuit, Library, Shield, GraduationCap, BookOpen, ChevronRight, CalendarCheck, Clock, Search } from 'lucide-react';
+import { Loader2, PenSquare, Video, BrainCircuit, Library, Shield, GraduationCap, ChevronRight, Search } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { ADMIN_EMAILS } from "@/lib/constants";
 import { updateDoc, doc } from "firebase/firestore";
@@ -166,38 +166,6 @@ export default function DashboardPage() {
             Search
           </Button>
         </form>
-
-          <div className="pt-4 pb-2">
-            <Card 
-              onClick={() => router.push('/dashboard/study-planner')}
-              className="bg-red-600 border-none overflow-hidden cursor-pointer group shadow-xl hover:shadow-red-200 transition-all duration-500 relative"
-            >
-                <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-700">
-                    <CalendarCheck size={120} className="text-white" />
-                </div>
-                <div className="p-8 flex items-center justify-between relative z-10">
-                    <div className="flex items-center gap-6">
-                        <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-white">
-                             <Clock size={32} />
-                        </div>
-                        <div className="text-left space-y-1">
-                            <h3 className="text-2xl font-black text-white">{userData.examCategory || 'MTS'} Study Journey</h3>
-                            <p className="text-red-100 font-medium">Your personalized {userData.examCategory || 'MTS'} preparation roadmap • 30-180 Days</p>
-                        </div>
-                    </div>
-                    <Button 
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            router.push('/dashboard/study-planner');
-                        }}
-                        className="bg-white text-red-600 hover:bg-red-50 font-bold px-8 h-12 rounded-xl z-20"
-                    >
-                        Open {userData.examCategory || 'Study'} Planner
-                        <ChevronRight className="ml-2 h-5 w-5" />
-                    </Button>
-                </div>
-            </Card>
-          </div>
       </div>
 
       <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -205,7 +173,7 @@ export default function DashboardPage() {
           <Card 
             key={course.id}
             onClick={() => handleCourseSelect(course.id)}
-            className={`group relative flex flex-col overflow-hidden border-slate-200 cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 ${
+            className={`group relative flex flex-col overflow-hidden border-slate-200 cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 max-w-[280px] w-full mx-auto ${
               userData.examCategory === course.id ? 'ring-2 ring-red-600 shadow-xl' : ''
             }`}
           >
@@ -214,12 +182,7 @@ export default function DashboardPage() {
                 ACTIVE
               </div>
             )}
-            
-            <div className={`h-32 bg-gradient-to-br ${course.color} flex items-center justify-center transition-transform duration-500 group-hover:scale-105`}>
-              <div className={`${course.textColor} transform group-hover:scale-110 transition-transform duration-500`}>
-                {course.icon}
-              </div>
-            </div>
+
 
             <CardHeader>
               <div className="space-y-1">
@@ -227,12 +190,6 @@ export default function DashboardPage() {
                 <CardDescription className="font-semibold text-slate-600">{course.subtitle}</CardDescription>
               </div>
             </CardHeader>
-            
-            <CardContent className="flex-grow">
-              <p className="text-sm text-slate-500 leading-relaxed">
-                {course.description}
-              </p>
-            </CardContent>
 
             <div className="p-6 pt-0 mt-auto">
               <Button 
@@ -248,36 +205,6 @@ export default function DashboardPage() {
             </div>
           </Card>
         ))}
-      </div>
-
-      <div className="space-y-6 pt-12 pb-24 border-t border-slate-100">
-        <div className="text-center space-y-2">
-            <h2 className="text-3xl font-extrabold text-slate-800">Syllabus & Blueprint</h2>
-            <p className="text-slate-500">Syllabus breakdown for all active exam categories.</p>
-        </div>
-        
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {availableCourses.map((course) => (
-            <Card 
-              key={course.id}
-              onClick={() => router.push(`/dashboard/syllabus?category=${course.id}`)}
-              className="group relative overflow-hidden border-slate-200 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-white/50 backdrop-blur-sm"
-            >
-              <div className="p-6 flex items-center gap-4">
-                 <div className="h-12 w-12 rounded-2xl bg-red-100 flex items-center justify-center text-red-600 group-hover:scale-110 transition-transform duration-300">
-                    <BookOpen className="h-6 w-6" />
-                 </div>
-                 <div>
-                    <h3 className="font-bold text-lg text-slate-900">{course.id}</h3>
-                    <p className="text-xs text-slate-500">View Blueprint</p>
-                 </div>
-                 <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-                    <ChevronRight className="h-5 w-5 text-slate-400" />
-                 </div>
-              </div>
-            </Card>
-          ))}
-        </div>
       </div>
     </div>
   );
