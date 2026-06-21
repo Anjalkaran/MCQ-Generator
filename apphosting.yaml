@@ -11,4 +11,10 @@ env:
   # Injected via Cloud Secret Manager - you'll need to create these secrets
   - variable: GEMINI_API_KEY
     secret: GEMINI_API_KEY
+  - variable: RAZORPAY_KEY_SECRET
+    secret: RAZORPAY_KEY_SECRET
+  - variable: RAZORPAY_KEY_ID
+    value: rzp_test_T2wJWlRnkZalZj
+  - variable: NEXT_PUBLIC_RAZORPAY_KEY_ID
+    value: rzp_test_T2wJWlRnkZalZj
 
