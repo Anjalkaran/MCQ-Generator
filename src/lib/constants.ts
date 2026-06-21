@@ -9,8 +9,8 @@ export const ADMIN_EMAILS = [
 ];
 
 // Razorpay constants - using env variables for security
-export const RAZORPAY_KEY_ID = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_T2wJWlRnkZalZj";
-export const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || "E5dT5l7mICEEsS0inO9xQm6M";
+export const RAZORPAY_KEY_ID = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_T4Jr1Nbq45cMcX";
+export const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || "VmpmCyuN5K55DuMjEH06xosg";
 export const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET || "Nanaadheera@2324";
 
 export const FREE_EXAM_LIMIT = 3;
