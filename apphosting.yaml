@@ -14,7 +14,7 @@ env:
   - variable: RAZORPAY_KEY_SECRET
     secret: RAZORPAY_KEY_SECRET
   - variable: RAZORPAY_KEY_ID
-    value: rzp_test_T4Jr1Nbq45cMcX
+    value: rzp_live_T2lZIXOSc8dXuA
   - variable: NEXT_PUBLIC_RAZORPAY_KEY_ID
-    value: rzp_test_T4Jr1Nbq45cMcX
+    value: rzp_live_T2lZIXOSc8dXuA
 
