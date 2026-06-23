@@ -85,9 +85,17 @@ export function MockTestForm() {
     if (userData.examCategory === 'IP' || userData.examCategory === 'GROUP B') {
         // Elite users see everything
         return ["MTS", "POSTMAN", "PA", "IP", "GROUP B"];
-    } else {
-        // Everyone else sees standard exams
-        return ["MTS", "POSTMAN", "PA"];
+    }
+    
+    switch (userData.examCategory) {
+        case 'PA':
+            return ['PA', 'POSTMAN', 'MTS'];
+        case 'POSTMAN':
+            return ['POSTMAN', 'MTS'];
+        case 'MTS':
+            return ['MTS'];
+        default:
+            return [];
     }
   }, [userData]);
 

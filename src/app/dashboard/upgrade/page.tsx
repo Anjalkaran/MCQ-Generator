@@ -118,7 +118,7 @@ export default function UpgradePage() {
                         </div>
                         <CardTitle className="text-2xl pt-4">You Have Pro Access!</CardTitle>
                         <CardDescription className="max-w-md mx-auto">
-                            All premium features and unlimited exams are enabled for your current preparation.
+                            All premium features and unlimited exams are enabled for your subscription.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="text-center text-slate-600 dark:text-slate-300">
@@ -250,6 +250,14 @@ export default function UpgradePage() {
                                     <div className="flex items-center text-sm text-slate-600 gap-2">
                                         <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
                                         <span>Full Exam Performance History</span>
+                                    </div>
+                                    <div className="flex items-center text-sm text-slate-600 gap-2">
+                                        <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
+                                        <span>
+                                            {currentCat === 'MTS' && "Access to MTS Exams & Quizzes"}
+                                            {currentCat === 'POSTMAN' && "Access to Postman & MTS Exams & Quizzes"}
+                                            {currentCat === 'PA' && "Access to PA/SA, Postman & MTS Exams & Quizzes"}
+                                        </span>
                                     </div>
                                 </div>
                                 

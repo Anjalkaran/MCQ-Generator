@@ -73,12 +73,32 @@ export function checkIsPro(userData: UserData | null): boolean {
   if (isProfessionalGroup) return true;
 
   const proValidUntilDate = normalizeDate(userData.proValidUntil);
-  const subscribedCategory = userData.subscribedCategory;
-  
-  return !!(
-    userData.isPro &&
-    proValidUntilDate &&
-    proValidUntilDate > new Date() &&
-    (!subscribedCategory || subscribedCategory === userData.examCategory)
-  );
+  if (!userData.isPro || !proValidUntilDate || proValidUntilDate <= new Date()) {
+    return false;
+  }
+
+  const subscribedCategory = userData.subscribedCategory || 'MTS';
+  const currentCategory = userData.examCategory;
+
+  if (subscribedCategory === 'PA') {
+    // PA subscription has access to PA, POSTMAN, and MTS
+    return ['PA', 'POSTMAN', 'MTS'].includes(currentCategory);
+  }
+
+  if (subscribedCategory === 'POSTMAN') {
+    // POSTMAN subscription has access to POSTMAN and MTS
+    return ['POSTMAN', 'MTS'].includes(currentCategory);
+  }
+
+  if (subscribedCategory === 'MTS') {
+    // MTS subscription only has access to MTS
+    return currentCategory === 'MTS';
+  }
+
+  // Fallback / other professional groups
+  if (subscribedCategory === 'IP' || subscribedCategory === 'GROUP B') {
+    return true;
+  }
+
+  return subscribedCategory === currentCategory;
 }
