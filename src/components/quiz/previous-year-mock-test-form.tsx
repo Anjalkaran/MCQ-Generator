@@ -21,7 +21,7 @@ import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT } from '@/lib/exam-bluep
 import { ADMIN_EMAILS } from '@/lib/constants';
 import type { BankedQuestion } from '@/lib/types';
 
-import { checkIsPro } from '@/lib/utils';
+import { checkIsPro, getAllowedExams } from '@/lib/utils';
 import Link from 'next/link';
 
 const examCategories = ["MTS", "POSTMAN", "PA", "IP", "GROUP B"] as const;
@@ -88,21 +88,7 @@ export function PreviousYearMockTestForm() {
   }, [userData, form]);
 
   const availableExams = useMemo(() => {
-    if (!userData) return [];
-    if (userData.email && ADMIN_EMAILS.includes(userData.email)) return examCategories;
-    switch (userData.examCategory) {
-        case 'IP':
-        case 'GROUP B':
-            return ['IP', 'GROUP B'];
-        case 'PA':
-            return ['PA', 'POSTMAN', 'MTS'];
-        case 'POSTMAN':
-            return ['POSTMAN', 'MTS'];
-        case 'MTS':
-            return ['MTS'];
-        default:
-            return [];
-    }
+    return getAllowedExams(userData);
   }, [userData]);
 
   const selectedExamType = form.watch('examType');

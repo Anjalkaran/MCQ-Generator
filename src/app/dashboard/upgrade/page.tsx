@@ -254,8 +254,7 @@ export default function UpgradePage() {
                                     <div className="flex items-center text-sm text-slate-600 gap-2">
                                         <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
                                         <span>
-                                            {currentCat === 'MTS' && "Access to MTS Exams & Quizzes"}
-                                            {currentCat === 'POSTMAN' && "Access to Postman & MTS Exams & Quizzes"}
+                                            {(currentCat === 'MTS' || currentCat === 'POSTMAN') && "Access to both MTS & Postman Exams & Quizzes"}
                                             {currentCat === 'PA' && "Access to PA/SA, Postman & MTS Exams & Quizzes"}
                                         </span>
                                     </div>

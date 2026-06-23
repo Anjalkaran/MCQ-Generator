@@ -18,7 +18,7 @@ import { generateMockTest } from '@/ai/flows/generate-mock-test';
 import { MTS_BLUEPRINT, POSTMAN_BLUEPRINT, PA_BLUEPRINT, IP_BLUEPRINT, GROUPB_BLUEPRINT } from '@/lib/exam-blueprints';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { Input } from '@/components/ui/input';
-import { normalizeDate, checkIsPro } from '@/lib/utils';
+import { normalizeDate, checkIsPro, getAllowedExams } from '@/lib/utils';
 import Link from 'next/link';
 
 import { getSyllabi } from '@/lib/firestore';
@@ -79,24 +79,7 @@ export function MockTestForm() {
   }, []);
 
   const availableExams = useMemo(() => {
-    if (!userData) return [];
-    if (userData.email && ADMIN_EMAILS.includes(userData.email)) return examCategories;
-    
-    if (userData.examCategory === 'IP' || userData.examCategory === 'GROUP B') {
-        // Elite users see everything
-        return ["MTS", "POSTMAN", "PA", "IP", "GROUP B"];
-    }
-    
-    switch (userData.examCategory) {
-        case 'PA':
-            return ['PA', 'POSTMAN', 'MTS'];
-        case 'POSTMAN':
-            return ['POSTMAN', 'MTS'];
-        case 'MTS':
-            return ['MTS'];
-        default:
-            return [];
-    }
+    return getAllowedExams(userData);
   }, [userData]);
 
   useEffect(() => {

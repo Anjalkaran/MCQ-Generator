@@ -85,14 +85,9 @@ export function checkIsPro(userData: UserData | null): boolean {
     return ['PA', 'POSTMAN', 'MTS'].includes(currentCategory);
   }
 
-  if (subscribedCategory === 'POSTMAN') {
-    // POSTMAN subscription has access to POSTMAN and MTS
+  if (subscribedCategory === 'POSTMAN' || subscribedCategory === 'MTS') {
+    // 99 subscription (either MTS or POSTMAN) has access to both POSTMAN and MTS
     return ['POSTMAN', 'MTS'].includes(currentCategory);
-  }
-
-  if (subscribedCategory === 'MTS') {
-    // MTS subscription only has access to MTS
-    return currentCategory === 'MTS';
   }
 
   // Fallback / other professional groups
@@ -101,4 +96,32 @@ export function checkIsPro(userData: UserData | null): boolean {
   }
 
   return subscribedCategory === currentCategory;
+}
+
+export function getAllowedExams(userData: UserData | null): string[] {
+  if (!userData) return [];
+  
+  const adminEmail = userData.email;
+  const isAdmin = adminEmail ? ADMIN_EMAILS.includes(adminEmail) : false;
+  if (isAdmin) return ["MTS", "POSTMAN", "PA", "IP", "GROUP B"];
+
+  const isProfessionalGroup = userData.examCategory === 'IP' || userData.examCategory === 'GROUP B';
+  if (isProfessionalGroup) return ["MTS", "POSTMAN", "PA", "IP", "GROUP B"];
+
+  const proValidUntilDate = normalizeDate(userData.proValidUntil);
+  const isPro = !!(userData.isPro && proValidUntilDate && proValidUntilDate > new Date());
+  
+  if (!isPro) {
+    return [userData.examCategory];
+  }
+
+  const subscribedCategory = userData.subscribedCategory || 'MTS';
+  if (subscribedCategory === 'PA') {
+    return ['PA', 'POSTMAN', 'MTS'];
+  }
+  if (subscribedCategory === 'POSTMAN' || subscribedCategory === 'MTS') {
+    return ['POSTMAN', 'MTS'];
+  }
+
+  return [subscribedCategory];
 }
