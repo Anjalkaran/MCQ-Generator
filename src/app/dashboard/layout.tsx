@@ -106,8 +106,16 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isLoading && userData && user) {
       // Logic for new content popup
-      const lastSeen = localStorage.getItem('lastSeenUpdateTimestamp');
-      const lastSeenDate = lastSeen ? new Date(parseInt(lastSeen, 10)) : new Date(0);
+      let lastSeenDate = new Date(0);
+      if (userData.lastSeenUpdateTimestamp) {
+        const parsed = normalizeDate(userData.lastSeenUpdateTimestamp);
+        if (parsed) lastSeenDate = parsed;
+      } else {
+        const lastSeen = localStorage.getItem('lastSeenUpdateTimestamp');
+        if (lastSeen) {
+          lastSeenDate = new Date(parseInt(lastSeen, 10));
+        }
+      }
       
       const videos = videoClasses || [];
       const materials = studyMaterials || [];
@@ -203,7 +211,23 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 newContent={newContent} 
                 onClose={() => { 
                   setShowNewContentPopup(false); 
-                  localStorage.setItem('lastSeenUpdateTimestamp', String(Date.now())); 
+                  const now = new Date();
+                  localStorage.setItem('lastSeenUpdateTimestamp', String(now.getTime()));
+                  
+                  // Optimistic update of local state
+                  setUserData(p => p ? { ...p, lastSeenUpdateTimestamp: now } : null);
+                  
+                  // Persist to Firestore so next logins on any device won't show it
+                  if (user) {
+                    const db = getFirebaseDb();
+                    if (db) {
+                      updateDoc(doc(db, 'users', user.uid), {
+                        lastSeenUpdateTimestamp: now
+                      }).catch(err => {
+                        console.error("Failed to persist lastSeenUpdateTimestamp:", err);
+                      });
+                    }
+                  }
                 }} 
                 topics={topics} 
               />

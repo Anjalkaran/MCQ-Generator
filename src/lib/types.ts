@@ -81,6 +81,7 @@ export interface UserData {
     hasSeenReasoningUpdate?: boolean; 
     mockTestUpdateSeenCount?: number;
     preferredLanguage?: 'English' | 'Tamil';
+    lastSeenUpdateTimestamp?: any;
 }
 
 

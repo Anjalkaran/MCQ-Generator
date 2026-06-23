@@ -89,6 +89,19 @@ export function ProfileUpdateDialog({ open, onUpdateSubmit, defaultValues }: { o
 export function NewContentPopup({ newContent, onClose, topics }: { newContent: { videos: VideoClass[], materials: StudyMaterial[], mcqs: any[] }; onClose: () => void; topics: Topic[] }) {
   const getDisplayName = (item: any) => item.topicName || topics.find(t => t.id === item.topicId)?.title || 'Unknown Topic';
   
+  // Deduplicate items to prevent showing the same name/title multiple times
+  const uniqueVideos = React.useMemo(() => {
+    return Array.from(new Map((newContent.videos || []).map(v => [v.title, v])).values());
+  }, [newContent.videos]);
+
+  const uniqueMaterials = React.useMemo(() => {
+    return Array.from(new Map((newContent.materials || []).map(m => [getDisplayName(m), m])).values());
+  }, [newContent.materials, topics]);
+
+  const uniqueMcqs = React.useMemo(() => {
+    return Array.from(new Map((newContent.mcqs || []).map(m => [getDisplayName(m), m])).values());
+  }, [newContent.mcqs, topics]);
+  
   return (
     <Dialog open={true} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-md sm:max-w-lg">
@@ -98,11 +111,11 @@ export function NewContentPopup({ newContent, onClose, topics }: { newContent: {
         </DialogHeader>
         <ScrollArea className="max-h-[60vh] pr-4">
           <div className="space-y-6">
-            {newContent.videos.length > 0 && (
+            {uniqueVideos.length > 0 && (
               <div>
                 <h3 className="font-semibold mb-2 flex items-center gap-2"><Video className="h-5 w-5 text-primary" /> New Video Classes</h3>
                 <div className="space-y-2">
-                  {newContent.videos.map(video => {
+                  {uniqueVideos.map(video => {
                     const date = normalizeDate(video.uploadedAt);
                     if (!date) return null;
                     return (
@@ -116,11 +129,11 @@ export function NewContentPopup({ newContent, onClose, topics }: { newContent: {
               </div>
             )}
             
-            {newContent.materials.length > 0 && (
+            {uniqueMaterials.length > 0 && (
               <div>
                 <h3 className="font-semibold mb-2 flex items-center gap-2"><Library className="h-5 w-5 text-primary" /> New Study Materials</h3>
                 <div className="space-y-2">
-                  {newContent.materials.map(material => {
+                  {uniqueMaterials.map(material => {
                     const date = normalizeDate(material.uploadedAt);
                     return (
                       <div key={material.id} className="text-sm p-3 border rounded-xl bg-slate-50/50">
@@ -144,11 +157,11 @@ export function NewContentPopup({ newContent, onClose, topics }: { newContent: {
               </div>
             )}
 
-            {newContent.mcqs.length > 0 && (
+            {uniqueMcqs.length > 0 && (
               <div>
                 <h3 className="font-semibold mb-2 flex items-center gap-2"><FileQuestion className="h-5 w-5 text-primary" /> New Practice MCQs</h3>
                 <div className="space-y-2">
-                  {newContent.mcqs.map(mcq => {
+                  {uniqueMcqs.map(mcq => {
                     const date = normalizeDate(mcq.uploadedAt);
                     return (
                       <div key={mcq.id} className="text-sm p-3 border rounded-xl bg-slate-50/50">
