@@ -33,7 +33,7 @@ interface TopicHubModalProps {
 export function TopicHubModal({ isOpen, onClose, topicId, topicName, examCategory, initialSubTopic, subTopics = [] }: TopicHubModalProps & { subTopics?: string[] }) {
   const { studyMaterials, syllabusMCQs, isLoading, user, userData, categories, topics } = useDashboard();
   const router = useRouter();
-  const isPro = checkIsPro(userData);
+  const isPro = checkIsPro(userData, examCategory);
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [selectedSubTopic, setSelectedSubTopic] = React.useState<string | null>(initialSubTopic || null);
   const [expandedSection, setExpandedSection] = React.useState<'materials' | 'exam' | 'video' | null>(null);

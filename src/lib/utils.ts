@@ -62,7 +62,7 @@ export function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
-export function checkIsPro(userData: UserData | null): boolean {
+export function checkIsPro(userData: UserData | null, targetCategory?: string): boolean {
   if (!userData) return false;
   
   const adminEmail = userData.email;
@@ -78,7 +78,7 @@ export function checkIsPro(userData: UserData | null): boolean {
   }
 
   const subscribedCategory = userData.subscribedCategory || 'MTS';
-  const currentCategory = userData.examCategory;
+  const currentCategory = targetCategory || userData.examCategory;
 
   if (subscribedCategory === 'PA') {
     // PA subscription has access to PA, POSTMAN, and MTS
