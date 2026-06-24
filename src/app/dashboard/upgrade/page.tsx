@@ -58,11 +58,23 @@ export default function UpgradePage() {
             });
 
             const proValidUntil = new Date(result.proValidUntil);
+            
+            let subscribedCategory: 'MTS' | 'POSTMAN' | 'PA' | 'IP' | 'GROUP B' = 'MTS';
+            if (planType === 'pa_monthly') {
+                subscribedCategory = 'PA';
+            } else if (planType === 'postman_monthly') {
+                subscribedCategory = 'POSTMAN';
+            } else if (planType === 'mts_monthly') {
+                subscribedCategory = 'MTS';
+            } else if (userData?.examCategory) {
+                subscribedCategory = userData.examCategory as any;
+            }
+
             setUserData(prev => prev ? ({ 
                 ...prev, 
                 isPro: true, 
                 proValidUntil, 
-                subscribedCategory: prev.examCategory 
+                subscribedCategory: subscribedCategory
             }) : null);
 
             setTimeout(() => {

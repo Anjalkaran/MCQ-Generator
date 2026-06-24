@@ -57,10 +57,21 @@ export async function POST(req: NextRequest) {
         const userData = userSnap.data();
         const userName = userData?.name || 'A user';
         
+        let subscribedCategory = 'MTS';
+        if (planType === 'pa_monthly') {
+            subscribedCategory = 'PA';
+        } else if (planType === 'postman_monthly') {
+            subscribedCategory = 'POSTMAN';
+        } else if (planType === 'mts_monthly') {
+            subscribedCategory = 'MTS';
+        } else {
+            subscribedCategory = userData?.examCategory || 'MTS';
+        }
+        
         const updateData: { [key: string]: any } = {
             isPro: true,
             proValidUntil: proValidUntil,
-            subscribedCategory: userData?.examCategory || 'MTS',
+            subscribedCategory: subscribedCategory,
             totalExamsTaken: 0,
         };
 

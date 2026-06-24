@@ -127,8 +127,12 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     if (!selectedUser) return;
     setIsLoading(true);
     try {
-      await updateUserDocument(selectedUser.uid, values);
-      setUsers(users.map(u => u.uid === selectedUser.uid ? { ...selectedUser, ...values } : u));
+      const updatePayload = {
+        ...values,
+        subscribedCategory: values.isPro ? values.examCategory : (selectedUser.subscribedCategory || values.examCategory)
+      };
+      await updateUserDocument(selectedUser.uid, updatePayload);
+      setUsers(users.map(u => u.uid === selectedUser.uid ? { ...selectedUser, ...updatePayload } : u));
       toast({ title: 'Success', description: 'User updated.' });
       setIsUpdateDialogOpen(false);
     } catch (error) { 
@@ -206,7 +210,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
         employeeId: user.employeeId || '',
         city: user.city || '',
         division: user.division || '',
-        examCategory: user.examCategory || 'MTS',
+        examCategory: (user.examCategory || 'MTS') as any,
         isPro: user.isPro || false,
         proValidUntil: normalizeDate(user.proValidUntil)
     });
