@@ -77,25 +77,8 @@ export function checkIsPro(userData: UserData | null, targetCategory?: string): 
     return false;
   }
 
-  const subscribedCategory = userData.subscribedCategory || 'MTS';
-  const currentCategory = targetCategory || userData.examCategory;
-
-  if (subscribedCategory === 'PA') {
-    // PA subscription has access to PA, POSTMAN, and MTS
-    return ['PA', 'POSTMAN', 'MTS'].includes(currentCategory);
-  }
-
-  if (subscribedCategory === 'POSTMAN' || subscribedCategory === 'MTS') {
-    // 99 subscription (either MTS or POSTMAN) has access to both POSTMAN and MTS
-    return ['POSTMAN', 'MTS'].includes(currentCategory);
-  }
-
-  // Fallback / other professional groups
-  if (subscribedCategory === 'IP' || subscribedCategory === 'GROUP B') {
-    return true;
-  }
-
-  return subscribedCategory === currentCategory;
+  // Any paid/pro user has full access to all courses and features
+  return true;
 }
 
 export function getAllowedExams(userData: UserData | null): string[] {
@@ -115,13 +98,6 @@ export function getAllowedExams(userData: UserData | null): string[] {
     return [userData.examCategory];
   }
 
-  const subscribedCategory = userData.subscribedCategory || 'MTS';
-  if (subscribedCategory === 'PA') {
-    return ['PA', 'POSTMAN', 'MTS'];
-  }
-  if (subscribedCategory === 'POSTMAN' || subscribedCategory === 'MTS') {
-    return ['POSTMAN', 'MTS'];
-  }
-
-  return [subscribedCategory];
+  // Any paid/pro user has access to all courses
+  return ["MTS", "POSTMAN", "PA", "IP", "GROUP B"];
 }
