@@ -3,7 +3,7 @@
 import { useDashboard } from "@/context/dashboard-context";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlayCircle, CalendarCheck, Clock, Share2, Calendar, Sparkles, BookOpen, ChevronRight, CheckCircle2, Trophy, Search, Hash, Gem } from "lucide-react";
+import { Loader2, PlayCircle, CalendarCheck, Clock, Share2, Calendar, Sparkles, BookOpen, ChevronRight, CheckCircle2, Trophy, Search, Hash, Gem, Lock } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -280,14 +280,18 @@ function DailyTestSpotlight({ test }: { test: DailyTest }) {
         </Card>
     );
 }
-
 function DailyTestArchiveItem({ test }: { test: DailyTest }) {
     const { userData } = useDashboard();
     const router = useRouter();
     const [isGenerating, setIsGenerating] = useState(false);
     const createdDate = test.createdAt ? normalizeDate(test.createdAt) : null;
+    const isPro = checkIsPro(userData);
 
     const startTest = async () => {
+        if (!isPro) {
+            router.push('/dashboard/upgrade');
+            return;
+        }
         setIsGenerating(true);
         try {
             const { quizId } = await generateLiveMockTest({ 
@@ -338,6 +342,7 @@ export default function DailyTestPage() {
     const { dailyTests, isLoading, userData } = useDashboard();
     const [searchQuery, setSearchQuery] = useState("");
     const router = useRouter();
+    const isPro = checkIsPro(userData);
 
     if (isLoading) return (
         <div className="flex flex-col h-[70vh] items-center justify-center space-y-4">
@@ -478,27 +483,48 @@ export default function DailyTestPage() {
 
                     {/* Archive */}
                     {(archive.length > 0) && (
-                        <div className="space-y-8">
+                        <div className="space-y-8 relative">
                             <SectionHeading title="Concept Library" subtitle="The vault of all previous assessments" icon={Library} />
                             
-                            <Accordion type="single" collapsible className="w-full space-y-4">
-                                {Object.entries(groupedArchive).map(([month, tests], idx) => (
-                                    <AccordionItem key={month} value={`item-${idx}`} className="border-none bg-slate-50/50 rounded-3xl overflow-hidden px-2">
-                                        <AccordionTrigger className="hover:no-underline px-6 h-16 font-bold text-slate-700">
-                                            <div className="flex items-center gap-3">
-                                                <Calendar className="h-5 w-5 text-red-500" />
-                                                {month}
-                                                <Badge variant="secondary" className="ml-2 bg-white text-slate-500 border-slate-100">{tests.length} Tests</Badge>
-                                            </div>
-                                        </AccordionTrigger>
-                                        <AccordionContent className="px-4 pb-4">
-                                            <div className="grid sm:grid-cols-2 gap-3 pt-2">
-                                                {tests.map(test => <DailyTestArchiveItem key={test.id} test={test} />)}
-                                            </div>
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                ))}
-                            </Accordion>
+                            <div className="relative">
+                                <div className={cn("w-full transition-all duration-500", !isPro && "blur-md select-none pointer-events-none")}>
+                                    <Accordion type="single" collapsible className="w-full space-y-4">
+                                        {Object.entries(groupedArchive).map(([month, tests], idx) => (
+                                            <AccordionItem key={month} value={`item-${idx}`} className="border-none bg-slate-50/50 rounded-3xl overflow-hidden px-2">
+                                                <AccordionTrigger className="hover:no-underline px-6 h-16 font-bold text-slate-700">
+                                                    <div className="flex items-center gap-3">
+                                                        <Calendar className="h-5 w-5 text-red-500" />
+                                                        {month}
+                                                        <Badge variant="secondary" className="ml-2 bg-white text-slate-500 border-slate-100">{tests.length} Tests</Badge>
+                                                    </div>
+                                                </AccordionTrigger>
+                                                <AccordionContent className="px-4 pb-4">
+                                                    <div className="grid sm:grid-cols-2 gap-3 pt-2">
+                                                        {tests.map(test => <DailyTestArchiveItem key={test.id} test={test} />)}
+                                                    </div>
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        ))}
+                                    </Accordion>
+                                </div>
+
+                                {!isPro && (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/20 dark:bg-slate-900/20 backdrop-blur-sm rounded-3xl p-8 text-center border border-slate-100/50 shadow-2xl">
+                                        <div className="p-4 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 rounded-full w-fit mb-4 border border-red-100 dark:border-red-900/50 shadow-md shadow-red-500/5 animate-pulse">
+                                            <Lock className="h-8 w-8" />
+                                        </div>
+                                        <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Unlock Concept Library</h3>
+                                        <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm mt-2 mb-6 font-medium">
+                                            Access the complete archive of all previous daily tests and revision sets with a Pro subscription.
+                                        </p>
+                                        <Button asChild className="bg-red-600 hover:bg-red-700 text-white font-black px-8 py-3 rounded-2xl shadow-xl shadow-red-600/20 hover:scale-[1.02] transition-all">
+                                            <Link href="/dashboard/upgrade">
+                                                Upgrade Now <Gem className="ml-2 h-4 w-4" />
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
