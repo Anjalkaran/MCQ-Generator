@@ -42,10 +42,10 @@ import { format } from 'date-fns';
 
 const userUpdateSchema = z.object({
   name: z.string().min(1, { message: 'Username is required.' }),
-  phone: z.string().min(10).optional().or(z.literal('')),
-  employeeId: z.string().length(8).optional().or(z.literal('')),
-  city: z.string().min(2).optional().or(z.literal('')),
-  division: z.string().min(2).optional().or(z.literal('')),
+  phone: z.string().optional().or(z.literal('')),
+  employeeId: z.string().optional().or(z.literal('')),
+  city: z.string().optional().or(z.literal('')),
+  division: z.string().optional().or(z.literal('')),
   examCategory: z.enum(['MTS', 'POSTMAN', 'PA', 'IP']),
   isPro: z.boolean().default(false).optional(),
   proValidUntil: z.date().optional().nullable(),
@@ -115,7 +115,17 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
   }, [users, searchTerm, categoryFilter, statusFilter, sortOrder]);
 
   const updateUserForm = useForm<z.infer<typeof userUpdateSchema>>({ 
-    resolver: zodResolver(userUpdateSchema) 
+    resolver: zodResolver(userUpdateSchema),
+    defaultValues: {
+      name: '',
+      phone: '',
+      employeeId: '',
+      city: '',
+      division: '',
+      examCategory: 'MTS',
+      isPro: false,
+      proValidUntil: null
+    }
   });
   
   const createUserForm = useForm<z.infer<typeof userCreateSchema>>({ 
@@ -450,7 +460,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                                     <FormItem className="flex flex-col justify-center">
                                         <FormLabel className="mb-2">Subscription</FormLabel>
                                         <div className="flex items-center space-x-2 h-10">
-                                            <Checkbox checked={field.value} onCheckedChange={field.onChange} id="is-pro-checkbox" />
+                                            <Checkbox checked={!!field.value} onCheckedChange={field.onChange} id="is-pro-checkbox" />
                                             <label htmlFor="is-pro-checkbox" className="text-sm font-medium leading-none cursor-pointer">
                                                 Active Pro
                                             </label>
@@ -538,7 +548,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                             <FormField control={createUserForm.control} name="examCategory" render={({ field }) => (
                                 <FormItem><FormLabel>Course</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="MTS">MTS</SelectItem><SelectItem value="POSTMAN">POSTMAN</SelectItem><SelectItem value="PA">PA</SelectItem><SelectItem value="IP">IP</SelectItem></SelectContent></Select></FormItem>
                             )} />
-                            <FormField control={createUserForm.control} name="isPro" render={({ field }) => (<FormItem className="flex items-center space-x-2 pt-8"><Checkbox checked={field.value} onCheckedChange={field.onChange} /><FormLabel>Pro Access</FormLabel></FormItem>)} />
+                             <FormField control={createUserForm.control} name="isPro" render={({ field }) => (<FormItem className="flex items-center space-x-2 pt-8"><Checkbox checked={!!field.value} onCheckedChange={field.onChange} /><FormLabel>Pro Access</FormLabel></FormItem>)} />
                         </div>
 
                         <DialogFooter>

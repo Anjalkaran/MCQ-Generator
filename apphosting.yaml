@@ -17,4 +17,7 @@ env:
     value: rzp_live_T2lZIXOSc8dXuA
   - variable: NEXT_PUBLIC_RAZORPAY_KEY_ID
     value: rzp_live_T2lZIXOSc8dXuA
+  - variable: RAZORPAY_WEBHOOK_SECRET
+    secret: RAZORPAY_WEBHOOK_SECRET
+
 

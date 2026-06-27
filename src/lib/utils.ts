@@ -21,11 +21,12 @@ export function normalizeDate(date: any): Date | null {
     return date.toDate();
   }
 
-  // 3. If it's a Firestore Timestamp object structure
-  if (typeof date === 'object' && 'seconds' in date) {
-    const seconds = Number(date.seconds);
-    if (!isNaN(seconds)) {
-      return new Date(seconds * 1000);
+  // 3. If it's a Firestore Timestamp object structure (supporting both seconds and _seconds)
+  if (typeof date === 'object') {
+    const seconds = 'seconds' in date ? date.seconds : ('_seconds' in date ? date._seconds : null);
+    const numSeconds = seconds !== null ? Number(seconds) : NaN;
+    if (!isNaN(numSeconds)) {
+      return new Date(numSeconds * 1000);
     }
   }
 
