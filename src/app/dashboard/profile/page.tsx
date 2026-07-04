@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, User, Gem } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { normalizeDate } from '@/lib/utils';
+import { normalizeDate, checkIsPro } from '@/lib/utils';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { format } from 'date-fns';
 
@@ -59,7 +59,7 @@ export default function ProfilePage() {
     }
 
     const proValidUntilDate = normalizeDate(userData?.proValidUntil);
-    const isPro = !!(userData?.isPro && proValidUntilDate && proValidUntilDate > new Date());
+    const isPro = checkIsPro(userData);
 
   return (
     <div className="space-y-6">

@@ -32,9 +32,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import Link from 'next/link';
 import { Badge } from '../ui/badge';
 import { Checkbox } from '../ui/checkbox';
-import { cn } from '@/lib/utils';
+import { cn, normalizeDate, checkIsPro } from '@/lib/utils';
 import { ADMIN_EMAILS } from '@/lib/constants';
-import { normalizeDate } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -84,8 +83,8 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
         
     return {
         all: users.length,
-        pro: baseUsers.filter(u => u.isPro).length,
-        free: baseUsers.filter(u => !u.isPro).length,
+        pro: baseUsers.filter(u => checkIsPro(u)).length,
+        free: baseUsers.filter(u => !checkIsPro(u)).length,
         filtered: baseUsers.length,
     };
   }, [users, categoryFilter]);
@@ -97,7 +96,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                                (u.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                                (u.phone || '').toLowerCase().includes(searchTerm.toLowerCase());
           const matchesCategory = categoryFilter === 'all' || u.examCategory === categoryFilter;
-          const matchesStatus = statusFilter === 'all' || (statusFilter === 'pro' ? u.isPro : !u.isPro);
+          const matchesStatus = statusFilter === 'all' || (statusFilter === 'pro' ? checkIsPro(u) : !checkIsPro(u));
           return matchesSearch && matchesCategory && matchesStatus;
       })
       .sort((a, b) => {
@@ -137,8 +136,15 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     if (!selectedUser) return;
     setIsLoading(true);
     try {
+      let proValidUntilDate = values.isPro ? values.proValidUntil : null;
+      if (proValidUntilDate && proValidUntilDate instanceof Date) {
+        proValidUntilDate = new Date(proValidUntilDate);
+        proValidUntilDate.setHours(23, 59, 59, 999);
+      }
+
       const updatePayload = {
         ...values,
+        proValidUntil: proValidUntilDate,
         subscribedCategory: values.isPro ? values.examCategory : (selectedUser.subscribedCategory || values.examCategory)
       };
       await updateUserDocument(selectedUser.uid, updatePayload);
@@ -214,6 +220,10 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
 
   const handleOpenUpdateDialog = (user: UserData) => {
     setSelectedUser(user);
+    const proValidUntilDate = normalizeDate(user.proValidUntil);
+    const isExpired = proValidUntilDate && proValidUntilDate <= new Date();
+    const isActive = !!user.isPro && !isExpired;
+
     updateUserForm.reset({ 
         name: user.name || '',
         phone: user.phone || '',
@@ -221,8 +231,8 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
         city: user.city || '',
         division: user.division || '',
         examCategory: (user.examCategory || 'MTS') as any,
-        isPro: user.isPro || false,
-        proValidUntil: normalizeDate(user.proValidUntil)
+        isPro: isActive,
+        proValidUntil: isExpired ? null : proValidUntilDate
     });
     setIsUpdateDialogOpen(true);
   };
@@ -354,7 +364,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                                         <Badge variant="outline">{u.examCategory}</Badge>
                                     </TableCell>
                                     <TableCell>
-                                        {u.isPro ? (
+                                        {checkIsPro(u) ? (
                                             <Badge className="bg-green-600 hover:bg-green-700">Pro</Badge>
                                         ) : (
                                             <Badge variant="secondary">Free</Badge>
@@ -477,35 +487,46 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                                 render={({ field }) => (
                                     <FormItem className="flex flex-col">
                                         <FormLabel>Pro Validity (Optional)</FormLabel>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <FormControl>
-                                                    <Button
-                                                        variant={"outline"}
-                                                        className={cn(
-                                                            "w-full pl-3 text-left font-normal",
-                                                            !field.value && "text-muted-foreground"
-                                                        )}
-                                                    >
-                                                        {field.value ? (
-                                                            format(field.value, "PPP")
-                                                        ) : (
-                                                            <span>Pick a date</span>
-                                                        )}
-                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                    </Button>
-                                                </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar
-                                                    mode="single"
-                                                    selected={field.value || undefined}
-                                                    onSelect={field.onChange}
-                                                    disabled={(date) => date < new Date()}
-                                                    initialFocus
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
+                                        <div className="flex gap-2">
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button
+                                                            variant={"outline"}
+                                                            className={cn(
+                                                                "w-full pl-3 text-left font-normal",
+                                                                !field.value && "text-muted-foreground"
+                                                            )}
+                                                        >
+                                                            {field.value ? (
+                                                                format(field.value, "PPP")
+                                                            ) : (
+                                                                <span>Pick a date (Unlimited Access)</span>
+                                                            )}
+                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0" align="start">
+                                                    <Calendar
+                                                        mode="single"
+                                                        selected={field.value || undefined}
+                                                        onSelect={field.onChange}
+                                                        disabled={(date) => date < new Date()}
+                                                        initialFocus
+                                                    />
+                                                </PopoverContent>
+                                            </Popover>
+                                            {field.value && (
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    onClick={() => field.onChange(null)}
+                                                >
+                                                    Clear
+                                                </Button>
+                                            )}
+                                        </div>
                                         <FormMessage />
                                     </FormItem>
                                 )}

@@ -279,7 +279,10 @@ export const isQuestionBookmarked = async (userId: string, questionIdOrText: str
         const updateData: { [key: string]: any } = { ...data };
 
         if (data.proValidUntil && data.proValidUntil instanceof Date) {
-            updateData.proValidUntil = Timestamp.fromDate(data.proValidUntil);
+            // Set to the end of the selected day (23:59:59.999) to prevent premature expiration
+            const endOfDay = new Date(data.proValidUntil);
+            endOfDay.setHours(23, 59, 59, 999);
+            updateData.proValidUntil = Timestamp.fromDate(endOfDay);
         }
 
         await updateDoc(userRef, updateData);

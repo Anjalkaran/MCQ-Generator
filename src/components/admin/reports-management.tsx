@@ -13,7 +13,7 @@ import type { UserData, MCQHistory, QnAUsage, Topic } from '@/lib/types';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { getAllExamHistory, getFreeClassRegistrations, getQnAUsage } from '@/lib/firestore';
-import { normalizeDate } from '@/lib/utils';
+import { normalizeDate, checkIsPro } from '@/lib/utils';
 
 type ExamCategory = 'all' | 'MTS' | 'POSTMAN' | 'PA' | 'IP';
 type ProStatus = 'all' | 'pro' | 'free';
@@ -389,7 +389,7 @@ export function ReportsManagement({ allUsers, allTopics }: ReportsManagementProp
     const filteredUsers = useMemo(() => {
         return allUsers
             .filter(user => examCategoryFilter === 'all' || user.examCategory === examCategoryFilter)
-            .filter(user => proStatusFilter === 'all' ? true : (proStatusFilter === 'pro' ? user.isPro : !user.isPro))
+            .filter(user => proStatusFilter === 'all' ? true : (proStatusFilter === 'pro' ? checkIsPro(user) : !checkIsPro(user)))
             .filter(user => (user.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (user.email || '').toLowerCase().includes(searchTerm.toLowerCase()));
     }, [allUsers, examCategoryFilter, proStatusFilter, searchTerm]);
 
@@ -405,7 +405,7 @@ export function ReportsManagement({ allUsers, allTopics }: ReportsManagementProp
                     `"${u.email}"`,
                     `"${u.examCategory}"`,
                     u.totalExamsTaken,
-                    u.isPro ? "Pro" : "Free",
+                    checkIsPro(u) ? "Pro" : "Free",
                     `"${joinedDate ? format(joinedDate, 'dd/MM/yyyy') : 'N/A'}"`
                 ].join(',');
             })
@@ -461,7 +461,7 @@ export function ReportsManagement({ allUsers, allTopics }: ReportsManagementProp
                                     <TableHeader><TableRow><TableHead>User</TableHead><TableHead>Category</TableHead><TableHead>Exams</TableHead><TableHead className="text-right">Status</TableHead></TableRow></TableHeader>
                                     <TableBody>
                                         {filteredUsers.map(u => (
-                                            <TableRow key={u.uid}><TableCell className="font-medium">{u.name}<br/><span className="text-xs text-muted-foreground">{u.email}</span></TableCell><TableCell>{u.examCategory}</TableCell><TableCell className="text-center">{u.totalExamsTaken}</TableCell><TableCell className="text-right">{u.isPro ? <Badge className="bg-green-600">Pro</Badge> : <Badge variant="secondary">Free</Badge>}</TableCell></TableRow>
+                                            <TableRow key={u.uid}><TableCell className="font-medium">{u.name}<br/><span className="text-xs text-muted-foreground">{u.email}</span></TableCell><TableCell>{u.examCategory}</TableCell><TableCell className="text-center">{u.totalExamsTaken}</TableCell><TableCell className="text-right">{checkIsPro(u) ? <Badge className="bg-green-600">Pro</Badge> : <Badge variant="secondary">Free</Badge>}</TableCell></TableRow>
                                         ))}
                                     </TableBody>
                                 </Table>

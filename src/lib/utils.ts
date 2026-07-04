@@ -32,8 +32,8 @@ export function normalizeDate(date: any): Date | null {
 
   // 4. If it's a string
   if (typeof date === 'string') {
-    // try dd/MM/yyyy format first
-    const parts = date.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    // try dd/MM/yyyy or dd-MM-yyyy format first
+    const parts = date.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
     if (parts) {
       const isoDate = `${parts[3]}-${parts[2]}-${parts[1]}T00:00:00.000Z`;
       const d = new Date(isoDate);
@@ -73,8 +73,12 @@ export function checkIsPro(userData: UserData | null, targetCategory?: string): 
   const isProfessionalGroup = userData.examCategory === 'IP' || userData.examCategory === 'GROUP B';
   if (isProfessionalGroup) return true;
 
+  if (!userData.isPro) {
+    return false;
+  }
+
   const proValidUntilDate = normalizeDate(userData.proValidUntil);
-  if (!userData.isPro || !proValidUntilDate || proValidUntilDate <= new Date()) {
+  if (proValidUntilDate && proValidUntilDate <= new Date()) {
     return false;
   }
 
@@ -85,16 +89,7 @@ export function checkIsPro(userData: UserData | null, targetCategory?: string): 
 export function getAllowedExams(userData: UserData | null): string[] {
   if (!userData) return [];
   
-  const adminEmail = userData.email;
-  const isAdmin = adminEmail ? ADMIN_EMAILS.includes(adminEmail) : false;
-  if (isAdmin) return ["MTS", "POSTMAN", "PA", "IP", "GROUP B"];
-
-  const isProfessionalGroup = userData.examCategory === 'IP' || userData.examCategory === 'GROUP B';
-  if (isProfessionalGroup) return ["MTS", "POSTMAN", "PA", "IP", "GROUP B"];
-
-  const proValidUntilDate = normalizeDate(userData.proValidUntil);
-  const isPro = !!(userData.isPro && proValidUntilDate && proValidUntilDate > new Date());
-  
+  const isPro = checkIsPro(userData);
   if (!isPro) {
     return [userData.examCategory];
   }

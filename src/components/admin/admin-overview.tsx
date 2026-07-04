@@ -25,7 +25,7 @@ import {
   AreaChart, 
   Area 
 } from 'recharts';
-import { cn } from "@/lib/utils";
+import { cn, checkIsPro } from "@/lib/utils";
 import type { UserData, QnAUsage, Topic, VideoClass, StudyMaterial, BankedQuestion } from "@/lib/types";
 
 interface AdminOverviewProps {
@@ -51,7 +51,7 @@ export function AdminOverview({
   // Calculations
   const stats = [
     { label: 'Total Students', value: users.length, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', trend: '+12%' },
-    { label: 'Pro Members', value: users.filter(u => u.isPro).length, icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-50', trend: '+5%' },
+    { label: 'Pro Members', value: users.filter(u => checkIsPro(u)).length, icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-50', trend: '+5%' },
     { label: 'Total Topics', value: topics.length, icon: BookOpen, color: 'text-orange-600', bg: 'bg-orange-50', trend: 'Content' },
     { label: 'Question Bank', value: bankedQuestions.length, icon: CheckCircle2, color: 'text-purple-600', bg: 'bg-purple-50', trend: 'Verified' },
   ];
