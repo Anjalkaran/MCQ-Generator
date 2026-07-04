@@ -166,14 +166,14 @@ export default function CourseDetailPage() {
               </Link>
             </Card>
 
-            <Card className="hidden hover:shadow-lg transition-shadow border-slate-200">
-              <Link href="/dashboard/online-test" className="block p-6 text-center space-y-4">
+            <Card className="hover:shadow-lg transition-shadow border-slate-200">
+              <Link href="/dashboard/mock-test" className="block p-6 text-center space-y-4">
                 <div className="w-12 h-12 bg-orange-50 rounded-full flex items-center justify-center mx-auto">
                   <PenSquare className="h-6 w-6 text-orange-600" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg">Topic Wise MCQ Test</h3>
-                  <p className="text-sm text-slate-500">Subject-focused tests for thorough practice</p>
+                  <h3 className="font-bold text-lg">Mock Test</h3>
+                  <p className="text-sm text-slate-500">Syllabus-wise full length mock exams</p>
                 </div>
               </Link>
             </Card>

@@ -200,14 +200,14 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
 
-                {/* <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/online-test')} tooltip="Topic Wise MCQ Test">
-                    <Link href="/dashboard/online-test" onClick={onLinkClick}>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/mock-test')} tooltip="Mock Test">
+                    <Link href="/dashboard/mock-test" onClick={onLinkClick}>
                       <PenSquare />
-                      <span>Topic Wise MCQ Test</span>
+                      <span>Mock Test</span>
                     </Link>
                   </SidebarMenuButton>
-                </SidebarMenuItem> */}
+                </SidebarMenuItem>
 
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={pathname === '/dashboard/history'} tooltip="Exam History">
