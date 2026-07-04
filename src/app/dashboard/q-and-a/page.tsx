@@ -59,7 +59,7 @@ export default function QAPage() {
     if (!userData || selectedPart !== 'Part A') return [];
     return topics.filter(topic => 
         topic.part === 'Part A' &&
-        topic.examCategories.includes(userData.examCategory)
+        topic.examCategories?.includes(userData.examCategory)
     );
   }, [topics, userData, selectedPart]);
   
@@ -69,7 +69,7 @@ export default function QAPage() {
     // Get all topic IDs for the user in Part B
     const partBTopicIds = new Set(
         topics
-            .filter(t => t.part === 'Part B' && t.examCategories.includes(userData.examCategory))
+            .filter(t => t.part === 'Part B' && t.examCategories?.includes(userData.examCategory))
             .map(t => t.id)
     );
     

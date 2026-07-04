@@ -120,9 +120,9 @@ const generateMockTestFlow = ai.defineFlow(
     const allMcqDocsForCategory = await getTopicMCQsAdmin();
     const allMcqsForCategory: (MCQ & { sourceDocId: string; topicId: string })[] = [];
     
-    const categoryTopicIds = new Set(allFirestoreTopics.filter(t => t.examCategories.includes(input.examCategory as any)).map(t => t.id));
+    const categoryTopicIds = new Set(allFirestoreTopics.filter(t => t.examCategories?.includes(input.examCategory as any)).map(t => t.id));
     // Also include blueprint topic IDs (e.g., MTS-PB-S1-T1) and topic names for syllabusMCQs
-    const categoryTopicNames = new Set(allFirestoreTopics.filter(t => t.examCategories.includes(input.examCategory as any)).map(t => t.title.toLowerCase()));
+    const categoryTopicNames = new Set(allFirestoreTopics.filter(t => t.examCategories?.includes(input.examCategory as any)).map(t => t.title.toLowerCase()));
     const blueprintTopicIds = new Set<string>();
     for (const part of blueprint.parts) {
         for (const section of part.sections) {

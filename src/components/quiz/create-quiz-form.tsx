@@ -191,7 +191,7 @@ export function CreateQuizForm() {
     let partTopics = topics.filter(topic => 
         topic.categoryId === selectedCategoryId && 
         topic.part === selectedPart &&
-        topic.examCategories.includes(selectedExamType as any)
+        topic.examCategories?.includes(selectedExamType as any)
     );
 
     return partTopics;
@@ -202,7 +202,7 @@ export function CreateQuizForm() {
     if (!selectedPart || !selectedExamType) return [];
     
     // Get all topics for the selected exam type and part
-    const relevantTopics = topics.filter(t => t.part === selectedPart && t.examCategories.includes(selectedExamType as any));
+    const relevantTopics = topics.filter(t => t.part === selectedPart && t.examCategories?.includes(selectedExamType as any));
     const relevantCategoryIds = new Set(relevantTopics.map(t => t.categoryId));
 
     const finalCategories = filteredCategoriesByExam.filter(c => relevantCategoryIds.has(c.id));
