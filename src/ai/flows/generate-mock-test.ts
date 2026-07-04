@@ -181,30 +181,38 @@ const generateMockTestFlow = ai.defineFlow(
             continue;
         }
 
-        const topicRequests = new Map<string, number>();
-        let randomFromRequest: { topics: string[], questions: number } | null = null;
-        
         if ((section as any).topics) {
             (section as any).topics.forEach((topicDef: any) => {
                 const topicInfo = topicMapByName.get(topicDef.name.toLowerCase());
-                if (topicInfo) topicRequests.set(topicInfo.id, topicDef.questions);
+                const allowedIds = new Set<string>();
+                if (topicInfo) allowedIds.add(topicInfo.id);
+                if (topicDef.id) allowedIds.add(topicDef.id);
+
+                const topicMcqs = allMcqsForCategory.filter(m => {
+                    const matchId = allowedIds.has(m.topicId);
+                    const matchName = m.topicName && m.topicName.toLowerCase() === topicDef.name.toLowerCase();
+                    return matchId || matchName;
+                });
+                
+                const selected = shuffleArray(topicMcqs).slice(0, topicDef.questions || 0);
+                allQuestions.push(...selected);
             });
         }
         
         if ((section as any).randomFrom) {
-            const topicIds = (section as any).randomFrom.topics
-                .map((name: string) => topicMapByName.get(name.toLowerCase())?.id)
+            const topicNames: string[] = (section as any).randomFrom.topics;
+            const topicIds = topicNames
+                .map(name => topicMapByName.get(name.toLowerCase())?.id)
                 .filter(Boolean) as string[];
-            randomFromRequest = { topics: topicIds, questions: (section as any).randomFrom.questions };
+            
+            const filteredForSection = allMcqsForCategory.filter(m => {
+                const matchId = topicIds.includes(m.topicId);
+                const matchName = m.topicName && topicNames.some(name => m.topicName.toLowerCase() === name.toLowerCase());
+                return matchId || matchName;
+            });
+            const selected = shuffleArray(filteredForSection).slice(0, (section as any).randomFrom.questions || 0);
+            allQuestions.push(...selected);
         }
-        
-        const filteredForSection = allMcqsForCategory.filter(m => {
-            if (topicRequests.has(m.topicId)) return true;
-            if (randomFromRequest?.topics.includes(m.topicId)) return true;
-            return false;
-        });
-        
-        allQuestions.push(...shuffleArray(filteredForSection).slice(0, (section as any).topics ? (section as any).topics.length : (randomFromRequest?.questions || 0)));
       }
     }
     
