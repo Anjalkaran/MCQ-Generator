@@ -282,6 +282,7 @@ function DailyTestSpotlight({ test }: { test: DailyTest }) {
 }
 function DailyTestArchiveItem({ test }: { test: DailyTest }) {
     const { userData } = useDashboard();
+    const { toast } = useToast();
     const router = useRouter();
     const [isGenerating, setIsGenerating] = useState(false);
     const createdDate = test.createdAt ? normalizeDate(test.createdAt) : null;
@@ -303,6 +304,8 @@ function DailyTestArchiveItem({ test }: { test: DailyTest }) {
                 duration: test.duration || undefined,
             });
             if (quizId) router.push(`/quiz/${quizId}`);
+        } catch (error: any) {
+            toast({ title: 'Error', description: error.message, variant: 'destructive' });
         } finally {
             setIsGenerating(false);
         }
@@ -344,7 +347,7 @@ export default function DailyTestPage() {
     const router = useRouter();
     const isPro = checkIsPro(userData);
 
-    if (isLoading) return (
+    if (isLoading || !userData) return (
         <div className="flex flex-col h-[70vh] items-center justify-center space-y-4">
             <Loader2 className="h-12 w-12 animate-spin text-red-600 opacity-20" />
             <p className="text-sm font-medium text-muted-foreground animate-pulse">Synchronizing assessment bank...</p>

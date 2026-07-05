@@ -70,8 +70,15 @@ export function checkIsPro(userData: UserData | null, targetCategory?: string): 
   const isAdmin = adminEmail ? ADMIN_EMAILS.includes(adminEmail) : false;
   if (isAdmin) return true;
 
-  const isProfessionalGroup = userData.examCategory === 'IP' || userData.examCategory === 'GROUP B';
-  if (isProfessionalGroup) return true;
+  const catUpper = userData.examCategory?.toUpperCase();
+  const isProfessionalGroup = catUpper === 'IP' || catUpper === 'GROUP B';
+  
+  if (isProfessionalGroup) {
+    if (targetCategory) {
+      return catUpper === targetCategory.toUpperCase();
+    }
+    return true;
+  }
 
   if (!userData.isPro) {
     return false;
@@ -82,7 +89,17 @@ export function checkIsPro(userData: UserData | null, targetCategory?: string): 
     return false;
   }
 
-  // Any paid/pro user has full access to all courses and features
+  if (targetCategory) {
+    const targetUpper = targetCategory.toUpperCase();
+    if (targetUpper === 'IP' || targetUpper === 'GROUP B') {
+      return catUpper === targetUpper;
+    }
+    if (userData.subscribedCategory?.toUpperCase() !== targetUpper) {
+      return false;
+    }
+  }
+
+  // Any paid/pro user has full access to all courses and features (if no targetCategory or matching category)
   return true;
 }
 

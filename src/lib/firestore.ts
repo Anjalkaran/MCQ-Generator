@@ -936,7 +936,7 @@ export const isQuestionBookmarked = async (userId: string, questionIdOrText: str
             const histories = historySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MCQHistory));
 
             // 3. Process Topic and Mock Leaderboards
-            const categories: UserData['examCategory'][] = ['MTS', 'POSTMAN', 'PA', 'IP'];
+            const categories: UserData['examCategory'][] = ['MTS', 'POSTMAN', 'PA', 'IP', 'GROUP B'];
             const topicCalculations = new Map<string, { totalScore: number; totalQuestions: number; totalExams: number }>();
             const mockCalculations = new Map<string, { totalScore: number; totalQuestions: number; totalExams: number }>();
 
@@ -955,12 +955,12 @@ export const isQuestionBookmarked = async (userId: string, questionIdOrText: str
                 target.set(h.userId, current);
             });
 
-            const generateLeaderboard = (calcMap: Map<string, any>, cat: UserData['examCategory']) => {
+            const generateLeaderboard = (calcMap: Map<string, any>, cat: UserData['examCategory'], minExams = 1) => {
                 const entries: LeaderboardEntry[] = [];
                 calcMap.forEach((perf, userId) => {
                     const user = userMap.get(userId);
                     if (user && user.examCategory === cat) {
-                        const hasTakenEnoughExams = perf.totalExams > 0;
+                        const hasTakenEnoughExams = perf.totalExams >= minExams;
                         if (hasTakenEnoughExams) {
                             entries.push({
                                 userId,
@@ -982,8 +982,8 @@ export const isQuestionBookmarked = async (userId: string, questionIdOrText: str
             const topicsResult = {} as any;
             const mocksResult = {} as any;
             categories.forEach(cat => {
-                topicsResult[cat] = generateLeaderboard(topicCalculations, cat);
-                mocksResult[cat] = generateLeaderboard(mockCalculations, cat);
+                topicsResult[cat] = generateLeaderboard(topicCalculations, cat, 10);
+                mocksResult[cat] = generateLeaderboard(mockCalculations, cat, 10);
             });
 
             // 4. Fetch Live Tests list

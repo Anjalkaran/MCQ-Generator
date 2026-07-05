@@ -11,7 +11,7 @@ import {
 } from '@/lib/firestore';
 import type { UserData, Category, Topic, VideoClass, StudyMaterial, WeeklyTest, DailyTest, Notification, SyllabusBlueprint } from '@/lib/types';
 import { ADMIN_EMAILS } from '@/lib/constants';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 
 interface DashboardContextType {
   user: User | null;
@@ -66,11 +66,19 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       return; 
     }
     
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    let unsubscribeUserSnapshot: (() => void) | null = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
       // If we already have data and the user hasn't changed, don't re-fetch everything
       if (currentUser && user?.uid === currentUser.uid && userData) {
         setIsLoading(false);
         return;
+      }
+
+      // Clean up previous user snapshot listener if user changed/logged out
+      if (unsubscribeUserSnapshot) {
+        unsubscribeUserSnapshot();
+        unsubscribeUserSnapshot = null;
       }
 
       if (currentUser) {
@@ -99,6 +107,40 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
           setRawSyllabusMCQs(data.syllabusMCQs || []);
           setNotifications(data.notifications || []);
           setHasGivenFeedback(feedbackStatus);
+
+          // Setup real-time listener for user document changes (like manual pro upgrade)
+          const db = getFirebaseDb();
+          if (db) {
+            unsubscribeUserSnapshot = onSnapshot(doc(db, 'users', currentUser.uid), (snapshot) => {
+              if (snapshot.exists()) {
+                const updatedData = snapshot.data();
+                setUserData(prev => {
+                  if (!prev) {
+                    return {
+                      uid: currentUser.uid,
+                      ...updatedData
+                    } as UserData;
+                  }
+                  
+                  // Only update state if something relevant actually changed to avoid unnecessary renders
+                  if (
+                    prev.isPro !== updatedData.isPro ||
+                    prev.examCategory !== updatedData.examCategory ||
+                    prev.subscribedCategory !== updatedData.subscribedCategory ||
+                    JSON.stringify(prev.proValidUntil) !== JSON.stringify(updatedData.proValidUntil) ||
+                    prev.name !== updatedData.name ||
+                    prev.email !== updatedData.email
+                  ) {
+                    return {
+                      ...prev,
+                      ...updatedData
+                    } as UserData;
+                  }
+                  return prev;
+                });
+              }
+            });
+          }
         } catch (error) { 
           console.error("Dashboard context init error:", error);
         } finally {
@@ -114,7 +156,12 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeUserSnapshot) {
+        unsubscribeUserSnapshot();
+      }
+    };
   }, [router]);
 
   useEffect(() => {

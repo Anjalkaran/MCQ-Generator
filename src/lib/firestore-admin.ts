@@ -128,7 +128,7 @@ export const getUnifiedLeaderboardsAdmin = async (): Promise<{
         }
 
         // 3. Process Topic and Mock Leaderboards
-        const categories: UserData['examCategory'][] = ['MTS', 'POSTMAN', 'PA', 'IP'];
+        const categories: UserData['examCategory'][] = ['MTS', 'POSTMAN', 'PA', 'IP', 'GROUP B'];
         
         // Pre-fetch daily test IDs to correctly categorize them if they use liveTestId
         const dailyTestsSnap = await db.collection('dailyTests').select('title').get();
@@ -170,12 +170,12 @@ export const getUnifiedLeaderboardsAdmin = async (): Promise<{
             target.set(h.userId, current);
         });
 
-        const generateLeaderboard = (calcMap: Map<string, any>, cat: UserData['examCategory']) => {
+        const generateLeaderboard = (calcMap: Map<string, any>, cat: UserData['examCategory'], minExams = 1) => {
             const entries: LeaderboardEntry[] = [];
             calcMap.forEach((perf, userId) => {
                 const user = userMap.get(userId);
                 if (user && user.examCategory === cat) {
-                    if (perf.totalExams > 0) {
+                    if (perf.totalExams >= minExams) {
                         entries.push({
                             userId,
                             userName: user.name || "Anonymous",
@@ -197,9 +197,9 @@ export const getUnifiedLeaderboardsAdmin = async (): Promise<{
         const mocksResult = {} as any;
         const dailyResult = {} as any;
         categories.forEach(cat => {
-            topicsResult[cat] = generateLeaderboard(topicCalculations, cat);
-            mocksResult[cat] = generateLeaderboard(mockCalculations, cat);
-            dailyResult[cat] = generateLeaderboard(dailyCalculations, cat);
+            topicsResult[cat] = generateLeaderboard(topicCalculations, cat, 10);
+            mocksResult[cat] = generateLeaderboard(mockCalculations, cat, 10);
+            dailyResult[cat] = generateLeaderboard(dailyCalculations, cat, 1);
         });
 
         // 4. Fetch Live Tests list

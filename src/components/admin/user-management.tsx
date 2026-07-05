@@ -45,7 +45,7 @@ const userUpdateSchema = z.object({
   employeeId: z.string().optional().or(z.literal('')),
   city: z.string().optional().or(z.literal('')),
   division: z.string().optional().or(z.literal('')),
-  examCategory: z.enum(['MTS', 'POSTMAN', 'PA', 'IP']),
+  examCategory: z.enum(['MTS', 'POSTMAN', 'PA', 'IP', 'GROUP B']),
   isPro: z.boolean().default(false).optional(),
   proValidUntil: z.date().optional().nullable(),
 });
@@ -56,7 +56,7 @@ const userCreateSchema = z.object({
   city: z.string().min(2),
   division: z.string().min(2),
   password: z.string().min(6),
-  examCategory: z.enum(['MTS', 'POSTMAN', 'PA', 'IP']),
+  examCategory: z.enum(['MTS', 'POSTMAN', 'PA', 'IP', 'GROUP B']),
   isPro: z.boolean().default(false).optional(),
 });
 
@@ -457,6 +457,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                                                 <SelectItem value="POSTMAN">POSTMAN</SelectItem>
                                                 <SelectItem value="PA">PA</SelectItem>
                                                 <SelectItem value="IP">IP</SelectItem>
+                                                <SelectItem value="GROUP B">GROUP B</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />
@@ -567,7 +568,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                         
                         <div className="grid grid-cols-2 gap-4">
                             <FormField control={createUserForm.control} name="examCategory" render={({ field }) => (
-                                <FormItem><FormLabel>Course</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="MTS">MTS</SelectItem><SelectItem value="POSTMAN">POSTMAN</SelectItem><SelectItem value="PA">PA</SelectItem><SelectItem value="IP">IP</SelectItem></SelectContent></Select></FormItem>
+                                <FormItem className="col-span-1"><FormLabel>Course</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="MTS">MTS</SelectItem><SelectItem value="POSTMAN">POSTMAN</SelectItem><SelectItem value="PA">PA</SelectItem><SelectItem value="IP">IP</SelectItem><SelectItem value="GROUP B">GROUP B</SelectItem></SelectContent></Select></FormItem>
                             )} />
                              <FormField control={createUserForm.control} name="isPro" render={({ field }) => (<FormItem className="flex items-center space-x-2 pt-8"><Checkbox checked={!!field.value} onCheckedChange={field.onChange} /><FormLabel>Pro Access</FormLabel></FormItem>)} />
                         </div>
