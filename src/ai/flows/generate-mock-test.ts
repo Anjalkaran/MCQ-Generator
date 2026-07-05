@@ -132,6 +132,11 @@ const generateMockTestFlow = ai.defineFlow(
                     if (t && t.name) categoryTopicNames.add(t.name.toLowerCase());
                 });
             }
+            if ((section as any).randomFrom && (section as any).randomFrom.topics) {
+                ((section as any).randomFrom.topics as string[]).forEach((name: string) => {
+                    categoryTopicNames.add(name.toLowerCase());
+                });
+            }
         }
     }
 
@@ -151,7 +156,12 @@ const generateMockTestFlow = ai.defineFlow(
             mcqList = parsed.questions;
           }
           mcqList.forEach((mcq: any) => {
-            allMcqsForCategory.push({ ...mcq, sourceDocId: doc.id, topicId: doc.topicId });
+            allMcqsForCategory.push({ 
+                ...mcq, 
+                sourceDocId: doc.id, 
+                topicId: doc.topicId || mcq.topicId, 
+                topicName: doc.topicName || mcq.topicName || mcq.topic 
+            });
           });
         } catch (e) { }
       }
@@ -201,14 +211,38 @@ const generateMockTestFlow = ai.defineFlow(
         
         if ((section as any).randomFrom) {
             const topicNames: string[] = (section as any).randomFrom.topics;
-            const topicIds = topicNames
-                .map(name => topicMapByName.get(name.toLowerCase())?.id)
-                .filter(Boolean) as string[];
             
+            const cleanString = (str: string) => 
+                str.toLowerCase()
+                   .replace(/postal manual/g, 'pm')
+                   .replace(/volume/g, 'vol')
+                   .replace(/part/g, 'pt')
+                   .replace(/[^a-z0-9]/g, '');
+
+            const secClean = cleanString(section.sectionName);
+            
+            const targetTopicIds = new Set<string>();
+            allFirestoreTopics.forEach(t => {
+                const tClean = cleanString(t.title);
+                if (secClean === 'pmvolviptiii') {
+                    if (tClean.includes('pmvolviptiii') || tClean.includes('pmvolviipartiii')) {
+                        targetTopicIds.add(t.id);
+                    }
+                } else if (secClean === 'pmvolvii') {
+                    if (tClean.includes('pmvolvii') || tClean.includes('pmvolumevii')) {
+                        targetTopicIds.add(t.id);
+                    }
+                } else {
+                    if (tClean === secClean || tClean.includes(secClean) || secClean.includes(tClean)) {
+                        targetTopicIds.add(t.id);
+                    }
+                }
+            });
+
             const filteredForSection = allMcqsForCategory.filter(m => {
-                const matchId = topicIds.includes(m.topicId);
-                const matchName = m.topicName && topicNames.some(name => m.topicName.toLowerCase() === name.toLowerCase());
-                return matchId || matchName;
+                const matchId = targetTopicIds.has(m.topicId);
+                const matchSubtopic = m.topic && topicNames.some(name => m.topic.toLowerCase() === name.toLowerCase());
+                return matchId || matchSubtopic;
             });
             const selected = shuffleArray(filteredForSection).slice(0, (section as any).randomFrom.questions || 0);
             allQuestions.push(...selected);
