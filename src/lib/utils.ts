@@ -94,7 +94,8 @@ export function checkIsPro(userData: UserData | null, targetCategory?: string): 
     if (targetUpper === 'IP' || targetUpper === 'GROUP B') {
       return catUpper === targetUpper;
     }
-    if (userData.subscribedCategory?.toUpperCase() !== targetUpper) {
+    const subCat = (userData.subscribedCategory || userData.examCategory || 'MTS').toUpperCase();
+    if (subCat !== targetUpper) {
       return false;
     }
   }

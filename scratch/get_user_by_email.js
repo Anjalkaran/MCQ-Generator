@@ -12,7 +12,7 @@ admin.initializeApp({
 const db = admin.firestore();
 
 async function main() {
-  const email = 'shreemarimuthu99@gmail.com';
+  const email = 'kholiking952@gmail.com';
   const snapshot = await db.collection('users').where('email', '==', email).get();
   
   if (snapshot.empty) {

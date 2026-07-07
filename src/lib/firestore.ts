@@ -244,6 +244,43 @@ export const isQuestionBookmarked = async (userId: string, questionIdOrText: str
         return userSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserData));
     };
 
+    export const isPhoneAlreadyRegistered = async (phone: string, excludeUid?: string): Promise<boolean> => {
+        const db = getFirebaseDb();
+        if (!db) return false;
+        
+        const enteredPhone = phone.trim();
+        const cleanPhone = enteredPhone.replace(/[\s\-\(\)\+]/g, '');
+        const tenDigitPhone = cleanPhone.startsWith('91') && cleanPhone.length > 10 ? cleanPhone.substring(2) : cleanPhone;
+        
+        const formatsToSearch = new Set<string>();
+        formatsToSearch.add(enteredPhone);
+        formatsToSearch.add(cleanPhone);
+        formatsToSearch.add(tenDigitPhone);
+        formatsToSearch.add(`+91${tenDigitPhone}`);
+        formatsToSearch.add(`+91 ${tenDigitPhone}`);
+        
+        const usersCollection = collection(db, 'users');
+        const queries = Array.from(formatsToSearch).map(fmt => {
+            return query(usersCollection, where('phone', '==', fmt), limit(1));
+        });
+        
+        try {
+            const snapshots = await Promise.all(queries.map(q => getDocs(q)));
+            for (const snap of snapshots) {
+                for (const doc of snap.docs) {
+                    if (!excludeUid || doc.id !== excludeUid) {
+                        return true;
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Error checking phone uniqueness:", error);
+        }
+        
+        return false;
+    };
+
+
     export const getOnlineUsers = async (): Promise<UserData[]> => {
         const db = getFirebaseDb();
         if (!db) return [];

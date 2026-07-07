@@ -16,17 +16,57 @@ const QUESTION_BANK_SAMPLE = JSON.stringify([
     "question": "Which Article of the Indian Constitution relates to the Right to Equality?",
     "options": ["Article 12", "Article 14", "Article 19", "Article 21"],
     "correctAnswer": "Article 14",
-    "explanation": "Article 14 guarantees equality before the law and equal protection of the laws within the territory of India."
+    "explanation": "Article 14 guarantees equality before the law and equal protection of the laws within the territory of India.",
+    "translations": {
+      "en": {
+        "question": "Which Article of the Indian Constitution relates to the Right to Equality?",
+        "options": ["Article 12", "Article 14", "Article 19", "Article 21"],
+        "correctAnswer": "Article 14",
+        "explanation": "Article 14 guarantees equality before the law and equal protection of the laws within the territory of India."
+      },
+      "ta": {
+        "question": "இந்திய அரசியலமைப்பின் எந்த விதி சமத்துவ உரிமை பற்றி குறிப்பிடுகிறது?",
+        "options": ["விதி 12", "விதி 14", "விதி 19", "விதி 21"],
+        "correctAnswer": "விதி 14",
+        "explanation": "விதி 14 இந்திய எல்லைக்குள் சட்டத்தின் முன் அனைவரும் சமம் மற்றும் சட்டங்களின் சமமான பாதுகாப்பை உறுதி செய்கிறது."
+      },
+      "hi": {
+        "question": "भारतीय संविधान का कौन सा अनुच्छेद समानता के अधिकार से संबंधित है?",
+        "options": ["अनुच्छेद 12", "अनुच्छेद 14", "अनुच्छेद 19", "अनुच्छेद 21"],
+        "correctAnswer": "अनुच्छेद 14",
+        "explanation": "अनुच्छेद 14 भारत के क्षेत्र के भीतर कानून के समक्ष समानता और कानूनों के समान संरक्षण की गारंटी देता है."
+      }
+    }
   }
 ], null, 2);
 
 const WEEKLY_TEST_SAMPLE = JSON.stringify({
   "questions": [
     {
-      "question": "Example Question for Test",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correctAnswer": "Option A",
-      "explanation": "Optional explanation text."
+      "question": "Which Article of the Indian Constitution relates to the Right to Equality?",
+      "options": ["Article 12", "Article 14", "Article 19", "Article 21"],
+      "correctAnswer": "Article 14",
+      "explanation": "Article 14 guarantees equality before the law and equal protection of the laws within the territory of India.",
+      "translations": {
+        "en": {
+          "question": "Which Article of the Indian Constitution relates to the Right to Equality?",
+          "options": ["Article 12", "Article 14", "Article 19", "Article 21"],
+          "correctAnswer": "Article 14",
+          "explanation": "Article 14 guarantees equality before the law and equal protection of the laws within the territory of India."
+        },
+        "ta": {
+          "question": "இந்திய அரசியலமைப்பின் எந்த விதி சமத்துவ உரிமை பற்றி குறிப்பிடுகிறது?",
+          "options": ["விதி 12", "விதி 14", "விதி 19", "விதி 21"],
+          "correctAnswer": "விதி 14",
+          "explanation": "விதி 14 இந்திய எல்லைக்குள் சட்டத்தின் முன் அனைவரும் சமம் மற்றும் சட்டங்களின் சமமான பாதுகாப்பை உறுதி செய்கிறது."
+        },
+        "hi": {
+          "question": "भारतीय संविधान का कौन सा अनुच्छेद समानता के अधिकार से संबंधित है?",
+          "options": ["अनुच्छेद 12", "अनुच्छेद 14", "अनुच्छेद 19", "अनुच्छेद 21"],
+          "correctAnswer": "अनुच्छेद 14",
+          "explanation": "अनुच्छेद 14 भारत के क्षेत्र के भीतर कानून के समक्ष समानता और कानूनों के समान संरक्षण की गारंटी देता है."
+        }
+      }
     }
   ]
 }, null, 2);
@@ -80,6 +120,7 @@ export function JsonFormatGuide({ type, className }: JsonFormatGuideProps) {
                 { field: 'options', desc: 'Array of 4 answer choices', required: true },
                 { field: 'correctAnswer', desc: 'Must exactly match one of the options', required: true },
                 { field: 'explanation', desc: 'Solution / explanation text', required: false },
+                { field: 'translations', desc: 'Optional dictionary containing en, ta, hi translations', required: false },
               ].map(({ field, desc, required }) => (
                 <div key={field} className="flex gap-2 bg-white/70 rounded-md px-3 py-2 border border-blue-100">
                   <code className="font-mono text-violet-700 font-bold shrink-0">{field}</code>

@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import type { User } from 'firebase/auth';
 import { updateProfile } from 'firebase/auth';
-import { updateUserDocument } from '@/lib/firestore';
+import { updateUserDocument, isPhoneAlreadyRegistered } from '@/lib/firestore';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +47,20 @@ export function ProfileForm({ user, userData }: ProfileFormProps) {
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setIsLoading(true);
         try {
+            // Check phone uniqueness if it's changing
+            if (values.phone && values.phone !== userData.phone) {
+                const isRegistered = await isPhoneAlreadyRegistered(values.phone, user.uid);
+                if (isRegistered) {
+                    toast({
+                        title: "Update Failed",
+                        description: "This mobile number is already registered with another account. Please use a different number.",
+                        variant: "destructive",
+                    });
+                    setIsLoading(false);
+                    return;
+                }
+            }
+
             const dataToUpdate: { name: string, employeeId: string, phone: string, preferredLanguage: any } = {
                 name: values.name,
                 employeeId: values.employeeId,

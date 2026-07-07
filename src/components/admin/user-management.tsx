@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, Trash2, Edit, Eye, PlusCircle, Gem, Search, Calendar as CalendarIcon, RefreshCcw, Users as UsersIcon, ArrowUpDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { deleteUserDocument, updateUserDocument, createUserDocument, resetAllUsersToFree } from '@/lib/firestore';
+import { deleteUserDocument, updateUserDocument, createUserDocument, resetAllUsersToFree, isPhoneAlreadyRegistered } from '@/lib/firestore';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import type { UserData } from '@/lib/types';
@@ -136,6 +136,20 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     if (!selectedUser) return;
     setIsLoading(true);
     try {
+      // Check phone uniqueness if it's changing
+      if (values.phone && values.phone !== selectedUser.phone) {
+        const isRegistered = await isPhoneAlreadyRegistered(values.phone, selectedUser.uid);
+        if (isRegistered) {
+          toast({
+            title: "Update Failed",
+            description: "This mobile number is already registered with another account. Please use a different number.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+      }
+
       let proValidUntilDate = values.isPro ? values.proValidUntil : null;
       if (proValidUntilDate && proValidUntilDate instanceof Date) {
         proValidUntilDate = new Date(proValidUntilDate);

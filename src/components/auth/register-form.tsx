@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { createUserWithEmailAndPassword, updateProfile, signInWithPopup } from 'firebase/auth';
 import { getFirebaseAuth, getFirebaseDb, googleProvider } from '@/lib/firebase';
+import { isPhoneAlreadyRegistered } from '@/lib/firestore';
 import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -138,6 +139,17 @@ export function RegisterForm() {
     }
 
     try {
+      // Check phone uniqueness
+      const isRegistered = await isPhoneAlreadyRegistered(values.phone);
+      if (isRegistered) {
+        toast({
+          title: "Registration Failed",
+          description: "This mobile number is already registered with another account. Please use a different number.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
       let uid = googleUid;
       
       if (!isGoogleUser) {
