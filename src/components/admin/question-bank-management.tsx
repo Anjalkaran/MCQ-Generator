@@ -35,6 +35,7 @@ const examCategories = ["MTS", "POSTMAN", "PA", "IP", "GROUP B"] as const;
 const questionBankSchema = z.object({
   examCategories: z.array(z.string()).min(1, 'Please select at least one exam category.'),
   examYear: z.string().min(4, 'Please enter a valid year (e.g. 2024)').max(4, 'Year must be 4 digits'),
+  customFileName: z.string().optional(),
   method: z.enum(['file', 'paste']),
   files: z
     .array(z.instanceof(File))
@@ -70,6 +71,7 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
     defaultValues: {
         examCategories: [],
         examYear: new Date().getFullYear().toString(),
+        customFileName: '',
         method: 'file',
         files: [],
         pastedJson: ''
@@ -105,16 +107,31 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
     });
     formData.append('examYear', values.examYear);
     
+    let nameToUse = values.customFileName?.trim();
+    if (nameToUse && !nameToUse.toLowerCase().endsWith('.json')) {
+        nameToUse += '.json';
+    }
+
     if (values.method === 'file' && values.files) {
-        values.files.forEach(file => {
-            formData.append('files', file);
+        const filesList = values.files;
+        filesList.forEach((file, index) => {
+            let finalName = file.name;
+            if (nameToUse) {
+                if (filesList.length === 1) {
+                    finalName = nameToUse;
+                } else {
+                    finalName = nameToUse.replace(/\.json$/i, `_${index + 1}.json`);
+                }
+            }
+            formData.append('files', file, finalName);
         });
     } else if (values.method === 'paste' && values.pastedJson) {
         try {
             // Validate JSON before sending
             JSON.parse(values.pastedJson);
             const blob = new Blob([values.pastedJson], { type: 'application/json' });
-            formData.append('files', blob, `pasted_categories_${values.examYear}.json`);
+            const finalName = nameToUse || `pasted_categories_${values.examYear}.json`;
+            formData.append('files', blob, finalName);
         } catch (e) {
             toast({ title: 'Invalid JSON', description: 'The pasted content is not valid JSON.', variant: 'destructive'});
             setIsUploading(false);
@@ -331,6 +348,22 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                         <FormControl>
                             <Input placeholder="e.g. 2024" {...field} />
                         </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="customFileName"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Custom File Name (Optional)</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g. Chennai Circle 2025 PA" {...field} />
+                        </FormControl>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                            If left blank, the original file name or a default name will be used.
+                        </p>
                         <FormMessage />
                         </FormItem>
                     )}
