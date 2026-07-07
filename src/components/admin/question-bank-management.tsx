@@ -168,7 +168,7 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
 
   const handleOpenEditDialog = (bq: BankedQuestion) => {
     setEditingQuestionBank(bq);
-    setEditingFileName(bq.fileName);
+    setEditingFileName(bq.fileName || '');
     setEditingYear(bq.examYear || '');
     setIsEditDialogOpen(true);
   };
@@ -529,7 +529,7 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                         <div className="space-y-2">
                             <Label className="text-sm font-semibold">File Name</Label>
                             <Input 
-                                value={editingFileName} 
+                                value={editingFileName || ''} 
                                 onChange={(e) => setEditingFileName(e.target.value)}
                                 placeholder="Enter file name (e.g., Chennai Circle 2024 PA.json)"
                                 className="bg-slate-50 border-slate-200"
@@ -538,7 +538,7 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                         <div className="space-y-2">
                             <Label className="text-sm font-semibold">Exam Year</Label>
                             <Input 
-                                value={editingYear} 
+                                value={editingYear || ''} 
                                 onChange={(e) => setEditingYear(e.target.value)}
                                 placeholder="e.g. 2024"
                                 className="bg-slate-50 border-slate-200"
