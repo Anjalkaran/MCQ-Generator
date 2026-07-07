@@ -34,11 +34,14 @@ export async function POST(request: Request) {
     try {
         const formData = await request.formData();
         const files = formData.getAll('files') as File[];
+        const examCategories = formData.getAll('examCategories') as string[];
         const examCategory = formData.get('examCategory') as string;
         const examYear = formData.get('examYear') as string;
 
-        if (files.length === 0 || !examCategory) {
-            return NextResponse.json({ error: 'Missing required fields: examCategory and at least one file are required.' }, { status: 400 });
+        const categories = examCategories.length > 0 ? examCategories : (examCategory ? [examCategory] : []);
+
+        if (files.length === 0 || categories.length === 0) {
+            return NextResponse.json({ error: 'Missing required fields: examCategories and at least one file are required.' }, { status: 400 });
         }
 
         const newDocuments: any[] = [];
@@ -73,24 +76,26 @@ export async function POST(request: Request) {
                         continue;
                     }
 
-                    const docData: any = {
-                        fileName,
-                        examCategory,
-                        content: JSON.stringify({ questions }), // Canonicalize to { questions: [...] }
-                        uploadedAt: admin.firestore.Timestamp.now()
-                    };
+                    for (const cat of categories) {
+                        const docData: any = {
+                            fileName,
+                            examCategory: cat,
+                            content: JSON.stringify({ questions }), // Canonicalize to { questions: [...] }
+                            uploadedAt: admin.firestore.Timestamp.now()
+                        };
 
-                    if (examYear) {
-                        docData.examYear = examYear;
+                        if (examYear) {
+                            docData.examYear = examYear;
+                        }
+
+                        const docRef = await db.collection('questionBank').add(docData);
+                        
+                        newDocuments.push({
+                            id: docRef.id,
+                            ...docData,
+                            uploadedAt: new Date().toISOString()
+                        });
                     }
-
-                    const docRef = await db.collection('questionBank').add(docData);
-                    
-                    newDocuments.push({
-                        id: docRef.id,
-                        ...docData,
-                        uploadedAt: new Date().toISOString()
-                    });
                 } catch (err) {
                     console.error(`Failed to parse JSON in file ${fileName}:`, err);
                 }

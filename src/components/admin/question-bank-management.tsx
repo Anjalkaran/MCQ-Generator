@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Upload, Eye, Trash2, Edit, FileJson, Search, FileText } from 'lucide-react';
 import { deleteQuestionBankDocument, updateQuestionBankDocument } from '@/lib/firestore';
 import { MCQStructuredEditor } from './mcq-structured-editor';
@@ -32,9 +33,7 @@ import type { MCQ } from '@/lib/types';
 const examCategories = ["MTS", "POSTMAN", "PA", "IP", "GROUP B"] as const;
 
 const questionBankSchema = z.object({
-  examCategory: z.enum(examCategories, {
-    required_error: 'You must select an exam category.',
-  }),
+  examCategories: z.array(z.string()).min(1, 'Please select at least one exam category.'),
   examYear: z.string().min(4, 'Please enter a valid year (e.g. 2024)').max(4, 'Year must be 4 digits'),
   method: z.enum(['file', 'paste']),
   files: z
@@ -69,6 +68,7 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
   const form = useForm<z.infer<typeof questionBankSchema>>({
     resolver: zodResolver(questionBankSchema),
     defaultValues: {
+        examCategories: [],
         examYear: new Date().getFullYear().toString(),
         method: 'file',
         files: [],
@@ -99,7 +99,10 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
   const onSubmit = async (values: z.infer<typeof questionBankSchema>) => {
     setIsUploading(true);
     const formData = new FormData();
-    formData.append('examCategory', values.examCategory);
+    
+    values.examCategories.forEach(cat => {
+        formData.append('examCategories', cat);
+    });
     formData.append('examYear', values.examYear);
     
     if (values.method === 'file' && values.files) {
@@ -111,7 +114,7 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
             // Validate JSON before sending
             JSON.parse(values.pastedJson);
             const blob = new Blob([values.pastedJson], { type: 'application/json' });
-            formData.append('files', blob, `pasted_${values.examCategory}_${values.examYear}.json`);
+            formData.append('files', blob, `pasted_categories_${values.examYear}.json`);
         } catch (e) {
             toast({ title: 'Invalid JSON', description: 'The pasted content is not valid JSON.', variant: 'destructive'});
             setIsUploading(false);
@@ -287,20 +290,34 @@ export function QuestionBankManagement({ initialBankedQuestions }: QuestionBankM
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                     control={form.control}
-                    name="examCategory"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Exam Category</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select an exam category" />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                            {examCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
+                    name="examCategories"
+                    render={() => (
+                        <FormItem className="col-span-1 md:col-span-2">
+                        <div className="mb-2"><FormLabel>Target Exam Categories</FormLabel></div>
+                        <div className="flex flex-wrap gap-6 p-4 border rounded-md bg-muted/20">
+                            {examCategories.map((item) => (
+                                <FormField
+                                    key={item}
+                                    control={form.control}
+                                    name="examCategories"
+                                    render={({ field }) => (
+                                        <FormItem key={item} className="flex flex-row items-center space-x-2 space-y-0">
+                                            <FormControl>
+                                                <Checkbox
+                                                    checked={field.value?.includes(item)}
+                                                    onCheckedChange={(checked) => 
+                                                        checked 
+                                                            ? field.onChange([...(field.value || []), item]) 
+                                                            : field.onChange(field.value?.filter((v: string) => v !== item))
+                                                    }
+                                                />
+                                            </FormControl>
+                                            <FormLabel className="font-normal cursor-pointer">{item}</FormLabel>
+                                        </FormItem>
+                                    )}
+                                />
+                            ))}
+                        </div>
                         <FormMessage />
                         </FormItem>
                     )}
