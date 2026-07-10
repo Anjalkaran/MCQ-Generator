@@ -23,7 +23,7 @@ function WeeklyTestTimelineItem({ test, index, isLast, history }: { test: Weekly
     const { user, userData } = useDashboard();
     const { toast } = useToast();
     const router = useRouter();
-    const isPro = checkIsPro(userData);
+    const isPro = checkIsPro(userData) || userData?.examCategory === 'IP';
     const [isGenerating, setIsGenerating] = useState(false);
     const [selectedLanguage, setSelectedLanguage] = useState<string>('English');
 

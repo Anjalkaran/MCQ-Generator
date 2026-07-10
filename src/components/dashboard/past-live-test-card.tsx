@@ -33,7 +33,7 @@ export const PastLiveTestCard = ({ test }: { test: LiveTest }) => {
     const [selectedLanguage, setSelectedLanguage] = useState<string>('English');
 
     const startTime = normalizeDate(test.startTime);
-    const isPro = checkIsPro(userData);
+    const isPro = checkIsPro(userData) || userData?.examCategory === 'IP';
     const isIPTest = test.examCategory === 'IP';
     const availableLanguages = isIPTest ? ipLanguages : allLanguages;
 

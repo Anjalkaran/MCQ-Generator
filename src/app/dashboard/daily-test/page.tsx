@@ -30,7 +30,7 @@ function DailyTestCard({ test, index }: { test: DailyTest; index: number }) {
     const [isGenerating, setIsGenerating] = useState(false);
     const [selectedLanguage, setSelectedLanguage] = useState<string>('English');
 
-    const isPro = checkIsPro(userData);
+    const isPro = checkIsPro(userData) || userData?.examCategory === 'IP';
     const isIPUser = userData?.examCategory === 'IP';
     const availableLanguages = isIPUser ? ipLanguages : allLanguages;
 
@@ -175,7 +175,7 @@ function DailyTestSpotlight({ test }: { test: DailyTest }) {
     const [isGenerating, setIsGenerating] = useState(false);
     const [selectedLanguage, setSelectedLanguage] = useState<string>('English');
 
-    const isPro = checkIsPro(userData);
+    const isPro = checkIsPro(userData) || userData?.examCategory === 'IP';
     const availableLanguages = userData?.examCategory === 'IP' ? ipLanguages : allLanguages;
     const createdDate = test.createdAt ? normalizeDate(test.createdAt) : null;
 
@@ -286,7 +286,7 @@ function DailyTestArchiveItem({ test }: { test: DailyTest }) {
     const router = useRouter();
     const [isGenerating, setIsGenerating] = useState(false);
     const createdDate = test.createdAt ? normalizeDate(test.createdAt) : null;
-    const isPro = checkIsPro(userData);
+    const isPro = checkIsPro(userData) || userData?.examCategory === 'IP';
 
     const startTest = async () => {
         if (!isPro) {
@@ -345,7 +345,7 @@ export default function DailyTestPage() {
     const { dailyTests, isLoading, userData } = useDashboard();
     const [searchQuery, setSearchQuery] = useState("");
     const router = useRouter();
-    const isPro = checkIsPro(userData);
+    const isPro = checkIsPro(userData) || userData?.examCategory === 'IP';
 
     if (isLoading || !userData) return (
         <div className="flex flex-col h-[70vh] items-center justify-center space-y-4">

@@ -25,7 +25,7 @@ import { checkIsPro, getAllowedExams } from '@/lib/utils';
 import Link from 'next/link';
 
 const examCategories = ["MTS", "POSTMAN", "PA", "IP", "GROUP B"] as const;
-const languages = ["English", "Tamil"] as const;
+const languages = ["English", "Tamil", "Hindi"] as const;
 
 
 const formSchema = z.object({
@@ -156,7 +156,7 @@ export function PreviousYearMockTestForm() {
     }
   };
   
-  const isPro = checkIsPro(userData);
+  const isPro = checkIsPro(userData) || userData?.examCategory === 'IP';
   const completedTestIds = new Set(userData?.completedMockBankTests || []);
   const availablePapers = questionBank.filter(p => !completedTestIds.has(p.id));
   const hasCompletedAllPapers = selectedExamType && !isBankLoading && questionBank.length > 0 && availablePapers.length === 0;

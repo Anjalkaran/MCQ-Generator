@@ -80,7 +80,7 @@ export interface UserData {
     lastSeen?: any;
     hasSeenReasoningUpdate?: boolean; 
     mockTestUpdateSeenCount?: number;
-    preferredLanguage?: 'English' | 'Tamil';
+    preferredLanguage?: 'English' | 'Tamil' | 'Hindi';
     lastSeenUpdateTimestamp?: any;
 }
 

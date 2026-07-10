@@ -168,7 +168,7 @@ export function PartwiseQuizForm() {
     }
   };
   
-  const isPro = checkIsPro(userData);
+  const isPro = checkIsPro(userData) || userData?.examCategory === 'IP';
   const totalExamsTaken = userData?.totalExamsTaken || 0;
   const hasExceededFreeLimit = !isPro && userData && totalExamsTaken >= FREE_EXAM_LIMIT;
 

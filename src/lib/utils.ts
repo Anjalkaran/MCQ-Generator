@@ -70,8 +70,13 @@ export function checkIsPro(userData: UserData | null, targetCategory?: string): 
   const isAdmin = adminEmail ? ADMIN_EMAILS.includes(adminEmail) : false;
   if (isAdmin) return true;
 
+  // IP category is free for everyone
+  if (targetCategory && targetCategory.toUpperCase() === 'IP') {
+    return true;
+  }
+
   const catUpper = userData.examCategory?.toUpperCase();
-  const isProfessionalGroup = catUpper === 'IP' || catUpper === 'GROUP B';
+  const isProfessionalGroup = catUpper === 'GROUP B';
   
   if (isProfessionalGroup) {
     if (targetCategory) {

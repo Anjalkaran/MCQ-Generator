@@ -161,7 +161,7 @@ export function ReasoningTestForm() {
     }
   };
   
-  const isPro = checkIsPro(userData);
+  const isPro = checkIsPro(userData) || userData?.examCategory === 'IP';
 
   return (
      <Card>

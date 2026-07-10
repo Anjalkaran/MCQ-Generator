@@ -18,7 +18,7 @@ import { normalizeDate } from '@/lib/utils';
 import { ADMIN_EMAILS } from '@/lib/constants';
 import { useDashboard } from "@/context/dashboard-context";
 
-const allLanguages = ["English", "Tamil"] as const;
+const allLanguages = ["English", "Tamil", "Hindi"] as const;
 const ipLanguages = ["English", "Hindi"] as const;
 
 

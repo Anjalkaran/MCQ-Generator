@@ -25,7 +25,7 @@ import { getSyllabi } from '@/lib/firestore';
 import type { SyllabusBlueprint } from '@/lib/types';
 
 const examCategories = ["MTS", "POSTMAN", "PA", "IP", "GROUP B"] as const;
-const allLanguages = ["English", "Tamil"] as const;
+const allLanguages = ["English", "Tamil", "Hindi"] as const;
 const ipLanguages = ["English", "Hindi"] as const;
 
 
@@ -130,7 +130,7 @@ export function MockTestForm() {
     }
   };
 
-  const isPro = checkIsPro(userData);
+  const isPro = checkIsPro(userData) || userData?.examCategory === 'IP';
 
   return (
     <Card>

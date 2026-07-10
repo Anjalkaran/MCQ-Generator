@@ -27,7 +27,7 @@ const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   employeeId: z.string().length(8, { message: 'Employee ID must be 8 digits.' }),
   phone: z.string().min(10, { message: 'Mobile number must be at least 10 digits.' }),
-  preferredLanguage: z.enum(['English', 'Tamil']).optional().default('English'),
+  preferredLanguage: z.enum(['English', 'Tamil', 'Hindi']).optional().default('English'),
 });
 
 export function ProfileForm({ user, userData }: ProfileFormProps) {
@@ -141,7 +141,7 @@ export function ProfileForm({ user, userData }: ProfileFormProps) {
                             <FormLabel>Preferred Language (for Mock Tests)</FormLabel>
                             <FormControl>
                                 <div className="flex gap-2">
-                                    {['English', 'Tamil'].map((lang) => (
+                                    {['English', 'Tamil', 'Hindi'].map((lang) => (
                                         <Button
                                             key={lang}
                                             type="button"

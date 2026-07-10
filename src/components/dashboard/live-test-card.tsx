@@ -35,7 +35,7 @@ export const LiveTestCard = ({ test }: { test: LiveTest }) => {
     const endTime = useMemo(() => normalizeDate(test.endTime), [test.endTime]);
     
     const isAdmin = userData?.email ? ADMIN_EMAILS.includes(userData.email) : false;
-    const isPro = checkIsPro(userData);
+    const isPro = checkIsPro(userData) || userData?.examCategory === 'IP';
     const hasTakenTest = userData?.liveTestsTaken?.includes(test.id);
 
     const isIPTest = test.examCategory === 'IP';
