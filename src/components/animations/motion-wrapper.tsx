@@ -12,7 +12,7 @@ interface MotionWrapperProps extends HTMLMotionProps<"div"> {
 
 export const FadeIn = ({ children, delay = 0, duration = 0.5, ...props }: MotionWrapperProps) => (
   <motion.div
-    initial={{ opacity: 0 }}
+    initial={{ opacity: 1 }}
     animate={{ opacity: 1 }}
     transition={{ duration, delay, ease: "easeOut" }}
     {...props}
@@ -23,7 +23,7 @@ export const FadeIn = ({ children, delay = 0, duration = 0.5, ...props }: Motion
 
 export const SlideUp = ({ children, delay = 0, duration = 0.5, ...props }: MotionWrapperProps) => (
   <motion.div
-    initial={{ opacity: 0, y: 20 }}
+    initial={{ opacity: 1, y: 0 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration, delay, ease: "easeOut" }}
     {...props}
@@ -45,7 +45,7 @@ export const ScaleIn = ({ children, delay = 0, duration = 0.5, ...props }: Motio
 
 export const StaggerContainer = ({ children, ...props }: MotionWrapperProps) => {
   const containerVariants: Variants = {
-    hidden: { opacity: 0 },
+    hidden: { opacity: 1 },
     visible: {
       opacity: 1,
       transition: {
@@ -69,7 +69,7 @@ export const StaggerContainer = ({ children, ...props }: MotionWrapperProps) => 
 
 export const StaggerItem = ({ children, ...props }: MotionWrapperProps) => {
   const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 15 },
+    hidden: { opacity: 1, y: 0 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
   };
 
