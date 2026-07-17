@@ -13,6 +13,15 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error('Root Error Boundary caught:', error);
+    // Auto-reload on chunk load errors
+    if (
+      error.message &&
+      (error.message.includes('ChunkLoadError') || 
+       error.message.includes('Failed to fetch dynamically imported module') ||
+       error.message.includes('PageNotFoundError'))
+    ) {
+      window.location.reload();
+    }
   }, [error]);
 
   return (
@@ -41,7 +50,7 @@ export default function GlobalError({
 
         <div className="flex flex-col gap-3">
           <Button 
-            onClick={() => reset()} 
+            onClick={() => window.location.reload()} 
             className="w-full bg-red-600 hover:bg-red-700 text-white font-bold h-12 rounded-xl"
           >
             <RefreshCcw className="mr-2 h-4 w-4" />
