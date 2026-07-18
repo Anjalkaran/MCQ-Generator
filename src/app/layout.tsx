@@ -1,4 +1,4 @@
-import type {Metadata} from 'next';
+import type {Metadata, Viewport} from 'next';
 import {Outfit} from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
@@ -9,6 +9,14 @@ const siteUrl = "https://anjalkaran.in";
 const siteTitle = "Anjalkaran: Postal Exam Courses for MTS, Postman, PA & IP";
 const siteDescription = "Ace your postal exams! Get expert online courses for MTS, Postman, Postal Assistant (PA), and Inspector of Posts (IP) on the Anjalkaran app. Start learning today!";
 const siteImage = `${siteUrl}/images/logo.png`;
+
+export const viewport: Viewport = {
+  themeColor: '#D62927',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 export const metadata: Metadata = {
   title: siteTitle,
